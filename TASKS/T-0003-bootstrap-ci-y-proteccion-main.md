@@ -2,7 +2,7 @@
 id: T-0003
 title: Activar CI mínimo y proteger main
 kind: CHORE
-status: ACTIVE
+status: INVALID_FOR_CI_TEST
 workstream: POS
 riskClass: MEDIUM
 size: S
