@@ -2,7 +2,7 @@
 id: T-0003
 title: Activar CI mínimo y proteger main
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: S
@@ -55,11 +55,11 @@ gh api repos/emidc/del-campo/branches/main/protection
 
 Comprobaciones humanas:
 
-- [ ] Un PR de prueba con un error documental deliberado muestra el check requerido
+- [x] Un PR de prueba con un error documental deliberado muestra el check requerido
       en rojo y no puede integrarse en ese estado.
-- [ ] Corregir el error en el mismo PR vuelve verde el mismo check.
-- [ ] La protección de `main` exige PR y check verde, y prohíbe force-push y borrado.
-- [ ] El workflow no recibe permisos de escritura que no necesita.
+- [x] Corregir el error en el mismo PR vuelve verde el mismo check.
+- [x] La protección de `main` exige PR y check verde, y prohíbe force-push y borrado.
+- [x] El workflow no recibe permisos de escritura que no necesita.
 
 ## Data effects
 
@@ -74,3 +74,17 @@ ambas operaciones requieren aprobación humana.
   primera ejecución. El bootstrap debe respetar ese orden y verificarlo después.
 - Una prueba negativa mal diseñada podría llegar a `main`. El fallo deliberado vive
   sólo en una rama de prueba y nunca se integra.
+
+## Evidence
+
+- PR de bootstrap y prueba: <https://github.com/emidc/del-campo/pull/1>
+- Ejecución negativa `34245754018`: el commit `a3fe3ae` fue rechazado por el estado
+  deliberadamente inválido `INVALID_FOR_CI_TEST`, y el PR quedó bloqueado.
+- Ejecución de recuperación `34245878376`: el commit `23e80c8` restauró el estado
+  válido mediante una reversión y el mismo check `check` volvió a verde.
+- Commit de merge: `f2d19bca128532c43ef0144a222ccb1059f1ad4d`.
+- Protección inspeccionada por API el 2026-09-08: PR requerido, check `check`
+  requerido en modo estricto, reglas aplicadas a administradores, force-push y
+  eliminación de `main` deshabilitados.
+- El workflow declara únicamente `permissions: contents: read` y deshabilita la
+  persistencia de credenciales en checkout.
