@@ -7,7 +7,7 @@
   },
   "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "check": "node scripts/check-docs.mjs"
+    "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs"
   },
   "dependencies": {
     "yaml": "^2.8.1"
