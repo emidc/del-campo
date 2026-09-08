@@ -1,0 +1,15 @@
+{
+  "name": "del-campo",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "check": "node scripts/check-docs.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  }
+}

@@ -1,0 +1,328 @@
+# Del Campo — Índice de decisiones
+#
+# Fuente de verdad de QUÉ está decidido. El ADR (en DECISIONS/) explica POR QUÉ.
+# Toda otra prosa del repositorio referencia el `id`; no reformula el `statement`.
+#
+# status:
+#   ACCEPTED    decidido; cambiarlo requiere un ADR nuevo que lo supersede
+#   PROVISIONAL decidido por ahora; tiene un criterio de falsación explícito
+#   OPEN        deliberadamente sin decidir; NO se resuelve durante la implementación
+#   SUPERSEDED  reemplazado por otra decisión
+#   REJECTED    considerado y descartado; se registra para no re-litigarlo
+#
+# Campos obligatorios: id, title, status, date, statement, source
+# PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
+
+version: 1
+updated: 2026-09-07
+
+decisions:
+
+  # ── Dominio ──────────────────────────────────────────────────────────────
+
+  - id: D-0001
+    title: Party como identidad raíz del dominio
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md §6
+    statement: >
+      La identidad de una persona física u organización se representa mediante Party.
+      Una Party no cambia de id porque cambie de rol, y no se duplica por participar
+      en más de un contexto.
+
+  - id: D-0002
+    title: Identidad separada de rol; CLIENT es derivado
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md §9 + revisión externa
+    statement: >
+      PartyRole almacena únicamente aserciones no derivables, como PROSPECT.
+      CLIENT no se almacena: es una vista sobre Party más relación comercial vigente
+      o histórica. Como máximo un PartyRole activo por (party, role).
+
+  - id: D-0003
+    title: ContactPoint separado de identidad
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md §13-15
+    statement: >
+      Email, teléfono y WhatsApp son ContactPoints con vigencia, no identificadores
+      de identidad. Resuelven identidad pero no la constituyen. Una comunicación no
+      resoluble permanece UNRESOLVED y nunca se asigna arbitrariamente.
+
+  - id: D-0004
+    title: Party admite fusión sin perder referencias
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa de DOMAIN v0.1
+    statement: >
+      Party incluye mergedIntoPartyId y status MERGED. La resolución sigue la cadena.
+      El id perdedor nunca se reutiliza ni se elimina, porque Policies, DocumentLinks
+      y BusinessAuditEvents append-only ya lo referencian.
+
+  - id: D-0005
+    title: Policy guarda identidad; PolicyVersion guarda estado y vigencia
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md §18-21 + revisión externa
+    adr: DECISIONS/0005-policy-y-policyversion.md
+    statement: >
+      Policy contiene solo identidad inmutable (aseguradora, número, tomador,
+      renewedFromPolicyId). Vigencia, prima, estado y cobertura viven en PolicyVersion.
+      Las versiones no se solapan: intervalos semiabiertos por policy, a lo sumo una
+      versión abierta. Endoso y cancelación son eventos que producen versiones nuevas.
+
+  - id: D-0006
+    title: Una Policy representa un período contractual, no un contrato perpetuo
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md §26 + revisión externa
+    statement: >
+      Una renovación crea una Policy nueva encadenada por renewedFromPolicyId.
+      Todo lo que cuelga de una póliza cuelga de un período. Las preguntas que abarcan
+      varios períodos recorren la cadena, y la migración debe reconstruirla.
+
+  - id: D-0007
+    title: Renewal es una vista derivada, no una entidad
+    status: PROVISIONAL
+    date: 2026-09-07
+    source: DOMAIN.md §25-27
+    statement: >
+      La renovación se detecta desde la vigencia de la PolicyVersion efectiva y el
+      renewalMode. No existe entidad Renewal.
+    falsified_by: >
+      Necesitar registrar un resultado de renovación no derivable de la póliza
+      sucesora; en particular una renovación perdida y su motivo.
+
+  - id: D-0008
+    title: Las pólizas cargadas manualmente son de primera clase
+    status: ACCEPTED
+    date: 2026-09-07
+    source: DOMAIN.md INV-005
+    statement: >
+      Una Policy puede existir sin Quote, sin QuoteOption y sin Issuance. Todo reporte
+      que haga join hacia atrás debe hacer visible cuántas pólizas quedan fuera.
+
+  # ── Systems of record ────────────────────────────────────────────────────
+
+  - id: D-0009
+    title: Google Drive es el system of record documental
+    status: ACCEPTED
+    date: 2026-09-07
+    source: CHARTER §18, DOMAIN.md §37-39
+    statement: >
+      Drive es autoritativo sobre contenido, existencia, ubicación y ACLs.
+      Broker OS mantiene referencia, clasificación, metadata y estado de
+      reconciliación. Nunca es plano de control ni revierte cambios humanos.
+
+  - id: D-0010
+    title: Gmail es el system of record de email; no se copian los cuerpos
+    status: ACCEPTED
+    date: 2026-09-07
+    source: CHARTER §19
+    statement: >
+      Broker OS mantiene un índice de metadata y recupera el contenido desde Gmail
+      cuando hace falta. WhatsApp puede requerir otra política; ver D-0028.
+
+  - id: D-0011
+    title: BusinessAuditEvent y AgentRun son registros separados
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      BusinessAuditEvent pertenece a Broker OS, es append-only y no contiene tokens
+      ni costos. AgentRun pertenece a Project OS y no contiene datos de cliente.
+      El único vínculo es la referencia agentRunId.
+
+  # ── Arquitectura ─────────────────────────────────────────────────────────
+
+  - id: D-0012
+    title: Modular monolith con workers separados
+    status: ACCEPTED
+    date: 2026-09-07
+    source: CHARTER §27
+    statement: >
+      Una sola aplicación modular más procesos worker. No microservicios sin valor
+      operativo u organizativo demostrado. Los procesos prolongados no dependen del
+      ciclo de vida de un request web.
+
+  - id: D-0013
+    title: Supabase se adopta como Postgres administrado
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      Cada otro producto de Supabase (Auth, Storage, Realtime, Queues) es una decisión
+      separada que debe justificarse por sí sola. La base debe permanecer como un
+      Postgres plano restaurable en cualquier proveedor.
+
+  - id: D-0014
+    title: Vercel se acota a la aplicación web
+    status: PROVISIONAL
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      Vercel hospeda la app web. El hosting del worker es una decisión separada y
+      abierta, dominada por: proceso always-on, IP estable, sesión persistente y
+      posible acceso a un segundo factor.
+    falsified_by: >
+      Que el spike de worker runtime muestre que un solo host cubre ambos casos,
+      o que los portales de aseguradoras no impongan restricción por IP.
+
+  # ── Método y arnés ───────────────────────────────────────────────────────
+
+  - id: D-0015
+    title: Project OS Zero es un repositorio, no una aplicación
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    adr: DECISIONS/0015-project-os-zero.md
+    statement: >
+      Project OS empieza como TASKS/, DECISIONS/ y un ledger ops/runs/ escrito por un
+      hook. Sin base de datos, sin servicio, sin adapters, sin UI.
+      Criterio de promoción a aplicación: 30 AgentRuns reales registrados Y el tercer
+      script ad-hoc escrito para consultarlos.
+
+  - id: D-0016
+    title: Un solo execution provider de punta a punta
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      El arnés inicial soporta únicamente Claude Code. La asignación de proveedores por
+      tipo de tarea es una hipótesis no testeada y no se adopta como política hasta
+      que exista un experimento pareado con n suficiente.
+
+  - id: D-0017
+    title: Toda tarea tiene criterios verificables
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      Toda tarea declara evidencia que permite comprobar el outcome. Cuando el
+      resultado es mecánicamente verificable, declara comandos ejecutables. SPIKE y
+      REVIEW pueden usar evidencia y comprobaciones humanas explícitas.
+
+  - id: D-0018
+    title: Los archivos de proveedor importan el neutral, no lo proyectan
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      AGENTS.md es el archivo neutral. CLAUDE.md lo importa con @AGENTS.md y agrega
+      debajo solo lo específico de Claude Code. No se construye ningún generador de
+      archivos de proveedor.
+
+  - id: D-0019
+    title: Vertical Slice 01 es Póliza + Documentos + Búsqueda
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa del Charter
+    statement: >
+      La primera rebanada vertical importa las pólizas vigentes en modo lectura, las
+      vincula a sus carpetas de Drive y ofrece una búsqueda única. Sin efectos externos,
+      sin agentes, sin portal. Debe ser útil aunque el resto del programa se cancele.
+
+  - id: D-0020
+    title: ContactPoint entra en VS01 como write-only
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa de DOMAIN v0.1
+    statement: >
+      La migración puebla ContactPoint aunque VS01 todavía no lo use para resolver
+      identidad. Sin esto, emails y teléfonos se descartan en el import y hay que
+      reimportar.
+
+  - id: D-0021
+    title: La lista de aseguradoras es un conjunto curado con alias de importación
+    status: ACCEPTED
+    date: 2026-09-07
+    source: revisión externa de DOMAIN v0.1
+    statement: >
+      El importador no crea Insurers sobre la marcha desde strings de Zoho. La lista es
+      cerrada y curada, con una tabla de alias para el matching.
+
+  # ── Decisiones deliberadamente abiertas ──────────────────────────────────
+  # No se resuelven durante la implementación. Requieren spike y ADR.
+
+  - id: D-0022
+    title: Punto de enforcement de autorización
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §61
+    statement: >
+      RLS de Postgres, capa de aplicación, o híbrido. Debe responder si el predicado
+      temporal de acceso de aseguradoras es expresable, y qué ocurre cuando un worker
+      o un agente se conecta con service role.
+    unblocked_by: T-0002
+
+  - id: D-0023
+    title: Representación de Insurer
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §61
+    statement: >
+      InsurerProfile ligado a una Party ORGANIZATION, o PartyRole INSURER.
+      Recomendación de la revisión externa: perfil, no rol. En VS01 Insurer es solo
+      una lista de referencia, así que la decisión puede diferirse sin costo.
+    unblocked_by: POC de cotización
+
+  - id: D-0024
+    title: Unicidad física de ContactPoint
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §16
+    statement: >
+      Constraint estricta o conflicto explícito gestionado por la aplicación.
+      Validar contra datos reales; hay líneas compartidas y números reciclados.
+    unblocked_by: POC de WhatsApp
+
+  - id: D-0025
+    title: Representación de la cobertura en PolicyVersion
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §61
+    statement: >
+      Cuánto de coverageData debe estructurarse. No decidir antes de observar pólizas
+      reales de al menos dos compañías.
+    unblocked_by: VS01
+
+  - id: D-0026
+    title: Representación de InsuranceProduct
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §61
+    statement: >
+      Determinar cuándo los códigos y nombres de producto dejan de ser suficientes.
+    unblocked_by: POC de cotización
+
+  - id: D-0027
+    title: Estructura de PortfolioAssignment
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §45
+    statement: >
+      La asignación de cartera a un productor debe conservar historia. Estructura
+      física a definir junto con la autorización.
+    unblocked_by: D-0022
+
+  - id: D-0028
+    title: Persistencia de comunicaciones, Gmail vs WhatsApp
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §40-42
+    statement: >
+      Gmail permite índice de metadata y recuperación posterior. WhatsApp desde un
+      dispositivo físico probablemente exija persistir contenido; eso cambia la
+      clasificación de datos.
+    unblocked_by: POC de WhatsApp
+
+  - id: D-0029
+    title: Abstracción RiskObject
+    status: OPEN
+    date: 2026-09-07
+    source: DOMAIN.md §28
+    statement: >
+      Determinar cuándo emerge una estructura común a distintos ramos. Aplica la regla
+      de dos: hacen falta dos estructuras de riesgo con necesidad compartida.
+    unblocked_by: segundo ramo modelado
