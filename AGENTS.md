@@ -100,6 +100,9 @@ Si hay información contradictoria entre documentos: identificar el conflicto, i
 
 ## Estado actual del programa
 
-Fase **Project OS Zero**: este repositorio contiene documentos, decisiones y tareas. No hay código de aplicación todavía, y no se empieza hasta que los spikes que bloquean decisiones estructurales estén resueltos.
+Fase **Project OS Zero**: este repositorio contiene documentos, decisiones y tareas.
+No hay código de aplicación todavía. Antes de VS01 se resuelven las incertidumbres que
+puedan cambiar su alcance; `T-0002` no lo bloquea y se activa recién antes del primer
+acceso multi-principal, portal externo o proceso privilegiado sobre Broker OS.
 
 **No iniciar trabajo grande de implementación de Broker OS salvo pedido explícito.**

@@ -302,7 +302,8 @@ decisions:
     source: DOMAIN.md §55, §69
     statement: >
       La asignación de cartera a un productor debe conservar historia. Estructura
-      física a definir junto con la autorización.
+      física a definir a partir de la evidencia de D-0022 y antes de implementar
+      autorización productiva para productores.
     unblocked_by: D-0022
 
   - id: D-0028

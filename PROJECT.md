@@ -40,10 +40,23 @@ No hay base de datos, no hay servicio, no hay adapters, no hay UI.
 
 **Criterio de promoción a aplicación:** haber registrado al menos 30 AgentRuns reales **y** haber escrito el tercer script ad-hoc para consultarlos. Hasta que las dos condiciones se cumplan, Project OS sigue siendo archivos. → `D-0015`
 
+### Próximo incremento
+
+`T-0004` mide los dos supuestos que sí pueden cambiar VS01: la semántica real de los
+campos de póliza en Zoho y la conformidad de la estructura de Drive. Es trabajo de
+descubrimiento de Migración, de solo lectura, y puede ejecutarse mientras Project OS
+Zero acumula evidencia de uso.
+
 ### Qué sigue después de esta fase
 
-1. Spikes que bloquean decisiones estructurales, en serie, con timebox de una semana: enforcement de autorización (`D-0022`, estado `OPEN`), semántica de campos de Zoho, hosting del worker.
-2. **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
+1. Convertir la evidencia de `T-0004` en el contrato ejecutable de **Vertical Slice
+   01** — Póliza + Documentos + Búsqueda. → `D-0019`
+2. Implementar VS01 con el alcance que esa evidencia permita sostener.
+
+El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
+activa antes del primer acceso multi-principal, del portal externo o de un worker o
+agente con acceso privilegiado a Broker OS. El spike de hosting del worker se activa
+cuando un incremento requiera ese proceso.
 
 ---
 
@@ -90,7 +103,7 @@ Con un solo desarrollador, el límite no es una preferencia de método: es la ú
 | `ARCHITECTURE.md` | Haya ~5 ADR que necesiten síntesis |
 | `BUSINESS_CONTEXT.md` | El process mapping produzca material real |
 | `ROADMAP.md` | La secuencia esté decidida, después de los primeros spikes |
-| `SPIKES/`, `POCS/` | Los cree su primer contenido |
+| `SPIKES/`, `POCS/`, `REVIEWS/` | Los crea su primer contenido |
 
 Un documento vacío es peor que un documento ausente: cuesta tokens y no informa.
 
