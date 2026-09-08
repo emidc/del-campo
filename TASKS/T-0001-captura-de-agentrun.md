@@ -126,12 +126,17 @@ por defecto `.git/agentrun-state/`): un archivo JSON por `session_id`, escrito e
 `RUN_STARTED` y borrado en `RUN_ENDED`. Ese directorio no se versiona por
 construcción —vive dentro de `.git/`— y no necesita entrada en `.gitignore`.
 
-Archivos versionados que toca esta tarea: `scripts/record-agent-run.mjs` y
-`ops/AGENTRUN.md`. **No** modifica `.claude/settings.json`: los dos hooks ya estaban
-registrados y el comportamiento nuevo vive entero en el script.
+Archivos de implementación versionados que toca esta tarea:
+`scripts/record-agent-run.mjs` y `ops/AGENTRUN.md`. Los eventos sanitizados que el hook
+genera bajo `ops/runs/` son artefactos retenidos y también se versionan; no se editan
+después de ser anexados. Los eventos pre-schema que incumplen la lista permitida de
+`providerRaw` se conservan fuera del repositorio y no se incorporan retroactivamente.
+**No** modifica `.claude/settings.json`: los dos hooks ya estaban registrados y el
+comportamiento nuevo vive entero en el script.
 
-Reversible: borrar `ops/runs/<fecha>.jsonl` y el directorio de estado; revertir los
-dos archivos versionados.
+Reversible: borrar el estado efímero de correlación y revertir los dos archivos de
+implementación. Un ledger ya versionado se conserva como historia append-only; no se
+borra como parte de una reversión ordinaria del hook.
 
 ## Notes
 
@@ -140,3 +145,7 @@ su telemetría completa ni el éxito funcional de una tarea. `SessionEnd` signif
 que la sesión terminó; no equivale por sí solo a `COMPLETED`.
 
 Registrar poco y confiable vence a registrar mucho e inventado.
+
+El ledger producido durante el desarrollo inicial del hook usó el esquema anterior y
+contenía rutas locales dentro de `providerRaw`. Se archivó fuera del repositorio y no
+se usará como evidencia de cumplimiento del esquema vigente.

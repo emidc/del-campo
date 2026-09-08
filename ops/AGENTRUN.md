@@ -20,6 +20,20 @@ cliente. → `D-0011`
 de una sesión. El ledger registra eventos porque JSONL append-only no permite completar
 un registro anterior sin reescribirlo.
 
+## Retención y versionado
+
+Los archivos `ops/runs/YYYY-MM-DD.jsonl` que cumplen el esquema vigente se versionan
+junto con el contexto y el arnés que los produjo. Son evidencia retenida, no una fuente
+canónica sobre el estado actual del sistema. Antes de incorporarlos a Git se comprueba
+que no contengan datos de cliente y que `providerRaw` respete la lista permitida del
+esquema. `transcriptPath` puede conservar la ruta local necesaria para derivar tokens y
+costo. Esta retención implementa el ledger en repositorio definido por `D-0015`.
+
+Un evento producido por un esquema anterior que exponga campos hoy prohibidos no se
+reescribe para hacerlo parecer vigente ni se incorpora a Git. Se preserva, si aporta
+valor histórico, en un archivo local fuera del repositorio y se identifica como
+pre-schema. Esta excepción no cambia la política para los eventos nuevos.
+
 ## Correlación de `RUN_ENDED`
 
 El `runId` **no** se deriva del `session_id`: si lo hiciera, dos runs de una misma
