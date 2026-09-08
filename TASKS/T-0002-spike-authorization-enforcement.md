@@ -2,13 +2,13 @@
 id: T-0002
 title: Decidir dónde se hace cumplir la autorización
 kind: SPIKE
-status: BLOCKED
+status: READY
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-07
 blockedBy: []
-contextRefs: [DOMAIN.md, docs/history/SOURCES.md]
+contextRefs: [DOMAIN.md]
 decisionRefs: [D-0022, D-0027, D-0013]
 ---
 
@@ -17,9 +17,6 @@ decisionRefs: [D-0022, D-0027, D-0013]
 Es la decisión abierta que más condiciona el resto del sistema: determina cómo consulta cada endpoint, cómo accede el worker, cómo accede un agente, y si el portal externo se puede construir sobre el mismo modelo que la aplicación interna. Se toma antes de escribir el primer endpoint, o se toma sola y queda embebida en el código.
 
 También bloquea `D-0027`, porque la asignación de cartera a un productor solo se puede estructurar sabiendo dónde se evalúa el permiso.
-
-El bundle recibido no contenía el `DOMAIN.md` canónico completo. Por eso esta tarea
-permanece `BLOCKED` hasta incorporar ese snapshot sin reconstruirlo ni resumirlo.
 
 ## Outcome
 

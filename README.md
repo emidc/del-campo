@@ -9,10 +9,8 @@ Todavía no hay código de aplicación: se crea cuando arranque el Vertical Slic
 
 1. `PROJECT.md` — qué es esto, en qué fase estamos, dónde está cada cosa.
 2. `AGENTS.md` — contrato operativo para cualquier modelo o persona que trabaje acá.
-3. `docs/history/SOURCES.md` — procedencia y fuentes canónicas todavía faltantes.
-
-`DOMAIN.md` debe leerse antes de discutir entidades, pero no estaba incluido en los
-adjuntos recibidos. No ejecutar tareas de dominio hasta incorporar el original.
+3. `DOMAIN.md` — lenguaje, identidades e invariantes canónicas de Broker OS.
+4. `docs/history/SOURCES.md` — procedencia del baseline y fuentes todavía faltantes.
 
 ## Comandos
 

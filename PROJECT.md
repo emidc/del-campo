@@ -73,7 +73,7 @@ Con un solo desarrollador, el límite no es una preferencia de método: es la ú
 | Documento | Qué contiene | Cuándo leerlo |
 |---|---|---|
 | `PROJECT.md` | Este índice, la fase, el WIP limit | Siempre primero |
-| `DOMAIN.md` | Lenguaje canónico, identidades, invariantes, qué se modela y qué no. Pendiente de incorporar desde el original | Antes de discutir cualquier entidad o schema |
+| `DOMAIN.md` | Lenguaje canónico, identidades, invariantes, qué se modela y qué no | Antes de discutir cualquier entidad o schema |
 | `ENGINEERING_RULES.md` | Reglas de trabajo para humanos y agentes | Antes de escribir código o ejecutar una tarea |
 | `AGENTS.md` | Contrato operativo neutral respecto del proveedor | Lo carga todo agente automáticamente |
 | `CLAUDE.md` | `AGENTS.md` más lo específico de Claude Code | Lo carga Claude Code automáticamente |
@@ -98,9 +98,10 @@ Un documento vacío es peor que un documento ausente: cuesta tokens y no informa
 
 ## 7. Estado del baseline
 
-`DOMAIN.md` v0.1 fue declarado baseline por el material de origen, pero no fue
-entregado como archivo completo. Este candidato no finge contenerlo: la procedencia y
-la deuda están en `docs/history/SOURCES.md`, y `T-0002` permanece bloqueada.
+`DOMAIN.md` v0.1 está incorporado como baseline. Su texto se recuperó completo desde
+la conversación de origen y su sección de decisiones abiertas se normalizó para usar
+los ids estables de `decisions.yaml`. La procedencia está en
+`docs/history/SOURCES.md`.
 
 Las decisiones estructurales aceptadas y las preguntas deliberadamente abiertas están
 en `decisions.yaml`; las abiertas **no deben resolverse accidentalmente durante la

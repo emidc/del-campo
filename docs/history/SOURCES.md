@@ -1,4 +1,4 @@
-# Fuentes del bundle recibido
+# Fuentes del baseline
 
 Este archivo preserva la procedencia de Project OS Zero sin fabricar documentos
 canónicos a partir de resúmenes.
@@ -19,17 +19,31 @@ es la fuente estructural usada para esta revisión.
 | `CLAUDE.md` | `e495c1007f289f40f6c833af85c0010bd42af728720f297b65315368d7fe428f` |
 | `AGENTS.md` | `a46f2fee6bbdc18bae4f776e9e0e727ef35773c4bbb64e48c5c0b0df65df23ad` |
 
-## Fuentes canónicas citadas pero no recibidas
+## Fuente canónica recuperada
 
-- `DOMAIN.md v0.1`
+`DOMAIN.md v0.1` se recuperó completo y literalmente, en tres tramos contiguos,
+desde la conversación canónica `6a9de4e0-0be0-83e9-915e-db0cdf7269c5`:
+
+- secciones 1–20: mensaje `d2596a7c-626c-4204-a7fb-8c13ed54dae2`;
+- secciones 21–40: mensaje `3bd88a78-536f-4ee2-bb86-b20ed16dcb43`;
+- secciones 41–74: mensaje `d0a48dc6-4490-4033-8d8d-e2cc2cf56d51`.
+
+Para integrarlo con Project OS Zero se normalizaron dos puntos de autoridad: el
+preámbulo distingue la semántica canónica de dominio de la autoridad de decisiones, y
+la sección 69 reemplaza los ids `OPEN-001` a `OPEN-009` por referencias estables
+`D-0022` a `D-0030`. El texto y el estado canónicos de esas decisiones viven en
+`decisions.yaml`.
+
+| Artefacto incorporado | SHA-256 |
+|---|---|
+| `DOMAIN.md` | `e15279b1a686484a694aab29509a84e32488a23eca2eda1fff9715c8464b4214` |
+
+## Fuente canónica citada pero no recibida
+
 - `Project Charter` / `CHARTER` (la conversación menciona v0.2.1)
 
-No se incluyeron como archivos completos en los adjuntos. Fragmentos visibles en una
-conversación no se copiaron: un fragmento reconstruido no es una fuente canónica.
+Hasta incorporar el original:
 
-Hasta incorporar los originales:
-
-- no afirmar que este SHA reconstruye el contexto de dominio;
-- mantener bloqueada toda Task que dependa de ellos;
-- no reemplazarlos por resúmenes;
-- al recibirlos, guardarlos completos y conservar versión o hash.
+- no afirmar que este repositorio contiene el Charter completo;
+- no reemplazarlo por resúmenes;
+- al recibirlo, guardarlo completo y conservar versión o hash.

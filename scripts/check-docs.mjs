@@ -158,7 +158,7 @@ if (active.length > 2)
 const activeSpikes = active.filter((task) => task.fm?.kind === 'SPIKE')
 if (activeSpikes.length > 1) fail(`WIP limit superado: ${activeSpikes.length} spikes ACTIVE (máximo 1)`)
 
-for (const file of ['PROJECT.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINEERING_RULES.md']) {
+for (const file of ['PROJECT.md', 'DOMAIN.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINEERING_RULES.md']) {
   if (!existsSync(file)) continue
   const text = readFileSync(file, 'utf8')
   for (const ref of text.match(/\bD-\d{4}\b/g) ?? []) {
