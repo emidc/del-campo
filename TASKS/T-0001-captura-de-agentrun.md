@@ -2,7 +2,7 @@
 id: T-0001
 title: Registrar cada ejecución de agente en el ledger de Project OS
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: LOW
 size: S
@@ -121,10 +121,10 @@ eventos ni habilite un `RUN_ENDED` huérfano.
 
 Comprobación humana:
 
-- [ ] Después de una sesión real de Claude Code sobre una rama `task/T-XXXX-…`, el
+- [x] Después de una sesión real de Claude Code sobre una rama `task/T-XXXX-…`, el
       registro tiene el `taskId` correcto, y una sesión reanudada produce un segundo
       par `RUN_STARTED`/`RUN_ENDED` con `runId` distinto y el mismo `providerSessionId`.
-- [ ] El directorio de estado de correlación (`git rev-parse --git-path agentrun-state`)
+- [x] El directorio de estado de correlación (`git rev-parse --git-path agentrun-state`)
       no aparece en `git status` ni queda con archivos huérfanos tras cerrar sesiones.
 
 ## Data effects
@@ -159,3 +159,17 @@ Registrar poco y confiable vence a registrar mucho e inventado.
 El ledger producido durante el desarrollo inicial del hook usó el esquema anterior y
 contenía rutas locales dentro de `providerRaw`. Se archivó fuera del repositorio y no
 se usará como evidencia de cumplimiento del esquema vigente.
+
+## Evidence
+
+- `c907ccd`: endurece la correlación, usa UUID completo y agrega la suite funcional a
+  `pnpm check`.
+- `9e824e4`: conserva cuatro eventos reales generados con el arnés de `c907ccd`: dos
+  pares completos para `startup` y `resume` sobre la rama de T-0001.
+- Los cuatro eventos reales tienen `taskId: T-0001`, un solo `providerSessionId`, dos
+  `runId` distintos, `repoSha`/`harnessSha` iguales a `c907ccd`, `settingSources:
+  project` y `providerRaw` sin `cwd` ni `transcript_path`.
+- Después de ambos cierres, `.git/agentrun-state/` quedó sin archivos.
+- La suite automatizada verificó lifecycle, concurrencia, sanitización, fuentes
+  inválidas y que un fallo de escritura de `RUN_STARTED` no habilite un
+  `RUN_ENDED` huérfano.
