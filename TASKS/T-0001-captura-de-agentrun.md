@@ -20,12 +20,14 @@ Es la primera tarea del programa porque su valor depende de empezar temprano y s
 
 ## Outcome
 
-Cada arranque de sesión de Claude Code —`startup`, `resume`, `clear` o `fork`— abre
+Cada arranque de sesión de Claude Code —`startup`, `resume` o `clear`— abre
 un run con `runId` propio y aleatorio, y deja un `RUN_STARTED` en
 `ops/runs/<fecha>.jsonl`. `compact` no abre un run: la sesión continúa. `SessionEnd`
 deja un `RUN_ENDED` que se correlaciona con su `RUN_STARTED` leyendo estado local no
-versionado bajo la ruta de Git; el par comparte `runId`. Sus SHAs y timestamps
-permiten derivar un AgentRun normalizado sin actualizar líneas append-only.
+versionado bajo la ruta de Git. La clave separa cada combinación de sesión y proceso
+anfitrión, por lo que dos resumes concurrentes no colisionan. El par comparte `runId`;
+sus SHAs y timestamps permiten derivar un AgentRun normalizado sin actualizar líneas
+append-only.
 
 Un mismo `providerSessionId` puede aparecer en varios runs (una sesión reanudada).
 Los errores de entrada, correlación o escritura del hook terminan con código distinto
@@ -43,8 +45,11 @@ El registro se escribe solo, sin que nadie se acuerde de hacerlo.
 ## Verification
 
 ```bash
-# 1. El check de documentos pasa
+# 1. El check completo del repositorio pasa
 pnpm check
+
+# pnpm check también ejecuta la suite funcional de AgentRun; puede correrse sola
+node scripts/check-agent-run.mjs
 
 # 2. Ciclo de vida completo: startup+end, resume, compact, y los tres modos de error
 WORK="$(mktemp -d)"
@@ -110,6 +115,10 @@ node --input-type=module -e '
 git log -1 --format=%H -- .claude scripts/record-agent-run.mjs
 ```
 
+La suite automatizada cubre además dos procesos concurrentes sobre el mismo
+`session_id` y una falla al persistir `RUN_STARTED`; comprueba que ningún caso pierda
+eventos ni habilite un `RUN_ENDED` huérfano.
+
 Comprobación humana:
 
 - [ ] Después de una sesión real de Claude Code sobre una rama `task/T-XXXX-…`, el
@@ -122,8 +131,9 @@ Comprobación humana:
 
 Escribe el ledger append-only en `ops/runs/<fecha>.jsonl`. Mantiene estado de
 correlación efímero bajo la ruta de Git (`git rev-parse --git-path agentrun-state`,
-por defecto `.git/agentrun-state/`): un archivo JSON por `session_id`, escrito en
-`RUN_STARTED` y borrado en `RUN_ENDED`. Ese directorio no se versiona por
+por defecto `.git/agentrun-state/`): un archivo JSON por combinación de `session_id`
+y proceso anfitrión, reservado y confirmado en `RUN_STARTED`, y borrado en
+`RUN_ENDED`. Ese directorio no se versiona por
 construcción —vive dentro de `.git/`— y no necesita entrada en `.gitignore`.
 
 Archivos de implementación versionados que toca esta tarea:

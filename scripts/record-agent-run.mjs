@@ -1,22 +1,21 @@
 #!/usr/bin/env node
 // Registra eventos append-only del lifecycle de una sesión de Claude Code.
 //
-//   SessionStart(startup|resume|clear|fork) → RUN_STARTED con runId nuevo
+//   SessionStart(startup|resume|clear)      → RUN_STARTED con runId nuevo
 //   SessionStart(compact)                   → no-op: el run en curso continúa
 //   SessionEnd                              → RUN_ENDED con el runId correlacionado
 //
 // El runId lo genera RUN_STARTED al azar y lo guarda en estado local NO versionado
 // bajo la ruta de Git (`git rev-parse --git-path agentrun-state`). SessionEnd lo lee
-// de ahí. No se deriva del session_id porque resume/clear/fork reusan el session_id
-// para runs distintos.
+// de ahí. La clave combina session_id con el proceso anfitrión del hook para separar
+// dos resumes concurrentes de la misma sesión.
 //
 // Los errores de entrada, de correlación o de escritura terminan con código 1
-// (no-bloqueante: la sesión sigue, pero el fallo queda visible). Nunca se usa el
-// código 2, que bloquearía el arranque o el cierre de la sesión.
+// (SessionStart y SessionEnd no son eventos bloqueables; el fallo queda visible).
 
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { join, resolve } from 'node:path'
 
 // providerRaw preserva solo estos campos: descriptivos, de baja cardinalidad y sin
@@ -33,6 +32,7 @@ const RAW_ALLOWED = new Set([
 // settingSources solo acepta declaración explícita con estos tokens. Sin declaración
 // es "unknown". "bare" no es capturable: sin settings cargados este hook no corre.
 const SETTING_SOURCE_TOKENS = new Set(['default', 'project', 'user', 'local'])
+const SESSION_START_SOURCES = new Set(['startup', 'resume', 'clear', 'compact'])
 
 const die = (kind, message) => {
   console.error(`[record-agent-run] error de ${kind}: ${message}`)
@@ -59,6 +59,8 @@ const eventType = { SessionStart: 'RUN_STARTED', SessionEnd: 'RUN_ENDED' }[hook.
 if (!eventType) process.exit(0) // un evento que este hook no proyecta
 
 if (typeof hook.session_id !== 'string' || !hook.session_id) die('entrada', 'falta session_id')
+if (eventType === 'RUN_STARTED' && !SESSION_START_SOURCES.has(hook.source))
+  die('entrada', `source de SessionStart inválido: ${hook.source ?? 'ausente'}`)
 
 // compact no abre un run: la sesión continúa con el runId ya asignado.
 if (eventType === 'RUN_STARTED' && hook.source === 'compact') process.exit(0)
@@ -80,7 +82,13 @@ const git = (...args) => {
 const stateDir = process.env.AGENTRUN_STATE_DIR
   ? resolve(process.env.AGENTRUN_STATE_DIR)
   : resolve(root, git('rev-parse', '--git-path', 'agentrun-state') || join('.git', 'agentrun-state'))
-const stateFile = join(stateDir, `${hook.session_id.replace(/[^A-Za-z0-9_-]/g, '_')}.json`)
+// Cada invocación del hook es hija del proceso de Claude Code que aloja la sesión.
+// El override existe sólo para reproducir procesos independientes en tests.
+const executionKey = process.env.AGENTRUN_EXECUTION_KEY || String(process.ppid)
+const stateKey = createHash('sha256')
+  .update(`${hook.session_id}\0${executionKey}`)
+  .digest('hex')
+const stateFile = join(stateDir, `${stateKey}.json`)
 
 const now = new Date()
 const iso = now.toISOString()
@@ -95,7 +103,14 @@ if (eventType === 'RUN_STARTED') {
     mkdirSync(stateDir, { recursive: true })
     writeFileSync(
       stateFile,
-      `${JSON.stringify({ runId, startedAt: iso, source: hook.source ?? null })}\n`,
+      `${JSON.stringify({
+        runId,
+        providerSessionId: hook.session_id,
+        startedAt: iso,
+        source: hook.source ?? null,
+        persisted: false,
+      })}\n`,
+      { flag: 'wx' },
     )
   } catch (error) {
     die('escritura', `no se pudo guardar el estado de correlación: ${error.message}`)
@@ -108,6 +123,10 @@ if (eventType === 'RUN_STARTED') {
   }
   if (typeof startedState?.runId !== 'string')
     die('correlación', `estado de correlación corrupto para ${hook.session_id}`)
+  if (startedState.providerSessionId !== hook.session_id)
+    die('correlación', `estado de correlación pertenece a otra sesión`)
+  if (startedState.persisted !== true)
+    die('correlación', `RUN_STARTED no confirmado en el ledger para ${hook.session_id}`)
   runId = startedState.runId
 }
 
@@ -124,7 +143,7 @@ const settingSources =
 const branch = git('rev-parse', '--abbrev-ref', 'HEAD')
 
 const record = {
-  eventId: `e_${day.replaceAll('-', '')}_${randomUUID().slice(0, 8)}`,
+  eventId: `e_${day.replaceAll('-', '')}_${randomUUID().replaceAll('-', '')}`,
   runId,
   eventType,
   occurredAt: iso,
@@ -148,11 +167,30 @@ try {
   mkdirSync(dir, { recursive: true })
   appendFileSync(join(dir, `${day}.jsonl`), `${JSON.stringify(record)}\n`)
 } catch (error) {
+  // Una reserva pendiente nunca debe habilitar un RUN_ENDED sin RUN_STARTED.
+  if (eventType === 'RUN_STARTED') {
+    try {
+      rmSync(stateFile, { force: true })
+    } catch {
+      /* persisted:false también impide consumirla si el rollback falla */
+    }
+  }
   die('escritura', `no se pudo escribir el ledger: ${error.message}`)
 }
 
-// RUN_ENDED consume el estado de correlación.
-if (eventType === 'RUN_ENDED') {
+if (eventType === 'RUN_STARTED') {
+  try {
+    writeFileSync(
+      stateFile,
+      `${JSON.stringify({ ...JSON.parse(readFileSync(stateFile, 'utf8')), persisted: true })}\n`,
+    )
+  } catch (error) {
+    // RUN_STARTED ya es evidencia durable. Sin estado confirmado quedará RUNNING,
+    // pero nunca podrá producirse un RUN_ENDED huérfano.
+    die('escritura', `RUN_STARTED escrito pero no se pudo confirmar su estado: ${error.message}`)
+  }
+} else {
+  // RUN_ENDED consume el estado de correlación sólo después del append exitoso.
   try {
     rmSync(stateFile, { force: true })
   } catch {
