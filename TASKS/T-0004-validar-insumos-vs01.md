@@ -2,7 +2,7 @@
 id: T-0004
 title: Medir los insumos reales de VS01
 kind: REVIEW
-status: READY
+status: ACTIVE
 workstream: MIG
 riskClass: MEDIUM
 size: M
@@ -32,6 +32,9 @@ Existe un informe agregado y reproducible en `REVIEWS/T-0004-insumos-vs01.md` qu
 - mide sobre una muestra declarada qué porcentaje de empresas y particulares cumple
   la convención de carpetas de Drive y qué porcentaje permite vincular una póliza sin
   intervención manual;
+- produce el catálogo curado de aseguradoras y su tabla de alias de importación, a
+  partir de los strings realmente presentes en Zoho, dejando los valores no resueltos
+  listados como pendientes de curación humana en vez de resueltos por parecido;
 - clasifica los fallos de vinculación observados; y
 - recomienda, con umbrales y evidencia, si VS01 puede vincular documentos
   automáticamente, necesita conciliación asistida o debe reducir su alcance.
@@ -42,6 +45,8 @@ internas sin PII.
 ## Non-scope
 
 - No se implementa el importador, el schema, la búsqueda ni la UI de VS01.
+- No se implementa el matching de alias: esta revisión produce el catálogo, no el código
+  que lo consume.
 - No se limpian ni corrigen datos de Zoho o Drive.
 - No se mueven, renombran, crean ni eliminan archivos o carpetas.
 - No se copian exports, nombres, documentos ni identificadores de clientes al
@@ -67,6 +72,9 @@ Comprobaciones humanas:
 - [ ] La medición de Drive informa por separado empresas y particulares, porcentaje
       de conformidad, porcentaje de vinculación automática y principales clases de
       fallo.
+- [ ] El catálogo de aseguradoras es cerrado: todo string observado en la muestra
+      resuelve a una entrada del catálogo o figura en la lista de no resueltos, y
+      ninguna entrada se creó por parecido de texto sin confirmación.
 - [ ] La recomendación para VS01 declara el umbral utilizado y qué resultado cambiaría
       esa recomendación.
 - [ ] Una revisión del diff confirma que no ingresaron PII, exports ni referencias a
