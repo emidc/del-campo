@@ -7,3 +7,5 @@ node_modules/
 .claude/settings.local.json
 CLAUDE.local.md
 
+# Exports locales de Zoho y sus derivados
+/data/zoho-export-*/

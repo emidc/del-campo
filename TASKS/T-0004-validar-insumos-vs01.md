@@ -48,9 +48,11 @@ internas sin PII.
 - No se implementa el matching de alias: esta revisión produce el catálogo, no el código
   que lo consume.
 - No se limpian ni corrigen datos de Zoho o Drive.
-- No se mueven, renombran, crean ni eliminan archivos o carpetas.
-- No se copian exports, nombres, documentos ni identificadores de clientes al
-  repositorio, prompts o logs.
+- No se mueven, renombran, crean ni eliminan archivos o carpetas de las fuentes.
+  Se permiten copias locales de los ZIP hacia `raw/` y reportes en `profile/`,
+  dentro de `data/zoho-export-*/`, ignorado por Git, sin sobrescribir originales.
+- No se incorporan exports, nombres, documentos ni identificadores de clientes al
+  contenido versionado, prompts o logs.
 - No se decide autenticación, autorización, hosting ni el alcance del portal.
 - No se escribe el contrato final de VS01; esta revisión produce la evidencia que lo
   condiciona.
@@ -59,6 +61,9 @@ internas sin PII.
 
 ```bash
 pnpm check
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -p 'test_profile_zoho.py'
+git check-ignore data/zoho-export-2026-09-16/original-zips/
+test -z "$(git ls-files -- data/)"
 ```
 
 Comprobaciones humanas:
@@ -83,7 +88,9 @@ Comprobaciones humanas:
 ## Data effects
 
 Solo lectura de fuentes reales mediante acceso humano autorizado o muestras
-sanitizadas. El repositorio recibe exclusivamente el informe agregado y redactado. No
+sanitizadas. El contenido versionado recibe exclusivamente código de profiling y
+evidencia agregada y redactada. Los exports y derivados permanecen locales bajo
+`data/zoho-export-*/`, con protección de Git verificada antes de escribir. No
 se modifica Zoho, Drive ni ningún dato de clientes; si no puede garantizarse esa
 separación, la revisión se detiene y registra la limitación.
 
