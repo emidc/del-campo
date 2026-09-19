@@ -14,7 +14,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-07
+updated: 2026-09-19
 
 decisions:
 
@@ -336,3 +336,51 @@ decisions:
       Determinar si la prospección debe permanecer como una aserción sobre Party o
       pertenecer a una oportunidad o producto específico.
     unblocked_by: POC de oportunidad comercial
+
+  # ── Cierre de discovery de Migración ─────────────────────────────────────
+
+  - id: D-0031
+    title: Baseline de migración y curación humana de T-0004
+    status: ACCEPTED
+    date: 2026-09-19
+    source: Aprobación humana de cierre de T-0004; REVIEWS/T-0004-insumos-vs01.md
+    statement: >
+      Se acepta el baseline de discovery de T-0004 sobre el lote Zoho de septiembre
+      de 2026: Policy con Estado exactamente VIGENTE o Vigencia Fin entre
+      2026-01-01 y 2026-09-16 inclusive, sus Endorsements, todas las Opportunities
+      y Claims, Tasks creadas en 2026 y closure de Contactos/Cuentas a punto fijo.
+      Las contradicciones Estado/fecha no alteran inclusión. Cuenta prevalece como
+      tomador cuando hay Cuenta y Contacto; Contacto queda relacionado. Claims
+      históricos pueden conservar referencia fuente sin FK interna a Policy.
+      CUIT/CUIL es obligatorio para entidades validadas; legado sin fiscal válido
+      se conserva con NEEDS_IDENTITY_COMPLETION y todo merge fiscal requiere
+      revisión humana. Emision no es core a migrar; Productos representa ramo/tipo.
+      La curación humana aprueba 14 NEW_ENTITY y 1 SAME_ENTITY para los 15 Productos
+      huérfanos, y 10 NEW_ENTITY y 3 SAME_ENTITY, todos ASEGURADORA, para los 13
+      Proveedores huérfanos en scope; sin ALIAS_OF ni REVIEW en esos 28 casos.
+      Se preservan source IDs, displays y trazabilidad; no se crean jerarquías ni
+      se fusionan entidades por similitud o grupo empresarial. Las restantes
+      entradas de los 37 Proveedores conservan su clasificación derivada o pendiente.
+      Esto aprueba insumos y tratamiento de migración, no ejecuta altas, merges ni
+      importación ni cambia el schema; la alineación de dominio queda para T-0015.
+
+  - id: D-0032
+    title: Cierre de discovery documental con conciliación asistida
+    status: ACCEPTED
+    date: 2026-09-19
+    source: Aprobación humana de cierre de T-0004; REVIEWS/T-0004-drive-validation.md
+    statement: >
+      La estrategia de migración de Drive legacy conserva las referencias existentes
+      y permite vincularlas mediante conciliación asistida cuando haya evidencia
+      suficiente. Un 404 bajo la identidad de discovery no prueba inexistencia ni
+      invalidez de la referencia. T-0004 se cierra con estrategia definida,
+      limitaciones observadas mediante muestra y tratamiento explícito de
+      conciliación; no exige demostrar vinculación automática general entre Policy
+      y documento histórico. Se acepta como capacidad futura que Broker OS pueda
+      crear estructura canónica para Contactos/Cuentas sin carpeta histórica validada;
+      su diseño, alineación con D-0009 y autorizaciones se resolverán después, sin
+      habilitar escrituras ahora ni alterar el alcance de solo lectura de VS01.
+      Automatización de Drive, normalización, permisos operativos, creación de
+      carpetas, navegación/creación/guardado desde /ingresar, navegación por LLM y
+      vínculo automático Policy-documento quedan fuera de T-0004 para trabajo
+      posterior específico. No se modifican Drive ni sus permisos para este cierre.

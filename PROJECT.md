@@ -1,6 +1,6 @@
 # Del Campo — PROJECT.md
 
-**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-07
+**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-19
 
 Este archivo es el índice del programa. Si algo no está acá, está en uno de los documentos que este archivo nombra. Si no está en ninguno, todavía no está decidido.
 
@@ -42,15 +42,17 @@ No hay base de datos, no hay servicio, no hay adapters, no hay UI.
 
 ### Próximo incremento
 
-`T-0004` mide los dos supuestos que sí pueden cambiar VS01: la semántica real de los
-campos de póliza en Zoho y la conformidad de la estructura de Drive. Es trabajo de
-descubrimiento de Migración, de solo lectura, y puede ejecutarse mientras Project OS
-Zero acumula evidencia de uso.
+`T-0004` cerró discovery el 19/09/2026. La evidencia agregada está en
+`REVIEWS/T-0004-insumos-vs01.md`; las decisiones de cierre se registran en D-0031 y
+D-0032. Los inputs de Architecture Alignment Review / T-0015 y el trabajo documental
+y de migración diferido están identificados, sin implementación ni tareas nuevas.
+El cierre de discovery no autoriza migración ni elimina esas dependencias de diseño.
 
 ### Qué sigue después de esta fase
 
-1. Convertir la evidencia de `T-0004` en el contrato ejecutable de **Vertical Slice
-   01** — Póliza + Documentos + Búsqueda. → `D-0019`
+1. Resolver la alineación de dominio identificada para T-0015 antes de implementar
+   schema/importador, y convertir la evidencia de `T-0004` en el contrato ejecutable
+   de **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
 2. Implementar VS01 con el alcance que esa evidencia permita sostener.
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se

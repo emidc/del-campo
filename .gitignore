@@ -9,3 +9,8 @@ CLAUDE.local.md
 
 # Exports locales de Zoho y sus derivados
 /data/zoho-export-*/
+
+# Reconciliación local de catálogos con nombres fuente (T-0004)
+/REVIEWS/T-0004-catalog-reconciliation.md
+
+/Claude outputs/
