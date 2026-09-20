@@ -34,9 +34,10 @@ Cero reglas marcadas ACTIVA violadas por el estado del repositorio. Concretament
   costaría revertirlo.
 - Un hook `PreToolUse` bloquea las escrituras por `Bash` a `.claude/**` y
   `.github/workflows/**`, con una prueba negativa que lo demuestra.
-- `decisions.yaml` contiene `D-0031 · ¿un segundo proveedor mejora la calidad de la
-  revisión?` con `status: OPEN` y su `unblocked_by`, para que la pregunta no se resuelva
-  sola el día que alguien tenga ganas de probar otro proveedor. `D-0016` queda intacta.
+- `decisions.yaml` contiene una nueva decisión «¿un segundo proveedor mejora la calidad
+  de la revisión?», con identificador asignado al ejecutar T-0008, `status: OPEN` y su
+  `unblocked_by`, para que la pregunta no se resuelva sola el día que alguien tenga
+  ganas de probar otro proveedor. `D-0016` queda intacta.
 
 ## Non-scope
 
@@ -62,7 +63,8 @@ Comprobaciones humanas:
 - [ ] Un intento equivalente sobre `.github/workflows/` también es rechazado.
 - [ ] Un `sed -i` sobre un archivo cualquiera de `TASKS/` sigue funcionando: el hook no
       bloquea de más.
-- [ ] `D-0031` existe con `status: OPEN` y un `unblocked_by` que nombra trabajo real.
+- [ ] La nueva decisión sobre un segundo proveedor existe con un identificador asignado
+      al ejecutar T-0008, `status: OPEN` y un `unblocked_by` que nombra trabajo real.
 
 ## Data effects
 
@@ -74,10 +76,14 @@ el PR; el cambio está bajo revisión humana obligatoria por R-13 y R-15.
 Q-3 respondida: R-05 conserva los siete disparadores. La consecuencia a tener presente es
 que T-0010 introduce varias dependencias de una vez y cada una dispara la regla.
 
-Q-4 resuelta por defecto, y revisable: el `unblocked_by` de `D-0031` describe el
-experimento pareado en texto, como ya hacen `D-0023` y `D-0028`, en vez de nombrar una
-tarea que nadie va a ejecutar todavía. Crear un id de tarea para trabajo no agendado
-produce una cola con ítems fantasma.
+Q-4 resuelta por defecto, y revisable: el `unblocked_by` de la nueva decisión sobre un
+segundo proveedor describe el experimento pareado en texto, como ya hacen `D-0023` y
+`D-0028`, en vez de nombrar una tarea que nadie va a ejecutar todavía. Crear un id de
+tarea para trabajo no agendado produce una cola con ítems fantasma.
+
+El identificador de esa decisión se asigna al ejecutar T-0008, verificando que esté
+libre. `D-0031` ya corresponde al baseline de migración aprobado en T-0004 y se conserva
+sin cambios; esta tarea no reserva otro identificador por adelantado.
 
 **Permisos.** Toca `.claude/`: R-13 y R-15, aprobación humana obligatoria, y el agente
 tiene la escritura denegada. El agente propone el diff y la prueba negativa; el humano
