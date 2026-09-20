@@ -2,7 +2,7 @@
 id: T-0006
 title: Exigir evidencia de ejecución para declarar una tarea DONE
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: LOW
 size: M
@@ -58,12 +58,12 @@ pnpm check
 
 Comprobaciones humanas:
 
-- [ ] Una copia de una tarea `DONE` sin `ops/evidence/T-xxxx.md` hace fallar
+- [x] Una copia de una tarea `DONE` sin `ops/evidence/T-xxxx.md` hace fallar
       `pnpm check` con un mensaje que nombra el archivo faltante.
-- [ ] El archivo de evidencia de T-0001 contiene salida literal, no una descripción de
+- [x] El archivo de evidencia de T-0001 contiene salida literal, no una descripción de
       la salida.
-- [ ] Los cinco archivos retrofiteados declaran que fueron escritos después del hecho.
-- [ ] La sección "qué NO se verificó" de cada uno nombra al menos una limitación real.
+- [x] Los cinco archivos retrofiteados declaran que fueron escritos después del hecho.
+- [x] La sección "qué NO se verificó" de cada uno nombra al menos una limitación real.
 
 ## Data effects
 
@@ -95,3 +95,37 @@ T-0011, nunca se incorporó a `pnpm check`: hoy no corre ni localmente ni en CI.
 arregla acá porque `package.json` está siendo modificado por T-0008. Al resolver ese
 conflicto conviene evaluar reemplazar las tres invocaciones explícitas por
 `node --test scripts/tests/*.test.mjs`, que es lo que habría evitado el olvido.
+
+## Closure
+
+Cierre: **2026-09-20**. El owner delegó explícitamente las cuatro comprobaciones humanas
+en el agente —«has las comprobaciones humanas por mí en este caso»— y resolvió que los
+hallazgos que esta tarea abrió se traten como trabajo futuro y no como parte de este
+cierre.
+
+Las cuatro quedan marcadas, con la distinción que corresponde y que esta tarea existe
+para no perder:
+
+1. **Prueba negativa del checker** — mecánica. Se ejecutó sobre una copia temporal del
+   contexto versionado a la que se le quitó `ops/evidence/T-0003.md`; el repositorio no
+   se tocó. Salida literal en `ops/evidence/T-0006.md`.
+2. **Salida literal en la evidencia de T-0001** — convertida en comprobación mecánica.
+   Las dos líneas JSON que el archivo cita son byte a byte las del ledger versionado. La
+   salida de `pnpm check` de aquella ejecución no existe, y el archivo la declara
+   faltante en lugar de parafrasearla: no hay ninguna descripción presentada como salida.
+3. **Declaración de procedencia en los cinco retrofits** — mecánica, cinco de cinco.
+4. **«Qué NO se verificó» con al menos una limitación real en cada uno** — es
+   **autorrevisión**: el mismo agente escribió las secciones que juzga. La lectura del
+   owner no fue sustituida por ésta, fue delegada, y vale más que ésta.
+
+**Hallazgos diferidos, no corregidos acá.** `ops/runs/` dejó de capturar después del
+2026-09-08 y cuatro de las cinco tareas cerradas no tienen AgentRun, pese a que esa
+cláusula de R-09 está marcada ACTIVA; y `scripts/tests/check-docs-slices.test.mjs` nunca
+se incorporó a `pnpm check`. Quedan registrados en `ops/evidence/T-0006.md` y no se
+crea un id de tarea por anticipado para ninguno: trabajo no agendado con id produce una
+cola con ítems fantasma. → `T-0008` §Notes
+
+**Pendiente fuera de esta tarea.** El merge a `main` sigue exigiendo aprobación humana y
+CI en verde — R-13, R-30 —, y la rama está solo en local porque el entorno de ejecución
+no tiene salida a GitHub. `PROJECT.md` no se tocó: su «Próximo incremento» se actualiza
+al integrar, para no chocar con la copia que T-0008 tiene modificada.
