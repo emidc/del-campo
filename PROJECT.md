@@ -1,6 +1,6 @@
 # Del Campo — PROJECT.md
 
-**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-07
+**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-19
 
 Este archivo es el índice del programa. Si algo no está acá, está en uno de los documentos que este archivo nombra. Si no está en ninguno, todavía no está decidido.
 
@@ -40,10 +40,25 @@ No hay base de datos, no hay servicio, no hay adapters, no hay UI.
 
 **Criterio de promoción a aplicación:** haber registrado al menos 30 AgentRuns reales **y** haber escrito el tercer script ad-hoc para consultarlos. Hasta que las dos condiciones se cumplan, Project OS sigue siendo archivos. → `D-0015`
 
+### Próximo incremento
+
+`T-0004` cerró discovery el 19/09/2026. La evidencia agregada está en
+`REVIEWS/T-0004-insumos-vs01.md`; las decisiones de cierre se registran en D-0031 y
+D-0032. Los inputs de Architecture Alignment Review / T-0015 y el trabajo documental
+y de migración diferido están identificados, sin implementación ni tareas nuevas.
+El cierre de discovery no autoriza migración ni elimina esas dependencias de diseño.
+
 ### Qué sigue después de esta fase
 
-1. Spikes que bloquean decisiones estructurales, en serie, con timebox de una semana: enforcement de autorización (`D-0022`, estado `OPEN`), semántica de campos de Zoho, hosting del worker.
-2. **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
+1. Resolver la alineación de dominio identificada para T-0015 antes de implementar
+   schema/importador, y convertir la evidencia de `T-0004` en el contrato ejecutable
+   de **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
+2. Implementar VS01 con el alcance que esa evidencia permita sostener.
+
+El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
+activa antes del primer acceso multi-principal, del portal externo o de un worker o
+agente con acceso privilegiado a Broker OS. El spike de hosting del worker se activa
+cuando un incremento requiera ese proceso.
 
 ---
 
@@ -90,7 +105,7 @@ Con un solo desarrollador, el límite no es una preferencia de método: es la ú
 | `ARCHITECTURE.md` | Haya ~5 ADR que necesiten síntesis |
 | `BUSINESS_CONTEXT.md` | El process mapping produzca material real |
 | `ROADMAP.md` | La secuencia esté decidida, después de los primeros spikes |
-| `SPIKES/`, `POCS/` | Los cree su primer contenido |
+| `SPIKES/`, `POCS/`, `REVIEWS/` | Los crea su primer contenido |
 
 Un documento vacío es peor que un documento ausente: cuesta tokens y no informa.
 

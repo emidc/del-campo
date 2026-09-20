@@ -1455,7 +1455,10 @@ validFrom
 validTo
 ```
 
-Debe resolverse antes del enforcement de autorización.
+La semántica mínima —principal, cartera e intervalo de validez— debe estar explícita
+antes de comparar mecanismos en `T-0002`. El schema sintético del spike no cierra la
+decisión de estructura física. `D-0027` se resuelve después de `D-0022` y antes de
+implementar enforcement productivo para productores.
 
 ---
 
