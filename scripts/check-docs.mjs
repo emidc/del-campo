@@ -184,7 +184,21 @@ if (active.length > 2)
 const activeSpikes = active.filter((task) => task.fm?.kind === 'SPIKE')
 if (activeSpikes.length > 1) fail(`WIP limit superado: ${activeSpikes.length} spikes ACTIVE (máximo 1)`)
 
-for (const file of ['PROJECT.md', 'DOMAIN.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINEERING_RULES.md']) {
+// Los slices participan del mismo control de referencias y fuente única de estados.
+function markdownFiles(directory) {
+  if (!existsSync(directory)) return []
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) return markdownFiles(path)
+    return entry.isFile() && entry.name.endsWith('.md') ? [path] : []
+  })
+}
+
+const canonicalFiles = [
+  'PROJECT.md', 'DOMAIN.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINEERING_RULES.md',
+  ...markdownFiles('SLICES'),
+]
+for (const file of canonicalFiles) {
   if (!existsSync(file)) continue
   const text = readFileSync(file, 'utf8')
   for (const ref of text.match(/\bD-\d{4}\b/g) ?? []) {

@@ -2,12 +2,13 @@
 id: T-0011
 title: Escribir el contrato de software de Vertical Slice 01
 kind: REVIEW
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-08
-blockedBy: [T-0004]
+closed: 2026-09-20
+blockedBy: [T-0004, T-0015]
 contextRefs: [DOMAIN.md, decisions.yaml, PROJECT.md, REVIEWS/T-0004-insumos-vs01.md,
               TASKS/T-0015-alinear-dominio-con-evidencia.md]
 decisionRefs: [D-0019, D-0020, D-0021, D-0025]
@@ -54,17 +55,19 @@ La descomposición de T-0014 en tareas concretas sale de este documento.
 
 ```bash
 pnpm check
+node --test scripts/tests/check-docs-slices.test.mjs
+git diff --check
 ```
 
 Comprobaciones humanas:
 
-- [ ] El criterio de éxito es medible sin interpretación: dice qué se mide, contra qué
+- [x] El criterio de éxito es medible sin interpretación: dice qué se mide, contra qué
       valor y con qué instrumento.
-- [ ] Cada afirmación de dominio del archivo es una referencia a `DOMAIN.md` o a
+- [x] Cada afirmación de dominio del archivo es una referencia a `DOMAIN.md` o a
       `decisions.yaml`, no una reformulación.
-- [ ] El alcance declarado es sostenible con los números que produjo T-0004, y el
+- [x] El alcance declarado es sostenible con los números que produjo T-0004, y el
       documento nombra qué resultado lo habría cambiado.
-- [ ] Ninguna decisión `OPEN` quedó resuelta de hecho por este documento.
+- [x] Ninguna decisión `OPEN` quedó resuelta de hecho por este documento.
 
 ## Notes
 
@@ -75,5 +78,42 @@ registrados en [T-0015, §Notes](T-0015-alinear-dominio-con-evidencia.md#notes),
 respuesta. El dominio y las decisiones canónicas siguen en `DOMAIN.md` y
 `decisions.yaml`; `D-0014` conserva el pendiente relativo al worker.
 
-Las respuestas se incorporan a `## Outcome` antes de que este archivo llegue a `main`:
-después de T-0005 las cuatro secciones de contrato quedan congeladas.
+**Ejecución del 2026-09-20.** T-0004 y T-0015 ya están integradas y no quedan bloqueos
+por Q-8–Q-11. Se activa esta tarea para producir el contrato; T-0005 todavía no está
+implementada. Esta actualización sustituye la nota histórica sobre incorporar inputs
+antes del primer merge: las respuestas ya están disponibles y se consumen aquí.
+
+El contrato fue revisado por el owner, junto con la descomposición de T-0014 en T-0016
+(búsqueda), T-0017 (vinculación documental) y T-0018 (app y aceptación). Q-15 permanece
+explícita en T-0017 y no se decide por inferencia. El protocolo de medición concreta los
+umbrales aprobados; las cuatro comprobaciones humanas están completas.
+
+
+## Evidence
+
+Verificación automática ejecutada el 2026-09-20:
+
+- `pnpm check`: PASS; 41 decisiones, 11 ADRs, 18 tareas, cero avisos; AgentRun PASS.
+- `node --test scripts/tests/check-docs-slices.test.mjs`: 5 tests PASS. Incluyen
+  referencias válidas, rechazo de ids inexistentes en raíz y subdirectorios,
+  rechazo de estados duplicados y compatibilidad sin directorio SLICES.
+- `git diff --check`: PASS.
+
+Revisión del agente: §4 concreta medidas e instrumento; §1–3 referencia la semántica
+canónica; §3 registra límites de la muestra y el resultado que impediría entregar;
+§5–7 conserva las decisiones pendientes. La revisión del agente se complementa con la
+confirmación explícita del owner de haber realizado las cuatro comprobaciones humanas.
+
+No se modificaron DOMAIN.md, decisions.yaml, hooks ni CI. No se consultaron exports
+privados, Zoho ni Drive. No se ejecutaron las nuevas tareas de implementación.
+
+## Closure
+
+Cierre: **2026-09-20**. El owner confirmó explícitamente: «Comprobaciones humanas
+hechas, podemos continuar». Las cuatro comprobaciones de Verification ya estaban
+marcadas por el usuario al retomar y se conservan. Se registra la aprobación del
+contrato y se cierra T-0011, sin afirmar que VS01 esté implementado o entregado.
+
+T-0014 queda DROPPED por descomposición; T-0016, T-0017 y T-0018 conservan DRAFT y sus
+precondiciones. T-0012 todavía depende del entorno T-0010 (precedido por T-0008) y de su
+input Q-12. Este cierre no activa implementación, migración ni despliegue.
