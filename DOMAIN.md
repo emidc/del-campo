@@ -40,6 +40,11 @@ El schema implementará el dominio.
 
 El schema no debe definirlo accidentalmente.
 
+Una decisión de migración registra evidencia, alcance y reglas de migración. Cuando
+contenga una conclusión sobre el dominio, debe referenciar el ADR que la motiva, y este
+documento la absorbe. Ninguna decisión de migración es fuente canónica de semántica de
+dominio.
+
 ---
 
 # 2. Principios de modelado
@@ -173,6 +178,11 @@ Forma parte del lenguaje del dominio, pero todavía no se fija su estructura.
 
 Existe como necesidad futura, pero todavía no existe evidencia suficiente para estabilizar su significado.
 
+## STAGING ONLY
+
+Se preserva con fidelidad al origen porque no se borra historia, pero no tiene
+representación en el dominio y no se expone en producto. Promoverlo requiere ADR. → `D-0033`
+
 ---
 
 # 4. Glosario canónico
@@ -184,18 +194,22 @@ Existe como necesidad futura, pero todavía no existe evidencia suficiente para 
 | `OrganizationProfile` | Empresa / Organización | Datos propios de una Party organización |
 | `PartyRole` | Prospecto / otros roles explícitos | Relación declarada que una Party mantiene frente al broker |
 | `Client` | Cliente | Concepto derivado de una relación comercial aseguradora |
-| `Account` | Empresa cliente | Organization Party que cumple la condición de Client |
+| `Account` | Empresa | Término de negocio/UI para una Party ORGANIZATION |
 | `OrganizationMembership` | Contacto | Relación entre una persona y una organización |
 | `ContactPoint` | Email / Teléfono / WhatsApp | Canal de contacto de una Party |
 | `Insurer` | Compañía / Aseguradora | Organización perteneciente al catálogo curado de aseguradoras |
 | `Policy` | Póliza | Identidad de un período contractual |
 | `PolicyVersion` | Estado de póliza | Estado efectivo-fechado dentro de una Policy |
-| `Endorsement` | Endoso | Evento que modifica el estado contractual |
+| `Endorsement` | Endoso | Evento del origen asociado a una Policy; puede o no producir una nueva PolicyVersion |
 | `Renewal` | Renovación | Inicialmente workflow/vista derivada |
 | `Quote` | Cotización | Contexto compartido de una solicitud de cotización |
 | `QuoteOption` | Propuesta | Respuesta de una aseguradora dentro de una Quote |
 | `Issuance` | Emisión | Proceso para originar una Policy |
 | `Claim` | Siniestro | Proceso de gestión de un evento asegurado |
+| `InsuranceProduct` | Producto / Ramo | Producto asegurador que una Policy instancia |
+| `RiskObject` | Objeto asegurado | Aquello que se asegura: vehículo, inmueble, maquinaria |
+| `EnterpriseRisk` | Riesgo de empresa | Riesgo identificado mediante el proceso de gestión de riesgos |
+| `ExternalReference` | Referencia externa | Referencia conocida hacia algo que existe en el origen y no en Broker OS |
 | `DocumentLink` | Documento | Vínculo con archivo/carpeta de Google Drive |
 | `Communication` | Comunicación | Referencia a una comunicación externa |
 | `User` | Usuario | Principal autenticable |
@@ -279,6 +293,9 @@ MERGED
 ```
 
 Otros estados sólo se incorporarán si aparece necesidad real.
+
+Las condiciones de calidad de datos no son estados de Party. En particular, la ausencia,
+invalidez o duplicación de un identificador fiscal no altera `Party.status`. → `D-0035`
 
 Una Party con:
 
@@ -378,6 +395,11 @@ DNI/CUIL pueden colaborar en:
 
 No son IDs técnicos.
 
+Su ausencia no impide crear, migrar ni mantener activa una Party. El valor original del
+origen se conserva en staging aunque sea inválido; el dominio conserva el valor
+normalizado válido. `missing`, `invalid` y `conflict` son condiciones derivadas de calidad
+de datos. → `D-0035`
+
 ---
 
 # 11. OrganizationProfile
@@ -404,6 +426,8 @@ Una organización puede ser:
 - contraparte futura de otro tipo.
 
 Su identidad no cambia por esas relaciones.
+
+`cuit` sigue el mismo tratamiento que `dni`/`cuil` en PersonProfile. → `D-0035`
 
 ---
 
@@ -518,19 +542,28 @@ según vigencia de negocio.
 
 No requieren automáticamente entidades o roles persistidos.
 
+`Client` y `Prospect` describen **la relación** de una Party con el broker. No son
+identidades distintas y no condicionan la existencia de la Party ni de su ficha.
+
 ---
 
 # 16. Account
 
-**Estado: DERIVED CONCEPT**
+**Estado: UI TERM**
 
-`Account` es el término de negocio/UI para una:
+`Account` —Empresa en la UI— es el término de negocio para una:
 
 ```text id="yz1tto"
 Party.kind = ORGANIZATION
 ```
 
-que cumple la condición de Client.
+No requiere cumplir previamente la condición de Client.
+
+Una empresa puede tener contactos, riesgos, notas, documentos y actividad comercial antes
+de poseer ninguna Policy. Al adquirir la primera no se crea ni se convierte ninguna otra
+entidad: conserva su identidad y su historia.
+
+La UI debe poder distinguir PROSPECTO de CLIENTE sobre la misma Party.
 
 No existe necesariamente una tabla independiente `Account`.
 
@@ -827,11 +860,18 @@ puede utilizarse para matching.
 
 No debe asumirse globalmente única sin analizar los datos reales.
 
-Las renovaciones pueden:
+Cada renovación produce una Policy nueva, con número nuevo y vigencia nueva. Puede además
+cambiar de aseguradora.
 
-- mantener número;
-- cambiar número;
-- cambiar aseguradora.
+El par:
+
+```text id="uq9p1c"
+insurerId + policyNumber
+```
+
+es único. Dos registros del origen con la misma combinación son una anomalía, no un caso
+válido del dominio, y se resuelven explícitamente antes de importar. Una Policy del origen
+sin aseguradora no puede formar el par y recibe el mismo tratamiento. → `D-0038`
 
 El `Policy.id` interno permanece como identidad técnica del período contractual que Broker OS decidió representar.
 
@@ -871,6 +911,7 @@ coverageData
 
 status
 
+endorsementId?
 sourceEventType?
 sourceEventId?
 
@@ -878,6 +919,14 @@ createdAt
 ```
 
 `coverageData` no tiene todavía estructura definitiva.
+
+`holderPartyId` es único y obligatorio: una PolicyVersion tiene exactamente un tomador.
+Cuando el origen presenta Cuenta y Contacto, la Cuenta es el tomador y el Contacto es una
+persona de referencia de esa empresa que no adquiere por ese hecho ningún rol contractual.
+Esa relación persona-organización pertenece a `OrganizationMembership`, no a la Policy.
+→ `D-0036`
+
+`endorsementId` referencia el Endorsement que originó la versión, cuando lo hubo. → `D-0037`
 
 ---
 
@@ -977,6 +1026,10 @@ Policy 2028
 
 La cadena representa continuidad comercial entre períodos contractuales.
 
+`renewedFromPolicyId` se usa únicamente cuando la Policy predecesora existe dentro de
+Broker OS. Cuando se conoce la referencia pero la predecesora no está migrada, la
+continuidad se registra como `ExternalReference` y no como ausencia. → `D-0034`
+
 ---
 
 # 33. Migration requirement: renewal chain
@@ -1005,6 +1058,14 @@ UNRESOLVED
 o equivalente dentro del proceso de migración.
 
 No se inventarán cadenas.
+
+`renewedFromPolicyId` referencia únicamente una Policy predecesora existente dentro de
+Broker OS. Si la predecesora es conocida pero no existe como Policy dentro de Broker OS,
+`renewedFromPolicyId` queda `NULL` y la continuidad se conserva mediante
+`ExternalReference`. Por lo tanto, `NULL` no prueba por sí solo la ausencia de una
+predecesora conocida: esa ausencia solo puede inferirse cuando no existe ni
+`renewedFromPolicyId` ni una `ExternalReference` correspondiente a la relación de
+renovación/predecesora. → `INV-014`, `D-0034`
 
 ---
 
@@ -1054,26 +1115,48 @@ Ejemplos:
 
 Hasta entonces sigue siendo una vista/workflow.
 
+Toda medición de renovación declara su denominador. Cuando el alcance migrado no contiene
+todas las predecesoras, "vencida sin sucesora" sobrecuenta, y la métrica debe decir sobre
+qué conjunto se calcula. → `D-0007`
+
 ---
 
 # 36. Endorsement
 
-**Estado: NAMED, NOT MODELED**
+**Estado: MODELED NOW**
 
-Evento que modifica condiciones de una Policy.
+Evento del origen asociado a una Policy. **No es necesariamente contractual**: puede
+registrar una refacturación, una declaración administrativa o un cambio de condiciones.
 
-Puede producir una nueva `PolicyVersion`.
+Campos conceptuales mínimos:
 
-Ejemplos:
+```text id="e7k2ql"
+Endorsement
 
-- cambio de vehículo;
-- suma asegurada;
-- altas/bajas;
-- domicilio;
-- prima;
-- cobertura.
+id
+policyId
+number?
+kind
+effectiveFrom?
+effectiveTo?
+sourceReference
+createdAt
+```
 
-No se define todavía schema completo.
+`policyId` no es nullable. Un Endorsement existe en Broker OS solo si puede asociarse
+inequívocamente a una Policy que también está en Broker OS. Los Endorsements sin Policy
+padre se descartan del conjunto migrable: no entran al dominio, no entran a staging, no
+generan `ExternalReference` y permanecen únicamente en el export crudo preservado.
+
+Un Endorsement no sobrescribe el estado anterior.
+
+**Qué tipos producen una nueva `PolicyVersion` se determina mediante una tabla curada
+explícita; el importador no lo infiere.** La mayoría abrumadora de los endosos observados
+no altera condiciones contractuales, y versionar por cada uno produciría una historia de
+versiones idénticas que vuelve inútil la pregunta que justifica `PolicyVersion`.
+→ `D-0037`
+
+No se modela todavía workflow, SLA, responsable, approvals ni máquina de estados.
 
 ---
 
@@ -1118,6 +1201,10 @@ No se introduce todavía una abstracción genérica de schema.
 El primer caso probablemente será Automotor.
 
 La existencia de un segundo dominio con necesidades compartidas justificará reevaluar la abstracción.
+
+**Advertencia de nomenclatura.** El campo del sistema de origen llamado `Riesgo` designa el
+**producto o ramo**, no el objeto asegurado. `RiskObject`, `InsuranceProduct` y
+`EnterpriseRisk` son tres conceptos distintos. → §75, §76
 
 ---
 
@@ -1269,7 +1356,11 @@ Puede contener:
 - transferencia aseguradora;
 - documentación.
 
-El Risk Panel determinará qué parte merece estructura.
+Esta sección mezcla hoy seis conceptos —riesgos, vulnerabilidades, criticidad,
+mitigaciones, plan de acción y transferencia— que todavía no están separados.
+
+Qué parte merece estructura lo determina el POC de gestión de riesgos empresariales,
+posterior a VS01. → §76
 
 ---
 
@@ -1303,24 +1394,28 @@ createdAt
 
 ---
 
+Un `DocumentLink` a un **archivo** es de primera clase y no una desviación: a nivel Policy
+es la forma mayoritaria del vínculo en los datos reales. `driveItemType` distingue archivo
+de carpeta y ambas son representaciones legítimas.
+
+---
+
 # 48. Autoridad documental
 
-Google Drive es autoritativo respecto de:
+La autoridad se descompone en ejes. → `D-0040`
 
-- contenido;
-- existencia;
-- ubicación;
-- ACLs/permisos reales.
-
-Broker OS mantiene:
-
-- referencia;
-- clasificación;
-- relaciones;
-- metadata;
-- estado de reconciliación.
+| Eje | Autoridad |
+|---|---|
+| Contenido | Google Drive, sin excepción |
+| ACLs y permisos | Google Drive, sin excepción |
+| Ubicación y estructura | Se lee y se respeta. Broker OS puede **proponer** una estructura canónica futura; proponerla no lo convierte en autoridad |
+| Referencia, clasificación y metadata | Broker OS |
 
 No existen dos sistemas autoritativos de permisos.
+
+Vertical Slice 01 es estrictamente de solo lectura sobre Drive: no crea, no mueve, no
+renombra, no modifica y no elimina archivos ni carpetas. Toda capacidad futura de escritura
+requiere decisión y tarea específicas y aprobación humana. → `D-0009`, `D-0032`, `D-0040`
 
 ---
 
@@ -1337,12 +1432,17 @@ Debe suponerse que humanos pueden:
 Estados candidatos:
 
 ```text id="vlzx4h"
+NOT_REFERENCED
 SYNCED
 MISSING
 MOVED
 PERMISSION_ERROR
 UNKNOWN
 ```
+
+`NOT_REFERENCED` es el caso de un recurso que nunca tuvo referencia documental en el
+origen. Es mayoritario y no es una excepción: tratarlo como `MISSING` o `UNKNOWN` llenaría
+la cola de conciliación con miles de ítems que no requieren acción.
 
 La taxonomía final se validará en VS01.
 
@@ -1651,6 +1751,10 @@ La implementación puede vivir en metadata de migración y no necesariamente en 
 
 La trazabilidad es obligatoria.
 
+El linaje completo vive en staging. `ExternalReference` es su parte visible desde el
+dominio: existe cuando una referencia no resuelta tiene valor operativo en producto.
+→ `D-0033`, `D-0034`
+
 ---
 
 # 63. Vertical Slice 01
@@ -1676,10 +1780,21 @@ PolicyVersion
 
 DocumentLink
 
+Endorsement
+
+ExternalReference
+
 basic User
 ```
 
-`OrganizationMembership` se incorporará si los datos de empresas/contactos muestran que es necesario para navegación o búsqueda.
+`OrganizationMembership` entra en el subconjunto: la evidencia de migración muestra que la
+navegación empresa → contactos es necesaria, porque las Cuentas del alcance expanden a sus
+Contactos por relación organizacional explícita del origen.
+
+`Endorsement` entra por `D-0037` y `ExternalReference` por `D-0034`. Que estén en el
+schema no amplía la superficie de UI de VS01: `Endorsement` aparece inicialmente solo en el
+historial de una Policy, y `ExternalReference` solo como motivo visible de un vínculo
+ausente. → §74
 
 ---
 
@@ -1751,6 +1866,9 @@ Fuera de alcance:
 - external portal;
 - autonomous business actions.
 
+Claims, Tasks, Notes y Opportunities quedan fuera de la **UI** de VS01 y se preservan en
+**staging**: no migrar y no preservar son decisiones distintas. → `D-0033`, `R-23`
+
 ---
 
 # 67. Domain invariants
@@ -1809,7 +1927,7 @@ Un cambio contractual no destruye estados previos.
 
 ## INV-014 — Renewal continuity is explicit when known
 
-Las Policies renovadas se encadenan mediante `renewedFromPolicyId` cuando la evidencia permite establecerlo.
+Las Policies renovadas se encadenan mediante `renewedFromPolicyId` cuando la evidencia permite establecerlo. Cuando se conoce la predecesora y no está en Broker OS, la continuidad se registra como `ExternalReference`, nunca como ausencia.
 
 ## INV-015 — Insurers come from curated catalog
 
@@ -1825,11 +1943,27 @@ Los BusinessAuditEvents no se actualizan ni eliminan mediante operaciones normal
 
 ## INV-018 — Internal IDs are canonical
 
-La identidad técnica no depende de un identificador natural único.
+La identidad técnica no depende de un identificador natural único. La completitud de un identificador natural no condiciona la existencia ni el estado de la identidad interna.
 
 ## INV-019 — Unknown identity is explicit
 
 Una identidad no resuelta permanece explícitamente sin resolver.
+
+## INV-020 — Policy number uniqueness
+
+No existen dos Policies con el mismo par `insurerId + policyNumber`.
+
+## INV-021 — Endorsement requires policy
+
+Todo `Endorsement` pertenece a exactamente una Policy existente en Broker OS.
+
+## INV-022 — Resolving preserves the original reference
+
+Resolver un `ExternalReference` no borra ni sobrescribe el valor de origen.
+
+## INV-023 — Single holder
+
+Toda `PolicyVersion` tiene exactamente un `holderPartyId`.
 
 ---
 
@@ -1867,10 +2001,10 @@ No toda información puede circular libremente por prompts o logs.
 
 ---
 
-# 69. Decisiones abiertas
+# 69. Decisiones que este documento referencia
 
-El `statement` y el `status` canónicos viven en `decisions.yaml`. Este documento
-referencia sus IDs estables:
+El `statement` y el `status` canónicos viven en `decisions.yaml`; este documento no los
+reproduce ni los afirma. Referencia sus IDs estables:
 
 - `D-0022` — Punto de enforcement de autorización.
 - `D-0023` — Detalle de InsurerProfile.
@@ -1918,6 +2052,10 @@ Debe crecer a partir del negocio y de evidencia.
 
 ## A. Zoho semantic analysis
 
+**Cumplida por `T-0004`.** Su evidencia agregada vive en `REVIEWS/T-0004-insumos-vs01.md`
+y las decisiones de cierre en `D-0031` y `D-0032`. Lo que sigue se conserva como el
+enunciado original de la validación.
+
 Contrastar contra:
 
 - datos reales;
@@ -1947,52 +2085,116 @@ sin arrastrar CRM completo.
 
 ---
 
-# 73. Estado del baseline
+# 73. Staging y dominio
 
-## DECIDED
+**Estado: MODELED NOW**
 
-- Party como identidad raíz.
-- Party merge no destructivo.
-- perfiles separados por tipo de Party.
-- roles explícitos separados de hechos derivados.
-- Client derivado.
-- OrganizationMembership como relación persona-organización.
-- ContactPoint separado de identidad.
-- Account derivado.
-- Insurer proveniente de catálogo curado.
-- Insurer no es PartyRole.
-- Policy representa un período contractual.
-- Policy guarda identidad; estado contractual vive en PolicyVersion.
-- effective-dated PolicyVersion con intervalos semiabiertos no solapados.
-- cadena de renovación explícita cuando puede reconstruirse.
-- Renewal inicialmente como vista.
-- Google Drive como document system of record.
-- BusinessAuditEvent separado de AgentRun.
-- ContactPoints preservados desde VS01.
-- internal IDs como identidad técnica.
+Son dos lugares con preguntas distintas.
 
-## PROVISIONAL
+> **staging** responde: ¿qué existía en Zoho?
+> **dominio** responde: ¿cómo entiende Broker OS el negocio?
 
-- ContactPoint uniqueness.
-- Renewal como vista a largo plazo.
-- coverageData.
-- detalle de InsurerProfile.
-- granularidad futura de Prospect.
+Staging conserva, como mínimo:
 
-## SPIKE / POC REQUIRED
+```text id="stg001"
+IDs originales
+relaciones relevantes del origen
+valores originales necesarios
+batch / snapshot de importación
+trazabilidad hacia el origen
+```
 
-- authorization enforcement;
-- Zoho semantic mapping;
-- WhatsApp identity resolution;
-- Communication persistence;
-- RiskObject;
-- Quote / QuoteOption;
-- Issuance;
-- RiskAssessment.
+El dominio recibe únicamente conceptos suficientemente validados para ser `MODELED NOW`.
+
+**Persistir no implica exponer.** Un módulo del sistema de origen no se promueve a entidad
+de dominio por el hecho de existir, y el alcance de lo que se preserva es más amplio que la
+superficie de producto. → `D-0033`, `D-0019`, `R-23`
+
+La única excepción a la fidelidad de staging son las reglas de descarte definidas
+explícitamente; hoy existe una: los Endorsements sin Policy padre. → `D-0037`
 
 ---
 
-# 74. Principio final
+# 74. ExternalReference
+
+**Estado: MODELED NOW**
+
+Referencia conocida hacia una entidad externa, histórica o todavía no migrada, cuando esa
+referencia tiene valor operativo dentro de Broker OS.
+
+Campos conceptuales mínimos:
+
+```text id="extref1"
+ExternalReference
+
+id
+
+sourceSystem
+sourceEntityType
+sourceExternalId?
+sourceValue?
+
+relationType
+
+resolutionStatus
+unresolvedReason?
+
+resolvedTargetType?
+resolvedTargetId?
+
+createdAt
+```
+
+Reglas:
+
+1. resolver una referencia **nunca** borra ni sobrescribe la referencia original;
+2. no es una relación polimórfica genérica para cualquier cosa;
+3. existe únicamente cuando la referencia no resuelta necesita sobrevivir en el dominio o
+   en el producto;
+4. staging sigue siendo la representación fiel del origen;
+5. no toda FK rota del origen merece un `ExternalReference`: algunas se tratan con una
+   regla explícita de descarte.
+
+Es el mecanismo que hace cumplible `INV-019` y la forma en que `INV-014` distingue "no se
+renovó de nada" de "se renovó de algo que no está acá". → `D-0034`
+
+---
+
+# 75. InsuranceProduct
+
+**Estado: NAMED, NOT MODELED**
+
+Producto asegurador —el ramo o tipo de seguro— que una Policy instancia.
+
+No confundir con `RiskObject`, que es el objeto asegurado, ni con `EnterpriseRisk`, que es
+un riesgo empresarial identificado. El campo del sistema de origen llamado `Riesgo`
+designa este concepto, no los otros dos.
+
+Su catálogo es curado: el importador no crea productos desde strings ni desde filas
+desconocidas del origen, y las referencias huérfanas se reportan para resolución humana,
+igual que las aseguradoras. → `D-0041`, `D-0021`
+
+Su estructura interna sigue sin decidirse. → `D-0026`
+
+---
+
+# 76. EnterpriseRisk
+
+**Estado: NAMED, NOT MODELED**
+
+Riesgo empresarial identificado mediante el proceso de gestión de riesgos de una
+organización cliente.
+
+Es un concepto **distinto** de `InsuranceProduct` y de `RiskObject`, aunque el lenguaje
+corriente use "riesgo" para los tres.
+
+La matriz de riesgos, el plan de acción, el mapa de transferencia y el feed de actividad
+pertenecen a este concepto y **no se modelan todavía**: su estructura la determina el POC
+de gestión de riesgos empresariales, posterior a VS01. → §46
+
+---
+
+# 77. Principio final
 
 > **Modelar temprano aquello cuya identidad, historia o reconciliación serían costosas de corregir después; postergar aquello cuyo detalle puede aprenderse mediante evidencia y POCs.**
 

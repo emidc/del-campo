@@ -9,6 +9,7 @@ Todo lo anterior viene de `AGENTS.md` y rige para cualquier proveedor. Lo de ac�
 ```bash
 pnpm install --frozen-lockfile
 pnpm check          # valida decisions.yaml y las tareas de TASKS/
+pnpm decisions      # imprime el estado de las decisiones desde decisions.yaml
 ```
 
 Todavía no hay código de aplicación, así que no hay `dev`, `test`, `lint` ni `typecheck`. Se agregan acá cuando arranque el Vertical Slice 01.

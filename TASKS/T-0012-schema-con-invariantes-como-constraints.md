@@ -90,6 +90,12 @@ Q-5 respondida en T-0010: el schema vive en migraciones SQL, y las constraints s
 escriben directamente donde se leen. Q-7 respondida: el cableado de typecheck, lint y
 tests a `pnpm check` es de esta tarea y está en su `## Outcome`.
 
+**Delta de alcance tras `T-0015`.** El subconjunto de `DOMAIN.md` §63 incorpora
+`Endorsement` (`D-0037`), `ExternalReference` (`D-0034`) y `OrganizationMembership`. Suma
+además las invariantes `INV-020` a `INV-023`. El `## Non-scope` de arriba sigue siendo
+válido: `Claim` y el subconjunto diferido no entran, y lo que la migración preserva fuera
+del dominio vive en staging (`D-0033`), no en estas tablas.
+
 **Dispara ADR** por R-05: cambio de schema en un agregado central, `Party` y `Policy`.
 
 **Permisos, y conviene saberlo antes de empezar.** Los tests de integración de R-26 piden

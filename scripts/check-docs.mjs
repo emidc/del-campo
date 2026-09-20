@@ -56,6 +56,32 @@ for (const decision of decisions) {
     if (!decisions.some((candidate) => candidate.id === supersededId))
       fail(`${at}: supersede un id inexistente: ${supersededId}`)
   }
+
+  // Supersede parcial: cada entrada nombra la cláusula reemplazada y quién la reemplaza,
+  // y el statement debe referenciar ese id. Sin esto, re-scopear sería cambiar en silencio.
+  const partial = decision?.superseded_in_part_by
+  if (partial !== undefined) {
+    if (!Array.isArray(partial)) {
+      fail(`${at}: "superseded_in_part_by" debe ser una lista de entradas {clause, by}`)
+    } else {
+      for (const entry of partial) {
+        if (typeof entry?.clause !== 'string' || !entry.clause.trim())
+          fail(`${at}: cada entrada de "superseded_in_part_by" debe nombrar en "clause" la cláusula reemplazada`)
+        if (!entry?.by) {
+          fail(`${at}: cada entrada de "superseded_in_part_by" debe declarar "by"`)
+          continue
+        }
+        if (!DECISION_ID.test(entry.by))
+          fail(`${at}: "by" debe tener formato D-0000: "${entry.by}"`)
+        else if (entry.by === decision.id)
+          fail(`${at}: una decisión no puede reemplazar en parte a sí misma`)
+        else if (!decisions.some((candidate) => candidate.id === entry.by))
+          fail(`${at}: "superseded_in_part_by" apunta a un id inexistente: ${entry.by}`)
+        else if (!String(decision?.statement ?? '').includes(entry.by))
+          fail(`${at}: el statement debe referenciar ${entry.by}, que reemplaza la cláusula "${entry.clause}"`)
+      }
+    }
+  }
 }
 
 // Relación bidireccional: decision.adr → archivo y ADR → decision.
@@ -166,6 +192,16 @@ for (const file of ['PROJECT.md', 'DOMAIN.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINE
   }
   if (/\bOPEN-\d{3}\b/.test(text))
     fail(`${file}: contiene un id que codifica estado (OPEN-xxx); usar D-xxxx + status: OPEN`)
+
+  // Un documento canónico no afirma el estado de una decisión: ese estado vive solo en
+  // decisions.yaml y se lee con `pnpm decisions`. Lo que no está escrito no contradice.
+  const lines = text.split('\n')
+  for (const [index, line] of lines.entries()) {
+    if (/\bD-\d{4}\b/.test(line) && /\b(ACCEPTED|PROVISIONAL|OPEN|SUPERSEDED|REJECTED|DECIDED)\b/.test(line))
+      fail(`${file}:${index + 1}: afirma el estado de una decisión; el estado vive en decisions.yaml (R-04)`)
+    if (/^#{1,6}\s+(ACCEPTED|PROVISIONAL|OPEN|SUPERSEDED|REJECTED|DECIDED)\b/.test(line))
+      fail(`${file}:${index + 1}: encabezado que reproduce estados de decisión; usar "pnpm decisions" (R-04)`)
+  }
 }
 
 for (const warning of warnings) console.warn(`aviso  ${warning}`)

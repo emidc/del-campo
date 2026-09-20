@@ -2,7 +2,7 @@
 id: T-0007
 title: Eliminar el resumen de estados de DOMAIN.md y generarlo desde decisions.yaml
 kind: CHORE
-status: READY
+status: DROPPED
 workstream: POS
 riskClass: LOW
 size: S
@@ -60,6 +60,12 @@ Comprobaciones humanas:
 - [ ] Ninguna sección de `DOMAIN.md` quedó huérfana por la eliminación de §73.
 
 ## Notes
+
+**Absorbida por `T-0015`** el 2026-09-19. Su objetivo está cumplido allí: `DOMAIN.md` §73
+dejó de existir, `pnpm decisions` genera el resumen desde `decisions.yaml`, y el checker
+falla si un documento canónico vuelve a afirmar el estado de una decisión. Se conserva este
+archivo por trazabilidad; no se ejecuta por separado para no reescribir dos veces la misma
+reestructuración documental.
 
 Sin inputs pendientes. Es la única de las diez que un agente puede ejecutar entera con
 lo que hay hoy en el repositorio, y por eso conviene que sea el primer PR real contra
