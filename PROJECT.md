@@ -42,17 +42,20 @@ No hay base de datos, no hay servicio, no hay adapters, no hay UI.
 
 ### Próximo incremento
 
-`T-0004` cerró discovery el 19/09/2026. La evidencia agregada está en
-`REVIEWS/T-0004-insumos-vs01.md`; las decisiones de cierre se registran en D-0031 y
-D-0032. Los inputs de Architecture Alignment Review / T-0015 y el trabajo documental
-y de migración diferido están identificados, sin implementación ni tareas nuevas.
-El cierre de discovery no autoriza migración ni elimina esas dependencias de diseño.
+`T-0004` cerró discovery el 19/09/2026 y `T-0015` alineó el dominio con su evidencia:
+frontera entre staging y dominio, referencias externas no resueltas, identidad fiscal,
+tomador único, `Endorsement`, unicidad de número de póliza, clases de agente y ejes de
+autoridad documental. El objetivo de `T-0007` quedó absorbido: el estado de las decisiones
+ya no se escribe a mano en ningún documento canónico y se genera con `pnpm decisions`.
+
+Sigue `T-0011`: escribir el contrato de software de Vertical Slice 01 con los inputs ya
+respondidos. Recién después `T-0012` implementa el schema. La alineación de dominio no
+autoriza migración ni amplía la superficie de VS01.
 
 ### Qué sigue después de esta fase
 
-1. Resolver la alineación de dominio identificada para T-0015 antes de implementar
-   schema/importador, y convertir la evidencia de `T-0004` en el contrato ejecutable
-   de **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
+1. Convertir la evidencia de `T-0004` y el dominio alineado por `T-0015` en el contrato
+   ejecutable de **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
 2. Implementar VS01 con el alcance que esa evidencia permita sostener.
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se

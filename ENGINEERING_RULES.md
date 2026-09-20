@@ -107,7 +107,7 @@ En `CLAUDE.md` y `AGENTS.md`, los documentos canónicos se nombran entre backtic
 
 ### R-14 · Acciones de negocio — ACTIVA
 
-Requieren **siempre** aprobación humana en la primera versión: toda comunicación externa a un cliente, aseguradora o tercero; todo pedido de cotización; toda emisión, endoso o cancelación; todo otorgamiento de acceso externo; toda modificación o eliminación de un archivo existente en Drive.
+Requieren **siempre** aprobación humana en la primera versión: toda comunicación externa a un cliente, aseguradora o tercero; todo pedido de cotización; toda emisión, endoso o cancelación; todo otorgamiento de acceso externo; toda **creación, movimiento, renombrado, modificación o eliminación** de un archivo o carpeta en Drive. → `D-0040`
 
 **Toda acción de negocio no listada tiene default `PROHIBIDA`, no autónoma.** Un default indefinido es, en la práctica, "lo que haga el código".
 
@@ -133,9 +133,20 @@ Los hooks protegen la máquina donde están configurados. Todo lo que realmente 
 
 ## 5. Datos
 
-### R-19 · Sin PII de clientes en prompts de agentes — ACTIVA
+### R-19 · Datos de clientes según la clase de agente — ACTIVA
 
-Los agentes van a leer datos de clientes. Un agente que pega un DNI en el contexto de un proveedor de IA es una divulgación. Se usan identificadores internos; para lo demás, redacción. Tampoco hay PII en logs de aplicación ni en el texto de las tareas.
+Hay dos clases de agente y no tienen las mismas reglas. Confundirlas fue el origen de esta regla: la versión anterior prohibía, sin quererlo, la capacidad central del producto. → `D-0039`
+
+**Agentes de desarrollo** — los que trabajan sobre este repositorio. No reciben PII real de clientes salvo excepción explícita y justificada. Un agente que pega un DNI en el contexto de un proveedor de IA es una divulgación. Se usan identificadores internos, datos sintéticos o anonimizados; para lo demás, redacción. Tampoco hay PII en logs de aplicación ni en el texto de las tareas.
+
+**Agentes de producto** — los que Broker OS ejecuta para un usuario. Pueden procesar datos reales cuando sean necesarios para una función explícita y autorizada, enviando **únicamente los datos mínimos necesarios** para esa finalidad.
+
+Cuatro límites que no se mueven:
+
+- Las categorías especialmente sensibles que clasifica `DOMAIN.md` —salud, accidentes, vida, información financiera— están prohibidas para modelos externos en v1. Un documento que las contenga se rechaza, se redacta o se deriva a revisión humana.
+- **Ningún proveedor ni modelo queda autorizado por esta regla.** Cada uno requiere aprobación explícita previa antes de procesar datos reales.
+- Nunca se envían credenciales, secretos ni tokens. → `R-16`, `R-18`
+- Toda operación sobre datos reales queda auditable por función, usuario, recurso, proveedor y modelo, categoría de datos y timestamp, sin duplicar PII innecesariamente ni guardar prompts completos en logs.
 
 ### R-20 · Toda llamada externa con efecto secundario es idempotente — ACTIVA
 

@@ -10,6 +10,13 @@
 #   SUPERSEDED  reemplazado por otra decisión
 #   REJECTED    considerado y descartado; se registra para no re-litigarlo
 #
+# Una decisión ACCEPTED puede quedar superseded EN PARTE por decisiones posteriores sin
+# perder autoridad sobre el resto. Conserva ACCEPTED, su statement reemplaza la cláusula
+# afectada por la referencia a la decisión que la reemplaza, y declara
+# `superseded_in_part_by` como lista de entradas `{clause, by}`. `clause` nombra la
+# cláusula reemplazada; `by` es el id que la reemplaza y debe aparecer en el statement.
+# No sirve para cambiar una decisión en silencio: la cláusula reemplazada queda nombrada.
+#
 # Campos obligatorios: id, title, status, date, statement, source
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
@@ -88,11 +95,15 @@ decisions:
     date: 2026-09-07
     source: DOMAIN.md §34-35
     statement: >
-      La renovación se detecta desde la vigencia de la PolicyVersion efectiva y el
-      renewalMode. No existe entidad Renewal.
+      La renovación se detecta y se mide desde la existencia de una Policy sucesora
+      encadenada por renewedFromPolicyId y desde la vigencia de la PolicyVersion efectiva.
+      No existe entidad Renewal. Calcular un renewal ratio no requiere entidad propia y
+      por sí solo no falsifica esta decisión. Opportunity no es la portadora canónica del
+      resultado de renovación; sus datos del origen se preservan en staging.
     falsified_by: >
-      Necesitar registrar un resultado de renovación no derivable de la póliza
-      sucesora; en particular una renovación perdida y su motivo.
+      Necesitar registrar información no derivable de la póliza sucesora: motivo de
+      pérdida, intentos de contacto, responsable, SLA o estado propio del proceso de
+      renovación.
 
   - id: D-0008
     title: Las pólizas cargadas manualmente son de primera clase
@@ -191,7 +202,9 @@ decisions:
     statement: >
       El arnés inicial soporta únicamente Claude Code. La asignación de proveedores por
       tipo de tarea es una hipótesis no testeada y no se adopta como política hasta
-      que exista un experimento pareado con n suficiente.
+      que exista un experimento pareado con n suficiente. Esta decisión alcanza
+      únicamente al arnés de Project OS y no restringe la arquitectura de IA de Broker OS
+      como producto, que es una decisión separada.
 
   - id: D-0017
     title: Toda tarea tiene criterios verificables
@@ -352,9 +365,10 @@ decisions:
       Las contradicciones Estado/fecha no alteran inclusión. Cuenta prevalece como
       tomador cuando hay Cuenta y Contacto; Contacto queda relacionado. Claims
       históricos pueden conservar referencia fuente sin FK interna a Policy.
-      CUIT/CUIL es obligatorio para entidades validadas; legado sin fiscal válido
-      se conserva con NEEDS_IDENTITY_COMPLETION y todo merge fiscal requiere
-      revisión humana. Emision no es core a migrar; Productos representa ramo/tipo.
+      El tratamiento de la identidad fiscal de este lote queda definido por D-0035, y
+      todo merge fiscal requiere revisión humana. La relación entre tomador y Contacto
+      asociado queda definida por D-0036. Emision no es core a migrar; Productos
+      representa ramo/tipo.
       La curación humana aprueba 14 NEW_ENTITY y 1 SAME_ENTITY para los 15 Productos
       huérfanos, y 10 NEW_ENTITY y 3 SAME_ENTITY, todos ASEGURADORA, para los 13
       Proveedores huérfanos en scope; sin ALIAS_OF ni REVIEW en esos 28 casos.
@@ -362,7 +376,15 @@ decisions:
       se fusionan entidades por similitud o grupo empresarial. Las restantes
       entradas de los 37 Proveedores conservan su clasificación derivada o pendiente.
       Esto aprueba insumos y tratamiento de migración, no ejecuta altas, merges ni
-      importación ni cambia el schema; la alineación de dominio queda para T-0015.
+      importación ni cambia el schema. Esta decisión conserva autoridad sobre evidencia,
+      scope, curación y reglas de migración, y no es fuente canónica de semántica de
+      dominio: sus conclusiones de dominio viven en DOMAIN.md y en los ADR que las
+      motivaron.
+    superseded_in_part_by:
+      - clause: identidad fiscal obligatoria para entidades validadas
+        by: D-0035
+      - clause: relación entre tomador y Contacto asociado de una Policy
+        by: D-0036
 
   - id: D-0032
     title: Cierre de discovery documental con conciliación asistida
@@ -384,3 +406,157 @@ decisions:
       carpetas, navegación/creación/guardado desde /ingresar, navegación por LLM y
       vínculo automático Policy-documento quedan fuera de T-0004 para trabajo
       posterior específico. No se modifican Drive ni sus permisos para este cierre.
+
+  # ── Alineación de dominio (T-0015) ───────────────────────────────────────
+
+  - id: D-0033
+    title: La migración persiste en staging; el dominio recibe solo lo modelado
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; D-0031
+    adr: DECISIONS/0033-frontera-staging-y-dominio.md
+    statement: >
+      La migración persiste el scope aprobado por D-0031 en un staging fiel al origen,
+      separado del dominio. Staging responde qué existía en Zoho y conserva IDs
+      originales, relaciones relevantes del origen, valores originales necesarios,
+      batch/snapshot de importación y trazabilidad hacia el origen. El dominio responde
+      cómo entiende Broker OS el negocio y recibe únicamente conceptos suficientemente
+      validados para ser MODELED NOW. Persistir información migrada no implica exponerla
+      en producto ni promover un módulo de Zoho a entidad de dominio. La única excepción
+      a la fidelidad de staging son las reglas de descarte definidas explícitamente.
+
+  - id: D-0034
+    title: ExternalReference representa lo que existe en el origen y no en el dominio
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; medición M2
+    adr: DECISIONS/0034-external-reference.md
+    statement: >
+      Las referencias conocidas hacia entidades externas, históricas o todavía no
+      migradas que tienen valor operativo dentro de Broker OS se representan mediante
+      ExternalReference, con sourceSystem, sourceEntityType, sourceExternalId o valor
+      original, relationType, resolutionStatus, unresolvedReason cuando corresponda, y
+      resolvedTargetType y resolvedTargetId si posteriormente se resuelve. Resolver una
+      referencia nunca borra ni sobrescribe la referencia original. No es una relación
+      polimórfica genérica: existe únicamente cuando la referencia no resuelta necesita
+      sobrevivir en el dominio o en el producto. Staging sigue siendo la representación
+      fiel del origen, y no toda FK rota del origen merece un ExternalReference.
+
+  - id: D-0035
+    title: La identidad fiscal es una condición derivada de calidad de datos
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; D-0031
+    adr: DECISIONS/0035-identidad-fiscal-derivada.md
+    statement: >
+      CUIT y CUIL son opcionales y su función en Broker OS es ser señal fuerte de
+      matching y detección de duplicados, no un lifecycle propio ni un requisito de
+      validez. Su ausencia no impide crear, migrar ni mantener activa una Party.
+      Party.status no representa completitud fiscal. Missing, invalid y conflict son
+      condiciones derivadas de calidad de datos, no estados de Party. Staging conserva
+      siempre el valor original del origen, incluso inválido; el dominio conserva el
+      valor normalizado válido. Matching nunca implica merge automático. No se crea
+      TaxIdentity.
+
+  - id: D-0036
+    title: Una Policy tiene un único tomador; el Contacto asociado no es parte contractual
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; mediciones M5 y D-0031
+    adr: DECISIONS/0036-tomador-unico-de-policy.md
+    statement: >
+      Una PolicyVersion tiene exactamente un tomador. Cuando el origen presenta Cuenta y
+      Contacto, la Cuenta es el tomador y el Contacto es una persona de referencia de esa
+      empresa que no adquiere por ese hecho ningún rol contractual sobre la Policy.
+      Cuando el origen presenta únicamente Contacto, esa persona física es el tomador.
+      La relación persona-organización pertenece a OrganizationMembership, no a la
+      Policy. El contact_id del origen se preserva en staging para trazabilidad y no se
+      promueve automáticamente a una relación Policy-Contact. No se crea PolicyParty.
+      Las Policies del origen sin tomador no se promueven al dominio hasta resolverse:
+      permanecen en staging como excepción y no reciben un tomador ficticio.
+
+  - id: D-0037
+    title: Endorsement es un evento asociado a una Policy y exige Policy padre
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; mediciones M3 y M8
+    adr: DECISIONS/0037-endorsement-modeled-now.md
+    statement: >
+      Endorsement pasa a MODELED NOW como evento del origen asociado a una Policy, no
+      necesariamente contractual, con identidad o número, Policy asociada, tipo, fechas,
+      referencia de origen y vínculo documental cuando exista. Endorsement.policyId no es
+      nullable: un Endorsement existe en Broker OS solo si puede asociarse
+      inequívocamente a una Policy que también se importa. Los Endorsements sin Policy
+      padre se descartan del conjunto migrable, no entran a staging, no generan
+      ExternalReference y permanecen únicamente dentro del export crudo preservado.
+      Un Endorsement no sobrescribe el estado anterior. Qué tipos de Endorsement producen
+      una nueva PolicyVersion se determina mediante una tabla curada explícita; el
+      importador no lo infiere. No se modela todavía workflow, SLA, responsable,
+      approvals ni máquina de estados.
+
+  - id: D-0038
+    title: El número de póliza es único por aseguradora
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; medición M1
+    adr: DECISIONS/0038-unicidad-numero-de-poliza.md
+    statement: >
+      El par (insurerId, policyNumber) es único. Dos registros del origen con la misma
+      combinación son una anomalía por error humano o duplicación, no un caso válido del
+      dominio. Toda colisión se resuelve explícitamente antes de importar: el importador
+      no descarta, no sobrescribe y no fusiona filas para satisfacer el constraint, y las
+      deriva a la cola durable de excepciones. Una Policy del origen sin aseguradora no
+      puede formar el par y recibe el mismo tratamiento.
+
+  - id: D-0039
+    title: Agentes de desarrollo y agentes de producto tienen reglas distintas de datos
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; ENGINEERING_RULES.md R-19
+    adr: DECISIONS/0039-clases-de-agente-y-datos-de-cliente.md
+    statement: >
+      Se distinguen dos clases de agente. Los agentes de desarrollo no reciben PII real
+      de clientes salvo excepción explícita y justificada, y trabajan con identificadores
+      internos, datos sintéticos o anonimizados. Los agentes de producto de Broker OS
+      pueden procesar datos reales cuando sean necesarios para ejecutar una función
+      explícita y autorizada, enviando únicamente los datos mínimos necesarios para esa
+      finalidad. En v1 pueden procesarse identidad y contacto, vehículos, inmuebles,
+      Policies, coberturas y documentación administrativa o comercial relacionada. Las
+      categorías especialmente sensibles de DOMAIN.md quedan prohibidas para modelos
+      externos en v1: los documentos que las contengan se rechazan, se redactan o se
+      derivan a revisión humana. Nunca se envían credenciales, secretos ni tokens.
+      Ningún proveedor ni modelo queda autorizado a procesar datos reales por efecto de
+      esta decisión: cada proveedor y modelo requiere aprobación explícita previa. Toda
+      operación LLM sobre datos reales es auditable por función, usuario, recurso,
+      proveedor y modelo, categoría de datos y timestamp, sin duplicar PII
+      innecesariamente ni guardar prompts completos en logs.
+
+  - id: D-0040
+    title: La autoridad documental se descompone en ejes; VS01 no escribe en Drive
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; D-0009 y D-0032
+    adr: DECISIONS/0040-ejes-de-autoridad-documental.md
+    statement: >
+      La autoridad documental de D-0009 se descompone en ejes. Drive es autoritativo
+      sobre contenido y sobre ACLs y permisos, sin excepción. La ubicación y la
+      estructura actuales se leen y se respetan; Broker OS puede proponer una estructura
+      canónica futura, y proponerla no lo convierte en autoridad sobre la ubicación.
+      Broker OS es autoritativo sobre sus referencias, su clasificación y su metadata.
+      VS01 es estrictamente de solo lectura sobre Drive: no crea, no mueve, no renombra,
+      no modifica y no elimina archivos ni carpetas. Toda capacidad futura de escritura
+      requiere decisión y tarea específicas y aprobación humana. La convención de nombres
+      aplica a la estructura futura y no dispara normalización automática de carpetas
+      históricas.
+
+  - id: D-0041
+    title: InsuranceProduct proviene de un catálogo curado
+    status: ACCEPTED
+    date: 2026-09-19
+    source: T-0015; respuestas humanas definitivas del 2026-09-19; D-0021 y D-0031
+    adr: DECISIONS/0041-catalogo-curado-de-producto.md
+    statement: >
+      El importador no crea InsuranceProduct desde strings ni desde filas desconocidas
+      del origen. El catálogo de ramos es curado, del mismo modo que el de aseguradoras
+      en D-0021, y las referencias huérfanas se reportan para resolución humana. Esta
+      decisión fija la procedencia del catálogo y no resuelve ni estructura D-0026.
