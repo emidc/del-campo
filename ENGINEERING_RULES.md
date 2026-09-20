@@ -65,10 +65,41 @@ Se considera terminada una tarea cuando:
 - el AgentRun quedó registrado y vinculado al PR (**ACTIVA** cuando haya PRs);
 - cero nuevos errores de tipo, cero nuevos errores de lint (**LATENTE**);
 - ningún test nuevo marcado como `skip`, y ningún test existente modificado sin justificación explícita en el PR (**LATENTE**);
+- existe `ops/evidence/T-xxxx.md` conforme a R-09b (**ACTIVA**);
 - ADR creado si aplica R-05 (**ACTIVA**);
 - aprobación humana obtenida si aplica R-13 o R-14 (**ACTIVA**).
 
 No se declara terminado nada cuya verificación no se haya ejecutado.
+
+---
+
+### R-09b · La evidencia de ejecución es un artefacto versionado — ACTIVA
+
+Toda tarea que pase a `status: DONE` tiene un archivo `ops/evidence/T-xxxx.md`. El
+checker lo exige y falla sin él, nombrando el archivo que falta. El archivo contiene:
+
+- un **encabezado de procedencia** que declara el SHA de `main` y el SHA de la rama
+  sobre los que se ejecutó la verificación, y los `runId` de los AgentRuns
+  involucrados — o la constancia explícita de que no hay ninguno;
+- `## Comandos y salida literal` — cada comando de `## Verification` con su salida
+  **textual**. Una descripción de la salida no es la salida: lo que se resume deja de
+  ser comprobable por un tercero;
+- `## Observación externa` — al menos una comprobación hecha en el borde del sistema,
+  por fuera del artefacto que se verifica. Un check verde prueba que el código hace lo
+  que el test dice, no que el test diga lo correcto;
+- `## Qué NO se verificó` — los límites conocidos de la evidencia. Una tarea que no
+  declara ninguno es una tarea cuya evidencia no se leyó.
+
+Un archivo escrito después del hecho lo declara en su encabezado y distingue qué parte
+de su contenido se produjo durante la ejecución original y cuál no. Lo que no quedó
+registrado se declara faltante; **no se reconstruye**. Un retrofit que no diga que lo es
+sería peor que su ausencia.
+
+La regla no alcanza a `DROPPED` ni a ningún otro estado: una tarea que no se ejecutó no
+tiene nada que demostrar.
+
+El checker valida estructura, no veracidad. Que las cuatro partes existan no prueba que
+digan la verdad; esa lectura es del revisor humano. → `R-30`
 
 ---
 
