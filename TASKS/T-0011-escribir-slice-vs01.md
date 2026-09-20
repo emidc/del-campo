@@ -8,15 +8,17 @@ riskClass: MEDIUM
 size: M
 created: 2026-09-08
 blockedBy: [T-0004]
-contextRefs: [DOMAIN.md, decisions.yaml, PROJECT.md, REVIEWS/T-0004-insumos-vs01.md]
+contextRefs: [DOMAIN.md, decisions.yaml, PROJECT.md, REVIEWS/T-0004-insumos-vs01.md,
+              TASKS/T-0015-alinear-dominio-con-evidencia.md]
 decisionRefs: [D-0019, D-0020, D-0021, D-0025]
 ---
 
 ## Why
 
 `DOMAIN.md` §63-66 define el dominio de VS01 y `D-0019` decide qué es la rebanada, pero
-nadie decidió su software: superficie, origen de los datos, criterio medible de éxito,
-autenticación interna y despliegue. VS01 son al menos cuatro tareas que necesitan la
+falta consolidar el contrato de software con los inputs ya respondidos en `T-0015`:
+superficie, criterio medible de éxito, autenticación interna y despliegue, junto con el
+origen de los datos documentado por `T-0004`. VS01 son al menos cuatro tareas que necesitan la
 misma respuesta a "qué es VS01"; si esa respuesta vive dentro de una de ellas, una tarea
 cerrada pasa a leerse como especificación vigente, que es precisamente lo que las tareas
 no son.
@@ -66,20 +68,12 @@ Comprobaciones humanas:
 
 ## Notes
 
-**Inputs requeridos — bloquean el pase a `READY`.** Ninguno de los cuatro es derivable
-de un documento del repositorio. El agente puede llegar hasta un borrador con opciones y
-consecuencias; la elección es tuya.
-
-- **Q-8 · ¿Cuál es la superficie?** ¿Aplicación web, CLI, otra cosa? ¿Qué ve un usuario
-  de la correduría cuando la abre? Es la decisión que más condiciona el resto.
-- **Q-9 · ¿Cuál es el criterio medible de éxito?** "Más rápido que Zoho + Drive" no es
-  verificable como está escrito. Hace falta qué se mide —tiempo hasta encontrar una
-  póliza y sus documentos, por ejemplo—, contra qué línea de base y con cuántos casos.
-- **Q-10 · ¿Hay autenticación interna en VS01?** SSO de Google Workspace, o ninguna
-  porque corre local y de solo lectura. Afecta si `User` entra al schema de T-0012 más
-  allá del mínimo de §63.
-- **Q-11 · ¿Dónde corre?** Local en las máquinas de la correduría, o hosteado. Cambia el
-  costo de T-0014 y toca `D-0014`, que sigue provisional.
+**Inputs resueltos.** Q-8 (superficie), Q-9 (criterio medible de éxito), Q-10
+(autenticación interna) y Q-11 (despliegue) ya fueron respondidos por el owner y están
+registrados en [T-0015, §Notes](T-0015-alinear-dominio-con-evidencia.md#notes), bajo
+«Inputs ya respondidos». No requieren una nueva elección ni bloquean por falta de
+respuesta. El dominio y las decisiones canónicas siguen en `DOMAIN.md` y
+`decisions.yaml`; `D-0014` conserva el pendiente relativo al worker.
 
 Las respuestas se incorporan a `## Outcome` antes de que este archivo llegue a `main`:
 después de T-0005 las cuatro secciones de contrato quedan congeladas.

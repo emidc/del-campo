@@ -2,7 +2,7 @@
 id: T-0015
 title: Alinear el dominio con la evidencia de T-0004 y las reglas de negocio confirmadas
 kind: REVIEW
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -89,24 +89,36 @@ test -z "$(git ls-files -- data/)"
 
 Comprobaciones humanas:
 
-- [ ] Ninguna afirmación de `DOMAIN.md` contradice una regla de negocio confirmada, y
+- [x] Ninguna afirmación de `DOMAIN.md` contradice una regla de negocio confirmada, y
       ninguna regla confirmada vive únicamente dentro del `statement` de una decisión de
       migración.
-- [ ] Cada decisión tocada declara explícitamente qué cláusula fue reemplazada y por quién;
+- [x] Cada decisión tocada declara explícitamente qué cláusula fue reemplazada y por quién;
       ninguna cambió en silencio.
-- [ ] Cada concepto del alcance aprobado tiene destino declarado —staging o dominio— y el
+- [x] Cada concepto del alcance aprobado tiene destino declarado —staging o dominio— y el
       destino está justificado por evidencia, no supuesto.
-- [ ] Las excepciones estructurales conocidas son representables sin inventar datos y sin
+- [x] Las excepciones estructurales conocidas son representables sin inventar datos y sin
       violar una invariante declarada: pólizas sin tomador, colisiones de número,
       predecesores no resolubles, identidades fiscales incompletas, endosos sin padre y
       recursos sin referencia documental.
-- [ ] Ninguna decisión `OPEN` quedó resuelta de hecho por una redacción.
-- [ ] Reintroducir un resumen de estados en un documento canónico hace fallar `pnpm check`,
+- [x] Ninguna decisión `OPEN` quedó resuelta de hecho por una redacción.
+- [x] Reintroducir un resumen de estados en un documento canónico hace fallar `pnpm check`,
       comprobado agregándolo y quitándolo.
-- [ ] Un `superseded_in_part_by` cuyo `by` no aparece en el `statement` hace fallar
+- [x] Un `superseded_in_part_by` cuyo `by` no aparece en el `statement` hace fallar
       `pnpm check`, comprobado del mismo modo.
-- [ ] `pnpm decisions` produce el mismo conjunto de ids que `decisions.yaml`, sin
+- [x] `pnpm decisions` produce el mismo conjunto de ids que `decisions.yaml`, sin
       reformular ningún `statement`.
+
+## Closure
+
+Cierre: **2026-09-20**, por instrucción explícita del owner. Las ocho comprobaciones
+humanas de `## Verification` fueron revisadas y aprobadas por el owner en esa fecha.
+La revisión independiente detectó una contradicción puntual en `DOMAIN.md` §33; se
+corrigió con autorización del owner para aclarar que `renewedFromPolicyId = NULL` no
+prueba por sí solo ausencia de predecesora conocida, en concordancia con §32 y `D-0034`.
+
+Verificación automática del cierre: `pnpm check`, `pnpm decisions`, los 10 tests de
+Zoho y `git diff --check` pasan; `data/` no está versionado y no se detectó PII en el
+diff. `pnpm` está disponible en este cierre y se utilizó la vía normal.
 
 ## Data effects
 

@@ -1059,8 +1059,13 @@ o equivalente dentro del proceso de migración.
 
 No se inventarán cadenas.
 
-Un `renewedFromPolicyId` nulo significa que no se conoce ninguna predecesora, y nunca que
-la predecesora existe fuera del alcance migrado: ese caso es explícito. → `INV-014`
+`renewedFromPolicyId` referencia únicamente una Policy predecesora existente dentro de
+Broker OS. Si la predecesora es conocida pero no existe como Policy dentro de Broker OS,
+`renewedFromPolicyId` queda `NULL` y la continuidad se conserva mediante
+`ExternalReference`. Por lo tanto, `NULL` no prueba por sí solo la ausencia de una
+predecesora conocida: esa ausencia solo puede inferirse cuando no existe ni
+`renewedFromPolicyId` ni una `ExternalReference` correspondiente a la relación de
+renovación/predecesora. → `INV-014`, `D-0034`
 
 ---
 
