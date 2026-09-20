@@ -17,6 +17,8 @@ const TASK_STATUS = ['DRAFT', 'READY', 'ACTIVE', 'BLOCKED', 'DONE', 'DROPPED']
 const RISK = ['LOW', 'MEDIUM', 'HIGH']
 const WORKSTREAM = ['POS', 'BOS', 'MIG']
 const REQUIRED_SECTIONS = ['## Why', '## Outcome', '## Non-scope', '## Verification']
+const EVIDENCE_SECTIONS = ['## Comandos y salida literal', '## Observación externa',
+  '## Qué NO se verificó']
 const DECISION_ID = /^D-\d{4}$/
 
 let doc = {}
@@ -170,6 +172,21 @@ for (const file of taskFiles) {
   }
   if (frontmatter?.riskClass === 'HIGH' && !body.includes('\n## Data effects'))
     warn(`${at}: riskClass HIGH sin sección "## Data effects"`)
+
+  // R-09b: una tarea DONE demuestra su resultado con un artefacto versionado. El
+  // checker valida que exista y cómo está estructurado; la veracidad la lee un humano.
+  if (frontmatter?.status === 'DONE' && frontmatter?.id) {
+    const evidencePath = join('ops', 'evidence', `${frontmatter.id}.md`)
+    if (!existsSync(evidencePath)) {
+      fail(`${at}: status DONE exige el archivo de evidencia ${evidencePath} (R-09b)`)
+    } else {
+      const evidence = readFileSync(evidencePath, 'utf8')
+      for (const section of EVIDENCE_SECTIONS) {
+        if (!evidence.includes(`\n${section}`))
+          fail(`${evidencePath}: falta la sección obligatoria "${section}" (R-09b)`)
+      }
+    }
+  }
 }
 
 for (const { file, fm } of tasks) {

@@ -54,6 +54,9 @@ Afirmaciones concretas que un humano debe comprobar, cuando el outcome no sea me
 **Toda tarea exige evidencia verificable. SPIKE y REVIEW pueden depender de
 comprobaciones humanas explícitas.**
 
+Al pasar a `DONE`, la ejecución de estos comandos queda registrada en
+`ops/evidence/T-xxxx.md` — R-09b. El checker exige ese archivo.
+
 ---
 
 <!-- Secciones condicionales. Borrar las que no apliquen. -->
