@@ -2,7 +2,7 @@
 id: T-0014
 title: Entregar la vinculación con Drive, la búsqueda y la superficie de VS01
 kind: FEATURE
-status: DRAFT
+status: DROPPED
 workstream: BOS
 riskClass: MEDIUM
 size: L
@@ -76,3 +76,19 @@ vinculación, búsqueda y superficie. No lo parto todavía porque su forma depen
 decida `SLICES/VS01.md`, que a su vez depende de T-0004. Partirlo antes de esa evidencia
 sería inventar una descomposición. La partición se hace al escribir T-0011, y ahí este
 número deja de ser uno solo.
+
+## Disposition
+
+**Descompuesta por T-0011 el 2026-09-20, sin ejecutar su implementación.** Se conservan
+arriba el contrato original y sus preguntas como historia; el trabajo pendiente vive en:
+
+| Tarea | Resultado | Dependencias |
+| --- | --- | --- |
+| T-0016 | Búsqueda y consultas | T-0011, T-0012 |
+| T-0017 | Vinculación documental asistida | T-0011, T-0013 y Q-15 |
+| T-0018 | App interna, sesión, entrega y medición | T-0013, T-0016, T-0017 |
+
+Q-15 se traslada a T-0017 sin darla por respondida. El criterio de aceptación y la
+prueba de utilidad se conservan en T-0018. DROPPED evita activar dos veces el mismo
+trabajo; no significa que el producto ni estos resultados estén entregados. Las tres
+tareas quedan DRAFT mientras se revisa el contrato y se satisfacen sus precondiciones.

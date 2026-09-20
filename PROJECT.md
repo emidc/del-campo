@@ -1,6 +1,6 @@
 # Del Campo — PROJECT.md
 
-**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-19
+**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-20
 
 Este archivo es el índice del programa. Si algo no está acá, está en uno de los documentos que este archivo nombra. Si no está en ninguno, todavía no está decidido.
 
@@ -48,15 +48,18 @@ tomador único, `Endorsement`, unicidad de número de póliza, clases de agente 
 autoridad documental. El objetivo de `T-0007` quedó absorbido: el estado de las decisiones
 ya no se escribe a mano en ningún documento canónico y se genera con `pnpm decisions`.
 
-Sigue `T-0011`: escribir el contrato de software de Vertical Slice 01 con los inputs ya
-respondidos. Recién después `T-0012` implementa el schema. La alineación de dominio no
-autoriza migración ni amplía la superficie de VS01.
+`T-0011` cerró el 20/09/2026 con revisión humana: `SLICES/VS01.md` contiene el contrato
+aprobado de software y aceptación. T-0014 se descompone en T-0016 (búsqueda), T-0017
+(vinculación documental) y T-0018 (app interna y aceptación), sin iniciar su implementación.
+Antes del schema de T-0012 falta el entorno de T-0010, que depende de T-0008, y resolver
+Q-12 en el contrato de T-0012. La alineación de dominio y el contrato no autorizan
+migración ni amplían la superficie de VS01.
 
 ### Qué sigue después de esta fase
 
-1. Convertir la evidencia de `T-0004` y el dominio alineado por `T-0015` en el contrato
-   ejecutable de **Vertical Slice 01** — Póliza + Documentos + Búsqueda. → `D-0019`
-2. Implementar VS01 con el alcance que esa evidencia permita sostener.
+1. Completar las precondiciones de entorno y schema declaradas en T-0010 y T-0012.
+2. Implementar **Vertical Slice 01** conforme al contrato aprobado `SLICES/VS01.md`,
+   sus tareas y sus dependencias. → `D-0019`
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
 activa antes del primer acceso multi-principal, del portal externo o de un worker o
@@ -98,6 +101,7 @@ Con un solo desarrollador, el límite no es una preferencia de método: es la ú
 | `decisions.yaml` | Índice de decisiones: aceptadas, provisionales, abiertas | Antes de decidir algo que huela a ya decidido |
 | `DECISIONS/` | Los ADR completos | Cuando el índice no alcanza |
 | `TASKS/` | Las tareas | — |
+| `SLICES/VS01.md` | Contrato de software y aceptación de VS01; caduca al entregarse | Antes de implementar VS01 |
 | `ops/AGENTRUN.md` | Esquema del registro de ejecución | Al tocar el hook o analizar runs |
 | `docs/history/SOURCES.md` | Procedencia del bundle y fuentes citadas pero no recibidas | Al auditar el baseline |
 
