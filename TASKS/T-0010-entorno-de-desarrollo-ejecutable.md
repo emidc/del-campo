@@ -2,14 +2,14 @@
 id: T-0010
 title: Levantar el entorno de desarrollo ejecutable, sin dominio
 kind: CHORE
-status: READY
+status: ACTIVE
 workstream: POS
 riskClass: LOW
 size: M
 created: 2026-09-08
 blockedBy: [T-0008]
-contextRefs: [ENGINEERING_RULES.md, decisions.yaml, .github/workflows/project-os-check.yml]
-decisionRefs: [D-0012, D-0013]
+contextRefs: [ENGINEERING_RULES.md, decisions.yaml, .github/workflows/project-os-check.yml, docs/desarrollo/postgres-local.md]
+decisionRefs: [D-0012, D-0013, D-0045, D-0046, D-0047]
 ---
 
 ## Why

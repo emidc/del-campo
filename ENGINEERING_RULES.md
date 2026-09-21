@@ -197,19 +197,27 @@ Especialmente antes del cutover de Zoho. No migrar y no preservar son decisiones
 
 ---
 
-## 6. Código — LATENTE hasta el Vertical Slice 01
+## 6. Código
+
+La sección entera estuvo LATENTE hasta T-0010, que levantó el workspace, el type check, el lint y el runner de tests. Ya no se marca por sección: cada regla declara su propio estado, porque ahora difieren.
 
 ### R-24 · Contratos en todos los bordes — LATENTE
 
-Todo borde (HTTP, mensaje de cola, task spec, payload de integración) tiene un schema Zod y se **valida en runtime**, no solo en tipos. Es lo que permite que un agente compruebe su propio trabajo.
+Todo borde (HTTP, mensaje de cola, task spec, payload de integración) tiene un schema validado y se **valida en runtime**, no solo en tipos. Es lo que permite que un agente compruebe su propio trabajo.
 
-### R-25 · Los límites de módulo se hacen cumplir por herramienta — LATENTE
+Sigue LATENTE y conviene decir por qué: todavía no existe ningún borde —ni HTTP, ni cola, ni payload de integración— y la biblioteca de validación en runtime es una dependencia nueva. La elige la primera tarea que tenga un borde, con su ADR por R-05. Marcarla cumplible hoy sería declarar exigible una regla sin herramienta que la haga cumplir, que es precisamente lo que la distinción ACTIVA/LATENTE existe para evitar.
+
+### R-25 · Los límites de módulo se hacen cumplir por herramienta — ACTIVA
 
 `packages/domain` no importa nada. `packages/db` no importa `api`. `apps/web` no importa `db` directamente. Regla de lint, no convención: un agente que no ve el límite lo cruza.
 
-### R-26 · Capas de test — LATENTE
+Los tres límites están escritos en `eslint.config.js` y hacen fallar `pnpm lint`. Los de `api` y `web` están escritos aunque esos paquetes todavía no existan: la regla ya rige, y transcribirla cuesta una línea por límite.
+
+### R-26 · Capas de test — ACTIVA en la capa unit; las demás entran con su primer caso
 
 Unit sobre lógica de dominio pura; integration contra un Postgres real; contract contra payloads reales capturados; E2E pocos y sobre caminos críticos.
+
+`pnpm test` corre la capa unit con el runner nativo de Node. La capa de integración necesita el Postgres local que fija `D-0046`, y su primer caso es T-0012. Contract y E2E entran con la primera integración y la primera UI: una capa de test sin sujeto no se puede hacer cumplir, sólo prometer.
 
 ### R-27 · Ningún mock sin una respuesta real detrás — LATENTE, pero la captura es ACTIVA
 

@@ -10,9 +10,19 @@ Todo lo anterior viene de `AGENTS.md` y rige para cualquier proveedor. Lo de ac�
 pnpm install --frozen-lockfile
 pnpm check          # valida decisions.yaml y las tareas de TASKS/
 pnpm decisions      # imprime el estado de las decisiones desde decisions.yaml
+
+pnpm typecheck      # tsc en modo estricto sobre packages/
+pnpm lint           # ESLint, incluidos los límites de módulo de R-25
+pnpm test           # node --test sobre los .ts de packages/
+
+pnpm db:version     # la mayor de Postgres local coincide con .postgres-version
+pnpm db:create      # crea la base local y aplica migraciones pendientes
+pnpm db:reset       # la borra y la vuelve a crear desde cero
 ```
 
-Todavía no hay código de aplicación, así que no hay `dev`, `test`, `lint` ni `typecheck`. Se agregan acá cuando arranque el Vertical Slice 01.
+`typecheck`, `lint` y `test` **todavía no están dentro de `pnpm check`**: los cablea T-0012, que es la primera tarea con código real que chequear. Hasta entonces se corren por separado, y conviene correrlos antes de abrir un PR: nada más los obliga a seguir pasando.
+
+Postgres corre nativo y su instalación está en `docs/desarrollo/postgres-local.md`. No hay `dev` porque todavía no hay aplicación web.
 
 ### Documentos: leerlos, no cargarlos
 
