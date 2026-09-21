@@ -118,6 +118,17 @@ La elección de toolchain es una decisión y lleva un ADR; el schema en SQL es o
 el suyo. Si preferís un ADR por dependencia, decilo antes de empezar: cambia el
 `## Outcome`.
 
+**Divergencia con el `## Outcome`: R-24 quedó LATENTE.** El outcome dice que R-24, R-25 y
+R-26 dejan de estar marcadas LATENTE. R-25 y R-26 sí: hay una regla de lint que hace
+cumplir los límites y un runner que corre la capa unit. R-24 no, y la contradicción es
+del texto de la tarea, no de la implementación: no existe todavía ningún borde —ni HTTP,
+ni cola, ni payload de integración— y la biblioteca de validación en runtime es una
+dependencia nueva que este mismo `## Non-scope` prohíbe instalar, porque no tiene uso en
+T-0012. Marcar cumplible una regla sin herramienta que la cumpla es precisamente lo que
+la distinción ACTIVA/LATENTE existe para evitar. `ENGINEERING_RULES.md` deja escrito el
+disparador: R-24 se activa con el primer borde, y esa tarea elige la biblioteca con su
+ADR por R-05. Si el owner prefiere lo contrario, cambia el `## Outcome`, no el código.
+
 **Consecuencia de Q-7.** Entre esta tarea y T-0012 nada obliga a que typecheck, lint y
 tests sigan pasando, así que la configuración puede pudrirse en silencio. Por eso las tres
 comprobaciones de canario son obligatorias acá y se repiten en T-0012 cuando se cablean al
