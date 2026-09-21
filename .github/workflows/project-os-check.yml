@@ -18,6 +18,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    services:
+      postgres:
+        # La versión mayor tiene que coincidir con .postgres-version (D-0046, R-17): CI
+        # da el veredicto, y por eso corre la misma versión mayor que la máquina local,
+        # aunque el runtime del contenedor sea distinto a propósito.
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: delcampo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # _test, no _dev: packages/db/src/cli.ts sólo permite db:reset sobre nombres que
+      # terminan en _dev o _test, y CI no necesita ni debe tocar una base de desarrollo.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/delcampo_test
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
@@ -31,6 +54,21 @@ jobs:
           runtime: node@24
           require-lockfile: true
           install: true
+
+      - name: Ensure psql matching .postgres-version is on the runner
+        # El binario psql corre en el runner, no en el contenedor del servicio: ahí
+        # es donde packages/db/src/cli.ts lo invoca con execFileSync. ubuntu-latest
+        # no lo garantiza pinneado a una mayor, así que se instala explícitamente
+        # la misma mayor que .postgres-version fija (D-0046).
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "postgresql-client-$(cat .postgres-version)"
+
+      - name: Apply migrations against the CI database
+        # db:version antes de db:migrate: migrate (packages/db/src/cli.ts) no llama
+        # comprobarVersion — sólo create, reset y version lo hacen —, así que sin este
+        # paso previo nada comprueba acá que la mayor corrida sea la de .postgres-version.
+        run: pnpm db:version && pnpm db:migrate
 
       - name: Check Project OS
         run: pnpm check
