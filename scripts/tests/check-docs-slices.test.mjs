@@ -17,6 +17,7 @@ function check(t, slices = {}) {
     'DOMAIN.md', 'AGENTS.md', 'CLAUDE.md', 'ENGINEERING_RULES.md']) {
     cpSync(join(root, name), join(fixture, name), { recursive: true })
   }
+  cpSync(join(root, 'ops/evidence'), join(fixture, 'ops/evidence'), { recursive: true })
   for (const [name, content] of Object.entries(slices)) {
     const path = resolve(fixture, 'SLICES', name)
     mkdirSync(dirname(path), { recursive: true })

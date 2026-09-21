@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-19
+updated: 2026-09-20
 
 decisions:
 
@@ -560,3 +560,52 @@ decisions:
       del origen. El catálogo de ramos es curado, del mismo modo que el de aseguradoras
       en D-0021, y las referencias huérfanas se reportan para resolución humana. Esta
       decisión fija la procedencia del catálogo y no resuelve ni estructura D-0026.
+
+  # ── Regularización y controles locales (T-0008) ───────────────────────────
+
+  - id: D-0042
+    title: Parser YAML estándar para el contexto versionado
+    status: ACCEPTED
+    date: 2026-09-20
+    source: T-0008; regularización de la dependencia existente en package.json y pnpm-lock.yaml
+    adr: DECISIONS/0042-parser-yaml.md
+    statement: >
+      Los validadores y lectores del contexto versionado usan el paquete yaml como
+      parser estándar de decisions.yaml y del frontmatter de tareas. La regularización
+      documenta la dependencia existente, sin agregar paquetes ni cambiar su versión.
+      La validación semántica del contrato permanece en los scripts del repositorio.
+
+  - id: D-0043
+    title: ¿Un segundo proveedor mejora la calidad de la revisión?
+    status: OPEN
+    date: 2026-09-20
+    source: T-0008; pregunta pendiente vinculada a D-0016
+    statement: >
+      Determinar si un segundo proveedor mejora la detección de defectos en revisiones
+      independientes lo suficiente para justificar su costo y complejidad operativa.
+      Registrar la pregunta no incorpora otro proveedor ni cambia D-0016.
+    unblocked_by: >
+      Experimento pareado sobre las mismas TaskSpecs y diffs, con contexto controlado,
+      criterios de evaluación definidos antes de medir y tamaño de muestra justificado;
+      comparar defectos confirmados, falsos positivos, costo y tiempo de revisión.
+      Diseñar y autorizar el experimento antes de ejecutarlo.
+
+  - id: D-0044
+    title: Control local de Bash para rutas protegidas
+    status: PROVISIONAL
+    date: 2026-09-20
+    source: T-0008; pedido del owner de completar la tarea y prueba real del hook
+    adr: DECISIONS/0044-control-bash-rutas-protegidas.md
+    statement: >
+      Se incorpora un PreToolUse de Claude Code para Bash que rechaza destinos de escritura
+      reconocidos bajo .claude y .github/workflows, incluyendo rutas canónicas y aliases
+      por symlink. Los comandos opacos o con efectos no determinables requieren revisión
+      humana; nunca reciben autorización automática del hook. Este control no agrega
+      rutas a permissions.deny ni modifica D-0016. Los cambios futuros del control
+      requieren aprobación humana según R-13/R-15. Es una defensa local,
+      no un sandbox ni una garantía frente a todo proceso o proveedor.
+    falsified_by: >
+      Que una prueba documentada permita una escritura protegida sin intervención humana,
+      que el runtime ignore la revisión solicitada o que la tasa de solicitudes sobre el
+      trabajo habitual haga inviable el control. Las denegaciones y el caso permitido
+      deben conservar pruebas en una sesión real; la prueba aislada no basta.

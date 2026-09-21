@@ -52,8 +52,12 @@ ya no se escribe a mano en ningún documento canónico y se genera con `pnpm dec
 aprobado de software y aceptación. T-0014 se descompone en T-0016 (búsqueda), T-0017
 (vinculación documental) y T-0018 (app interna y aceptación), sin iniciar su implementación.
 Antes del schema de T-0012 falta el entorno de T-0010, que depende de T-0008, y resolver
-Q-12 en el contrato de T-0012. La alineación de dominio y el contrato no autorizan
-migración ni amplían la superficie de VS01.
+Q-12 en el contrato de T-0012. T-0006 incorporó evidencia obligatoria para DONE.
+T-0008 cerró con regularización de yaml, pregunta sobre un segundo proveedor y control
+Bash probado en sesión real; su evidencia está en `ops/evidence/T-0008.md`.
+Sigue T-0010 para preparar el entorno, antes de implementar el schema.
+La alineación de dominio y el contrato no autorizan migración ni amplían la superficie
+de VS01.
 
 ### Qué sigue después de esta fase
 
