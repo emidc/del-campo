@@ -2,7 +2,7 @@
 // con la base, y por eso son las únicas piezas de T-0010 que se pueden testear sin
 // Postgres. El I/O vive en `cli.ts`.
 
-export type Migracion = {
+export interface Migracion {
   readonly numero: number
   readonly slug: string
   readonly archivo: string

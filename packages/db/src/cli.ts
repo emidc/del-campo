@@ -38,7 +38,7 @@ const leerEnv = (): Record<string, string> => {
 }
 
 const urlDeLaBase = (): URL => {
-  const crudo = process.env['DATABASE_URL'] ?? leerEnv()['DATABASE_URL']
+  const crudo = process.env.DATABASE_URL ?? leerEnv().DATABASE_URL
   if (crudo === undefined || crudo === '') {
     return morir('falta DATABASE_URL. Copiá .env.example a .env — ver docs/desarrollo/postgres-local.md')
   }

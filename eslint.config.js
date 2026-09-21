@@ -53,7 +53,9 @@ export default tseslint.config(
       '**/.worktrees/**',
       'Claude outputs/**',
       'data/**',
-      'scripts/**', // arnés de Project OS, anterior a este workspace y fuera de R-25
+      // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
+      // workspace: no están en el programa de TypeScript y R-25 no los alcanza.
+      '**/*.mjs',
     ],
   },
 
@@ -67,6 +69,19 @@ export default tseslint.config(
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
+    },
+    rules: {
+      // `describe` e `it` del runner nativo devuelven una promesa que el propio runner
+      // espera. Marcarlas con `void` en cada línea sería ruido que entrena a ignorar la
+      // regla; declararlas seguras deja la regla intacta para las promesas de verdad.
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          allowForKnownSafeCalls: [
+            { from: 'package', package: 'node:test', name: ['describe', 'it', 'test'] },
+          ],
+        },
+      ],
     },
   },
 
