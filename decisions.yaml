@@ -748,3 +748,32 @@ decisions:
       adicional no es causalmente independiente mientras ese EXCLUDE exista, y se
       documenta así en vez de reportar una prueba de causalidad ficticia. Ningún
       concepto pasa de NAMED a MODELED. D-0025, D-0022, D-0026 y D-0027 permanecen OPEN.
+
+  # ── Acceso a datos reales en la migración (T-0013) ────────────────────────
+
+  - id: D-0053
+    title: Excepción acotada a R-19 para el importador de T-0013
+    status: ACCEPTED
+    date: 2026-09-21
+    source: >
+      Q-14, respondida por el owner el 21/09/2026; R-19, que prevé la excepción explícita
+      y justificada; D-0039, que separa agentes de desarrollo de agentes de producto.
+    adr: DECISIONS/0053-acceso-a-datos-reales-en-t-0013.md
+    statement: >
+      Para T-0013, y sólo para T-0013, un agente de desarrollo queda autorizado a acceder
+      a los datos reales del lote de Zoho preservado por T-0004 — implementar, ejecutar y
+      verificar la importación, y diagnosticar sus fallos—. La autorización nombra
+      proveedor claude-code y modelo sonnet-5 bajo la cuenta del owner, y alcanza también
+      al subagente de revisión ciega que R-33 exige para una tarea MIGRATION, que corre
+      bajo esas mismas condiciones. No se extiende a otros modelos, proveedores ni
+      tareas, y no se concede de forma general ni permanente.
+      El acceso se limita a los datos mínimos necesarios, con preferencia por consultas
+      acotadas y resultados agregados sobre la lectura de registros completos. El agente
+      puede leer el lote y escribir en staging y en la base local; no accede a Zoho ni a
+      Drive, y no los modifica. Los originales se conservan sin cambios, bajo custodia del
+      owner en su máquina, y los datos reales quedan fuera del versionado y de CI.
+      Los cuatro límites de R-19 siguen vigentes sin excepción: nada de credenciales ni
+      secretos; las categorías especialmente sensibles siguen prohibidas para modelos
+      externos y se excluyen del contexto y se derivan a revisión humana si aparecen;
+      ninguna PII entra a logs, tareas, reportes versionados ni código; y la trazabilidad
+      se registra sin reproducir datos personales.
