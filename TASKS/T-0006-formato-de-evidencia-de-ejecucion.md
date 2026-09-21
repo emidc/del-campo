@@ -73,6 +73,8 @@ Reversible revirtiendo el PR.
 
 ## Notes
 
+Prueba descartable T-0005: cambio exclusivo de esta sección.
+
 Sin inputs pendientes. Q-2 respondida: retrofit de T-0001 y T-0003, marcado
 explícitamente como escrito después del hecho.
 
