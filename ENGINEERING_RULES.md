@@ -262,7 +262,7 @@ No crece porque una biblioteca ofrezca una feature, porque un modelo recomiende 
 
 ## 9. Revisión
 
-### R-33 · Revisión ciega por subagente aislado — ACTIVA para los PR que la invoquen; no es obligatoria para todo PR
+### R-33 · Revisión ciega por subagente aislado — ACTIVA; obligatoria en `FEATURE` y `MIGRATION`
 
 Un check en verde prueba que el código hace lo que el test dice, no que el test diga lo
 correcto. La independencia que hace falta para notar la diferencia viene de **no
@@ -298,7 +298,22 @@ Un reporte sin ningún `Act on` es un resultado legítimo, pero entonces lo dice
 el argumento por el cual no encontró nada que ameritara cambio, en vez de inflar
 `Noted` para simular actividad.
 
-Esta regla define el procedimiento; no lo vuelve obligatorio para ningún PR ni lo
-conecta a CI. Si conviene hacerlo, se decide después de ejercitarlo, con la revisión
-misma como evidencia — eso es explícitamente `## Non-scope` de la tarea que la
-introdujo.
+**Cuándo es obligatoria.** Todo PR de una tarea `FEATURE` o `MIGRATION` pasa por este
+procedimiento antes del merge, y su reporte queda versionado en `REVIEWS/`. En `CHORE`,
+`SPIKE` y `REVIEW` es opcional y la pide quien implementa o quien revisa. El alcance
+está registrado como decisión en `decisions.yaml`, bajo `D-0052`.
+
+El alcance no se eligió por principio sino por el contraste entre las dos primeras
+revisiones reales. Sobre T-0010 —`CHORE`, `riskClass: LOW`, sin lógica de dominio— el
+subagente aislado no encontró ningún `Act on`, y eso era coherente con la tarea. Sobre
+T-0012 —`FEATURE`, `riskClass: MEDIUM`, el primer schema— devolvió STOP con tres
+BLOCKER y ocho MAJOR sobre un diff cuyo `pnpm check` local estaba en verde, incluidas
+cuatro invariantes que el ADR y la evidencia declaraban cubiertas sin estarlo. El
+rendimiento del procedimiento sigue al riesgo del diff, así que su obligatoriedad
+también.
+
+La regla **no** conecta la revisión a CI: el disparo sigue siendo manual. Automatizarlo
+es una decisión separada que todavía no se tomó, y hacerla cumplir por herramienta
+exigiría algo que hoy no existe — un modo de comprobar que el reviewer estuvo
+efectivamente aislado, que es la propiedad que da valor al procedimiento y la única que
+un check no puede observar desde afuera.
