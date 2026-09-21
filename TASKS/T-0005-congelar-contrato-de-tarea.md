@@ -2,7 +2,7 @@
 id: T-0005
 title: Congelar el contrato de tarea contra el merge-base
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: S
@@ -96,3 +96,20 @@ y `REVIEWS/T-0005/project-os-check.proposed.yml`. Ninguno de los dos se aplicó:
 autorización humana. La tarea sigue sin poder pasar a DONE hasta que esos pasos corran:
 las comprobaciones humanas de `## Verification` son parte de la verificación, no un
 adorno. Evidencia parcial, con lo que sí se ejecutó, en `ops/evidence/T-0005.md`.
+
+
+**Cierre 2026-09-21 — comprobaciones delegadas expresamente por el owner.**
+Se aplicó exactamente `REVIEWS/T-0005/project-os-check.proposed.yml` (commit
+`83ad66475cb7379a0d91e4d983f56c01de8fcc8a`). El PR #10 ejecutó el control en verde.
+Los PRs descartables #11 (b), #12 (c), #14 (a) fallaron por la causa esperada;
+#13 (Notes de T-0006) y #15 (docs/) pasaron. Los cinco se cerraron sin merge.
+`check` ya era requerido en `main`; no se modificó ninguna protección. Los logs
+confirman Contents: read y Metadata: read, sin escritura. Evidencia y salidas
+literales en `ops/evidence/T-0005.md`.
+
+Las seis comprobaciones de Verification están satisfechas. Sus casillas se conservan
+byte a byte como en el merge-base: marcarlas alteraría el contrato congelado. Este
+cierre sustituye el pendiente histórico de la nota anterior. El PR de entrega queda
+abierto para revisión e integración; no se ejecutó merge a main. La continuación
+Codex no tiene AgentRun capturado: el esquema vigente solo admite claude-code y no
+se inventó un evento ni se modificó el esquema.

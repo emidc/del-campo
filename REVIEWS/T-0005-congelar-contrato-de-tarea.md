@@ -1,6 +1,21 @@
-# T-0005 — Propuesta y aplicación humana pendiente
+# T-0005 — Propuesta aplicada y comprobada
 
 **Workstream:** POS · **Fecha:** 2026-09-21
+
+**Actualización de cierre.** El owner autorizó expresamente ejecutar estos pasos.
+Workflow aplicado sin diferencias respecto de `project-os-check.proposed.yml` en
+`83ad664`; PR de entrega: https://github.com/emidc/del-campo/pull/10.
+`check` ya estaba requerido: protección consultada y conservada íntegra.
+Pruebas #11–#15 ejecutadas, verificadas y cerradas sin merge; detalle en
+`ops/evidence/T-0005.md`. Lo que sigue conserva la propuesta histórica, no describe
+pendientes actuales.
+
+**Correcciones necesarias para ejecutar la receta:** las cinco ramas de prueba
+heredaron `83ad664`, con implementación y workflow, y apuntaron a `main` (el control
+todavía no está integrado). Para (c) y Notes se usaron ramas `task/T-0006-…` y la
+tarea T-0006: T-9998 habría fallado antes por (b). Para (a) se usó `feature/algo`,
+como pide Verification. No se alteraron los criterios ni se integraron las pruebas.
+
 
 El control queda dividido en dos piezas por R-13/R-15: la lógica en
 `scripts/check-task-contract.mjs`, escrita, corrida y testeada por el agente
