@@ -929,3 +929,182 @@ const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> =
     })
   })
 })
+
+// ── BR-001 (revisión ciega T-0012): reproducción con DOS SESIONES REALES Y
+// SIMULTÁNEAS, no secuencial. Un test secuencial no puede reproducir esta falla,
+// porque el problema es exactamente que un trigger recursivo no ve las filas no
+// commiteadas de OTRA transacción concurrente. Esta suite:
+//   1. despliega una versión SIN el advisory lock del trigger (con un pg_sleep
+//      deliberado para forzar la interseccion de ambas transacciones) y demuestra
+//      que dos merges concurrentes A→B y B→A confirman un ciclo,
+//   2. restaura la función real de la migración (con el lock) y demuestra que la
+//      misma reproducción, con sesiones nuevas, ya no forma un ciclo.
+// Todo corre contra filas reales, commiteadas — no hay rollback posible acá porque
+// el punto es observar el efecto de dos transacciones que sí confirman.
+
+const FUNCION_CON_LOCK = `
+create or replace function prevent_party_merge_cycle() returns trigger
+language plpgsql as $f$
+declare
+  cursor_id uuid;
+  visited uuid[] := array[new.id];
+begin
+  if new.merged_into_party_id is null then
+    return new;
+  end if;
+
+  perform pg_advisory_xact_lock(7346501);
+
+  cursor_id := new.merged_into_party_id;
+  loop
+    if cursor_id = any (visited) then
+      raise exception
+        'merge cycle detected: party % cannot merge into % without forming a cycle (INV-003)',
+        new.id, new.merged_into_party_id;
+    end if;
+    visited := visited || cursor_id;
+
+    select merged_into_party_id into cursor_id from party where id = cursor_id;
+    if cursor_id is null then
+      exit;
+    end if;
+  end loop;
+
+  return new;
+end;
+$f$;
+`
+
+const FUNCION_SIN_LOCK_CON_SLEEP = `
+create or replace function prevent_party_merge_cycle() returns trigger
+language plpgsql as $f$
+declare
+  cursor_id uuid;
+  visited uuid[] := array[new.id];
+begin
+  if new.merged_into_party_id is null then
+    return new;
+  end if;
+
+  -- Sin advisory lock. pg_sleep fuerza que ambas sesiones concurrentes estén "a
+  -- mitad" del trigger al mismo tiempo, para no depender de timing de scheduler.
+  perform pg_sleep(0.3);
+
+  cursor_id := new.merged_into_party_id;
+  loop
+    if cursor_id = any (visited) then
+      raise exception
+        'merge cycle detected: party % cannot merge into % without forming a cycle (INV-003)',
+        new.id, new.merged_into_party_id;
+    end if;
+    visited := visited || cursor_id;
+
+    select merged_into_party_id into cursor_id from party where id = cursor_id;
+    if cursor_id is null then
+      exit;
+    end if;
+  end loop;
+
+  return new;
+end;
+$f$;
+`
+
+/** Deja A y B como Party ACTIVE sin merge, sin borrarlas (party_merged_no_delete lo impide). */
+const desmergearYLimpiar = async (a: string, b: string): Promise<void> => {
+  await sql`update party set status = 'ACTIVE', merged_into_party_id = null where id in (${a}, ${b})`
+}
+
+describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultáneas', () => {
+  it('sin el advisory lock, dos merges concurrentes A→B y B→A confirman un ciclo', async () => {
+    await sql.unsafe(FUNCION_SIN_LOCK_CON_SLEEP)
+
+    const filasA = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
+    const filasB = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
+    const a = unaFila(filasA, 'party A concurrencia sin lock').id
+    const b = unaFila(filasB, 'party B concurrencia sin lock').id
+
+    const clienteA = postgres(databaseUrl, { max: 1 })
+    const clienteB = postgres(databaseUrl, { max: 1 })
+
+    try {
+      const resultados = await Promise.allSettled([
+        clienteA.begin(async (tx) => {
+          await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
+        }),
+        clienteB.begin(async (tx) => {
+          await tx`update party set status = 'MERGED', merged_into_party_id = ${a} where id = ${b}`
+        }),
+      ])
+
+      assert.equal(
+        resultados.every((resultado) => resultado.status === 'fulfilled'),
+        true,
+        `sin el lock, se esperaba que ambas transacciones confirmaran: ${JSON.stringify(resultados)}`,
+      )
+
+      const filas = await sql<{ id: string; merged_into_party_id: string }[]>`
+        select id, merged_into_party_id from party where id in (${a}, ${b})
+      `
+      const porId = new Map(filas.map((fila) => [fila.id, fila.merged_into_party_id]))
+      const hayCiclo = porId.get(a) === b && porId.get(b) === a
+
+      assert.equal(
+        hayCiclo,
+        true,
+        'sin el advisory lock, las dos transacciones concurrentes confirmaron un ciclo A→B→A: ' +
+          'la ausencia de serialización es la causa real del defecto BR-001',
+      )
+    } finally {
+      await clienteA.end()
+      await clienteB.end()
+      await desmergearYLimpiar(a, b)
+      await sql.unsafe(FUNCION_CON_LOCK)
+    }
+  })
+
+  it('con el advisory lock (mecanismo real de la migración), la misma reproducción no confirma un ciclo', async () => {
+    const filasA = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
+    const filasB = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
+    const a = unaFila(filasA, 'party A concurrencia con lock').id
+    const b = unaFila(filasB, 'party B concurrencia con lock').id
+
+    const clienteA = postgres(databaseUrl, { max: 1 })
+    const clienteB = postgres(databaseUrl, { max: 1 })
+
+    try {
+      const resultados = await Promise.allSettled([
+        clienteA.begin(async (tx) => {
+          await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
+        }),
+        clienteB.begin(async (tx) => {
+          await tx`update party set status = 'MERGED', merged_into_party_id = ${a} where id = ${b}`
+        }),
+      ])
+
+      const rechazos = resultados.filter((resultado) => resultado.status === 'rejected')
+      assert.equal(
+        rechazos.length >= 1,
+        true,
+        `con el lock, se esperaba que al menos una transacción fuera rechazada: ${JSON.stringify(resultados)}`,
+      )
+
+      const filas = await sql<{ id: string; merged_into_party_id: string }[]>`
+        select id, merged_into_party_id from party where id in (${a}, ${b})
+      `
+      const porId = new Map(filas.map((fila) => [fila.id, fila.merged_into_party_id]))
+      const hayCiclo = porId.get(a) === b && porId.get(b) === a
+
+      assert.equal(
+        hayCiclo,
+        false,
+        'con el advisory lock, las dos transacciones concurrentes NO confirmaron un ciclo: ' +
+          'la serialización de BR-001 es la causa real de que el ciclo no se forme',
+      )
+    } finally {
+      await clienteA.end()
+      await clienteB.end()
+      await desmergearYLimpiar(a, b)
+    }
+  })
+})
