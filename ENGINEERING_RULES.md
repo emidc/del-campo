@@ -239,6 +239,13 @@ Todo endpoint expuesto al exterior tiene un test explícito de denegación. El p
 
 `main` protegida → rama corta → implementación → verificación → PR → revisión independiente → CI verde → aprobación humana cuando corresponde → merge.
 
+Qué cuenta como "revisión independiente" para un PR concreto lo define `R-33`. R-30
+fija la posición del paso en el flujo; R-33 fija el procedimiento cuando esa revisión
+se hace mediante un subagente aislado del mismo proveedor de modelo. No son
+redundantes: un PR puede tener revisión independiente humana sin pasar por R-33, y R-33
+no vuelve obligatorio el paso donde R-30 lo menciona — eso lo decide T-0009 en su
+`## Non-scope`.
+
 ---
 
 ## 8. Higiene periódica
@@ -250,3 +257,48 @@ Correr `/context` y `/skill-doctor` y mirar los números. `CLAUDE.md` por debajo
 ### R-32 · El dominio crece por evidencia — ACTIVA
 
 No crece porque una biblioteca ofrezca una feature, porque un modelo recomiende una entidad, porque Zoho tenga un módulo con ese nombre, porque una UI necesite temporalmente un campo, ni porque pueda ser útil algún día.
+
+---
+
+## 9. Revisión
+
+### R-33 · Revisión ciega por subagente aislado — ACTIVA para los PR que la invoquen; no es obligatoria para todo PR
+
+Un check en verde prueba que el código hace lo que el test dice, no que el test diga lo
+correcto. La independencia que hace falta para notar la diferencia viene de **no
+compartir contexto**, no de no compartir proveedor de modelo ni modelo: un subagente que
+arranca sin ver el historial de conversación, los skills invocados ni los archivos que
+leyó quien implementó ya aporta esa independencia hoy, sin depender de que exista un
+segundo execution provider: esta regla no resuelve `D-0016`, cuyo estado se consulta en
+`decisions.yaml`.
+
+Cuando un PR se somete a esta revisión, el procedimiento es:
+
+1. El reviewer recibe el contrato de la tarea leído **desde `main`**, nunca desde la
+   rama que se revisa — leerlo desde la rama filtra exactamente la narrativa que la
+   revisión existe para no compartir.
+2. Recibe el diff completo, tests incluidos: un test existente modificado es la señal
+   de mayor valor de cualquier diff agéntico, y omitirlo del paquete de revisión sería
+   ocultar la parte más informativa.
+3. Busca `DOMAIN.md` y `decisions.yaml` por su cuenta. No recibe un extracto curado de
+   decisiones: un extracto es el criterio de quien lo arma, y pasarlo convierte la
+   revisión ciega en una revisión guiada.
+4. No recibe el transcript de la sesión de implementación ni su justificación
+   narrativa.
+5. **Corre los comandos de `## Verification` antes de leer cualquier archivo de
+   evidencia** (`ops/evidence/T-xxxx.md` u otro). El orden es el contrato, no un
+   detalle de estilo: la evidencia es lo que se revisa, no aquello con lo que se
+   revisa, y leerla primero contamina el resto de la revisión con lo que el
+   implementador dice que pasó en vez de con lo que efectivamente pasa.
+6. Produce salida categorizada `Act on` / `Consider` / `Noted` / `Dismissed`. Todo
+   `Dismissed` lleva justificación escrita; sin ella, no es una categoría, es un
+   silencio con etiqueta.
+
+Un reporte sin ningún `Act on` es un resultado legítimo, pero entonces lo dice así, con
+el argumento por el cual no encontró nada que ameritara cambio, en vez de inflar
+`Noted` para simular actividad.
+
+Esta regla define el procedimiento; no lo vuelve obligatorio para ningún PR ni lo
+conecta a CI. Si conviene hacerlo, se decide después de ejercitarlo, con la revisión
+misma como evidencia — eso es explícitamente `## Non-scope` de la tarea que la
+introdujo.

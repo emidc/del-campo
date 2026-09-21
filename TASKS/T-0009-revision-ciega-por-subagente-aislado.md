@@ -2,7 +2,7 @@
 id: T-0009
 title: Definir y ejercitar la revisión ciega por subagente aislado
 kind: CHORE
-status: READY
+status: ACTIVE
 workstream: POS
 riskClass: LOW
 size: M
@@ -71,3 +71,30 @@ puede evaluar el mismo sistema que la produjo.
 Se ejercita sobre el PR de T-0006 o el de T-0007, lo que esté primero. Depende de T-0005
 y T-0006 porque necesita algo real que revisar: un contrato congelado y un formato de
 evidencia.
+
+**Actualización 2026-09-21 — cambio de sujeto.** T-0007 está `DROPPED`: no genera
+evidencia según R-09b y no hay nada que revisar. Se usó el PR #9 de T-0010 (ya
+mergeado) en vez de T-0006, por tres razones: (1) independencia real — lo escribió y
+verificó otro agente en otra sesión (Claude en Cowork, no Claude Code), sin relación con
+esta; (2) `ops/evidence/T-0010.md` declara siete límites explícitos en su `## Qué NO se
+verificó`, lo que da algo concreto contra qué contrastar el hallazgo del subagente
+aislado, en vez de tener que creerle; (3) su `## Verification` es ejecutable de punta a
+punta en esta máquina — Postgres 17 ya está instalado localmente. Detalle completo en
+`REVIEWS/T-0009-revision-ciega-por-subagente-aislado.md`.
+
+El procedimiento quedó escrito como `R-33` en `ENGINEERING_RULES.md`, complementando a
+`R-30` (que ya mencionaba "revisión independiente" como paso del flujo, sin definir el
+procedimiento). Se registró como decisión material aparte, `D-0048` en
+`decisions.yaml`, porque el procedimiento en sí es una elección — no una consecuencia
+directa de `D-0016` ni de `D-0017` — y R-03 no permite que viva solo en el texto de la
+regla.
+
+La revisión ejercitada no encontró ningún `Act on`: el subagente aislado corrió toda la
+`## Verification` de T-0010 antes de leer su evidencia, reprodujo el mismo veredicto en
+verde, y documentó por qué no había nada que justificara un cambio (T-0010 es
+`riskClass: LOW`, sin lógica de dominio, con cada pieza cubierta por test o
+comprobación manual repetible). Encontró dos `Consider` reales sobre `packages/db/src/cli.ts`
+(interpolación SQL sin escapar; `bin` sin shebang) que no ameritan tocar una tarea ya
+`DONE` y mergeada, y citó `D-0048` — la única decisión de `decisions.yaml` con relación
+directa a esta revisión que ni el contrato ni la evidencia de T-0010 podían nombrar,
+porque no existía cuando T-0010 se cerró.

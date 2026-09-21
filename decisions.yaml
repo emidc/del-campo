@@ -665,3 +665,23 @@ decisions:
       Node. El tsconfig fija erasableSyntaxOnly para que lo que el runtime no puede
       ejecutar falle en el type check. Los tres comandos existen por separado; su
       incorporación a pnpm check es de T-0012.
+
+  - id: D-0048
+    title: Procedimiento de revisión ciega por subagente aislado
+    status: ACCEPTED
+    date: 2026-09-21
+    source: T-0009; R-33
+    statement: >
+      Un subagente que arranca sin el historial de conversación, sin los skills
+      invocados y sin los archivos que leyó quien implementó aporta independencia de
+      revisión hoy, sin depender de un segundo execution provider ni de resolver
+      D-0016. El procedimiento fija cinco condiciones: contrato leído desde main, diff
+      completo con tests, decisions.yaml y DOMAIN.md buscados por el reviewer sin
+      extracto curado, verificación ejecutada antes de leer la evidencia, y salida
+      categorizada Act on / Consider / Noted / Dismissed con justificación obligatoria
+      en los Dismissed. No vuelve obligatoria la revisión para ningún PR ni la conecta
+      a CI.
+    falsified_by: >
+      Una revisión que siguiendo el procedimiento no aporte nada que la revisión del
+      mismo agente implementador no hubiera encontrado, sobre una muestra de PRs
+      suficiente para distinguir señal de ruido.
