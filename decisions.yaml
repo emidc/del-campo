@@ -609,3 +609,59 @@ decisions:
       que el runtime ignore la revisión solicitada o que la tasa de solicitudes sobre el
       trabajo habitual haga inviable el control. Las denegaciones y el caso permitido
       deben conservar pruebas en una sesión real; la prueba aislada no basta.
+
+  # ── Entorno de desarrollo ejecutable (T-0010) ─────────────────────────────
+
+  - id: D-0045
+    title: El schema vive en migraciones SQL, no en un modelo de aplicación
+    status: PROVISIONAL
+    date: 2026-09-20
+    source: T-0010; invariantes de PolicyVersion en DOMAIN.md §67; D-0013
+    adr: DECISIONS/0045-schema-en-migraciones-sql.md
+    statement: >
+      Las migraciones SQL son la fuente de verdad del schema y los tipos de TypeScript se
+      derivan de la base, no al revés. No se adopta ORM ni DSL de schema. La razón es que
+      las invariantes centrales del dominio —intervalos de PolicyVersion no solapados vía
+      EXCLUDE USING gist con btree_gist, a lo sumo una versión abierta vía índice único
+      parcial— no son expresables en los DSL disponibles, de modo que un modelo en
+      TypeScript dejaría esas invariantes fuera del archivo que dice ser el schema. La
+      decisión fija dónde vive el schema; no elige driver ni capa de consulta.
+    falsified_by: >
+      Que la superficie de escritura crezca hasta que el costo por consulta —escribir y
+      mantener SQL a mano para cada operación, y derivar los tipos— supere lo que hoy se
+      gana en expresividad de constraints y en costo de salida de D-0013. La señal es la
+      cantidad de operaciones de escritura distintas y lo repetitivo de su SQL, no la
+      cantidad de tablas.
+
+  - id: D-0046
+    title: Postgres local nativo, CI en contenedor
+    status: PROVISIONAL
+    date: 2026-09-20
+    source: T-0010; R-17; R-26; D-0013
+    adr: DECISIONS/0046-postgres-local-nativo.md
+    statement: >
+      Postgres corre nativo en la máquina de desarrollo, con la versión mayor fijada en
+      .postgres-version y validada antes de cada operación sobre la base. CI corre la
+      misma versión mayor dentro de un contenedor. La diferencia entre ambos entornos se
+      acepta a conciencia bajo R-17: el veredicto lo da CI y no la máquina local. No se
+      adopta Docker ni el stack local de Supabase, que traería productos que D-0013 dejó
+      como decisiones separadas.
+    falsified_by: >
+      Un fallo de CI por deriva de versión o de configuración que la máquina local no
+      reproduzca y que un contenedor local habría atrapado, o que el setup manual
+      termine costando, sumado entre las máquinas del equipo, más que instalar y
+      mantener Docker.
+
+  - id: D-0047
+    title: Toolchain de verificación TypeScript, ESLint y el runner de Node
+    status: ACCEPTED
+    date: 2026-09-20
+    source: T-0010; R-05 exige ADR por dependencia nueva; R-25 y R-26
+    adr: DECISIONS/0047-toolchain-de-verificacion.md
+    statement: >
+      La verificación de código se apoya en TypeScript en modo estricto para los tipos,
+      ESLint con typescript-eslint para el lint y los límites de módulo de R-25, y el
+      runner nativo node --test sobre archivos .ts ejecutados con el type stripping de
+      Node. El tsconfig fija erasableSyntaxOnly para que lo que el runtime no puede
+      ejecutar falle en el type check. Los tres comandos existen por separado; su
+      incorporación a pnpm check es de T-0012.

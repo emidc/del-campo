@@ -1,0 +1,38 @@
+{
+  "//": [
+    "Un solo tsconfig para todo el workspace. R-01: no hay project references ni un",
+    "tsconfig por paquete hasta que exista un segundo caso que lo pida.",
+    "",
+    "`erasableSyntaxOnly` no es cosmético: los tests corren con el type stripping nativo",
+    "de Node, que sólo acepta sintaxis borrable. Sin esta bandera, un enum o un parameter",
+    "property tipa bien y explota en runtime. Con ella, el error aparece en `pnpm typecheck`."
+  ],
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["packages/*/src/**/*.ts"]
+}

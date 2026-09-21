@@ -8,9 +8,23 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs && node --test scripts/tests/*.test.mjs",
-    "decisions": "node scripts/decisions.mjs"
+    "decisions": "node scripts/decisions.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --test \"packages/**/*.test.ts\"",
+    "db:create": "node packages/db/src/cli.ts create",
+    "db:reset": "node packages/db/src/cli.ts reset",
+    "db:migrate": "node packages/db/src/cli.ts migrate",
+    "db:version": "node packages/db/src/cli.ts version"
   },
   "dependencies": {
     "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^24.9.0",
+    "eslint": "^9.39.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
   }
 }
