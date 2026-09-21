@@ -55,14 +55,25 @@ jobs:
           require-lockfile: true
           install: true
 
-      - name: Ensure psql matching .postgres-version is on the runner
-        # El binario psql corre en el runner, no en el contenedor del servicio: ahí
-        # es donde packages/db/src/cli.ts lo invoca con execFileSync. ubuntu-latest
-        # no lo garantiza pinneado a una mayor, así que se instala explícitamente
-        # la misma mayor que .postgres-version fija (D-0046).
+      - name: Ensure psql is on the runner
+        # El binario psql corre en el runner, no en el contenedor del servicio: ahí es
+        # donde packages/db/src/cli.ts lo invoca con execFileSync.
+        #
+        # La mayor del CLIENTE no es la que D-0046 fija. La que importa es la del
+        # servidor, y `pnpm db:version` la comprueba con `show server_version_num`, que
+        # contesta el servidor. Por eso el pin de la mayor se intenta primero —es lo
+        # deseable— pero no bloquea: postgresql-client-17 existe sólo si el runner tiene
+        # configurado el repositorio PGDG, cosa que no está garantizada por contrato en
+        # ubuntu-24.04. Fallar el job por la versión de un cliente que no decide nada
+        # sería un rojo que no significa lo que parece.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y "postgresql-client-$(cat .postgres-version)"
+          set -euo pipefail
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y "postgresql-client-$(cat .postgres-version)" \
+              || sudo apt-get install -y postgresql-client
+          fi
+          psql --version
 
       - name: Apply migrations against the CI database
         # db:version antes de db:migrate: migrate (packages/db/src/cli.ts) no llama
