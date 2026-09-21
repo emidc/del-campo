@@ -9,7 +9,7 @@ size: L
 created: 2026-09-08
 blockedBy: [T-0010, T-0011]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md]
-decisionRefs: [D-0001, D-0004, D-0005, D-0006, D-0012, D-0013, D-0025]
+decisionRefs: [D-0001, D-0004, D-0005, D-0006, D-0012, D-0013, D-0025, D-0049, D-0050, D-0051]
 ---
 
 ## Why
