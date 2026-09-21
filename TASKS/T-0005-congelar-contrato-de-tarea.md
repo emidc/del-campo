@@ -2,7 +2,7 @@
 id: T-0005
 title: Congelar el contrato de tarea contra el merge-base
 kind: CHORE
-status: READY
+status: ACTIVE
 workstream: POS
 riskClass: MEDIUM
 size: S

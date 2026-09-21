@@ -1,0 +1,44 @@
+name: Project OS check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-os-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2.0.0
+        with:
+          runtime: node@24
+          require-lockfile: true
+          install: true
+
+      - name: Check Project OS
+        run: pnpm check
+
+      - name: Check task contract against merge-base
+        env:
+          # github.head_ref, NUNCA github.ref_name / GITHUB_REF_NAME: en un evento
+          # pull_request ese valor es "refs/pull/N/merge", no el nombre de la rama.
+          CHECK_BRANCH_NAME: ${{ github.head_ref }}
+          CHECK_BASE_REF: origin/${{ github.base_ref }}
+        run: node scripts/check-task-contract.mjs
