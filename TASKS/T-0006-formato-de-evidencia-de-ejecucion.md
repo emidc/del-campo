@@ -50,6 +50,8 @@ prueban que el código hace lo que el test dice, no que el test diga lo correcto
 
 ## Verification
 
+Prueba descartable T-0005: cambio exclusivo de esta sección.
+
 ```bash
 # El checker falla al marcar DONE una tarea sin archivo de evidencia,
 # y pasa al agregarlo.
