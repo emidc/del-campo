@@ -334,3 +334,189 @@ CI actual carece de `DATABASE_URL` y servicio Postgres.
 - No se modificaron schema, tests, DOMAIN, decisiones, ADRs, TaskSpec ni workflows.
 - Limitaciones: no se ejecutó GitHub Actions ni una down migration inexistente; no se
   usaron datos reales ni sistemas externos.
+
+## Cierre en frío de la corrección
+
+**Fecha:** 2026-09-21. **Reviewer:** sesión independiente nueva, sin transcript ni
+resumen de quien implementó la corrección; sólo el repo, este reporte y
+`git log c45384b..HEAD`. Rama: `task/T-0012-schema-con-invariantes-como-constraints`.
+Commits revisados (`c45384b..HEAD`): `fdd9344`, `7e4050c`, `67fc5de`, `1481521`.
+
+Metodología para cada mecanismo en base de datos: escritura inválida real vía `psql`
+contra `delcampo_dev` reconstruida con `pnpm db:reset` → retirar el mecanismo
+(`DROP TRIGGER`/`ALTER TABLE ... DROP CONSTRAINT`) → repetir la escritura (debe pasar)
+→ restaurar el mecanismo exactamente como en
+`packages/db/migrations/0001_vs01_core_schema.sql` → repetir la escritura (debe volver
+a fallar). Los mensajes de commit y los tests nuevos no se usaron como evidencia; se
+citan sólo como referencia de ubicación.
+
+### BR-001 — CERRADO (concurrencia real, dos sesiones simultáneas)
+
+Se probó con dos procesos `psql` en paralelo (no secuenciales), cada uno en su propia
+transacción, con `pg_sleep` para forzar solapamiento real entre el `UPDATE` y el
+`COMMIT` de cada uno.
+
+- Con el mecanismo actual (`pg_advisory_xact_lock(7346501)` dentro de
+  `prevent_party_merge_cycle`): TX1 (`A→B`) hizo commit; TX2 (`B→A`), lanzado 1s
+  después y corriendo en paralelo, fue rechazado en el momento del `UPDATE`:
+  `ERROR: merge cycle detected: party B cannot merge into A ... (INV-003)`. Estado
+  final: sólo `A` quedó `MERGED`, ningún ciclo.
+- Se reemplazó la función por una copia idéntica **sin** la línea
+  `perform pg_advisory_xact_lock(...)` (`CREATE OR REPLACE FUNCTION`, mismo trigger).
+  Repetido el mismo experimento con las mismas dos parties (restauradas a `ACTIVE`):
+  ambas transacciones commitearon. Estado final observado:
+  `A.merged_into_party_id = B` y `B.merged_into_party_id = A` simultáneamente —
+  ciclo confirmado, reproduciendo exactamente el defecto original de BR-001.
+- Se restauró la función exacta de la migración (con el lock) y se repitió una
+  tercera vez con las mismas parties limpiadas: TX1 commiteó, TX2 volvió a ser
+  rechazado con el mismo error. Causalidad confirmada en ambos sentidos.
+
+### BR-002 / BR-003 — CERRADO (INV-001, INV-002, INV-004, INV-PV-005/INV-013)
+
+Cuatro mecanismos, cada uno con el ciclo completo escritura inválida → retirar →
+pasa → restaurar → vuelve a fallar, confirmado por `psql` directo:
+
+- **INV-001** (`party_id_immutable`): `UPDATE party SET id = ...` rechazado con
+  `party.id es inmutable (INV-001)`; con el trigger retirado, el mismo `UPDATE`
+  pasó (`UPDATE 1`); restaurado, volvió a fallar con el mismo error.
+- **INV-002** (`party_merged_no_delete`): `DELETE` de una Party `MERGED` sin
+  referencias rechazado con `no se puede borrar una Party MERGED (INV-002)`; sin
+  el trigger, el `DELETE` pasó; restaurado sobre una nueva Party `MERGED`, volvió
+  a fallar.
+- **INV-004** (`party_role_no_delete`): `DELETE` de un `party_role` rechazado con
+  `no se puede borrar (INV-004)`; sin el trigger pasó; restaurado, volvió a fallar.
+- **INV-PV-005/INV-013** (`policy_version_closed_immutable`): tanto `UPDATE
+  premium` como `DELETE` sobre una `policy_version` con `effective_to` no nulo
+  fueron rechazados; sin el trigger, ambos pasaron (se confirmó `SELECT premium`
+  devolviendo el valor sobrescrito); restaurado, ambos volvieron a fallar. Se
+  verificó además que el `INSERT` directo de una versión ya cerrada (carga
+  histórica) sigue permitido, como documenta el ADR.
+
+### BR-004 — CERRADO (FK compuesta `endorsement_id`/`policy_id`)
+
+`INSERT` de una `PolicyVersion` de `P1` con `endorsement_id` de un Endorsement cuya
+FK apunta a `P2` fue rechazado:
+`violates foreign key constraint "policy_version_endorsement_matches_policy"`. Con
+`ALTER TABLE policy_version DROP CONSTRAINT policy_version_endorsement_matches_policy`
+el mismo `INSERT` pasó. Restaurada la FK compuesta (`FOREIGN KEY (endorsement_id,
+policy_id) REFERENCES endorsement (id, policy_id)`), el mismo `INSERT` volvió a
+fallar con el mismo error.
+
+### BR-005 — CERRADO (`party.kind` inmutable con dependientes)
+
+Con un `person_profile` dependiente, `UPDATE party SET kind = 'ORGANIZATION'` fue
+rechazado (`no se puede cambiar kind ... con filas dependientes`). Con
+`DROP TRIGGER party_kind_immutable_with_dependents` el mismo `UPDATE` pasó.
+Restaurado el trigger, volvió a fallar sobre la misma fila.
+
+### BR-006 — CERRADO (`document_link` no sobrevive al borrado de su Policy)
+
+Con un `document_link` apuntando a una Policy sin otras dependencias, `DELETE` de
+esa Policy fue rechazado (`no se puede borrar, tiene document_link asociados`). Con
+`DROP TRIGGER policy_no_delete_with_document_links` el `DELETE` pasó y el
+`document_link` quedó huérfano (confirmado con `SELECT resource_id` apuntando a un
+`id` de policy ya no existente). Restaurado el trigger sobre una Policy y link
+recreados, el `DELETE` volvió a fallar.
+
+### BR-007 — CERRADO (linaje de `coverage_data`)
+
+`INSERT` de una `PolicyVersion` con `coverage_data` no nulo y
+`coverage_source_batch_id`/`coverage_source_record_id` ambos `NULL` fue rechazado
+por el `CHECK policy_version_coverage_lineage`. Con
+`ALTER TABLE policy_version DROP CONSTRAINT policy_version_coverage_lineage` el
+mismo `INSERT` pasó. Restaurado el `CHECK`, volvió a fallar con el mismo mensaje.
+
+### BR-008 — CERRADO (up → down → up, ejecutado por este reviewer)
+
+Sobre `delcampo_dev` reconstruida con `pnpm db:reset`:
+
+```
+$ pnpm db:down
+✓ down: 0001_vs01_core_schema.sql
+$ psql delcampo_dev -c "\dt"
+   -- sólo queda schema_migrations; las 14 tablas de la migración desaparecieron
+$ pnpm db:migrate
+✓ 0001_vs01_core_schema.sql
+$ psql delcampo_dev -c "\dt"
+   -- las 14 tablas + schema_migrations vuelven a existir
+```
+
+Los tres comandos salieron con exit 0. `packages/db/migrations/down/0001_vs01_core_schema.sql`
+existe y su orden es el inverso estricto de creación, sin `CASCADE`.
+
+### BR-009 — CERRADO (evidencia y D-0051 ya no declaran cobertura inexistente)
+
+Se leyó `DECISIONS/0051-schema-vs01-invariantes-como-constraints.md` completo y
+`ops/evidence/T-0012.md` (bloque de procedencia, `## Qué NO se verificó` y la nueva
+sección `## Corrección tras la revisión ciega`). La tabla de mecanismos de D-0051 y
+la sección de evidencia ahora atribuyen explícitamente a BR-002/003/004/005/006/007
+la corrección de cada falta anterior, en vez de seguir afirmando cobertura. Se
+verificó, contra los mecanismos reales probados arriba (BR-001 a BR-008), que lo que
+D-0051 y la evidencia describen ahora coincide con lo que Postgres efectivamente
+rechaza — no encontré ninguna afirmación de mecanismo que no haya podido reproducir.
+El índice parcial redundante de INV-PV-004 fue efectivamente retirado del schema
+(no aparece en `0001_vs01_core_schema.sql`) y el ADR lo documenta.
+
+### BR-010 — CERRADO (procedencia verificable)
+
+`ops/evidence/T-0012.md` registra `SHA de HEAD verificado al cerrar la corrección:
+67fc5de269f7fd0510ce9a20bec7a335557207f1` y `runId: r_8729729c7f39980b6452`. Confirmado
+con `grep r_8729729c7f39980b6452 ops/runs/2026-09-21.jsonl`: existe una línea
+`RUN_STARTED` con ese `runId`, `taskId: T-0012`, `branch:
+task/T-0012-schema-con-invariantes-como-constraints` y `repoSha:
+c45384bd6b21b1bdc817dd612dfaf02d7a20023b` (SHA de main al momento de ese
+`RUN_STARTED`, consistente con el commit del reporte de revisión ciega). El SHA de
+HEAD declarado (`67fc5de`) es el commit inmediatamente anterior al que registra esta
+misma corrección de BR-010 (`1481521`), lo cual es inevitable por construcción — un
+commit no puede citarse a sí mismo — y el documento no pretende lo contrario. El
+`runId` de la sesión que generó el reporte de revisión ciega se declara
+explícitamente como no registrado, sin reconstruirlo. Procedencia verificable con las
+salidas de arriba.
+
+### BR-011 — NO APLICA (correctamente, según el propio reporte)
+
+BR-011 era sólo de estado (`DONE` → debía bajar a algo distinto de `DONE`) y el
+enunciado de esta tarea de cierre en frío lo excluye explícitamente. Confirmado que
+el frontmatter de `TASKS/T-0012-schema-con-invariantes-como-constraints.md` sigue en
+`status: ACTIVE`, no `DONE` — coherente con no haber sido re-cerrado antes de que un
+revisor en frío corriera esta prueba de causalidad, tal como pedía la corrección
+mínima sugerida de BR-011.
+
+### BR-012 — CERRADO (trazabilidad administrativa)
+
+`decisions.yaml` línea de cabecera: `updated: 2026-09-21` (era `2026-09-20`).
+Frontmatter de T-0012: `decisionRefs: [D-0001, D-0004, D-0005, D-0006, D-0012,
+D-0013, D-0025, D-0049, D-0050, D-0051]` — incluye las tres decisiones nuevas.
+`pnpm decisions` sigue en verde. Sólo se tocaron frontmatter/metadata; las cuatro
+secciones congeladas (`Why`, `Outcome`, `Non-scope`, `Verification`) no cambiaron
+entre `c45384b` y HEAD (confirmado por inspección del diff de
+`TASKS/T-0012-schema-con-invariantes-como-constraints.md`, que sólo modifica la
+línea `decisionRefs`).
+
+### Verificación completa del harness
+
+Sobre `delcampo_dev` reconstruida (`pnpm db:reset`, exit 0):
+
+- `pnpm check` — exit `0`. 43/43 tests en verde, incluida la suite de concurrencia
+  con dos sesiones reales para BR-001 (`schema.integration.test.ts`), que reproduce
+  independientemente el mismo resultado que esta revisión obtuvo por `psql` directo.
+- `pnpm typecheck` — sin salida, exit `0`.
+- `pnpm lint` — sin salida, exit `0`.
+- `pnpm test` — mismo resultado que `pnpm check` (43/43), exit `0`.
+- `pnpm db:reset` final ejecutado para dejar la base reconstruida.
+
+### Estado del working tree al cerrar
+
+`git status --short` mostró únicamente `M ops/runs/2026-09-21.jsonl`, que ya estaba
+modificado antes de empezar esta revisión (no fue tocado por este cierre). Ningún
+`ALTER`/`DROP` manual contra la base quedó pendiente: cada mecanismo retirado durante
+las pruebas fue restaurado en la misma sesión de `psql`, y la base fue reconstruida
+por completo al final con `pnpm db:reset`. No se modificó ningún archivo de
+código/schema del repositorio.
+
+### Resumen
+
+12 de 12 hallazgos con veredicto: **11 CERRADO** (BR-001 a BR-010, BR-012) y **1 NO
+APLICA** (BR-011, correctamente no re-cerrado — es de estado, no de mecanismo, y el
+propio reporte original ya lo señalaba así). No quedan hallazgos con causalidad no
+reproducida.
