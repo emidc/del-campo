@@ -168,7 +168,7 @@ Los hooks protegen la máquina donde están configurados. Todo lo que realmente 
 
 Hay dos clases de agente y no tienen las mismas reglas. Confundirlas fue el origen de esta regla: la versión anterior prohibía, sin quererlo, la capacidad central del producto. → `D-0039`
 
-**Agentes de desarrollo** — los que trabajan sobre este repositorio. No reciben PII real de clientes salvo excepción explícita y justificada. Un agente que pega un DNI en el contexto de un proveedor de IA es una divulgación. Se usan identificadores internos, datos sintéticos o anonimizados; para lo demás, redacción. Tampoco hay PII en logs de aplicación ni en el texto de las tareas.
+**Agentes de desarrollo** — los que trabajan sobre este repositorio. No reciben PII real de clientes salvo excepción explícita y justificada. Una excepción se registra en `decisions.yaml` antes de ejercerse, y nombra la tarea, el proveedor, el modelo, qué puede leer y escribir, y qué no. Una excepción sin alcance escrito deja de ser una excepción y pasa a ser la regla nueva. Un agente que pega un DNI en el contexto de un proveedor de IA es una divulgación. Se usan identificadores internos, datos sintéticos o anonimizados; para lo demás, redacción. Tampoco hay PII en logs de aplicación ni en el texto de las tareas.
 
 **Agentes de producto** — los que Broker OS ejecuta para un usuario. Pueden procesar datos reales cuando sean necesarios para una función explícita y autorizada, enviando **únicamente los datos mínimos necesarios** para esa finalidad.
 
