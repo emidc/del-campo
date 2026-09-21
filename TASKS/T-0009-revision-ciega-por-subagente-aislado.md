@@ -2,14 +2,15 @@
 id: T-0009
 title: Definir y ejercitar la revisión ciega por subagente aislado
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: LOW
 size: M
 created: 2026-09-08
+closed: 2026-09-21
 blockedBy: [T-0005, T-0006]
 contextRefs: [ENGINEERING_RULES.md, AGENTS.md]
-decisionRefs: [D-0016, D-0017]
+decisionRefs: [D-0016, D-0017, D-0048, D-0052]
 ---
 
 ## Why
@@ -98,3 +99,21 @@ comprobación manual repetible). Encontró dos `Consider` reales sobre `packages
 `DONE` y mergeada, y citó `D-0048` — la única decisión de `decisions.yaml` con relación
 directa a esta revisión que ni el contrato ni la evidencia de T-0010 podían nombrar,
 porque no existía cuando T-0010 se cerró.
+
+**Cierre 2026-09-21 — el criterio humano que la tarea difirió.** El `## Notes` original
+dejó dos preguntas fuera del contrato, por no ser evaluables por el mismo sistema que
+produce la revisión: si sirvió, y si pasa a ser obligatoria. El owner las respondió con
+la evidencia de la segunda revisión real.
+
+Sirvió, y el rendimiento no es parejo. Sobre T-0010 —`CHORE`, `riskClass: LOW`— el
+subagente aislado no encontró ningún `Act on`. Sobre T-0012 —`FEATURE`,
+`riskClass: MEDIUM`, el primer schema del programa— devolvió STOP con tres BLOCKER y
+ocho MAJOR sobre un diff con el check local en verde, incluidas cuatro invariantes de
+`DOMAIN.md` que el ADR y la evidencia declaraban cubiertas y que la base aceptaba violar.
+Ese contraste es lo que fija el alcance: obligatoria en `FEATURE` y `MIGRATION`, opcional
+en el resto. Registrado como `D-0052`.
+
+Queda anotado que el contraste responde en parte al límite 3 del `## Qué NO se verificó`
+de esta tarea —"no se ejercitó sobre una tarea con `riskClass: HIGH`"—. Sigue sin
+ejercitarse sobre `HIGH`; lo que se agregó es un punto en `MEDIUM`, no la serie completa.
+Dos puntos no son una curva.

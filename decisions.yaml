@@ -685,3 +685,20 @@ decisions:
       Una revisión que siguiendo el procedimiento no aporte nada que la revisión del
       mismo agente implementador no hubiera encontrado, sobre una muestra de PRs
       suficiente para distinguir señal de ruido.
+
+  # ── Alcance de la revisión ciega (T-0009, cerrado con la evidencia de T-0012) ──
+
+  - id: D-0052
+    title: La revisión ciega es obligatoria en FEATURE y MIGRATION
+    status: ACCEPTED
+    date: 2026-09-21
+    source: >
+      T-0009; contraste entre las dos primeras revisiones ciegas reales, sobre T-0010
+      y sobre T-0012. El id salta de D-0048 porque D-0049 a D-0051 quedaron reservados
+      para T-0012, que estaba sin mergear al registrarse esta decisión.
+    statement: >
+      Todo PR de una tarea de kind FEATURE o MIGRATION pasa por el procedimiento de
+      revisión ciega de D-0048 antes del merge, y el reporte queda versionado en
+      REVIEWS/. En CHORE, SPIKE y REVIEW la revisión es opcional y la pide quien
+      implementa o quien revisa. La obligatoriedad es de procedimiento y no se hace
+      cumplir por CI: automatizar el disparo es una decisión separada que esta no toma.
