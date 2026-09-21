@@ -28,15 +28,26 @@ Están relacionados pero se mantienen conceptualmente separados. Todo trabajo pe
 
 ---
 
-## 3. Fase actual: Project OS Zero
+## 3. Fase actual: Project OS Zero, con Broker OS ya en código
 
-Project OS **no es una aplicación**. En esta fase es este repositorio:
+Hay **dos cosas distintas** y desde el 21/09/2026 están en fases distintas. Confundirlas
+haría leer mal el resto de este documento.
+
+**Project OS sigue siendo Project OS Zero.** No es una aplicación. Es este repositorio:
 
 - `TASKS/` — las tareas, como archivos versionados.
 - `DECISIONS/` + `decisions.yaml` — las decisiones, con índice legible por máquina.
 - `ops/runs/` — el ledger de ejecuciones de agentes, escrito automáticamente por un hook.
 
-No hay base de datos, no hay servicio, no hay adapters, no hay UI.
+Para Project OS no hay base de datos, no hay servicio, no hay adapters, no hay UI, y su
+criterio de promoción sigue sin cumplirse.
+
+**Broker OS ya tiene código.** T-0010 levantó el workspace ejecutable y T-0012 creó el
+primer schema, con las invariantes de `DOMAIN.md` §67 como constraints de Postgres,
+migraciones SQL, tests de integración contra un Postgres real y CI corriéndolos. O sea
+que la frase "no hay código de aplicación todavía", que este documento sostuvo hasta el
+merge de T-0012, dejó de ser cierta. Lo que no cambió es el alcance: cero importación,
+cero UI, cero endpoints, cero autorización.
 
 **Criterio de promoción a aplicación:** haber registrado al menos 30 AgentRuns reales **y** haber escrito el tercer script ad-hoc para consultarlos. Hasta que las dos condiciones se cumplan, Project OS sigue siendo archivos. → `D-0015`
 
@@ -49,15 +60,27 @@ autoridad documental. El objetivo de `T-0007` quedó absorbido: el estado de las
 ya no se escribe a mano en ningún documento canónico y se genera con `pnpm decisions`.
 
 `T-0011` cerró el 20/09/2026 con revisión humana: `SLICES/VS01.md` contiene el contrato
-aprobado de software y aceptación. T-0014 se descompone en T-0016 (búsqueda), T-0017
-(vinculación documental) y T-0018 (app interna y aceptación), sin iniciar su implementación.
-Antes del schema de T-0012 falta el entorno de T-0010, que depende de T-0008, y resolver
-Q-12 en el contrato de T-0012. T-0006 incorporó evidencia obligatoria para DONE.
-T-0008 cerró con regularización de yaml, pregunta sobre un segundo proveedor y control
-Bash probado en sesión real; su evidencia está en `ops/evidence/T-0008.md`.
-Sigue T-0010 para preparar el entorno, antes de implementar el schema.
-La alineación de dominio y el contrato no autorizan migración ni amplían la superficie
-de VS01.
+aprobado de software y aceptación, y descompuso T-0014 en T-0016, T-0017 y T-0018.
+
+Entre el 20 y el 21/09/2026 cerraron, en este orden, las cuatro tareas que hacían falta
+para que el arnés pudiera sostener código de aplicación:
+
+- `T-0010` — workspace ejecutable, TypeScript estricto, límites de módulo por lint,
+  runner de tests y Postgres local con la versión mayor fijada.
+- `T-0005` — el contrato de tarea congelado contra el merge-base por un job de CI: las
+  cuatro secciones obligatorias de una tarea ya no se pueden aflojar desde la rama que
+  la implementa.
+- `T-0009` — el procedimiento de revisión ciega por subagente aislado, y después su
+  alcance: obligatoria en `FEATURE` y `MIGRATION`. → `D-0052`
+- `T-0012` — el schema de VS01. Su revisión ciega devolvió STOP con once hallazgos sobre
+  un diff cuyo check local estaba en verde; se corrigieron y un revisor en frío los
+  cerró uno por uno.
+
+Sigue `T-0016` —búsqueda y consulta de VS01—, que quedó `READY` porque sus dos
+condiciones ya se cumplen: el contrato de VS01 está revisado y el schema existe.
+`T-0013`, el importador, no avanza hasta que se responda Q-14: por qué vía llega el
+export de Zoho, quién lo produce y si un agente ve datos reales en algún momento. Es
+input humano y R-19 lo condiciona.
 
 ### Qué sigue después de esta fase
 

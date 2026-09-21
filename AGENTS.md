@@ -100,9 +100,11 @@ Si hay información contradictoria entre documentos: identificar el conflicto, i
 
 ## Estado actual del programa
 
-Fase **Project OS Zero**: este repositorio contiene documentos, decisiones y tareas.
-No hay código de aplicación todavía. Antes de VS01 se resuelven las incertidumbres que
-puedan cambiar su alcance; `T-0002` no lo bloquea y se activa recién antes del primer
-acceso multi-principal, portal externo o proceso privilegiado sobre Broker OS.
+Project OS sigue en fase **Project OS Zero**: documentos, decisiones y tareas, sin
+aplicación propia. **Broker OS ya tiene código**: desde el 21/09/2026 existen el
+workspace ejecutable de `T-0010` y el schema de `T-0012`, con las invariantes del
+dominio como constraints de Postgres. No hay importación, ni UI, ni endpoints, ni
+autorización. `T-0002` no bloquea VS01 y se activa recién antes del primer acceso
+multi-principal, portal externo o proceso privilegiado sobre Broker OS.
 
 **No iniciar trabajo grande de implementación de Broker OS salvo pedido explícito.**

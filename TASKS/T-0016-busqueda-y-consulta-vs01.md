@@ -2,7 +2,7 @@
 id: T-0016
 title: Implementar la búsqueda y consulta de VS01
 kind: FEATURE
-status: DRAFT
+status: READY
 workstream: BOS
 riskClass: MEDIUM
 size: M
@@ -54,3 +54,12 @@ abiertas del dominio sin pasar por su decisión correspondiente.
 
 Parte de la descomposición de T-0014 realizada en T-0011. Conserva DRAFT hasta revisar
 el contrato de VS01 y completar el schema; no inicia implementación en esta pasada.
+
+**Promovida a `READY` el 21/09/2026.** Las dos condiciones que esta nota ponía para salir
+de `DRAFT` se cumplieron: `T-0011` cerró con el contrato de VS01 revisado y aprobado, y
+`T-0012` está en `main` con el schema y su base de prueba. No quedan inputs humanos
+pendientes —a diferencia de `T-0013`, que espera Q-14—, así que el contrato entra a
+implementación tal como está escrito.
+
+Es `FEATURE`, de modo que su PR pasa por revisión ciega antes del merge, no por decisión
+de quien la implemente. → `D-0052`, `R-33`
