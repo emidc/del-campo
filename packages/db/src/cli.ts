@@ -14,6 +14,7 @@ import { archivosDeMigracion, ErrorDeMigraciones, pendientes } from './migracion
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
 const DIRECTORIO_MIGRACIONES = join(RAIZ, 'packages', 'db', 'migrations')
+const DIRECTORIO_DOWN = join(DIRECTORIO_MIGRACIONES, 'down')
 const LEDGER = 'schema_migrations'
 
 const morir = (mensaje: string): never => {
@@ -161,6 +162,33 @@ const migrar = (url: URL): void => {
   }
 }
 
+// BR-008 (revisión ciega T-0012): revierte la ÚLTIMA migración aplicada, no todas.
+// El down de cada migración vive en `migrations/down/<mismo-archivo>.sql`; si no
+// existe, es una migración irreversible declarada así por su ausencia, y `down`
+// falla en vez de inventar un rollback. → ## Outcome "la migración es reversible"
+const bajar = (url: URL): void => {
+  if (!existeLedger(url)) {
+    process.stdout.write('· no hay ledger: ninguna migración aplicada\n')
+    return
+  }
+
+  const aplicadasActuales = aplicadas(url)
+  const ultima = aplicadasActuales.at(-1)
+  if (ultima === undefined) {
+    process.stdout.write('· no hay migraciones aplicadas\n')
+    return
+  }
+
+  const archivoDown = join(DIRECTORIO_DOWN, ultima)
+  if (!existsSync(archivoDown)) {
+    morir(`no existe down para "${ultima}" en ${archivoDown}: es irreversible.`)
+    return
+  }
+
+  psql(url, ['-1', '-f', archivoDown, '-c', `delete from ${LEDGER} where archivo = '${ultima}'`])
+  process.stdout.write(`✓ down: ${ultima}\n`)
+}
+
 const crear = (url: URL): void => {
   comprobarVersion(url)
   const nombre = nombreDeLaBase(url)
@@ -214,11 +242,14 @@ try {
     case 'migrate':
       migrar(url)
       break
+    case 'down':
+      bajar(url)
+      break
     case 'version':
       version(url)
       break
     default:
-      morir(`comando desconocido: "${comando ?? ''}". Se espera create, reset, migrate o version.`)
+      morir(`comando desconocido: "${comando ?? ''}". Se espera create, reset, migrate, down o version.`)
   }
 } catch (error) {
   if (error instanceof ErrorDeMigraciones) morir(error.message)

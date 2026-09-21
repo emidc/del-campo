@@ -292,6 +292,208 @@ describe('negativos — la base rechaza, no la aplicación', () => {
     })
   })
 
+  it('INV-001: cambiar party.id de una Party existente', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'IdInmutable')
+
+      await assert.rejects(
+        tx`update party set id = gen_random_uuid() where id = ${personId}`,
+        /es inmutable/i,
+      )
+    })
+  })
+
+  it('INV-002: borrar una Party perdedora después de un merge', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const a = await crearPersonParty(tx, 'PerdedoraA')
+      const b = await crearPersonParty(tx, 'PerdedoraB')
+      await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
+
+      await assert.rejects(tx`delete from party where id = ${a}`, /no se puede borrar una Party MERGED/i)
+    })
+  })
+
+  it('INV-004: borrar un PartyRole', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'RolBorrado')
+      const filas = await tx<FilaId[]>`
+        insert into party_role (party_id, role) values (${personId}, 'PROSPECT') returning id
+      `
+      const rol = unaFila(filas, 'insert de party_role')
+
+      await assert.rejects(tx`delete from party_role where id = ${rol.id}`, /no se puede borrar/i)
+    })
+  })
+
+  it('INV-PV-005/INV-013: sobrescribir el premium de una PolicyVersion cerrada', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'VersionCerrada')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Version Cerrada')
+      const policyId = await crearPolicy(tx, insurerId, 'CLO-0001')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, effective_to, holder_party_id,
+          term_start_date, term_end_date, renewal_mode, premium
+        ) values (
+          ${policyId}, 1, '2026-01-01', '2026-06-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL', 100
+        ) returning id
+      `
+      const version = unaFila(filas, 'insert de policy_version cerrada')
+
+      await assert.rejects(
+        tx`update policy_version set premium = 999 where id = ${version.id}`,
+        /no se puede modificar una versión ya cerrada/i,
+      )
+    })
+  })
+
+  it('INV-PV-005/INV-013: borrar una PolicyVersion cerrada', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'VersionCerradaBorrado')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Version Cerrada Borrado')
+      const policyId = await crearPolicy(tx, insurerId, 'CLO-0002')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, effective_to, holder_party_id,
+          term_start_date, term_end_date, renewal_mode
+        ) values (
+          ${policyId}, 1, '2026-01-01', '2026-06-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL'
+        ) returning id
+      `
+      const version = unaFila(filas, 'insert de policy_version cerrada')
+
+      await assert.rejects(
+        tx`delete from policy_version where id = ${version.id}`,
+        /no se puede borrar una versión cerrada/i,
+      )
+    })
+  })
+
+  it('cerrar una versión abierta (UPDATE con OLD.effective_to NULL) sigue permitido: no es la escritura que INV-PV-005 prohíbe', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CerrarAbierta')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Cerrar Abierta')
+      const policyId = await crearPolicy(tx, insurerId, 'CLO-0003')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, holder_party_id,
+          term_start_date, term_end_date, renewal_mode
+        ) values (
+          ${policyId}, 1, '2026-01-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL'
+        ) returning id
+      `
+      const version = unaFila(filas, 'insert de policy_version abierta')
+
+      await tx`update policy_version set effective_to = '2026-06-01' where id = ${version.id}`
+
+      const cerrada = await tx<{ effective_to: Date }[]>`
+        select effective_to from policy_version where id = ${version.id}
+      `
+      assert.equal(unaFila(cerrada, 'lectura de versión cerrada').effective_to.toISOString().slice(0, 10), '2026-06-01')
+    })
+  })
+
+  it('BR-008 consecuencia práctica: insertar historia ya cerrada (carga inicial de T-0013) sigue permitido', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CargaHistorica')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Carga Historica')
+      const policyId = await crearPolicy(tx, insurerId, 'HIS-0001')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, effective_to, holder_party_id,
+          term_start_date, term_end_date, renewal_mode
+        ) values (
+          ${policyId}, 1, '2025-01-01', '2026-01-01', ${personId},
+          '2025-01-01', '2026-01-01', 'MANUAL'
+        ) returning id
+      `
+      assert.ok(unaFila(filas, 'insert de historia ya cerrada').id)
+    })
+  })
+
+  it('BR-004: PolicyVersion.endorsement_id apuntando a un Endorsement de otra Policy', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'EndorsementCruzado')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Endorsement Cruzado')
+      const policyId1 = await crearPolicy(tx, insurerId, 'END-0001')
+      const policyId2 = await crearPolicy(tx, insurerId, 'END-0002')
+
+      const endorsements = await tx<FilaId[]>`
+        insert into endorsement (policy_id, kind, source_reference)
+        values (${policyId2}, 'ENDOSO', 'src-1')
+        returning id
+      `
+      const endorsement = unaFila(endorsements, 'insert de endorsement de policyId2')
+
+      await assert.rejects(
+        tx`
+          insert into policy_version (
+            policy_id, version_number, effective_from, holder_party_id,
+            term_start_date, term_end_date, renewal_mode, endorsement_id
+          ) values (
+            ${policyId1}, 1, '2026-01-01', ${personId},
+            '2026-01-01', '2027-01-01', 'MANUAL', ${endorsement.id}
+          )
+        `,
+        /foreign key/i,
+      )
+    })
+  })
+
+  it('BR-005: cambiar party.kind con un PersonProfile dependiente', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'KindCambiado')
+
+      await assert.rejects(
+        tx`update party set kind = 'ORGANIZATION' where id = ${personId}`,
+        /no se puede cambiar kind/i,
+      )
+    })
+  })
+
+  it('BR-006: borrar una Policy con un DocumentLink asociado', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const insurerId = await crearInsurer(tx, 'Aseguradora Con Documento')
+      const policyId = await crearPolicy(tx, insurerId, 'DOC-0001')
+
+      await tx`
+        insert into document_link (
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
+        ) values ('POLICY', ${policyId}, 'drive-file-1', 'FILE', 'SYNCED')
+      `
+
+      await assert.rejects(tx`delete from policy where id = ${policyId}`, /document_link asociados/i)
+    })
+  })
+
+  it('BR-007: coverage_data sin linaje de origen (coverage_source_batch_id/record_id)', async () => {
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'SinLinaje')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Sin Linaje')
+      const policyId = await crearPolicy(tx, insurerId, 'LIN-0001')
+
+      await assert.rejects(
+        tx`
+          insert into policy_version (
+            policy_id, version_number, effective_from, holder_party_id,
+            term_start_date, term_end_date, renewal_mode, coverage_data
+          ) values (
+            ${policyId}, 1, '2026-01-01', ${personId},
+            '2026-01-01', '2027-01-01', 'MANUAL', '{"incendio": true}'::jsonb
+          )
+        `,
+        /policy_version_coverage_lineage/i,
+      )
+    })
+  })
+
   it('INV-022: modificar source_value de un ExternalReference ya insertado', async () => {
     await enTransaccionDescartable(async (tx) => {
       const referencias = await tx<FilaId[]>`
@@ -383,49 +585,6 @@ describe('causalidad — cada test negativo mide el mecanismo que dice medir', (
         /exclusion/i,
       )
     })
-  })
-
-  it('INV-PV-004: el índice único parcial NO es la causa real mientras el EXCLUDE exista (hallazgo documentado en D-0051)', async () => {
-    const seRechazoSoloConIndiceParcialRetirado = await enTransaccionDescartable(async (tx) => {
-      const personId = await crearPersonParty(tx, 'CausalidadIndiceParcial')
-      const insurerId = await crearInsurer(tx, 'Aseguradora Indice Parcial')
-      const policyId = await crearPolicy(tx, insurerId, 'CAU-0003')
-
-      await tx`drop index policy_version_one_open_per_policy`
-
-      await tx`
-        insert into policy_version (
-          policy_id, version_number, effective_from, holder_party_id,
-          term_start_date, term_end_date, renewal_mode
-        ) values (
-          ${policyId}, 1, '2026-01-01', ${personId},
-          '2026-01-01', '2027-01-01', 'MANUAL'
-        )
-      `
-
-      let rechazada = false
-      try {
-        await tx`
-          insert into policy_version (
-            policy_id, version_number, effective_from, holder_party_id,
-            term_start_date, term_end_date, renewal_mode
-          ) values (
-            ${policyId}, 2, '2026-06-01', ${personId},
-            '2026-01-01', '2027-01-01', 'MANUAL'
-          )
-        `
-      } catch {
-        rechazada = true
-      }
-      return rechazada
-    })
-
-    assert.equal(
-      seRechazoSoloConIndiceParcialRetirado,
-      true,
-      'con el índice único parcial retirado pero el EXCLUDE intacto, la segunda versión abierta sigue rechazada: ' +
-        'el EXCLUDE es la causa real, no el índice parcial (documentado en D-0051)',
-    )
   })
 
   it('INV-006: retirando el EXCLUDE de party_role, dos roles activos se aceptan; restaurado, se vuelve a rechazar', async () => {
@@ -531,6 +690,241 @@ describe('causalidad — cada test negativo mide el mecanismo que dice medir', (
       await assert.rejects(
         tx`update external_reference set source_value = 'MODIFICADO' where id = ${reference.id}`,
         /son inmutables/i,
+      )
+    })
+  })
+
+/** Party sin PersonProfile/OrganizationProfile: para causalidad de INV-001/INV-002,
+ * donde la FK de un profile taparía el mecanismo real que se quiere medir. */
+const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> => {
+  const filas = await tx<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
+  return unaFila(filas, 'insert de party sin profile').id
+}
+
+  it('INV-001: retirando party_id_immutable, party.id se puede cambiar; restaurado, se vuelve a rechazar', async () => {
+    const seModifico = await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPartyDesnuda(tx)
+      await tx`drop trigger party_id_immutable on party`
+
+      const nuevoId = await tx<FilaId[]>`
+        update party set id = gen_random_uuid() where id = ${personId} returning id
+      `
+      return unaFila(nuevoId, 'party con id cambiado').id !== personId
+    })
+
+    assert.equal(seModifico, true, 'sin el trigger, party.id se pudo cambiar: el trigger es la causa real del rechazo')
+
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPartyDesnuda(tx)
+      await assert.rejects(
+        tx`update party set id = gen_random_uuid() where id = ${personId}`,
+        /es inmutable/i,
+      )
+    })
+  })
+
+  it('INV-002: retirando party_merged_no_delete, una Party MERGED se puede borrar; restaurado, se vuelve a rechazar', async () => {
+    const seBorro = await enTransaccionDescartable(async (tx) => {
+      const a = await crearPartyDesnuda(tx)
+      const b = await crearPartyDesnuda(tx)
+      await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
+      await tx`drop trigger party_merged_no_delete on party`
+
+      await tx`delete from party where id = ${a}`
+      const filas = await tx`select id from party where id = ${a}`
+      return filas.length === 0
+    })
+
+    assert.equal(seBorro, true, 'sin el trigger, la Party MERGED se borró: el trigger es la causa real del rechazo')
+
+    await enTransaccionDescartable(async (tx) => {
+      const a = await crearPartyDesnuda(tx)
+      const b = await crearPartyDesnuda(tx)
+      await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
+
+      await assert.rejects(tx`delete from party where id = ${a}`, /no se puede borrar una Party MERGED/i)
+    })
+  })
+
+  it('INV-004: retirando party_role_no_delete, un PartyRole se puede borrar; restaurado, se vuelve a rechazar', async () => {
+    const seBorro = await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadRolBorrado')
+      const filas = await tx<FilaId[]>`
+        insert into party_role (party_id, role) values (${personId}, 'PROSPECT') returning id
+      `
+      const rol = unaFila(filas, 'insert de party_role')
+      await tx`drop trigger party_role_no_delete on party_role`
+
+      await tx`delete from party_role where id = ${rol.id}`
+      const restante = await tx`select id from party_role where id = ${rol.id}`
+      return restante.length === 0
+    })
+
+    assert.equal(seBorro, true, 'sin el trigger, el PartyRole se borró: el trigger es la causa real del rechazo')
+
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadRolBorradoRestaurada')
+      const filas = await tx<FilaId[]>`
+        insert into party_role (party_id, role) values (${personId}, 'PROSPECT') returning id
+      `
+      const rol = unaFila(filas, 'insert de party_role restaurado')
+      await assert.rejects(tx`delete from party_role where id = ${rol.id}`, /no se puede borrar/i)
+    })
+  })
+
+  it('INV-PV-005/INV-013: retirando policy_version_closed_immutable, una versión cerrada se puede sobrescribir; restaurado, se vuelve a rechazar', async () => {
+    const seModifico = await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadCerrada')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Cerrada')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-CLO-0001')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, effective_to, holder_party_id,
+          term_start_date, term_end_date, renewal_mode, premium
+        ) values (
+          ${policyId}, 1, '2026-01-01', '2026-06-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL', 100
+        ) returning id
+      `
+      const version = unaFila(filas, 'insert de policy_version cerrada')
+      await tx`drop trigger policy_version_closed_immutable on policy_version`
+
+      await tx`update policy_version set premium = 999 where id = ${version.id}`
+      const leida = await tx<{ premium: string }[]>`select premium from policy_version where id = ${version.id}`
+      return unaFila(leida, 'lectura de premium modificado').premium === '999'
+    })
+
+    assert.equal(
+      seModifico,
+      true,
+      'sin el trigger, la versión cerrada se sobrescribió: el trigger es la causa real del rechazo',
+    )
+
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadCerradaRestaurada')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Cerrada Restaurada')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-CLO-0002')
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, effective_to, holder_party_id,
+          term_start_date, term_end_date, renewal_mode
+        ) values (
+          ${policyId}, 1, '2026-01-01', '2026-06-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL'
+        ) returning id
+      `
+      const version = unaFila(filas, 'insert de policy_version cerrada restaurada')
+
+      await assert.rejects(
+        tx`update policy_version set premium = 999 where id = ${version.id}`,
+        /no se puede modificar una versión ya cerrada/i,
+      )
+    })
+  })
+
+  it('BR-005: retirando party_kind_immutable_with_dependents, party.kind se puede cambiar con dependientes; restaurado, se vuelve a rechazar', async () => {
+    const seModifico = await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadKind')
+      await tx`drop trigger party_kind_immutable_with_dependents on party`
+
+      await tx`update party set kind = 'ORGANIZATION' where id = ${personId}`
+      const filas = await tx<{ kind: string }[]>`select kind from party where id = ${personId}`
+      return unaFila(filas, 'lectura de kind modificado').kind === 'ORGANIZATION'
+    })
+
+    assert.equal(
+      seModifico,
+      true,
+      'sin el trigger, party.kind se cambió con un PersonProfile dependiente: el trigger es la causa real del rechazo',
+    )
+
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadKindRestaurada')
+      await assert.rejects(
+        tx`update party set kind = 'ORGANIZATION' where id = ${personId}`,
+        /no se puede cambiar kind/i,
+      )
+    })
+  })
+
+  it('BR-006: retirando policy_no_delete_with_document_links, una Policy con DocumentLink se puede borrar; restaurado, se vuelve a rechazar', async () => {
+    const seBorro = await enTransaccionDescartable(async (tx) => {
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Documento')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-DOC-0001')
+      await tx`
+        insert into document_link (
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
+        ) values ('POLICY', ${policyId}, 'drive-file-causal', 'FILE', 'SYNCED')
+      `
+      await tx`drop trigger policy_no_delete_with_document_links on policy`
+
+      await tx`delete from policy where id = ${policyId}`
+      const restante = await tx`select id from policy where id = ${policyId}`
+      return restante.length === 0
+    })
+
+    assert.equal(
+      seBorro,
+      true,
+      'sin el trigger, la Policy con DocumentLink se borró: el trigger es la causa real del rechazo',
+    )
+
+    await enTransaccionDescartable(async (tx) => {
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Documento Restaurada')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-DOC-0002')
+      await tx`
+        insert into document_link (
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
+        ) values ('POLICY', ${policyId}, 'drive-file-causal-2', 'FILE', 'SYNCED')
+      `
+
+      await assert.rejects(tx`delete from policy where id = ${policyId}`, /document_link asociados/i)
+    })
+  })
+
+  it('BR-007: retirando policy_version_coverage_lineage, coverage_data sin linaje se acepta; restaurado, se vuelve a rechazar', async () => {
+    const seAcepto = await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadLinaje')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Linaje')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-LIN-0001')
+      await tx`alter table policy_version drop constraint policy_version_coverage_lineage`
+
+      const filas = await tx<FilaId[]>`
+        insert into policy_version (
+          policy_id, version_number, effective_from, holder_party_id,
+          term_start_date, term_end_date, renewal_mode, coverage_data
+        ) values (
+          ${policyId}, 1, '2026-01-01', ${personId},
+          '2026-01-01', '2027-01-01', 'MANUAL', '{"incendio": true}'::jsonb
+        ) returning id
+      `
+      return Boolean(unaFila(filas, 'insert de coverage_data sin linaje').id)
+    })
+
+    assert.equal(
+      seAcepto,
+      true,
+      'sin el CHECK, coverage_data sin linaje se insertó: la constraint es la causa real del rechazo',
+    )
+
+    await enTransaccionDescartable(async (tx) => {
+      const personId = await crearPersonParty(tx, 'CausalidadLinajeRestaurada')
+      const insurerId = await crearInsurer(tx, 'Aseguradora Causalidad Linaje Restaurada')
+      const policyId = await crearPolicy(tx, insurerId, 'CAU-LIN-0002')
+
+      await assert.rejects(
+        tx`
+          insert into policy_version (
+            policy_id, version_number, effective_from, holder_party_id,
+            term_start_date, term_end_date, renewal_mode, coverage_data
+          ) values (
+            ${policyId}, 1, '2026-01-01', ${personId},
+            '2026-01-01', '2027-01-01', 'MANUAL', '{"incendio": true}'::jsonb
+          )
+        `,
+        /policy_version_coverage_lineage/i,
       )
     })
   })

@@ -52,6 +52,17 @@ begin
     return new;
   end if;
 
+  -- BR-001 (revisión ciega T-0012): un trigger recursivo por sí solo no ve las filas
+  -- no commiteadas de otra transacción concurrente. Dos merges concurrentes A→B y B→A
+  -- pueden recorrer la cadena antes de que el otro commitee y confirmar un ciclo.
+  -- Se serializan TODAS las escrituras que puedan alterar el grafo de merge con un
+  -- advisory lock transaccional sobre una clave fija: mientras una transacción
+  -- sostiene el lock, cualquier otra que también escriba merged_into_party_id espera
+  -- a que la primera termine (commit o abort) antes de empezar su propio recorrido,
+  -- así que ya ve el estado consistente. El costo es serializar escrituras de merge
+  -- entre sí (no las lecturas ni el resto de las tablas), aceptable al volumen de VS01.
+  perform pg_advisory_xact_lock(7346501); -- clave arbitraria fija, sólo para este grafo
+
   cursor_id := new.merged_into_party_id;
   loop
     if cursor_id = any (visited) then
@@ -75,6 +86,77 @@ create trigger party_merge_cycle_guard
   before insert or update of merged_into_party_id on party
   for each row
   execute function prevent_party_merge_cycle();
+
+-- BR-002/BR-003 (revisión ciega T-0012) — INV-001: la identidad técnica es `id` y
+-- nada de este schema permite reasignarlo. Mecanismo: trigger, no privilegios de rol
+-- —eso es una segunda capa para cuando exista un rol de aplicación (T-0013/T-0016),
+-- no corresponde inventarla acá— porque debe valer para cualquier conexión, incluida
+-- la del owner y la de la propia migración.
+create function party_id_is_immutable() returns trigger
+language plpgsql as $$
+begin
+  if new.id is distinct from old.id then
+    raise exception 'party.id es inmutable (INV-001): % no puede pasar a %', old.id, new.id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger party_id_immutable
+  before update of id on party
+  for each row
+  execute function party_id_is_immutable();
+
+-- INV-002 — una Party perdedora de un merge (status = 'MERGED') no se borra
+-- físicamente: es historia. Sólo alcanza a la fila ya MERGED, no a un DELETE
+-- cualquiera sobre una Party ACTIVE sin referencias.
+create function prevent_delete_merged_party() returns trigger
+language plpgsql as $$
+begin
+  raise exception 'party %: no se puede borrar una Party MERGED (INV-002); es historia', old.id;
+end;
+$$;
+
+create trigger party_merged_no_delete
+  before delete on party
+  for each row
+  when (old.status = 'MERGED')
+  execute function prevent_delete_merged_party();
+
+-- BR-005 — cambiar party.kind con un profile/membership/insurer dependiente dejaría
+-- esa fila apuntando a una Party de otro kind, invalidando en silencio los triggers
+-- require_party_kind de INSERT. Se permite el UPDATE de kind sólo mientras no exista
+-- ninguna dependencia; en la práctica esto lo vuelve inmutable en cuanto se crea el
+-- profile correspondiente, sin necesidad de prohibir el UPDATE en general (por
+-- ejemplo, corregir el kind de una Party recién creada sin profile todavía).
+create function prevent_kind_change_with_dependents() returns trigger
+language plpgsql as $$
+begin
+  if new.kind = old.kind then
+    return new;
+  end if;
+
+  if exists (select 1 from person_profile where party_id = old.id)
+    or exists (select 1 from organization_profile where party_id = old.id)
+    or exists (select 1 from insurer where organization_party_id = old.id)
+    or exists (
+      select 1 from organization_membership
+      where organization_party_id = old.id or person_party_id = old.id
+    )
+  then
+    raise exception
+      'party %: no se puede cambiar kind de % a % con filas dependientes (§6, §10, §11, §17, §22)',
+      old.id, old.kind, new.kind;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger party_kind_immutable_with_dependents
+  before update of kind on party
+  for each row
+  execute function prevent_kind_change_with_dependents();
 
 -- ── Helper reutilizado por PersonProfile, OrganizationProfile, Insurer y
 -- OrganizationMembership: todas necesitan comprobar que un party_id referencia una
@@ -155,6 +237,20 @@ create table party_role (
     tstzrange(valid_from, coalesce(valid_to, 'infinity'::timestamptz)) with &&
   )
 );
+
+-- INV-004 — un PartyRole nunca se borra físicamente; se cierra con valid_to. Sin este
+-- trigger, un DELETE deja sin historia el intervalo durante el que el rol estuvo activo.
+create function prevent_delete_party_role() returns trigger
+language plpgsql as $$
+begin
+  raise exception 'party_role %: no se puede borrar (INV-004); cerrar con valid_to', old.id;
+end;
+$$;
+
+create trigger party_role_no_delete
+  before delete on party_role
+  for each row
+  execute function prevent_delete_party_role();
 
 comment on constraint party_role_party_id_role_tstzrange_excl on party_role is
   'INV-006 (a lo sumo un rol activo por party+role) y §13 (intervalos no solapados). '
@@ -269,7 +365,10 @@ create table endorsement (
   effective_from date,
   effective_to date,
   source_reference text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- BR-004: soporte de la FK compuesta de policy_version más abajo, que exige que el
+  -- Endorsement que origina una PolicyVersion sea de la misma Policy (DOMAIN §28, D-0037).
+  constraint endorsement_id_policy_id_unique unique (id, policy_id)
 );
 
 -- ── PolicyVersion ────────────────────────────────────────────────────────────
@@ -306,6 +405,19 @@ create table policy_version (
   created_at timestamptz not null default now(),
   constraint policy_version_number_unique unique (policy_id, version_number),
   constraint policy_version_valid_interval check (effective_to is null or effective_to > effective_from),
+  -- BR-004: el Endorsement que origina esta versión tiene que ser de la MISMA Policy.
+  -- FK compuesta contra endorsement (id, policy_id): con endorsement_id NULL (no hay
+  -- endorsement de origen) la FK no se evalúa (MATCH SIMPLE), que es el comportamiento
+  -- correcto para el caso mayoritario sin endorsement.
+  constraint policy_version_endorsement_matches_policy
+    foreign key (endorsement_id, policy_id) references endorsement (id, policy_id),
+  -- BR-007 / Q-12 / D-0050: coverage_data opaco sólo puede existir junto con su
+  -- linaje completo hacia el origen en staging. Los tres NULL juntos siguen
+  -- representando "dato ausente", que es distinto de "sin cobertura".
+  constraint policy_version_coverage_lineage check (
+    coverage_data is null
+    or (coverage_source_batch_id is not null and coverage_source_record_id is not null)
+  ),
   exclude using gist (
     policy_id with =,
     daterange(effective_from, coalesce(effective_to, 'infinity'::date)) with &&
@@ -334,15 +446,45 @@ comment on column policy_version.coverage_data is
   'trazabilidad mínima hacia el origen en staging que T-0013 deberá poblar (D-0033); '
   'no son FK porque el schema de staging no existe todavía en esta migración.';
 
--- A los efectos de la trazabilidad prevista por Q-12/D-0033, se conserva también el
--- índice único parcial que D-0045 y el README de migrations anticipan como mecanismo
--- de INV-PV-004, aunque la nota anterior documenta que es redundante mientras el
--- EXCLUDE exista. Se deja explícito y con su propio nombre para que una futura
--- eliminación del EXCLUDE (por ejemplo, si se relaja INV-PV-003) no elimine en
--- silencio la protección de INV-PV-004.
-create unique index policy_version_one_open_per_policy
-  on policy_version (policy_id)
-  where effective_to is null;
+-- BR-009 (revisión ciega T-0012): el índice único parcial que D-0045 y el README de
+-- migrations anticipaban como mecanismo de INV-PV-004 se retiró. La prueba de
+-- causalidad mostró que nunca fue la causa real de un rechazo mientras el EXCLUDE de
+-- arriba exista: es redundancia sin beneficio observado, y el reviewer pidió sacarla.
+-- Si en el futuro se relaja el EXCLUDE, INV-PV-004 necesita un mecanismo nuevo, no
+-- este índice reintroducido a ciegas.
+
+-- BR-002/BR-003 (revisión ciega T-0012) — INV-PV-005/INV-013: una PolicyVersion
+-- CERRADA (effective_to no nulo) es historia y no se modifica ni se borra. El trigger
+-- distingue la versión cerrada de la abierta por su valor viejo (OLD.effective_to):
+-- sólo bloquea UPDATE/DELETE sobre lo que YA estaba cerrado, nunca el INSERT. Eso deja
+-- pasar la carga inicial de historia de T-0013, que inserta versiones ya cerradas
+-- directamente — nunca hace UPDATE sobre una versión previamente cerrada — y también
+-- deja pasar el flujo normal de cerrar una versión abierta (UPDATE con OLD.effective_to
+-- IS NULL, que no está alcanzado por este trigger).
+create function policy_version_closed_is_immutable() returns trigger
+language plpgsql as $$
+begin
+  if TG_OP = 'DELETE' then
+    if old.effective_to is not null then
+      raise exception
+        'policy_version %: no se puede borrar una versión cerrada (INV-PV-005/INV-013)', old.id;
+    end if;
+    return old;
+  end if;
+
+  if old.effective_to is not null then
+    raise exception
+      'policy_version %: no se puede modificar una versión ya cerrada (INV-PV-005/INV-013)', old.id;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger policy_version_closed_immutable
+  before update or delete on policy_version
+  for each row
+  execute function policy_version_closed_is_immutable();
 
 -- ── DocumentLink ─────────────────────────────────────────────────────────────
 -- resource_type/resource_id es polimórfico por diseño (§47), pero VS01 solo necesita
@@ -379,6 +521,29 @@ create trigger document_link_resource_exists
   before insert or update of resource_type, resource_id on document_link
   for each row
   execute function require_document_link_resource();
+
+-- BR-006 (revisión ciega T-0012): el trigger de arriba sólo mira INSERT/UPDATE de
+-- document_link; no observa que el recurso referenciado (una Policy) se borre
+-- después. resource_id es polimórfico por diseño (§47) y VS01 sólo tiene el caso
+-- POLICY, así que no hay FK real posible sobre la columna general — se emula su
+-- semántica RESTRICT con un trigger sobre el borrado de policy.
+create function prevent_delete_policy_with_document_links() returns trigger
+language plpgsql as $$
+begin
+  if exists (
+    select 1 from document_link where resource_type = 'POLICY' and resource_id = old.id
+  ) then
+    raise exception
+      'policy %: no se puede borrar, tiene document_link asociados (§47)', old.id;
+  end if;
+  return old;
+end;
+$$;
+
+create trigger policy_no_delete_with_document_links
+  before delete on policy
+  for each row
+  execute function prevent_delete_policy_with_document_links();
 
 -- ── ExternalReference ────────────────────────────────────────────────────────
 -- INV-022: resolver una referencia nunca borra ni sobrescribe el valor de origen. No
