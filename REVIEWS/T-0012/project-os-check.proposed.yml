@@ -1,0 +1,70 @@
+name: Project OS check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-os-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        # La versión mayor tiene que coincidir con .postgres-version (D-0046, R-17): CI
+        # da el veredicto, y por eso corre la misma versión mayor que la máquina local,
+        # aunque el runtime del contenedor sea distinto a propósito.
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: delcampo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # _test, no _dev: packages/db/src/cli.ts sólo permite db:reset sobre nombres que
+      # terminan en _dev o _test, y CI no necesita ni debe tocar una base de desarrollo.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/delcampo_test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v2.0.0
+        with:
+          runtime: node@24
+          require-lockfile: true
+          install: true
+
+      - name: Apply migrations against the CI database
+        run: pnpm db:migrate
+
+      - name: Check Project OS
+        run: pnpm check
+
+      - name: Check task contract against merge-base
+        env:
+          # github.head_ref, NUNCA github.ref_name / GITHUB_REF_NAME: en un evento
+          # pull_request ese valor es "refs/pull/N/merge", no el nombre de la rama.
+          CHECK_BRANCH_NAME: ${{ github.head_ref }}
+          CHECK_BASE_REF: origin/${{ github.base_ref }}
+        run: node scripts/check-task-contract.mjs

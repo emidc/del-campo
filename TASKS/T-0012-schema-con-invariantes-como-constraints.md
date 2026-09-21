@@ -2,7 +2,7 @@
 id: T-0012
 title: Crear el schema de VS01 con las invariantes como constraints de Postgres
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: L

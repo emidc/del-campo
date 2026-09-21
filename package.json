@@ -7,7 +7,7 @@
   },
   "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs && node --test scripts/tests/*.test.mjs",
+    "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs && node --test scripts/tests/*.test.mjs && pnpm typecheck && pnpm lint && pnpm test",
     "decisions": "node scripts/decisions.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
