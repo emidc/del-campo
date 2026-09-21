@@ -8,5 +8,8 @@
   },
   "bin": {
     "db": "./src/cli.ts"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
   }
 }

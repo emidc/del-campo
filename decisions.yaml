@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-20
+updated: 2026-09-21
 
 decisions:
 
@@ -702,3 +702,49 @@ decisions:
       REVIEWS/. En CHORE, SPIKE y REVIEW la revisión es opcional y la pide quien
       implementa o quien revisa. La obligatoriedad es de procedimiento y no se hace
       cumplir por CI: automatizar el disparo es una decisión separada que esta no toma.
+  # ── T-0012 ───────────────────────────────────────────────────────────────
+
+  - id: D-0049
+    title: Driver de PostgreSQL para consultas y tests de integración
+    status: ACCEPTED
+    date: 2026-09-21
+    source: T-0012; D-0045; R-05 exige ADR por dependencia nueva
+    adr: DECISIONS/0049-driver-postgres-para-tests-de-integracion.md
+    statement: >
+      Se adopta `postgres` (porsager) como driver de PostgreSQL: delgado, sin ORM, sin
+      DSL de schema, con tipos de TypeScript anotados por consulta en vez de un modelo
+      de tablas declarado por adelantado. D-0045 fijó dónde vive el schema; esta
+      decisión fija solo cómo se consulta, no reabre esa elección.
+
+  - id: D-0050
+    title: Formato físico mínimo de coverageData en PolicyVersion
+    status: ACCEPTED
+    date: 2026-09-21
+    source: T-0012; respuesta del owner a Q-12, 2026-09-21; D-0033
+    adr: DECISIONS/0050-formato-fisico-de-coverage-data.md
+    statement: >
+      policy_version.coverage_data es jsonb, nullable, sin estructura de claves
+      impuesta por el schema ni DEFAULT de relleno. NULL significa dato ausente, nunca
+      ausencia de cobertura. coverage_source_batch_id y coverage_source_record_id
+      sostienen la trazabilidad mínima hacia el origen que D-0033 exige, sin FK porque
+      el schema de staging no existe todavía. Esta decisión no estructura ni interpreta
+      contenido de cobertura y no resuelve D-0025, que permanece OPEN.
+
+  - id: D-0051
+    title: Schema de VS01 con las invariantes de DOMAIN.md §67 como constraints
+    status: ACCEPTED
+    date: 2026-09-21
+    source: T-0012; DOMAIN.md §63-67; R-05 exige ADR por cambio de schema en Party y Policy
+    adr: DECISIONS/0051-schema-vs01-invariantes-como-constraints.md
+    statement: >
+      Se crea el schema del subconjunto de DOMAIN.md §63 para VS01 en
+      packages/db/migrations/0001_vs01_core_schema.sql, con INV-001 a INV-023 e
+      INV-PV-001 a INV-PV-006 cubiertas por constraint, índice o trigger donde son
+      expresables, y documentadas con su límite donde no lo son. PartyRole.validTo IS
+      NULL es la autoridad de "rol activo" para INV-006, acordado con el owner: status
+      queda como campo secundario sin participar del enforcement. El EXCLUDE de
+      PolicyVersion (policy_id, daterange con effective_to coalescido a infinity) es el
+      mecanismo real tanto de INV-PV-003 como de INV-PV-004; el índice único parcial
+      adicional no es causalmente independiente mientras ese EXCLUDE exista, y se
+      documenta así en vez de reportar una prueba de causalidad ficticia. Ningún
+      concepto pasa de NAMED a MODELED. D-0025, D-0022, D-0026 y D-0027 permanecen OPEN.
