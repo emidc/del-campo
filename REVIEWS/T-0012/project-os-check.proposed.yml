@@ -55,8 +55,20 @@ jobs:
           require-lockfile: true
           install: true
 
+      - name: Ensure psql matching .postgres-version is on the runner
+        # El binario psql corre en el runner, no en el contenedor del servicio: ahí
+        # es donde packages/db/src/cli.ts lo invoca con execFileSync. ubuntu-latest
+        # no lo garantiza pinneado a una mayor, así que se instala explícitamente
+        # la misma mayor que .postgres-version fija (D-0046).
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "postgresql-client-$(cat .postgres-version)"
+
       - name: Apply migrations against the CI database
-        run: pnpm db:migrate
+        # db:version antes de db:migrate: migrate (packages/db/src/cli.ts) no llama
+        # comprobarVersion — sólo create, reset y version lo hacen —, así que sin este
+        # paso previo nada comprueba acá que la mayor corrida sea la de .postgres-version.
+        run: pnpm db:version && pnpm db:migrate
 
       - name: Check Project OS
         run: pnpm check
