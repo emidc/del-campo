@@ -2,11 +2,12 @@
 id: T-0010
 title: Levantar el entorno de desarrollo ejecutable, sin dominio
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: LOW
 size: M
 created: 2026-09-08
+closed: 2026-09-21
 blockedBy: [T-0008]
 contextRefs: [ENGINEERING_RULES.md, decisions.yaml, .github/workflows/project-os-check.yml, docs/desarrollo/postgres-local.md]
 decisionRefs: [D-0012, D-0013, D-0045, D-0046, D-0047]
@@ -39,8 +40,18 @@ reproducibles. CI sigue usando un contenedor: la diferencia se acepta a concienc
 cubre R-17, porque el veredicto lo da CI y no la máquina local.
 
 Las decisiones materiales de esta tarea quedan registradas en `decisions.yaml` con su
-ADR, no como premisas implícitas del código —R-03—, y las reglas R-24, R-25 y R-26 dejan
-de estar marcadas LATENTE en `ENGINEERING_RULES.md` porque pasan a ser cumplibles.
+ADR, no como premisas implícitas del código —R-03—, y las reglas R-25 y R-26 dejan de
+estar marcadas LATENTE en `ENGINEERING_RULES.md` porque pasan a ser cumplibles: hay una
+regla de lint que hace fallar `pnpm lint` ante un límite cruzado, y un runner que corre
+la capa unit.
+
+**R-24 no entra**, y la primera versión de esta tarea decía que sí. No existe todavía
+ningún borde —ni HTTP, ni cola, ni payload de integración— y la biblioteca de validación
+en runtime es una dependencia nueva sin uso en T-0012, que este `## Non-scope` prohíbe
+instalar. Marcar cumplible una regla sin herramienta que la cumpla es exactamente lo que
+la distinción ACTIVA/LATENTE existe para evitar. R-24 queda LATENTE con su disparador
+escrito: se activa con el primer borde, y esa tarea elige la biblioteca con su ADR
+por R-05.
 
 `pnpm check` **no cambia** en esta tarea: typecheck, lint y tests quedan configurados y
 ejecutables por comando propio, y su incorporación al check la hace T-0012, que es la
@@ -117,17 +128,6 @@ siguiente libre.
 La elección de toolchain es una decisión y lleva un ADR; el schema en SQL es otra y lleva
 el suyo. Si preferís un ADR por dependencia, decilo antes de empezar: cambia el
 `## Outcome`.
-
-**Divergencia con el `## Outcome`: R-24 quedó LATENTE.** El outcome dice que R-24, R-25 y
-R-26 dejan de estar marcadas LATENTE. R-25 y R-26 sí: hay una regla de lint que hace
-cumplir los límites y un runner que corre la capa unit. R-24 no, y la contradicción es
-del texto de la tarea, no de la implementación: no existe todavía ningún borde —ni HTTP,
-ni cola, ni payload de integración— y la biblioteca de validación en runtime es una
-dependencia nueva que este mismo `## Non-scope` prohíbe instalar, porque no tiene uso en
-T-0012. Marcar cumplible una regla sin herramienta que la cumpla es precisamente lo que
-la distinción ACTIVA/LATENTE existe para evitar. `ENGINEERING_RULES.md` deja escrito el
-disparador: R-24 se activa con el primer borde, y esa tarea elige la biblioteca con su
-ADR por R-05. Si el owner prefiere lo contrario, cambia el `## Outcome`, no el código.
 
 **Consecuencia de Q-7.** Entre esta tarea y T-0012 nada obliga a que typecheck, lint y
 tests sigan pasando, así que la configuración puede pudrirse en silencio. Por eso las tres
