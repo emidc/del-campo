@@ -28,7 +28,11 @@ importers:
         specifier: ^8.46.0
         version: 8.70.0(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
 
-  packages/db: {}
+  packages/db:
+    dependencies:
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
 
   packages/domain: {}
 
@@ -417,6 +421,10 @@ packages:
 
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
+    engines: {node: '>=12'}
+
+  postgres@3.4.9:
+    resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
     engines: {node: '>=12'}
 
   prelude-ls@1.2.1:
@@ -912,6 +920,8 @@ snapshots:
   path-key@3.1.1: {}
 
   picomatch@4.0.7: {}
+
+  postgres@3.4.9: {}
 
   prelude-ls@1.2.1: {}
 

@@ -2,14 +2,14 @@
 id: T-0012
 title: Crear el schema de VS01 con las invariantes como constraints de Postgres
 kind: FEATURE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: L
 created: 2026-09-08
 blockedBy: [T-0010, T-0011]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md]
-decisionRefs: [D-0001, D-0004, D-0005, D-0006, D-0012, D-0013, D-0025]
+decisionRefs: [D-0001, D-0004, D-0005, D-0006, D-0012, D-0013, D-0025, D-0049, D-0050, D-0051]
 ---
 
 ## Why
@@ -105,3 +105,38 @@ la escritura denegada. La consecuencia práctica es que la primera tarea con có
 aplicación necesita una compuerta humana adicional a la del merge, y el agente propone
 ese diff en vez de aplicarlo. Extender `pnpm check` no la necesita; agregar el servicio
 de Postgres sí.
+
+**Respuesta del owner a Q-12 (2026-09-21) — desbloquea el pase a `READY`.**
+
+> Q-12: elijo cmo un bloque opaco asociado a PolicyVersion, con trazabilidad hacia su
+> origen. D-0025 permanece OPEN. Para T-0012, definí y justificá el almacenamiento
+> mínimo necesario, sin normalizar campos internos de cobertura ni introducir reglas de
+> negocio que dependan de interpretarlos. La elección del formato físico no debe fijar
+> de hecho el modelo definitivo de cobertura.
+>
+> Conservá la distinción entre dato ausente y ausencia de cobertura: no completar
+> valores por defecto que impliquen una conclusión contractual.
+>
+> Respetá D-0033: el origen completo y su linaje viven en staging; coverageData no debe
+> absorber campos de semántica desconocida ni duplicar el registro completo de Zoho.
+> T-0013 incorporará únicamente contenido identificado como cobertura, con trazabilidad
+> al registro y lote de origen.
+>
+> Retomaremos D-0025 con evidencia de pólizas reales de al menos dos compañías y
+> necesidades concretas de uso que justifiquen qué estructurar. Documentá este límite en
+> la respuesta a Q-12 y en el ADR de schema.
+
+Consecuencias operativas de esta respuesta, para la implementación de esta tarea:
+
+- `coverageData` se guarda como bloque opaco asociado a `PolicyVersion`, con
+  trazabilidad a su origen (registro y lote de staging). No se normalizan campos
+  internos de cobertura ni se derivan reglas de negocio de su contenido.
+- La columna que lo sostenga **no** es `NOT NULL` salvo justificación explícita escrita:
+  ausencia de dato y ausencia de cobertura son cosas distintas, y no corresponde
+  completar valores por defecto que impliquen una conclusión contractual sobre una
+  póliza real.
+- El formato físico elegido para esta tarea no fija el modelo definitivo de cobertura;
+  eso lo sigue debiendo `D-0025`, que permanece `OPEN` y se retoma con evidencia de
+  pólizas reales de al menos dos compañías.
+- `D-0033` sigue mandando: esta tarea no duplica el registro completo de Zoho ni
+  absorbe campos de semántica desconocida dentro de `coverageData`.
