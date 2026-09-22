@@ -2,14 +2,14 @@
 id: T-0016
 title: Implementar la búsqueda y consulta de VS01
 kind: FEATURE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-20
-blockedBy: [T-0011, T-0012]
+blockedBy: [T-0011, T-0012, T-0019]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0019, D-0034, D-0036, D-0037, D-0038]
+decisionRefs: [D-0019, D-0034, D-0036, D-0037, D-0038, D-0054]
 ---
 
 ## Why
@@ -63,3 +63,13 @@ implementación tal como está escrito.
 
 Es `FEATURE`, de modo que su PR pasa por revisión ciega antes del merge, no por decisión
 de quien la implemente. → `D-0052`, `R-33`
+
+El owner definió el 21/09/2026 que `OrganizationMembership` recibe un instante ISO-8601
+con `Z` u offset explícito y compara directamente `timestamptz` con semántica
+`[validFrom, validTo)`; no se aplica esa definición temporal a otras consultas. También
+confirmó que la resolución canónica de Party debe seguir uno o varios saltos sin perder
+Policies ni duplicar identidades.
+
+T-0019 quedó integrada en `main` mediante PR #25 antes de consumirla acá. La consulta
+distingue una Policy sin referencia documental de una referencia conocida no resuelta,
+preserva su motivo y mantiene separada la Policy de pertenencia del destino intentado.
