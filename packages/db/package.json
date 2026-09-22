@@ -10,6 +10,7 @@
     "db": "./src/cli.ts"
   },
   "dependencies": {
+    "csv-parse": "^7.0.2",
     "postgres": "^3.4.9"
   }
 }

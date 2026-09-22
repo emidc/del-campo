@@ -2,14 +2,14 @@
 id: T-0013
 title: Importar las pólizas y las partes desde el export de Zoho
 kind: MIGRATION
-status: READY
+status: ACTIVE
 workstream: MIG
 riskClass: HIGH
 size: L
 created: 2026-09-08
 blockedBy: [T-0012]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, REVIEWS/T-0004-insumos-vs01.md]
-decisionRefs: [D-0006, D-0008, D-0020, D-0021, D-0023, D-0053]
+decisionRefs: [D-0006, D-0008, D-0020, D-0021, D-0023, D-0053, D-0055]
 ---
 
 ## Why

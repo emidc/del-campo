@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-21
+updated: 2026-09-22
 
 decisions:
 
@@ -800,3 +800,19 @@ decisions:
       POLICY_DOCUMENT discrimina físicamente estas referencias; la participación en
       la asociación es total y diferible dentro de la transacción, y la asociación
       rechaza cualquier otro relationType.
+
+  # ── Dependencias del importador de Zoho (T-0013) ──────────────────────────
+
+  - id: D-0055
+    title: csv-parse como parser de CSV para el importador de T-0013
+    status: ACCEPTED
+    date: 2026-09-22
+    source: R-05 (dependencia nueva); packages/db/src/import/csv.ts
+    adr: DECISIONS/0055-csv-parse-para-el-importador.md
+    statement: >
+      El importador de T-0013 lee los CSV del lote de Zoho con csv-parse (^7.0.2), no
+      con un split manual: los CSV reales tienen comas, comillas y saltos de línea
+      embebidos en campos de texto libre, y un parser ad hoc los corrompería en silencio
+      en vez de fallar de forma visible. Acotado a packages/db/src/import/csv.ts, cuyo
+      contrato hacia el resto del importador es un AsyncGenerator de objetos
+      header→valor, no un tipo de la librería.
