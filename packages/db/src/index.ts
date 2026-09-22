@@ -5,6 +5,7 @@ export type {
   CurrentPolicyVersion,
   DocumentLinkSummary,
   EndorsementSummary,
+  ExternalDocumentReferenceSummary,
   HolderSummary,
   InsurerSummary,
   PartyMembershipSummary,

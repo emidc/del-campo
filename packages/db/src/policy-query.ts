@@ -44,8 +44,10 @@ export interface PolicyCandidate {
   readonly holder: HolderSummary | null
   readonly currentVersion: CurrentPolicyVersion | null
   readonly documents: {
-    readonly state: 'NO_LINK' | 'LINKED'
-    readonly count: number
+    readonly state: 'NO_REFERENCE' | 'KNOWN_UNRESOLVED' | 'KNOWN_RESOLVED' | 'LINKED'
+    readonly linkCount: number
+    readonly referenceCount: number
+    readonly unresolvedReasons: readonly string[]
   }
 }
 
@@ -80,6 +82,18 @@ export interface DocumentLinkSummary {
   readonly lastSeenAt: string | null
 }
 
+export interface ExternalDocumentReferenceSummary {
+  readonly id: string
+  readonly sourceSystem: string
+  readonly sourceEntityType: string
+  readonly sourceExternalId: string | null
+  readonly sourceValue: string | null
+  readonly resolutionStatus: 'UNRESOLVED' | 'RESOLVED'
+  readonly unresolvedReason: string | null
+  readonly resolvedTargetType: string | null
+  readonly resolvedTargetId: string | null
+}
+
 export interface PolicyDetail {
   readonly policyId: string
   readonly policyNumber: string
@@ -89,6 +103,7 @@ export interface PolicyDetail {
   readonly currentVersion: CurrentPolicyVersion | null
   readonly history: readonly PolicyVersionHistoryEntry[]
   readonly documents: readonly DocumentLinkSummary[]
+  readonly documentReferences: readonly ExternalDocumentReferenceSummary[]
 }
 
 export interface PartyMembershipSummary {
@@ -128,6 +143,9 @@ interface CandidateRow {
   readonly term_end_date: DateValue | null
   readonly version_status: string | null
   readonly document_count: number
+  readonly document_reference_count: number
+  readonly unresolved_reference_count: number
+  readonly unresolved_reasons: string[]
 }
 
 interface PolicyIdentityRow extends CandidateRow {
@@ -168,6 +186,18 @@ interface DocumentRow {
   readonly last_seen_at: Date | string | null
 }
 
+interface ExternalDocumentReferenceRow {
+  readonly id: string
+  readonly source_system: string
+  readonly source_entity_type: string
+  readonly source_external_id: string | null
+  readonly source_value: string | null
+  readonly resolution_status: 'UNRESOLVED' | 'RESOLVED'
+  readonly unresolved_reason: string | null
+  readonly resolved_target_type: string | null
+  readonly resolved_target_id: string | null
+}
+
 interface PartyRow {
   readonly party_id: string
   readonly kind: 'PERSON' | 'ORGANIZATION'
@@ -203,6 +233,17 @@ const assertDate = (value: string): string => {
     || parsed.toISOString().slice(0, 10) !== value
   ) {
     throw new Error(`asOf must be a valid YYYY-MM-DD date; received ${JSON.stringify(value)}`)
+  }
+  return value
+}
+
+const assertZonedInstant = (value: string): string => {
+  const hasExplicitZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+  const isIsoDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+  if (!hasExplicitZone || !isIsoDateTime || Number.isNaN(Date.parse(value))) {
+    throw new Error(
+      `membershipAt must be a valid ISO-8601 instant with Z or an explicit offset; received ${JSON.stringify(value)}`,
+    )
   }
   return value
 }
@@ -250,8 +291,16 @@ const candidateFromRow = (row: CandidateRow): PolicyCandidate => ({
   holder: holderFromRow(row),
   currentVersion: currentVersionFromRow(row),
   documents: {
-    state: row.document_count === 0 ? 'NO_LINK' : 'LINKED',
-    count: row.document_count,
+    state: row.document_count > 0
+      ? 'LINKED'
+      : row.unresolved_reference_count > 0
+        ? 'KNOWN_UNRESOLVED'
+        : row.document_reference_count > 0
+          ? 'KNOWN_RESOLVED'
+          : 'NO_REFERENCE',
+    linkCount: row.document_count,
+    referenceCount: row.document_reference_count,
+    unresolvedReasons: row.unresolved_reasons,
   },
 })
 
@@ -278,12 +327,25 @@ export const searchPolicies = async (
   }
 
   const rows = await sql<CandidateRow[]>`
+    with recursive party_resolution (origin_id, resolved_id) as (
+      select id, id from party
+      union all
+      select resolution.origin_id, current_party.merged_into_party_id
+      from party_resolution resolution
+      join party current_party on current_party.id = resolution.resolved_id
+      where current_party.merged_into_party_id is not null
+    ), canonical_party as (
+      select resolution.origin_id, resolution.resolved_id as canonical_id
+      from party_resolution resolution
+      join party canonical on canonical.id = resolution.resolved_id
+      where canonical.merged_into_party_id is null
+    )
     select
       p.id as policy_id,
       p.policy_number,
       i.id as insurer_id,
       i.canonical_name as insurer_name,
-      pv.holder_party_id,
+      holder.id as holder_party_id,
       holder.kind as holder_kind,
       coalesce(
         nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
@@ -300,7 +362,21 @@ export const searchPolicies = async (
       pv.term_end_date,
       pv.status as version_status,
       (select count(*)::int from document_link dl
-        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count
+        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count,
+      (select count(*)::int from policy_document_reference pdr
+        where pdr.policy_id = p.id) as document_reference_count,
+      (select count(*)::int
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ) as unresolved_reference_count,
+      coalesce((
+        select array_agg(er.unresolved_reason order by er.id)
+          filter (where er.unresolved_reason is not null)
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ), array[]::text[]) as unresolved_reasons
     from policy p
     join insurer i on i.id = p.insurer_id
     left join lateral (
@@ -312,7 +388,8 @@ export const searchPolicies = async (
       order by selected.effective_from desc, selected.version_number desc
       limit 1
     ) pv on true
-    left join party holder on holder.id = pv.holder_party_id
+    left join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
+    left join party holder on holder.id = resolved_holder.canonical_id
     left join person_profile pp on pp.party_id = holder.id
     left join organization_profile op on op.party_id = holder.id
     where (${firstName}::text is null or pp.first_name ilike '%' || ${firstName}::text || '%')
@@ -346,13 +423,26 @@ const policyIdentity = async (
   asOf: string,
 ): Promise<PolicyIdentityRow | null> => {
   const rows = await sql<PolicyIdentityRow[]>`
+    with recursive party_resolution (origin_id, resolved_id) as (
+      select id, id from party
+      union all
+      select resolution.origin_id, current_party.merged_into_party_id
+      from party_resolution resolution
+      join party current_party on current_party.id = resolution.resolved_id
+      where current_party.merged_into_party_id is not null
+    ), canonical_party as (
+      select resolution.origin_id, resolution.resolved_id as canonical_id
+      from party_resolution resolution
+      join party canonical on canonical.id = resolution.resolved_id
+      where canonical.merged_into_party_id is null
+    )
     select
       p.id as policy_id,
       p.policy_number,
       p.renewed_from_policy_id,
       i.id as insurer_id,
       i.canonical_name as insurer_name,
-      pv.holder_party_id,
+      holder.id as holder_party_id,
       holder.kind as holder_kind,
       coalesce(
         nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
@@ -369,7 +459,21 @@ const policyIdentity = async (
       pv.term_end_date,
       pv.status as version_status,
       (select count(*)::int from document_link dl
-        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count
+        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count,
+      (select count(*)::int from policy_document_reference pdr
+        where pdr.policy_id = p.id) as document_reference_count,
+      (select count(*)::int
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ) as unresolved_reference_count,
+      coalesce((
+        select array_agg(er.unresolved_reason order by er.id)
+          filter (where er.unresolved_reason is not null)
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ), array[]::text[]) as unresolved_reasons
     from policy p
     join insurer i on i.id = p.insurer_id
     left join lateral (
@@ -380,7 +484,8 @@ const policyIdentity = async (
       order by selected.effective_from desc, selected.version_number desc
       limit 1
     ) pv on true
-    left join party holder on holder.id = pv.holder_party_id
+    left join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
+    left join party holder on holder.id = resolved_holder.canonical_id
     left join person_profile pp on pp.party_id = holder.id
     left join organization_profile op on op.party_id = holder.id
     where p.id = ${policyId}
@@ -397,8 +502,21 @@ export const getPolicyDetail = async (
   const identity = await policyIdentity(sql, policyId, asOf)
   if (identity === null) return null
 
-  const [historyRows, documentRows] = await Promise.all([
+  const [historyRows, documentRows, externalReferenceRows] = await Promise.all([
     sql<HistoryRow[]>`
+      with recursive party_resolution (origin_id, resolved_id) as (
+        select id, id from party
+        union all
+        select resolution.origin_id, current_party.merged_into_party_id
+        from party_resolution resolution
+        join party current_party on current_party.id = resolution.resolved_id
+        where current_party.merged_into_party_id is not null
+      ), canonical_party as (
+        select resolution.origin_id, resolution.resolved_id as canonical_id
+        from party_resolution resolution
+        join party canonical on canonical.id = resolution.resolved_id
+        where canonical.merged_into_party_id is null
+      )
       select
         pv.id,
         pv.version_number,
@@ -407,7 +525,7 @@ export const getPolicyDetail = async (
         pv.term_start_date,
         pv.term_end_date,
         pv.status,
-        pv.holder_party_id,
+        holder.id as holder_party_id,
         holder.kind as holder_kind,
         coalesce(
           nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
@@ -426,7 +544,8 @@ export const getPolicyDetail = async (
         e.kind as endorsement_kind,
         e.effective_from as endorsement_effective_from
       from policy_version pv
-      join party holder on holder.id = pv.holder_party_id
+      join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
+      join party holder on holder.id = resolved_holder.canonical_id
       left join person_profile pp on pp.party_id = holder.id
       left join organization_profile op on op.party_id = holder.id
       left join endorsement e on e.id = pv.endorsement_id and e.policy_id = pv.policy_id
@@ -440,6 +559,22 @@ export const getPolicyDetail = async (
       from document_link
       where resource_type = 'POLICY' and resource_id = ${policyId}
       order by created_at, id
+    `,
+    sql<ExternalDocumentReferenceRow[]>`
+      select
+        er.id,
+        er.source_system,
+        er.source_entity_type,
+        er.source_external_id,
+        er.source_value,
+        er.resolution_status,
+        er.unresolved_reason,
+        er.resolved_target_type,
+        er.resolved_target_id
+      from policy_document_reference pdr
+      join external_reference er on er.id = pdr.external_reference_id
+      where pdr.policy_id = ${policyId}
+      order by er.created_at, er.id
     `,
   ])
 
@@ -492,6 +627,17 @@ export const getPolicyDetail = async (
       reconciliationStatus: row.reconciliation_status,
       lastSeenAt: row.last_seen_at === null ? null : timestamp(row.last_seen_at),
     })),
+    documentReferences: externalReferenceRows.map((row) => ({
+      id: row.id,
+      sourceSystem: row.source_system,
+      sourceEntityType: row.source_entity_type,
+      sourceExternalId: row.source_external_id,
+      sourceValue: row.source_value,
+      resolutionStatus: row.resolution_status,
+      unresolvedReason: row.unresolved_reason,
+      resolvedTargetType: row.resolved_target_type,
+      resolvedTargetId: row.resolved_target_id,
+    })),
   }
 }
 
@@ -501,12 +647,25 @@ const policiesForParty = async (
   asOf: string,
 ): Promise<PolicyCandidate[]> => {
   const rows = await sql<CandidateRow[]>`
+    with recursive party_resolution (origin_id, resolved_id) as (
+      select id, id from party
+      union all
+      select resolution.origin_id, current_party.merged_into_party_id
+      from party_resolution resolution
+      join party current_party on current_party.id = resolution.resolved_id
+      where current_party.merged_into_party_id is not null
+    ), canonical_party as (
+      select resolution.origin_id, resolution.resolved_id as canonical_id
+      from party_resolution resolution
+      join party canonical on canonical.id = resolution.resolved_id
+      where canonical.merged_into_party_id is null
+    )
     select
       p.id as policy_id,
       p.policy_number,
       i.id as insurer_id,
       i.canonical_name as insurer_name,
-      pv.holder_party_id,
+      holder.id as holder_party_id,
       holder.kind as holder_kind,
       coalesce(
         nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
@@ -523,7 +682,21 @@ const policiesForParty = async (
       pv.term_end_date,
       pv.status as version_status,
       (select count(*)::int from document_link dl
-        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count
+        where dl.resource_type = 'POLICY' and dl.resource_id = p.id) as document_count,
+      (select count(*)::int from policy_document_reference pdr
+        where pdr.policy_id = p.id) as document_reference_count,
+      (select count(*)::int
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ) as unresolved_reference_count,
+      coalesce((
+        select array_agg(er.unresolved_reason order by er.id)
+          filter (where er.unresolved_reason is not null)
+        from policy_document_reference pdr
+        join external_reference er on er.id = pdr.external_reference_id
+        where pdr.policy_id = p.id and er.resolution_status = 'UNRESOLVED'
+      ), array[]::text[]) as unresolved_reasons
     from policy p
     join insurer i on i.id = p.insurer_id
     join lateral (
@@ -534,10 +707,11 @@ const policiesForParty = async (
       order by selected.effective_from desc, selected.version_number desc
       limit 1
     ) pv on true
-    join party holder on holder.id = pv.holder_party_id
+    join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
+    join party holder on holder.id = resolved_holder.canonical_id
     left join person_profile pp on pp.party_id = holder.id
     left join organization_profile op on op.party_id = holder.id
-    where pv.holder_party_id = ${partyId}
+    where resolved_holder.canonical_id = ${partyId}
     order by i.canonical_name, p.policy_number, p.id
   `
   return rows.map(candidateFromRow)
@@ -555,9 +729,20 @@ export const getPartyOverview = async (
   sql: QueryExecutor,
   partyId: string,
   atDate: string,
+  membershipAt: string,
 ): Promise<PartyOverview | null> => {
   const asOf = assertDate(atDate)
+  const atInstant = assertZonedInstant(membershipAt)
   const partyRows = await sql<PartyRow[]>`
+    with recursive resolution as (
+      select id, kind, status, merged_into_party_id
+      from party
+      where id = ${partyId}
+      union all
+      select next_party.id, next_party.kind, next_party.status, next_party.merged_into_party_id
+      from resolution current_party
+      join party next_party on next_party.id = current_party.merged_into_party_id
+    )
     select
       p.id as party_id,
       p.kind,
@@ -568,45 +753,93 @@ export const getPartyOverview = async (
       ) as display_name,
       pp.dni,
       op.cuit
-    from party p
+    from resolution resolved
+    join party p on p.id = resolved.id
     left join person_profile pp on pp.party_id = p.id
     left join organization_profile op on op.party_id = p.id
-    where p.id = ${partyId} and p.status = 'ACTIVE'
+    where resolved.merged_into_party_id is null and p.status = 'ACTIVE'
   `
   const party = partyRows[0]
   if (party === undefined) return null
+  const canonicalPartyId = party.party_id
 
   const [policies, organizationRows, contactRows] = await Promise.all([
-    policiesForParty(sql, partyId, asOf),
+    policiesForParty(sql, canonicalPartyId, asOf),
     sql<MembershipRow[]>`
-      select
-        organization.id as party_id,
-        coalesce(op.trade_name, op.legal_name) as display_name,
-        membership.kind,
-        membership.role_or_position,
-        membership.is_primary
-      from organization_membership membership
-      join party organization on organization.id = membership.organization_party_id
-      join organization_profile op on op.party_id = organization.id
-      where membership.person_party_id = ${partyId}
-        and membership.valid_from::date <= ${asOf}::date
-        and (membership.valid_to is null or membership.valid_to::date > ${asOf}::date)
-      order by display_name, organization.id
+      with recursive party_resolution (origin_id, resolved_id) as (
+        select id, id from party
+        union all
+        select resolution.origin_id, current_party.merged_into_party_id
+        from party_resolution resolution
+        join party current_party on current_party.id = resolution.resolved_id
+        where current_party.merged_into_party_id is not null
+      ), canonical_party as (
+        select resolution.origin_id, resolution.resolved_id as canonical_id
+        from party_resolution resolution
+        join party canonical on canonical.id = resolution.resolved_id
+        where canonical.merged_into_party_id is null
+      ), unique_memberships as (
+        select distinct on (canonical_organization.canonical_id)
+          organization.id as party_id,
+          coalesce(op.trade_name, op.legal_name) as display_name,
+          membership.kind,
+          membership.role_or_position,
+          membership.is_primary,
+          membership.valid_from,
+          membership.id
+        from organization_membership membership
+        join canonical_party canonical_person
+          on canonical_person.origin_id = membership.person_party_id
+        join canonical_party canonical_organization
+          on canonical_organization.origin_id = membership.organization_party_id
+        join party organization on organization.id = canonical_organization.canonical_id
+        join organization_profile op on op.party_id = organization.id
+        where canonical_person.canonical_id = ${canonicalPartyId}
+          and membership.valid_from <= ${atInstant}::timestamptz
+          and (membership.valid_to is null or membership.valid_to > ${atInstant}::timestamptz)
+        order by canonical_organization.canonical_id, membership.valid_from desc, membership.id
+      )
+      select party_id, display_name, kind, role_or_position, is_primary
+      from unique_memberships
+      order by display_name, party_id
     `,
     sql<MembershipRow[]>`
-      select
-        person.id as party_id,
-        concat_ws(' ', pp.first_name, pp.last_name) as display_name,
-        membership.kind,
-        membership.role_or_position,
-        membership.is_primary
-      from organization_membership membership
-      join party person on person.id = membership.person_party_id
-      join person_profile pp on pp.party_id = person.id
-      where membership.organization_party_id = ${partyId}
-        and membership.valid_from::date <= ${asOf}::date
-        and (membership.valid_to is null or membership.valid_to::date > ${asOf}::date)
-      order by display_name, person.id
+      with recursive party_resolution (origin_id, resolved_id) as (
+        select id, id from party
+        union all
+        select resolution.origin_id, current_party.merged_into_party_id
+        from party_resolution resolution
+        join party current_party on current_party.id = resolution.resolved_id
+        where current_party.merged_into_party_id is not null
+      ), canonical_party as (
+        select resolution.origin_id, resolution.resolved_id as canonical_id
+        from party_resolution resolution
+        join party canonical on canonical.id = resolution.resolved_id
+        where canonical.merged_into_party_id is null
+      ), unique_memberships as (
+        select distinct on (canonical_person.canonical_id)
+          person.id as party_id,
+          concat_ws(' ', pp.first_name, pp.last_name) as display_name,
+          membership.kind,
+          membership.role_or_position,
+          membership.is_primary,
+          membership.valid_from,
+          membership.id
+        from organization_membership membership
+        join canonical_party canonical_organization
+          on canonical_organization.origin_id = membership.organization_party_id
+        join canonical_party canonical_person
+          on canonical_person.origin_id = membership.person_party_id
+        join party person on person.id = canonical_person.canonical_id
+        join person_profile pp on pp.party_id = person.id
+        where canonical_organization.canonical_id = ${canonicalPartyId}
+          and membership.valid_from <= ${atInstant}::timestamptz
+          and (membership.valid_to is null or membership.valid_to > ${atInstant}::timestamptz)
+        order by canonical_person.canonical_id, membership.valid_from desc, membership.id
+      )
+      select party_id, display_name, kind, role_or_position, is_primary
+      from unique_memberships
+      order by display_name, party_id
     `,
   ])
 

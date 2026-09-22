@@ -12,6 +12,7 @@ import { getPartyOverview, getPolicyDetail, searchPolicies } from './policy-quer
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..')
 const AS_OF = '2026-09-21'
+const MEMBERSHIP_AT = '2026-09-21T12:00:00Z'
 
 const readEnv = (): Record<string, string> => {
   const path = join(ROOT, '.env')
@@ -147,8 +148,12 @@ const createFixture = async (tx: postgres.TransactionSql): Promise<Fixture> => {
 
   await tx`
     insert into organization_membership (
-      organization_party_id, person_party_id, kind, role_or_position, is_primary
-    ) values (${organizationId}, ${personOneId}, 'SYNTHETIC', 'Contacto de prueba', true)
+      organization_party_id, person_party_id, kind, role_or_position, is_primary,
+      valid_from, valid_to
+    ) values (
+      ${organizationId}, ${personOneId}, 'SYNTHETIC', 'Contacto de prueba', true,
+      '2026-09-21T10:00:00Z', '2026-09-21T14:00:00Z'
+    )
   `
 
   const insurerAlphaId = await createInsurer(tx, 'Aseguradora Sintetica Alfa')
@@ -218,6 +223,24 @@ const createFixture = async (tx: postgres.TransactionSql): Promise<Fixture> => {
       'POLICY', ${policyOneId}, 'drive-sintetico-001', 'https://example.invalid/synthetic/001',
       'FILE', 'POLIZA_SINTETICA', 'SYNCED'
     )
+  `
+
+  const unresolvedDocumentReference = one(
+    await tx<IdRow[]>`
+      insert into external_reference (
+        source_system, source_entity_type, source_external_id, source_value,
+        relation_type, resolution_status, unresolved_reason
+      ) values (
+        'fixture', 'SyntheticDocument', 'DOC-SINTETICO-SIN-VINCULO-002',
+        'Documento Sintetico Sin Vinculo 002', 'POLICY_DOCUMENT', 'UNRESOLVED',
+        'MOTIVO_SINTETICO_DOCUMENTO_NO_ENCONTRADO'
+      ) returning id
+    `,
+    'unresolved documentary reference',
+  )
+  await tx`
+    insert into policy_document_reference (external_reference_id, policy_id)
+    values (${unresolvedDocumentReference.id}, ${policyTwoId})
   `
 
   return { organizationId, personOneId, policyOneId, policyTwoId, policyWithoutDocumentId }
@@ -301,7 +324,29 @@ describe('searchPolicies — campos de DOMAIN.md §65', () => {
       assert.equal(result.candidates.length, 1)
       const candidate = one(result.candidates, 'policy without document candidate')
       assert.equal(candidate.policyId, fixture.policyWithoutDocumentId)
-      assert.deepEqual(candidate.documents, { state: 'NO_LINK', count: 0 })
+      assert.deepEqual(candidate.documents, {
+        state: 'NO_REFERENCE',
+        linkCount: 0,
+        referenceCount: 0,
+        unresolvedReasons: [],
+      })
+    })
+  })
+
+  it('distingue una referencia conocida no resuelta y conserva su motivo', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const fixture = await createFixture(tx)
+      const result = await searchPolicies(tx, { policyNumber: 'POL-SINTETICA-002', asOf: AS_OF })
+
+      assert.equal(result.state, 'CANDIDATES')
+      const candidate = one(result.candidates, 'policy with unresolved document reference')
+      assert.equal(candidate.policyId, fixture.policyTwoId)
+      assert.deepEqual(candidate.documents, {
+        state: 'KNOWN_UNRESOLVED',
+        linkCount: 0,
+        referenceCount: 1,
+        unresolvedReasons: ['MOTIVO_SINTETICO_DOCUMENTO_NO_ENCONTRADO'],
+      })
     })
   })
 })
@@ -325,6 +370,7 @@ describe('detalle e historial — limites de DOMAIN.md §63', () => {
       assert.equal(detail.documents.length, 1)
       assert.deepEqual(Object.keys(detail).sort(), [
         'currentVersion',
+        'documentReferences',
         'documents',
         'history',
         'holder',
@@ -344,14 +390,37 @@ describe('detalle e historial — limites de DOMAIN.md §63', () => {
       assert.ok(detail)
       assert.equal(detail.policyId, fixture.policyWithoutDocumentId)
       assert.deepEqual(detail.documents, [])
+      assert.deepEqual(detail.documentReferences, [])
+    })
+  })
+
+  it('expone origen y motivo de la referencia documental no resuelta sin fabricar destino', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const fixture = await createFixture(tx)
+      const detail = await getPolicyDetail(tx, fixture.policyTwoId, AS_OF)
+
+      assert.ok(detail)
+      assert.deepEqual(detail.documents, [])
+      assert.equal(detail.documentReferences.length, 1)
+      assert.deepEqual(detail.documentReferences[0], {
+        id: detail.documentReferences[0]?.id,
+        sourceSystem: 'fixture',
+        sourceEntityType: 'SyntheticDocument',
+        sourceExternalId: 'DOC-SINTETICO-SIN-VINCULO-002',
+        sourceValue: 'Documento Sintetico Sin Vinculo 002',
+        resolutionStatus: 'UNRESOLVED',
+        unresolvedReason: 'MOTIVO_SINTETICO_DOCUMENTO_NO_ENCONTRADO',
+        resolvedTargetType: null,
+        resolvedTargetId: null,
+      })
     })
   })
 
   it('navega Party -> Policies y la relacion empresa -> contactos de OrganizationMembership', async () => {
     await inRollbackTransaction(async (tx) => {
       const fixture = await createFixture(tx)
-      const person = await getPartyOverview(tx, fixture.personOneId, AS_OF)
-      const organization = await getPartyOverview(tx, fixture.organizationId, AS_OF)
+      const person = await getPartyOverview(tx, fixture.personOneId, AS_OF, MEMBERSHIP_AT)
+      const organization = await getPartyOverview(tx, fixture.organizationId, AS_OF, MEMBERSHIP_AT)
 
       assert.ok(person)
       assert.deepEqual(person.policies.map((policy) => policy.policyId), [fixture.policyOneId])
@@ -363,6 +432,143 @@ describe('detalle e historial — limites de DOMAIN.md §63', () => {
         [fixture.policyWithoutDocumentId],
       )
       assert.deepEqual(organization.contacts.map((membership) => membership.partyId), [fixture.personOneId])
+    })
+  })
+})
+
+describe('OrganizationMembership — instante zonado y limites [validFrom, validTo)', () => {
+  it('incluye el inicio exacto, conserva limites intradia y excluye el fin exacto', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const fixture = await createFixture(tx)
+
+      const atStart = await getPartyOverview(
+        tx,
+        fixture.personOneId,
+        AS_OF,
+        '2026-09-21T10:00:00Z',
+      )
+      const insideSameDay = await getPartyOverview(
+        tx,
+        fixture.personOneId,
+        AS_OF,
+        '2026-09-21T13:59:59.999Z',
+      )
+      const atEnd = await getPartyOverview(
+        tx,
+        fixture.personOneId,
+        AS_OF,
+        '2026-09-21T14:00:00Z',
+      )
+
+      assert.deepEqual(atStart?.organizations.map((item) => item.partyId), [fixture.organizationId])
+      assert.deepEqual(
+        insideSameDay?.organizations.map((item) => item.partyId),
+        [fixture.organizationId],
+      )
+      assert.deepEqual(atEnd?.organizations, [])
+    })
+  })
+
+  it('trata offsets distintos del mismo instante como la misma consulta', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const fixture = await createFixture(tx)
+      const utc = await getPartyOverview(tx, fixture.personOneId, AS_OF, '2026-09-21T12:00:00Z')
+      const offset = await getPartyOverview(
+        tx,
+        fixture.personOneId,
+        AS_OF,
+        '2026-09-21T09:00:00-03:00',
+      )
+
+      assert.deepEqual(offset?.organizations, utc?.organizations)
+    })
+  })
+
+  it('rechaza un datetime sin Z ni offset en vez de usar la zona de sesion', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const fixture = await createFixture(tx)
+      await assert.rejects(
+        getPartyOverview(tx, fixture.personOneId, AS_OF, '2026-09-21T12:00:00'),
+        /must be a valid ISO-8601 instant with Z or an explicit offset/i,
+      )
+    })
+  })
+})
+
+describe('Party merge — resolucion canonica transitiva', () => {
+  it('resuelve uno y varios saltos sin perder Policies ni duplicar identidades', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const canonicalId = await createPerson(
+        tx,
+        'PersonaCanonica',
+        'Sintetica',
+        'DNI-SINTETICO-CANONICO',
+      )
+      const middleId = await createPerson(tx, 'AliasIntermedio', 'Sintetico', 'DNI-SINTETICO-MEDIO')
+      const loserId = await createPerson(tx, 'AliasInicial', 'Sintetico', 'DNI-SINTETICO-INICIAL')
+      const organizationId = await createOrganization(
+        tx,
+        'Organizacion Canonica Sintetica SA',
+        'Organizacion Canonica Sintetica',
+        'CUIT-SINTETICO-CANONICO',
+      )
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica Canonica')
+      const firstPolicyId = await createPolicy(tx, insurerId, 'POL-SINTETICA-MERGE-001')
+      const secondPolicyId = await createPolicy(tx, insurerId, 'POL-SINTETICA-MERGE-002')
+
+      await tx`
+        insert into policy_version (
+          policy_id, version_number, effective_from, holder_party_id,
+          term_start_date, term_end_date, renewal_mode
+        ) values
+          (${firstPolicyId}, 1, '2026-01-01', ${loserId}, '2026-01-01', '2027-01-01', 'MANUAL'),
+          (${secondPolicyId}, 1, '2026-01-01', ${middleId}, '2026-01-01', '2027-01-01', 'MANUAL')
+      `
+      await tx`
+        insert into organization_membership (
+          organization_party_id, person_party_id, valid_from, kind
+        ) values
+          (${organizationId}, ${loserId}, '2026-01-01T00:00:00Z', 'SYNTHETIC_ALIAS'),
+          (${organizationId}, ${middleId}, '2026-02-01T00:00:00Z', 'SYNTHETIC_ALIAS')
+      `
+      await tx`
+        update party
+        set status = 'MERGED', merged_into_party_id = ${canonicalId}
+        where id = ${middleId}
+      `
+      await tx`
+        update party
+        set status = 'MERGED', merged_into_party_id = ${middleId}
+        where id = ${loserId}
+      `
+
+      const result = await searchPolicies(tx, { dni: 'DNI-SINTETICO-CANONICO', asOf: AS_OF })
+      assert.equal(result.state, 'CANDIDATES')
+      assert.deepEqual(
+        new Set(result.candidates.map((candidate) => candidate.policyId)),
+        new Set([firstPolicyId, secondPolicyId]),
+      )
+      assert.deepEqual(
+        new Set(result.candidates.map((candidate) => candidate.holder?.partyId)),
+        new Set([canonicalId]),
+      )
+
+      const overview = await getPartyOverview(tx, loserId, AS_OF, MEMBERSHIP_AT)
+      assert.ok(overview)
+      assert.equal(overview.partyId, canonicalId)
+      assert.deepEqual(
+        new Set(overview.policies.map((policy) => policy.policyId)),
+        new Set([firstPolicyId, secondPolicyId]),
+      )
+      assert.deepEqual(overview.organizations.map((item) => item.partyId), [organizationId])
+
+      const detail = await getPolicyDetail(tx, firstPolicyId, AS_OF)
+      assert.ok(detail)
+      assert.equal(detail.holder?.partyId, canonicalId)
+      assert.deepEqual(
+        new Set(detail.history.map((version) => version.holder.partyId)),
+        new Set([canonicalId]),
+      )
     })
   })
 })
