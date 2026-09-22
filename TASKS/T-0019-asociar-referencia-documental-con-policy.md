@@ -2,7 +2,7 @@
 id: T-0019
 title: Asociar referencias documentales con su Policy de pertenencia
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S
