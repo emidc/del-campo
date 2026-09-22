@@ -2,14 +2,14 @@
 id: T-0019
 title: Asociar referencias documentales con su Policy de pertenencia
 kind: FEATURE
-status: READY
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: S
 created: 2026-09-21
 blockedBy: [T-0012]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0034, D-0045, D-0051]
+decisionRefs: [D-0034, D-0045, D-0051, D-0054]
 ---
 
 ## Why

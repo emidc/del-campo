@@ -777,3 +777,23 @@ decisions:
       externos y se excluyen del contexto y se derivan a revisión humana si aparecen;
       ninguna PII entra a logs, tareas, reportes versionados ni código; y la trazabilidad
       se registra sin reproducir datos personales.
+
+  # ── Pertenencia de referencias documentales (T-0019) ─────────────────────
+
+  - id: D-0054
+    title: La pertenencia documental se separa del destino resuelto
+    status: ACCEPTED
+    date: 2026-09-21
+    source: >
+      T-0019; STOP de la revisión ciega de T-0016; definición humana del 21/09/2026;
+      DOMAIN.md §63 y §74; D-0034.
+    adr: DECISIONS/0054-pertenencia-de-referencia-documental.md
+    statement: >
+      Una referencia documental se asocia a su única Policy de pertenencia mediante
+      policy_document_reference, con clave primaria sobre externalReferenceId y claves
+      foráneas RESTRICT hacia ExternalReference y Policy. La Policy de pertenencia es
+      un eje distinto del destino que la referencia intenta resolver: resolvedTargetType
+      y resolvedTargetId permanecen exclusivamente en ExternalReference. La asociación
+      no duplica ni modifica sourceSystem, sourceEntityType, sourceExternalId,
+      sourceValue, resolutionStatus o unresolvedReason, y no convierte
+      ExternalReference en una relación polimórfica genérica.

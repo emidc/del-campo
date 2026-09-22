@@ -2145,6 +2145,22 @@ resolvedTargetId?
 createdAt
 ```
 
+Para el caso documental de VS01, la Policy de pertenencia se representa por una
+asociación específica y no por el destino resuelto:
+
+```text id="extref-policy-document"
+Policy
+  ↓ policy_document_reference
+ExternalReference
+  ↓ resolvedTargetType / resolvedTargetId
+destino documental intentado
+```
+
+Una referencia documental pertenece a una sola Policy. Esa pertenencia tiene
+integridad referencial aunque el destino siga sin resolverse; el origen y el motivo de
+no resolución permanecen en `ExternalReference`. No se introduce un `ownerType/ownerId`
+polimórfico. → `D-0054`
+
 Reglas:
 
 1. resolver una referencia **nunca** borra ni sobrescribe la referencia original;
