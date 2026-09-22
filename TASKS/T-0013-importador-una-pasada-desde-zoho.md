@@ -82,18 +82,18 @@ grueso de la verificación.
 
 Comprobaciones humanas:
 
-- [x] El lote se verificó contra su manifiesto de T-0004 antes de importar, y coincide.
-- [x] El import corrió de punta a punta sobre el lote real, no sobre una muestra.
-- [x] El import corrido dos veces sobre la misma entrada deja la base en el mismo estado.
-- [x] Los conteos de clasificación —vigentes, históricas, duplicadas, no clasificables—
+- [ ] El lote se verificó contra su manifiesto de T-0004 antes de importar, y coincide.
+- [ ] El import corrió de punta a punta sobre el lote real, no sobre una muestra.
+- [ ] El import corrido dos veces sobre la misma entrada deja la base en el mismo estado.
+- [ ] Los conteos de clasificación —vigentes, históricas, duplicadas, no clasificables—
       coinciden con los denominadores declarados por T-0004.
-- [x] Los strings de aseguradora no resueltos aparecen en el reporte y ninguno creó una
+- [ ] Los strings de aseguradora no resueltos aparecen en el reporte y ninguno creó una
       `Insurer`.
-- [x] Las cadenas de renovación reconstruidas se verifican a mano sobre una muestra, y
+- [ ] Las cadenas de renovación reconstruidas se verifican a mano sobre una muestra, y
       las no reconstruibles quedan contadas, no inventadas.
-- [x] Un diff del PR confirma que no ingresaron datos de clientes al repositorio: ni en
+- [ ] Un diff del PR confirma que no ingresaron datos de clientes al repositorio: ni en
       código, ni en fixtures, ni en el texto de la evidencia, ni en un mensaje de commit.
-- [x] Los runs de esta tarea en `ops/runs/` declaran `provider` y `providerRaw.model`
+- [ ] Los runs de esta tarea en `ops/runs/` declaran `provider` y `providerRaw.model`
       coincidentes con los que `D-0053` autoriza.
 
 ## Data effects
