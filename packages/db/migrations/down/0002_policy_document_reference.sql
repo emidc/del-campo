@@ -10,4 +10,9 @@ begin
 end;
 $$;
 
+drop trigger external_reference_document_policy_total on external_reference;
 drop table policy_document_reference;
+drop function policy_document_reference_totality();
+drop function external_reference_document_policy_totality();
+drop function assert_policy_document_reference_totality(uuid);
+drop function policy_document_reference_requires_document_kind();

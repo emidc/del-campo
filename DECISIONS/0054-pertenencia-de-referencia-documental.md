@@ -46,11 +46,19 @@ Policy; dos FKs `RESTRICT` garantizan que ambos extremos existan y no desaparezc
 mientras la asociación esté presente. Un índice por `policy_id` soporta la lectura de
 motivos documentales desde el detalle de Policy.
 
+`relationType = POLICY_DOCUMENT` es el discriminador físico de este subconjunto. Un
+constraint trigger diferible exige que toda referencia con ese tipo participe en una
+asociación al cerrar la transacción, y la asociación rechaza cualquier otro tipo. Es
+diferible porque referencia y pertenencia se crean en sentencias distintas dentro de
+la misma transacción; el estado incompleto nunca puede confirmarse.
+
 Origen, valor original, estado, `unresolvedReason` y destino resuelto permanecen en
 `ExternalReference`; la asociación no los duplica ni los interpreta. La tabla es un
 concepto de infraestructura del modelo, no una entidad de negocio nueva ni una puerta
 para asociar cualquier referencia con cualquier recurso.
 
-El costo es una tabla y un join adicionales. Revertir es barato mientras no existan
-asociaciones; con datos, la migración inversa falla explícitamente para impedir que se
-borre su pertenencia en silencio.
+El costo es una tabla, un join y validación diferible adicionales. Revertir es barato
+mientras no existan asociaciones; con datos, la migración inversa falla explícitamente
+para impedir que se borre su pertenencia en silencio. La decisión no define todavía un
+workflow de corrección o auditoría para reasignar la Policy; antes de importar datos,
+esa operación debe quedar gobernada explícitamente.

@@ -2161,6 +2161,12 @@ integridad referencial aunque el destino siga sin resolverse; el origen y el mot
 no resolución permanecen en `ExternalReference`. No se introduce un `ownerType/ownerId`
 polimórfico. → `D-0054`
 
+`relationType = POLICY_DOCUMENT` identifica físicamente estas referencias. Toda
+referencia con ese tipo debe tener exactamente una asociación al confirmar la
+transacción, y `policy_document_reference` no admite ningún otro tipo. La validación es
+diferible para permitir crear la referencia y su pertenencia en sentencias separadas
+de una misma transacción, no para persistir un estado incompleto.
+
 Reglas:
 
 1. resolver una referencia **nunca** borra ni sobrescribe la referencia original;

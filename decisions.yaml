@@ -796,4 +796,7 @@ decisions:
       y resolvedTargetId permanecen exclusivamente en ExternalReference. La asociación
       no duplica ni modifica sourceSystem, sourceEntityType, sourceExternalId,
       sourceValue, resolutionStatus o unresolvedReason, y no convierte
-      ExternalReference en una relación polimórfica genérica.
+      ExternalReference en una relación polimórfica genérica. relationType =
+      POLICY_DOCUMENT discrimina físicamente estas referencias; la participación en
+      la asociación es total y diferible dentro de la transacción, y la asociación
+      rechaza cualquier otro relationType.

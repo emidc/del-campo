@@ -31,6 +31,9 @@ values (
   'f1300000-0000-4000-8000-000000000001'
 );
 
+-- Fuerza el constraint diferible dentro de la observación, antes del ROLLBACK.
+set constraints all immediate;
+
 select
   p.policy_number,
   er.source_external_id,

@@ -95,6 +95,7 @@ const createExternalReference = async (
   tx: postgres.TransactionSql,
   suffix: string,
   state: 'UNRESOLVED' | 'RESOLVED' = 'UNRESOLVED',
+  relationType = 'POLICY_DOCUMENT',
 ): Promise<string> => {
   const resolvedTargetId = state === 'RESOLVED' ? 'f9000000-0000-4000-8000-000000000001' : null
   return one(
@@ -105,13 +106,17 @@ const createExternalReference = async (
         resolved_target_type, resolved_target_id
       ) values (
         'fixture', 'SyntheticDocument', ${`DOC-${suffix}`}, ${`Documento Sintetico ${suffix}`},
-        'POLICY_DOCUMENT', ${state},
+        ${relationType}, ${state},
         ${state === 'UNRESOLVED' ? 'MOTIVO_SINTETICO_NO_RESUELTO' : null},
         ${state === 'RESOLVED' ? 'DRIVE_DOCUMENT' : null}, ${resolvedTargetId}
       ) returning id
     `,
     'synthetic external reference',
   ).id
+}
+
+const forceDeferredConstraints = async (tx: postgres.TransactionSql): Promise<void> => {
+  await tx`set constraints all immediate`
 }
 
 after(async () => {
@@ -128,6 +133,7 @@ describe('policy_document_reference — pertenencia separada del destino', () =>
         insert into policy_document_reference (external_reference_id, policy_id)
         values (${externalReferenceId}, ${policyId})
       `
+      await forceDeferredConstraints(tx)
 
       const rows = await tx<{
         policy_id: string
@@ -163,6 +169,7 @@ describe('policy_document_reference — pertenencia separada del destino', () =>
         insert into policy_document_reference (external_reference_id, policy_id)
         values (${externalReferenceId}, ${policyId})
       `
+      await forceDeferredConstraints(tx)
 
       const rows = await tx<{ policy_id: string; resolved_target_id: string }[]>`
         select pdr.policy_id, er.resolved_target_id
@@ -195,6 +202,53 @@ describe('policy_document_reference — pertenencia separada del destino', () =>
         /policy_document_reference_external_reference_pk/i,
       )
     })
+  })
+
+  it('rechaza al confirmar una referencia documental sin Policy de pertenencia', async () => {
+    await assert.rejects(
+      sql.begin(async (tx) => {
+        await createExternalReference(tx, 'SIN-PERTENENCIA')
+      }),
+      /POLICY_DOCUMENT requiere exactamente una Policy de pertenencia/i,
+    )
+  })
+
+  it('rechaza asociar una referencia que no es documental', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const policyId = await createPolicy(tx, 'POL-SINTETICA-ASOC-NO-DOC')
+      const externalReferenceId = await createExternalReference(
+        tx,
+        'NO-DOCUMENTAL',
+        'UNRESOLVED',
+        'RENEWED_FROM_POLICY',
+      )
+
+      await assert.rejects(
+        tx`
+          insert into policy_document_reference (external_reference_id, policy_id)
+          values (${externalReferenceId}, ${policyId})
+        `,
+        /external_reference debe tener relation_type POLICY_DOCUMENT/i,
+      )
+    })
+  })
+
+  it('rechaza borrar la pertenencia mientras la referencia documental exista', async () => {
+    await assert.rejects(
+      sql.begin(async (tx) => {
+        const policyId = await createPolicy(tx, 'POL-SINTETICA-ASOC-BORRADO')
+        const externalReferenceId = await createExternalReference(tx, 'BORRADO')
+        await tx`
+          insert into policy_document_reference (external_reference_id, policy_id)
+          values (${externalReferenceId}, ${policyId})
+        `
+        await tx`
+          delete from policy_document_reference
+          where external_reference_id = ${externalReferenceId}
+        `
+      }),
+      /POLICY_DOCUMENT requiere exactamente una Policy de pertenencia/i,
+    )
   })
 
   it('rechaza una ExternalReference inexistente', async () => {
@@ -259,6 +313,48 @@ describe('policy_document_reference — pertenencia separada del destino', () =>
 })
 
 describe('causalidad de las restricciones nuevas', () => {
+  it('sin el constraint trigger, una referencia documental puede quedar sin pertenencia', async () => {
+    const count = await inRollbackTransaction(async (tx) => {
+      await tx`drop trigger external_reference_document_policy_total on external_reference`
+      await createExternalReference(tx, 'CAUSA-SIN-PERTENENCIA')
+      await forceDeferredConstraints(tx)
+      const rows = await tx<{ total: number }[]>`
+        select count(*)::int as total
+        from external_reference
+        where source_external_id = 'DOC-CAUSA-SIN-PERTENENCIA'
+      `
+      return one(rows, 'documentary reference without association').total
+    })
+    assert.equal(count, 1)
+  })
+
+  it('sin los triggers de tipo, una asociacion acepta una referencia no documental', async () => {
+    const count = await inRollbackTransaction(async (tx) => {
+      const policyId = await createPolicy(tx, 'POL-SINTETICA-CAUSA-NO-DOC')
+      const externalReferenceId = await createExternalReference(
+        tx,
+        'CAUSA-NO-DOC',
+        'UNRESOLVED',
+        'RENEWED_FROM_POLICY',
+      )
+      await tx`drop trigger policy_document_reference_document_kind on policy_document_reference`
+      await tx`drop trigger policy_document_reference_total on policy_document_reference`
+      await tx`drop trigger external_reference_document_policy_total on external_reference`
+      await tx`
+        insert into policy_document_reference (external_reference_id, policy_id)
+        values (${externalReferenceId}, ${policyId})
+      `
+      await forceDeferredConstraints(tx)
+      const rows = await tx<{ total: number }[]>`
+        select count(*)::int as total
+        from policy_document_reference
+        where external_reference_id = ${externalReferenceId}
+      `
+      return one(rows, 'non-documentary association').total
+    })
+    assert.equal(count, 1)
+  })
+
   it('sin la PK, una referencia puede pertenecer a dos Policies', async () => {
     const count = await inRollbackTransaction(async (tx) => {
       const firstPolicyId = await createPolicy(tx, 'POL-SINTETICA-CAUSA-001-A')
@@ -319,6 +415,7 @@ describe('reversibilidad de 0002', () => {
         insert into policy_document_reference (external_reference_id, policy_id)
         values (${externalReferenceId}, ${policyId})
       `
+      await forceDeferredConstraints(tx)
 
       await assert.rejects(
         tx.unsafe(DOWN_SQL),

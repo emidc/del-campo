@@ -2,7 +2,7 @@
 id: T-0019
 title: Asociar referencias documentales con su Policy de pertenencia
 kind: FEATURE
-status: DONE
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: S
@@ -66,3 +66,9 @@ Creada a partir del STOP de la revisión ciega de T-0016. El owner confirmó el
 21/09/2026 que la Policy de pertenencia es un eje distinto del destino que la
 referencia intenta resolver, y que esta dependencia se integra antes de que T-0016 la
 consuma. T-0016 permanece sin merge hasta cerrar sus hallazgos y repetir R-33.
+
+La primera revisión ciega de T-0019 quedó en STOP: detectó que la asociación inicial
+imponía sólo cardinalidad `0..1` y aceptaba referencias no documentales. La corrección
+define `POLICY_DOCUMENT` como discriminador físico y exige participación total mediante
+constraints diferibles. La política de reasignación se mantiene fuera de esta tarea;
+debe gobernarse antes de importar datos.
