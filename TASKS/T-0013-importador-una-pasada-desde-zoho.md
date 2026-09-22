@@ -2,7 +2,7 @@
 id: T-0013
 title: Importar las pólizas y las partes desde el export de Zoho
 kind: MIGRATION
-status: ACTIVE
+status: DONE
 workstream: MIG
 riskClass: HIGH
 size: L
