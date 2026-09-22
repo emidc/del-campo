@@ -4,11 +4,18 @@
 // contenido. → instrucción del owner, 2026-09-22
 //
 // `erasableSyntaxOnly` (tsconfig.json) prohíbe `enum`: son uniones de string literal.
+//
+// MISSING_POLICY_NUMBER se agregó el 2026-09-22 por una revisión de código posterior a
+// la corrida real (la fila 183 original de policies.ts inventaba un policy_number con
+// fila.source_record_id cuando el campo venía ausente), no por haber mirado el lote:
+// "taxonomía antes que datos" sigue intacto — esta clase nace de leer el código del
+// importador, nunca de una fila real. → ops/evidence/T-0013.md, revisión ciega R-33
 
 export const CLASES_DE_FALLO = [
   'NOT_IN_SCOPE',
   'MISSING_INSURER',
   'UNKNOWN_INSURER_STRING',
+  'MISSING_POLICY_NUMBER',
   'DUPLICATE_INSURER_NUMBER',
   'MISSING_HOLDER',
   'UNPARSEABLE_TERM_DATES',
@@ -32,6 +39,12 @@ export const MOTIVO_POR_CLASE: Record<ClaseDeFallo, string> = {
   UNKNOWN_INSURER_STRING:
     'La aseguradora no matchea el catálogo curado ni sus alias (catalog-curation-approved). ' +
     'D-0021: se reporta para resolución humana; nunca crea un Insurer nuevo.',
+  MISSING_POLICY_NUMBER:
+    '"Número de póliza" ausente o vacío. Igual que D-0038 trata a una Policy sin ' +
+    'aseguradora: sin número no puede formar el par (insurerId, policyNumber), y no se ' +
+    'completa con el "ID de registro" de Zoho ni con ningún otro valor que sólo aparente ' +
+    'ser un número de póliza — T-0016/§65 busca por ese campo, y un valor inventado con ' +
+    'apariencia contractual sería peor que la ausencia visible.',
   DUPLICATE_INSURER_NUMBER:
     'Dos o más filas fuente comparten (insurerId, policyNumber). D-0038/§27: es una ' +
     'anomalía, no un caso válido del dominio; todas las filas del grupo quedan fuera y ' +

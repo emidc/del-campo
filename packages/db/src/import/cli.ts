@@ -147,6 +147,23 @@ const importarPoliciesYRenovaciones = async (): Promise<void> => {
     const resultadoEndosos = await importarEndosos(sql)
     const resultadoRenovaciones = await importarRenovaciones(sql, batch.id)
 
+    // El contador de `importarPolizas` es un acumulador de loop; este conteo es una
+    // query independiente contra la base. Divergen exactamente en el escenario que la
+    // revisión ciega de R-33 encontró (un `on conflict do update` que fusionaba filas
+    // sin que el loop se enterara): compararlos acá es la red que evita que ese tipo de
+    // bug vuelva a pasar inadvertido detrás de un número que "parece" razonable.
+    const filasPolicyVersion = await sql<{ n: number }[]>`
+      select count(*)::int as n from policy_version where source_event_type = 'Polizas'
+    `
+    const conteoPolicyVersion = filasPolicyVersion[0]?.n ?? -1
+    if (conteoPolicyVersion !== resultadoPolizas.importadas) {
+      morir(
+        `discrepancia entre el conteo de importarPolizas (${String(resultadoPolizas.importadas)}) y ` +
+          `policy_version real (${String(conteoPolicyVersion)}). No se continúa: el contador del loop y ` +
+          'el estado de la base dejaron de coincidir.',
+      )
+    }
+
     process.stdout.write(
       `✓ policies: ${String(resultadoPolizas.enScope)} en scope, ${String(resultadoPolizas.importadas)} importadas\n` +
         `  excepciones: ${JSON.stringify(resultadoPolizas.excepciones)}\n` +

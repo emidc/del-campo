@@ -80,6 +80,7 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
     NOT_IN_SCOPE: 0,
     MISSING_INSURER: 0,
     UNKNOWN_INSURER_STRING: 0,
+    MISSING_POLICY_NUMBER: 0,
     DUPLICATE_INSURER_NUMBER: 0,
     MISSING_HOLDER: 0,
     UNPARSEABLE_TERM_DATES: 0,
@@ -98,14 +99,18 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
   }
 
   // DUPLICATE_INSURER_NUMBER se detecta ANTES de intentar ningún insert: agrupar por
-  // (insurerId, policyNumber) entre las filas en scope con aseguradora resuelta.
+  // (insurerId, policyNumber) entre las filas en scope con aseguradora resuelta. Usa
+  // `vacioComoNulo`, la MISMA función que decide MISSING_POLICY_NUMBER más abajo: una
+  // fila con número vacío-pero-presente no puede quedar fuera de este agrupamiento por
+  // una regla distinta a la que la excluye del insert — esa divergencia fue exactamente
+  // el hallazgo de la revisión ciega (dos rutas con criterios de "vacío" distintos).
   const clavePorFila = new Map<string, string>()
   const grupos = new Map<string, FilaPoliza[]>()
   for (const fila of dentroDeScope) {
     const insurerId = fila.insurer_source_id !== null ? mapaAseguradoras.get(fila.insurer_source_id) : undefined
     if (insurerId === undefined) continue
-    const numero = fila.raw[CAMPOS_POLIZA.numeroDePoliza]?.trim()
-    if (numero === undefined || numero === '') continue
+    const numero = vacioComoNulo(fila.raw[CAMPOS_POLIZA.numeroDePoliza])
+    if (numero === null) continue
     const clave = `${insurerId}::${numero}`
     clavePorFila.set(fila.source_record_id, clave)
     const grupo = grupos.get(clave) ?? []
@@ -131,6 +136,16 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
       await registrarExcepcion(sql, batchId, fila.source_record_id, {
         clase: 'UNKNOWN_INSURER_STRING',
         detailCode: fila.raw[CAMPOS_POLIZA.compania] ?? insurerSourceId,
+      })
+      continue
+    }
+
+    const numero = vacioComoNulo(fila.raw[CAMPOS_POLIZA.numeroDePoliza])
+    if (numero === null) {
+      excepciones.MISSING_POLICY_NUMBER += 1
+      await registrarExcepcion(sql, batchId, fila.source_record_id, {
+        clase: 'MISSING_POLICY_NUMBER',
+        detailCode: null,
       })
       continue
     }
@@ -180,14 +195,47 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
       continue
     }
 
-    const numero = fila.raw[CAMPOS_POLIZA.numeroDePoliza]?.trim() ?? fila.source_record_id
-    const [policy] = await sql<{ id: string }[]>`
+    // `on conflict ... do nothing`, nunca `do update`: un `do update` sobre
+    // (insurer_id, policy_number) es un get-or-create que no distingue "esta misma fila,
+    // en una corrida anterior" de "otra fila de origen que por lo que sea llegó al mismo
+    // par" — y la segunda es exactamente lo que D-0038/D-0033 prohíben fusionar en
+    // silencio. Con `do nothing`, un conflicto no devuelve fila y el código de abajo
+    // decide explícitamente qué hacer, en vez de que el `UPDATE` lo decida por omisión.
+    const [creada] = await sql<{ id: string }[]>`
       insert into policy (insurer_id, policy_number)
       values (${insurerId}, ${numero})
-      on conflict (insurer_id, policy_number) do update set policy_number = excluded.policy_number
+      on conflict (insurer_id, policy_number) do nothing
       returning id
     `
-    if (policy === undefined) throw new Error('no se pudo crear policy')
+
+    let policyId: string
+    if (creada !== undefined) {
+      policyId = creada.id
+    } else {
+      // Ningún INSERT: (insurerId, numero) ya existe. La agrupación de arriba ya excluyó
+      // todo par realmente duplicado DENTRO de esta corrida — así que si llegamos acá es
+      // porque esta misma fila (mismo source_record_id) ya se importó en una corrida
+      // anterior (idempotencia, Paso 7), no una fusión de dos filas de origen distintas.
+      // Se verifica esa premisa en vez de asumirla: si la Policy existente no viene de
+      // este mismo source_record_id, es una colisión real que el código todavía no
+      // explica, y falla fuerte en vez de fusionar.
+      const [existente] = await sql<{ id: string; source_event_id: string | null }[]>`
+        select p.id, pv.source_event_id
+        from policy p
+        left join policy_version pv on pv.policy_id = p.id and pv.source_event_type = 'Polizas'
+        where p.insurer_id = ${insurerId} and p.policy_number = ${numero}
+      `
+      if (existente === undefined) {
+        throw new Error(`policy (${insurerId}, ${numero}): conflicto de insert sin fila existente — estado inconsistente`)
+      }
+      if (existente.source_event_id !== fila.source_record_id) {
+        throw new Error(
+          `policy (${insurerId}, ${numero}): ya existe desde source_record_id=${existente.source_event_id ?? '(ninguno)'}, ` +
+            `distinto de ${fila.source_record_id}. Esto es una fusión no explicada por la agrupación de duplicados y no se resuelve en silencio.`,
+        )
+      }
+      policyId = existente.id
+    }
 
     // `renewalMode` es una propiedad de PolicyVersion (§28), no derivable de Estado. Sólo
     // 'Automática' mapea a AUTOMATIC; cualquier otro valor observado (incluido ausente)
@@ -203,7 +251,7 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
         product_reference, term_start_date, term_end_date, renewal_mode, premium, currency,
         source_event_type, source_event_id
       ) values (
-        ${policy.id}, 1, ${termStart}::date, null, ${holderPartyId},
+        ${policyId}, 1, ${termStart}::date, null, ${holderPartyId},
         ${producto}, ${termStart}::date, ${termEnd}::date, ${renewalMode}, ${premium}, ${moneda},
         'Polizas', ${fila.source_record_id}
       )
