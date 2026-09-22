@@ -2,7 +2,7 @@
 id: T-0016
 title: Implementar la búsqueda y consulta de VS01
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
