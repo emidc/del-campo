@@ -4,6 +4,23 @@
 -- resolved_target_type/resolved_target_id permanecen en external_reference y esta
 -- tabla sólo expresa a qué Policy pertenece la referencia documental.
 
+-- No existe información suficiente para inferir la Policy dueña de una referencia
+-- documental preexistente. Aceptarla y activar el constraint sólo para escrituras
+-- futuras dejaría datos inválidos sin señal; la migración debe fallar atómicamente y
+-- exigir una resolución explícita antes de reintentarse.
+do $$
+begin
+  if exists (
+    select 1
+      from external_reference
+      where relation_type = 'POLICY_DOCUMENT'
+  ) then
+    raise exception
+      '0002_policy_document_reference: existen referencias POLICY_DOCUMENT sin Policy de pertenencia; no se puede inferir el backfill';
+  end if;
+end;
+$$;
+
 create table policy_document_reference (
   external_reference_id uuid not null,
   policy_id uuid not null,

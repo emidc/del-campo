@@ -52,6 +52,11 @@ asociación al cerrar la transacción, y la asociación rechaza cualquier otro t
 diferible porque referencia y pertenencia se crean en sentencias distintas dentro de
 la misma transacción; el estado incompleto nunca puede confirmarse.
 
+La migración no intenta inferir pertenencia para referencias `POLICY_DOCUMENT`
+preexistentes: no contiene la evidencia necesaria para elegir una Policy. Si encuentra
+alguna, falla atómicamente y exige resolver ese dato antes de reintentar; instalar el
+constraint sólo para eventos futuros dejaría una violación invisible.
+
 Origen, valor original, estado, `unresolvedReason` y destino resuelto permanecen en
 `ExternalReference`; la asociación no los duplica ni los interpreta. La tabla es un
 concepto de infraestructura del modelo, no una entidad de negocio nueva ni una puerta

@@ -9,6 +9,10 @@ import { after, describe, it } from 'node:test'
 import postgres from 'postgres'
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..')
+const UP_SQL = readFileSync(
+  join(ROOT, 'packages', 'db', 'migrations', '0002_policy_document_reference.sql'),
+  'utf8',
+)
 const DOWN_SQL = readFileSync(
   join(ROOT, 'packages', 'db', 'migrations', 'down', '0002_policy_document_reference.sql'),
   'utf8',
@@ -396,6 +400,18 @@ describe('causalidad de las restricciones nuevas', () => {
 })
 
 describe('reversibilidad de 0002', () => {
+  it('el up rechaza referencias documentales preexistentes que no puede asociar', async () => {
+    await inRollbackTransaction(async (tx) => {
+      await tx.unsafe(DOWN_SQL)
+      await createExternalReference(tx, 'PREEXISTENTE-SIN-PERTENENCIA')
+
+      await assert.rejects(
+        tx.unsafe(UP_SQL),
+        /existen referencias POLICY_DOCUMENT sin Policy de pertenencia/i,
+      )
+    })
+  })
+
   it('el down elimina la estructura vacia y el rollback del test la restaura', async () => {
     const tableAfterDown = await inRollbackTransaction(async (tx) => {
       await tx.unsafe(DOWN_SQL)

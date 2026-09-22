@@ -72,3 +72,8 @@ imponía sólo cardinalidad `0..1` y aceptaba referencias no documentales. La co
 define `POLICY_DOCUMENT` como discriminador físico y exige participación total mediante
 constraints diferibles. La política de reasignación se mantiene fuera de esta tarea;
 debe gobernarse antes de importar datos.
+
+La segunda revisión ciega detectó que un constraint trigger no inspecciona filas
+anteriores a su creación. La migración ahora rechaza explícita y atómicamente cualquier
+`POLICY_DOCUMENT` preexistente: no hace un backfill sin evidencia ni deja una violación
+latente.
