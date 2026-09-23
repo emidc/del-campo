@@ -14,3 +14,6 @@ CLAUDE.local.md
 /REVIEWS/T-0004-catalog-reconciliation.md
 
 /Claude outputs/
+
+# Casos y medición de aceptación de VS01 (T-0018, SLICES/VS01.md §4): PII, nunca en Git
+/data/vs01-acceptance/
