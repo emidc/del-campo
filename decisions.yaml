@@ -180,6 +180,37 @@ decisions:
       Que el spike de worker runtime muestre que un solo host cubre ambos casos,
       o que los portales de aseguradoras no impongan restricción por IP.
 
+  - id: D-0058
+    title: La app interna de VS01 se construye con Next.js y TypeScript en Vercel
+    status: ACCEPTED
+    date: 2026-09-23
+    source: Respuesta del owner del 2026-09-23 para T-0018 (sesión de dirección Q4, S0); D-0014
+    statement: >
+      La app web interna de VS01 usa Next.js con TypeScript y se hospeda en Vercel
+      conforme D-0014. Reutiliza las consultas de T-0016 y la vinculación de T-0017 y
+      respeta los límites de módulos existentes: la app no redefine schema, invariantes
+      ni consultas de packages/db. Cada dependencia nueva requiere su ADR según R-05
+      antes de incorporarse. No decide hosting de workers ni otros productos de Supabase.
+
+  - id: D-0059
+    title: Sesión de VS01 por OIDC corporativo de Google con lista explícita de admisión
+    status: ACCEPTED
+    date: 2026-09-23
+    source: >
+      Respuesta del owner del 2026-09-23 para T-0018; Q-10 y SLICES/VS01.md §5.
+      Manuel administra el Workspace y coordina el cliente web con audiencia Internal.
+    statement: >
+      La app autentica con Google mediante OIDC integrado en el servidor, usando una
+      biblioteca mantenida para autenticación y sesiones, elegida con su ADR según R-05.
+      El cliente OAuth es web, de audiencia Internal, y solicita solo scopes de identidad
+      (openid, email, profile), sin scopes de Drive; no cambia D-0057. La admisión exige
+      token válido, email verificado, pertenencia al Workspace y presencia en una lista
+      explícita de cuentas corporativas que provee el owner antes del piloto; la
+      identidad se asocia por el identificador estable de Google (sub), no por el email.
+      Páginas y consultas de datos exigen sesión válida y admisión vigente del lado del
+      servidor, con pruebas negativas. Sin registro público ni acceso automático para
+      todo el dominio; los integrantes no se infieren. No usa Supabase Auth (D-0013).
+
   # ── Método y arnés ───────────────────────────────────────────────────────
 
   - id: D-0015
@@ -548,6 +579,33 @@ decisions:
       requiere decisión y tarea específicas y aprobación humana. La convención de nombres
       aplica a la estructura futura y no dispara normalización automática de carpetas
       históricas.
+
+  - id: D-0057
+    title: Q-15 — VS01 vincula Drive por enlaces con comprobación humana, sin integración API
+    status: ACCEPTED
+    date: 2026-09-23
+    source: >
+      Respuesta del owner a Q-15 del 2026-09-23 (sesión de dirección Q4, S0).
+      Manuel administra el Workspace. Aplica D-0009, D-0032 y D-0040.
+    statement: >
+      T-0017 no integra la API de Google Drive ni configura OAuth, proyecto de Google
+      Cloud, cuenta de servicio, delegación ni cuenta de integración, y no modifica
+      permisos. Broker OS carga referencias documentales desde un insumo local revisado
+      y muestra sus enlaces; cada persona abre el destino con su propia sesión de Google
+      y Drive sigue determinando el acceso. La vinculación y la comprobación son
+      asistidas por una persona, que registra por relación quién la verificó, con qué
+      evidencia, cuándo y bajo qué cuenta comprobó la apertura. Esa comprobación no
+      garantiza acceso para otros usuarios ni acceso permanente. VS01 ofrece el archivo
+      de la póliza cuando su asociación está revisada y, en su defecto, la carpeta del
+      cliente cuando su relación con el cliente está sustentada; la interfaz distingue
+      "Abrir documento" de "Abrir carpeta del cliente", y una carpeta vinculada conserva
+      el pendiente documental. Sin referencia sustentada se muestra la ausencia. Los
+      casos no comprobados, ambiguos o inaccesibles permanecen pendientes sin ocultar la
+      póliza ni inferir inexistencia; un 404 bajo una cuenta no demuestra inexistencia.
+      Abrir una carpeta no cuenta como abrir el documento objetivo. La conciliación
+      prioriza los 20 casos congelados para la aceptación, sin reemplazar casos
+      difíciles. La consulta automática de metadatos se evaluará en una tarea posterior
+      solo si aparece una necesidad concreta.
 
   - id: D-0041
     title: InsuranceProduct proviene de un catálogo curado

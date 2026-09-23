@@ -9,7 +9,7 @@ size: M
 created: 2026-09-20
 blockedBy: [T-0013, T-0016, T-0017]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0013, D-0014, D-0019, D-0040]
+decisionRefs: [D-0013, D-0014, D-0019, D-0040, D-0057, D-0058, D-0059]
 ---
 
 ## Why
@@ -19,23 +19,36 @@ correduría puede usarlas con su cuenta interna y se mide el ahorro frente a Zoh
 
 ## Outcome
 
-La app web integra T-0016 y T-0017 con la superficie de `SLICES/VS01.md` §2,
-autenticación interna de §5 y despliegue de §6. La implementación de autenticación tiene
-su decisión y ADR según R-05, pruebas negativas de acceso y configuración reproducible
-sin secretos versionados. El acceso a datos requiere sesión válida en servidor.
+La app web interna (Next.js y TypeScript en Vercel, D-0058) integra las consultas de
+T-0016 y la vinculación de T-0017 con la superficie de `SLICES/VS01.md` §2, la
+autenticación de §5 según D-0059 y el despliegue de §6. Antes de incorporar cada
+dependencia existe su ADR (R-05), incluidas las de Next.js y la biblioteca OIDC.
 
-Existe evidencia de los 20 casos y de cada umbral de §4. La entrega solo se declara
-cuando todos se cumplen. La configuración y el procedimiento de volver a una versión
-anterior están documentados y verificados en el entorno de prueba; la puesta en
-producción se realiza con la aprobación de R-13. Al entregar VS01 se marca su contrato
-como histórico, sin borrarlo.
+- **Sesión y admisión (D-0059).** Login OIDC con Google, cliente web Internal con scopes
+  de identidad únicamente. Se admiten solo cuentas de una lista explícita provista por el
+  owner, con token válido, email verificado y pertenencia al Workspace; la identidad se
+  asocia por `sub`. Páginas y consultas de datos exigen sesión válida y admisión vigente
+  en servidor. La lista vive en configuración, no en Git.
+- **Documentos (D-0057).** El detalle ofrece "Abrir documento" o "Abrir carpeta del
+  cliente" según la referencia sustentada, o muestra la ausencia; la app no llama a Drive.
+- **Entorno.** Configuración reproducible de Vercel y Supabase sin secretos versionados,
+  con procedimiento verificado de volver a la versión anterior. La carga de datos reales
+  en Supabase y el despliegue se ejecutan con aprobación del owner (R-13).
+- **Aceptación.** Casos congelados antes de medir con `scripts/vs01/freeze-cases.mjs`
+  (evidencia en `ops/evidence/T-0018-casos-congelados.md`). La medición final de los 20
+  casos, según §4, se hace en el entorno hosteado; un ensayo local es válido para
+  practicar pero no reemplaza esa medición ni permite declarar la entrega. VS01 se
+  declara entregado solo si se cumplen los cuatro umbrales, y entonces su contrato se
+  marca histórico sin borrarlo.
 
 ## Non-scope
 
 - Sin nuevos roles de dominio, permisos por cartera, portal ni agentes de producto.
-- Sin escrituras de negocio en Zoho/Drive ni editor de conciliación.
-- Sin ampliar alcance para compensar un criterio de aceptación incumplido.
-- Sin decidir hosting de worker, RLS u otros mecanismos de D-0022 por implicación.
+- Sin escrituras de negocio en Zoho o Drive, scopes de Drive ni editor de conciliación.
+- Sin Supabase Auth ni otros productos de Supabase fuera de Postgres (D-0013).
+- Sin ampliar alcance ni reemplazar casos para compensar un criterio incumplido.
+- Sin decidir hosting de worker, RLS u otros mecanismos de D-0022 por implicación. La
+  app es interna, de solo lectura y de un único tipo de principal; T-0002 no la bloquea.
 
 ## Verification
 
@@ -43,28 +56,45 @@ como histórico, sin borrarlo.
 pnpm check
 ```
 
-- [ ] Tests de acceso prueban sesión ausente, inválida/expirada y cuenta no admitida,
-      tanto en páginas como en consultas directas de datos; ninguno expone información.
+- [ ] ADRs de Next.js y de la biblioteca OIDC existen antes de sus dependencias, con
+      entrada en `decisions.yaml`.
+- [ ] Tests de acceso prueban sesión ausente, inválida o expirada, email no verificado,
+      cuenta fuera del Workspace y cuenta del Workspace fuera de la lista, en páginas y
+      en consultas directas de datos; ninguno expone información.
 - [ ] El recorrido completo incluye búsqueda, selección, detalle y apertura documental,
-      con los estados sin resultados, ambiguos y documentales pendientes visibles.
-- [ ] El informe de aceptación permite recalcular los cuatro resultados de §4 y conserva
-      los fallos, sin reemplazar casos ni exponer PII.
+      con estados sin resultados, ambiguos, "Abrir carpeta del cliente" con pendiente y
+      ausencia de referencia visibles; nunca se rotula una carpeta como documento.
+- [ ] `node scripts/vs01/freeze-cases.mjs --verify` confirma que los casos no cambiaron
+      desde su congelamiento anterior a la primera medición.
+- [ ] El informe de aceptación, medido en el entorno hosteado, permite recalcular los
+      cuatro resultados de §4 y conserva los fallos, sin reemplazar casos ni exponer PII.
 - [ ] La medición acredita utilidad sin consultar Zoho durante el recorrido de VS01.
-- [ ] Configuración, regreso a la versión anterior y autorizaciones de despliegue quedan
-      documentados sin secretos. El contrato se marca histórico solo al entregar.
+- [ ] Configuración, regreso a la versión anterior y autorizaciones de despliegue y carga
+      de datos quedan documentados sin secretos. El contrato se marca histórico solo al
+      entregar.
 
 ## Data effects
 
-Lee datos de la base preparada y abre recursos de Drive. La sesión utiliza la integración
-Google elegida mediante su ADR. No escribe datos de negocio en origen. La medición real
-la ejecuta una persona autorizada; el repositorio recibe evidencia redactada conforme
-R-19. La carga de datos en el entorno hosteado se planifica y autoriza antes de ejecutarse,
-sin tratar la base local de T-0013 como si ya estuviera desplegada.
+Lee la base preparada; la app no lee ni escribe Drive. La carga de datos reales en
+Supabase y el despliegue en Vercel se planifican y los autoriza el owner antes de
+ejecutarse (R-13), sin tratar la base local de T-0013 como si ya estuviera desplegada.
+Los agentes de desarrollo trabajan con fixtures sintéticas (R-19). La medición real la
+ejecuta una persona autorizada; el repositorio recibe evidencia redactada.
 
 ## Notes
 
 Parte de la descomposición de T-0014 en T-0011. Q-8–Q-11 se consumen desde el contrato;
-no se vuelven a pedir. Antes de READY deben concretarse la implementación de sesión,
-población interna admitida y su regla de admisión, entorno de entrega y preparación del
-piloto. Si la implementación alcanza un disparador de T-0002, ese spike precede al
-acceso correspondiente; esta tarea no redefine ni elimina sus disparadores.
+no se vuelven a pedir. Decisiones del 2026-09-23: D-0058 (stack) y D-0059 (sesión y
+admisión).
+
+**Precondiciones humanas para READY/ACTIVE:**
+
+- [x] Stack, mecanismo de sesión, regla de admisión y entorno de aceptación decididos.
+- [ ] 20 casos elegidos por el owner y congelados (`freeze-cases.mjs --freeze`).
+- [ ] Cliente OAuth web Internal creado por Manuel, con URIs de redirección de local y
+      Vercel; credenciales entregadas al owner fuera de Git y de prompts (R-16).
+- [ ] Lista de cuentas admitidas provista por el owner antes del piloto.
+- [ ] Proyecto Supabase y Vercel disponibles; autorización de carga de datos reales.
+
+La implementación puede comenzar con fixtures sintéticas mientras avanzan las
+precondiciones de piloto; la medición no comienza sin todas ellas.
