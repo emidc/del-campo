@@ -180,6 +180,37 @@ decisions:
       Que el spike de worker runtime muestre que un solo host cubre ambos casos,
       o que los portales de aseguradoras no impongan restricción por IP.
 
+  - id: D-0058
+    title: La app interna de VS01 se construye con Next.js y TypeScript en Vercel
+    status: ACCEPTED
+    date: 2026-09-23
+    source: Respuesta del owner del 2026-09-23 para T-0018 (sesión de dirección Q4, S0); D-0014
+    statement: >
+      La app web interna de VS01 usa Next.js con TypeScript y se hospeda en Vercel
+      conforme D-0014. Reutiliza las consultas de T-0016 y la vinculación de T-0017 y
+      respeta los límites de módulos existentes: la app no redefine schema, invariantes
+      ni consultas de packages/db. Cada dependencia nueva requiere su ADR según R-05
+      antes de incorporarse. No decide hosting de workers ni otros productos de Supabase.
+
+  - id: D-0059
+    title: Sesión de VS01 por OIDC corporativo de Google con lista explícita de admisión
+    status: ACCEPTED
+    date: 2026-09-23
+    source: >
+      Respuesta del owner del 2026-09-23 para T-0018; Q-10 y SLICES/VS01.md §5.
+      Manuel administra el Workspace y coordina el cliente web con audiencia Internal.
+    statement: >
+      La app autentica con Google mediante OIDC integrado en el servidor, usando una
+      biblioteca mantenida para autenticación y sesiones, elegida con su ADR según R-05.
+      El cliente OAuth es web, de audiencia Internal, y solicita solo scopes de identidad
+      (openid, email, profile), sin scopes de Drive; no cambia D-0057. La admisión exige
+      token válido, email verificado, pertenencia al Workspace y presencia en una lista
+      explícita de cuentas corporativas que provee el owner antes del piloto; la
+      identidad se asocia por el identificador estable de Google (sub), no por el email.
+      Páginas y consultas de datos exigen sesión válida y admisión vigente del lado del
+      servidor, con pruebas negativas. Sin registro público ni acceso automático para
+      todo el dominio; los integrantes no se infieren. No usa Supabase Auth (D-0013).
+
   # ── Método y arnés ───────────────────────────────────────────────────────
 
   - id: D-0015
