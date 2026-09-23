@@ -91,17 +91,17 @@ for (const command of [
   "sed -i '' 's/before/after/' $(printf target)",
   "cat TASKS/example.md && node another.mjs",
 ]) {
-  test(`pide revisión humana: ${command}`, (t) => {
+  test(`sin decisión del hook, decide el modo de la sesión (D-0056): ${command}`, (t) => {
     const dir = fixture(t)
-    assert.equal(invoke(dir, command), 'ask')
+    assert.equal(invoke(dir, command), 'continue')
   })
 }
 
-test('hardlinks y cwd externo no reciben pase automático', (t) => {
+test('hardlinks piden revisión incluso en auto o bypass; cwd externo vuelve al flujo normal', (t) => {
   const dir = fixture(t)
   linkSync(join(dir, '.claude/settings.json'), join(dir, 'TASKS/hardlink'))
   assert.equal(invoke(dir, "sed -i '' 's/before/after/' TASKS/hardlink"), 'ask')
-  assert.equal(invoke(dir, "sed -i '' 's/before/after/' file", tmpdir()), 'ask')
+  assert.equal(invoke(dir, "sed -i '' 's/before/after/' file", tmpdir()), 'continue')
 })
 
 test('lectura simple de configuración continúa por permisos normales', (t) => {
