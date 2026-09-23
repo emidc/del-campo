@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-22
+updated: 2026-09-23
 
 decisions:
 
@@ -592,7 +592,7 @@ decisions:
 
   - id: D-0044
     title: Control local de Bash para rutas protegidas
-    status: PROVISIONAL
+    status: SUPERSEDED
     date: 2026-09-20
     source: T-0008; pedido del owner de completar la tarea y prueba real del hook
     adr: DECISIONS/0044-control-bash-rutas-protegidas.md
@@ -816,3 +816,35 @@ decisions:
       en vez de fallar de forma visible. Acotado a packages/db/src/import/csv.ts, cuyo
       contrato hacia el resto del importador es un AsyncGenerator de objetos
       header→valor, no un tipo de la librería.
+
+  # ── Session Trust Mode para Bash (Q4, S0) ─────────────────────────────────
+
+  - id: D-0056
+    title: El hook de Bash deniega rutas protegidas y delega lo indeterminado al modo de sesión
+    status: PROVISIONAL
+    date: 2026-09-23
+    supersedes: [D-0044]
+    source: >
+      Pedido del owner del 2026-09-23 (Q4 Operating Plan, sección 9, Session Trust Mode).
+      Se cumplió el criterio de falsación de D-0044: la tasa de solicitudes sobre el
+      trabajo habitual hizo inviable el control. La documentación de hooks de Claude Code
+      indica que "ask" fuerza el prompt incluso en bypassPermissions y auto, e impide
+      autorizar la sesión completa.
+    statement: >
+      El PreToolUse de Bash conserva la denegación de destinos de escritura reconocidos
+      bajo .claude y .github/workflows, incluidas rutas canónicas, aliases por symlink,
+      traversal y comandos compuestos que mencionan esas rutas; esas denegaciones
+      aplican en todos los modos. Pide revisión (ask) solo cuando un argumento es un
+      archivo con hardlinks. Para comandos cuyos efectos no puede determinar no emite
+      decisión: el flujo normal de permisos y el modo elegido por el owner para la
+      sesión deciden (Manual pregunta; auto usa el clasificador; bypassPermissions
+      ejecuta). El hook nunca emite allow. No modifica permissions.deny ni D-0016.
+      Cambios futuros del control requieren aprobación humana según R-13/R-15. Es una
+      defensa local, no un sandbox: en auto o bypass, un programa que calcule su destino
+      puede escribir rutas protegidas sin que el hook lo detecte; CI sigue siendo
+      autoritativo (R-17).
+    falsified_by: >
+      Que una sesión en auto o bypass modifique .claude o .github/workflows sin revisión
+      humana y el cambio llegue a main, o que el owner necesite revisar por comando para
+      mantener confianza en las sesiones, en cuyo caso se reevalúa con sandbox de
+      filesystem en lugar de volver al ask universal.

@@ -1,5 +1,9 @@
 // Propuesta: se instala por revisión humana en .claude/hooks/protect-paths.mjs.
 // No ejecutar el comando recibido. No usar allow para saltar otros permisos.
+// D-0056 (Session Trust Mode): el hook solo deniega destinos protegidos reconocibles
+// y pide revisión ante hardlinks. Lo indeterminado vuelve al flujo normal de permisos
+// (sin salida), para que el modo de la sesión decida: Manual pregunta y ofrece
+// "don't ask again"; auto usa el clasificador; bypassPermissions ejecuta.
 import { readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,7 +12,9 @@ const result = (permissionDecision, permissionDecisionReason) => ({
   hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision, permissionDecisionReason },
 })
 const deny = (reason) => result('deny', `T-0008 / R-15: ${reason}`)
-const ask = () => result('ask', 'T-0008: efectos de Bash no determinables. Revisión humana por comando: confirmar que no escribe .claude ni .github/workflows; no aprobar scripts solo por su nombre.')
+const ask = () => result('ask', 'T-0008 / D-0056: el comando escribe un archivo con hardlinks; podría alcanzar .claude o .github/workflows. Confirmar el destino real.')
+// Sin decisión: el flujo normal de permisos y el modo de la sesión deciden (D-0056).
+const defer = () => null
 
 // Subconjunto literal de shell, no un parser Bash. Lo demás va a revisión.
 function words(command) {
@@ -59,17 +65,16 @@ function evaluate(input, projectRoot) {
   if (!command.trim() || command.length > 65536) return deny('comando vacío o demasiado largo.')
   const root = realpathSync(projectRoot)
   const cwd = realpathSync(input.cwd)
-  if (!contains(root, cwd)) return ask()
+  if (!contains(root, cwd)) return defer()
   const protectedPaths = [resolve(root, '.claude'), resolve(root, '.github/workflows')]
     .flatMap((p) => [p, canonical(p)])
   const tokens = words(command)
   if (!tokens?.length) {
     if (/\.claude(?:\/|\b)|\.github\/workflows(?:\/|\b)/i.test(command))
       return deny('comando compuesto u opaco menciona una ruta protegida; ejecutar la modificación desde revisión humana.')
-    return ask()
+    return defer()
   }
   const [program, ...args] = tokens
-  const hasTraversal = args.some((x) => x.split('/').includes('..'))
   // Lecturas simples: no hay operadores, expansiones ni ejecución de código.
   const readers = new Set(['cat', '/bin/cat', 'head', '/usr/bin/head',
     'tail', '/usr/bin/tail', 'wc', '/usr/bin/wc', 'ls', '/bin/ls', 'pwd', '/bin/pwd'])
@@ -89,8 +94,7 @@ function evaluate(input, projectRoot) {
       if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error
     }
   }
-  if (hasTraversal) return ask()
-  if (program !== 'sed' && program !== '/usr/bin/sed') return ask()
+  if (program !== 'sed' && program !== '/usr/bin/sed') return defer()
 
   // Única escritura autónoma reconocida: sustitución simple sed -i sobre archivos
   // locales regulares. No se interpretan sed e/w/r, scripts -f ni backups con rutas.
@@ -99,18 +103,19 @@ function evaluate(input, projectRoot) {
     i++
     if (tokens[i] === '' || /^\.[\w-]+$/.test(tokens[i] ?? '')) i++
   } else if (/^-i\.[\w-]+$/.test(tokens[i] ?? '')) i++
-  else return ask()
+  else return defer()
   if (tokens[i] === '-e') i++
   const script = tokens[i++]
-  if (!/^s([/#|])([A-Za-z0-9 _.-]+)\1([A-Za-z0-9 _.-]*)\1g?$/.test(script ?? '')) return ask()
+  if (!/^s([/#|])([A-Za-z0-9 _.-]+)\1([A-Za-z0-9 _.-]*)\1g?$/.test(script ?? '')) return defer()
   const files = tokens.slice(i)
-  if (!files.length) return ask()
+  if (!files.length) return defer()
   for (const file of files) {
-    if (!file || file.startsWith('-')) return ask()
+    if (!file || file.startsWith('-')) return defer()
     const path = canonical(resolve(cwd, file))
-    if (!contains(root, path)) return ask()
+    if (!contains(root, path)) return defer()
     const info = statSync(path)
-    if (!info.isFile() || info.nlink !== 1) return ask()
+    if (!info.isFile()) return defer()
+    if (info.nlink !== 1) return ask()
   }
   return null
 }
