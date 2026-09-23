@@ -2,7 +2,7 @@
 id: T-0017
 title: Preparar la vinculación documental de VS01 con conciliación asistida
 kind: FEATURE
-status: DRAFT
+status: READY
 workstream: BOS
 riskClass: MEDIUM
 size: M
