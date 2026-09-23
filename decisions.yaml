@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-22
+updated: 2026-09-23
 
 decisions:
 
@@ -548,6 +548,33 @@ decisions:
       requiere decisión y tarea específicas y aprobación humana. La convención de nombres
       aplica a la estructura futura y no dispara normalización automática de carpetas
       históricas.
+
+  - id: D-0057
+    title: Q-15 — VS01 vincula Drive por enlaces con comprobación humana, sin integración API
+    status: ACCEPTED
+    date: 2026-09-23
+    source: >
+      Respuesta del owner a Q-15 del 2026-09-23 (sesión de dirección Q4, S0).
+      Manuel administra el Workspace. Aplica D-0009, D-0032 y D-0040.
+    statement: >
+      T-0017 no integra la API de Google Drive ni configura OAuth, proyecto de Google
+      Cloud, cuenta de servicio, delegación ni cuenta de integración, y no modifica
+      permisos. Broker OS carga referencias documentales desde un insumo local revisado
+      y muestra sus enlaces; cada persona abre el destino con su propia sesión de Google
+      y Drive sigue determinando el acceso. La vinculación y la comprobación son
+      asistidas por una persona, que registra por relación quién la verificó, con qué
+      evidencia, cuándo y bajo qué cuenta comprobó la apertura. Esa comprobación no
+      garantiza acceso para otros usuarios ni acceso permanente. VS01 ofrece el archivo
+      de la póliza cuando su asociación está revisada y, en su defecto, la carpeta del
+      cliente cuando su relación con el cliente está sustentada; la interfaz distingue
+      "Abrir documento" de "Abrir carpeta del cliente", y una carpeta vinculada conserva
+      el pendiente documental. Sin referencia sustentada se muestra la ausencia. Los
+      casos no comprobados, ambiguos o inaccesibles permanecen pendientes sin ocultar la
+      póliza ni inferir inexistencia; un 404 bajo una cuenta no demuestra inexistencia.
+      Abrir una carpeta no cuenta como abrir el documento objetivo. La conciliación
+      prioriza los 20 casos congelados para la aceptación, sin reemplazar casos
+      difíciles. La consulta automática de metadatos se evaluará en una tarea posterior
+      solo si aparece una necesidad concreta.
 
   - id: D-0041
     title: InsuranceProduct proviene de un catálogo curado
