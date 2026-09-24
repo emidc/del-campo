@@ -2,14 +2,14 @@
 id: T-0018
 title: Entregar la app interna y medir la aceptación de VS01
 kind: FEATURE
-status: DRAFT
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-20
 blockedBy: [T-0013, T-0016, T-0017]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0013, D-0014, D-0019, D-0040, D-0057, D-0058, D-0059]
+decisionRefs: [D-0013, D-0014, D-0019, D-0040, D-0057, D-0058, D-0059, D-0060]
 ---
 
 ## Why
@@ -90,6 +90,7 @@ admisión).
 **Precondiciones humanas para READY/ACTIVE:**
 
 - [x] Stack, mecanismo de sesión, regla de admisión y entorno de aceptación decididos.
+      La biblioteca que D-0059 dejó abierta se eligió en D-0060 (2026-09-24).
 - [ ] 20 casos elegidos por el owner y congelados (`freeze-cases.mjs --freeze`).
 - [ ] Cliente OAuth web Internal creado por Manuel, con URIs de redirección de local y
       Vercel; credenciales entregadas al owner fuera de Git y de prompts (R-16).
