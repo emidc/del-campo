@@ -17,3 +17,7 @@ CLAUDE.local.md
 
 # Casos y medición de aceptación de VS01 (T-0018, SLICES/VS01.md §4): PII, nunca en Git
 /data/vs01-acceptance/
+
+# Next.js (T-0018). `next-env.d.ts` SÍ se versiona: sin él, `tsc -p apps/web` no
+# encuentra los tipos del framework en un clon limpio, antes de que exista un build.
+apps/web/.next/
