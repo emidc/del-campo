@@ -126,7 +126,7 @@ export default async function BuscarPage({
   const asOf = fechaDeHoy()
   const { valores, criterios } = leerCriterios(params, asOf)
   const [lote, resultado] = await Promise.all([
-    latestBatch(),
+    latestBatch(principal),
     criterios === null ? Promise.resolve(null) : search(principal, criterios),
   ])
 

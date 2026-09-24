@@ -19,7 +19,7 @@ export default async function PolizaPage({
   const principal = await requireAdmitted()
   const { id } = await params
   const asOf = fechaDeHoy()
-  const [lote, vista] = await Promise.all([latestBatch(), policy(principal, id, asOf)])
+  const [lote, vista] = await Promise.all([latestBatch(principal), policy(principal, id, asOf)])
   if (vista === null) notFound()
 
   const { detail, access } = vista

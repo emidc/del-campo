@@ -21,3 +21,4 @@ CLAUDE.local.md
 # Next.js (T-0018). `next-env.d.ts` SÍ se versiona: sin él, `tsc -p apps/web` no
 # encuentra los tipos del framework en un clon limpio, antes de que exista un build.
 apps/web/.next/
+apps/web/*.tsbuildinfo

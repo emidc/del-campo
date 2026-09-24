@@ -88,13 +88,22 @@ describe('consultas directas de datos — deny by default', () => {
     await expectDenied(requestWith(cookie), 401, 'INVALID_TOKEN')
   })
 
-  it('ninguna respuesta negativa revela si el recurso pedido existe', async () => {
-    const existente = requestWith()
-    const inexistente = new Request('https://vs01.test/api/vs01/policy/no-existe')
-    const uno = await guarded(existente, config, handler)
-    const otro = await guarded(inexistente, config, handler)
+  it('la respuesta negativa no depende del recurso pedido, porque no lo mira', async () => {
+    // Esta es una propiedad **estructural**, y hay que decir qué prueba y qué no: que dos
+    // URLs distintas den la misma respuesta es cierto por construcción, porque
+    // `deniedResponse` recibe el motivo y nunca la request. Lo que este test fija es esa
+    // construcción: si alguien le pasara la URL o el recurso al armar la negativa, el
+    // `handler` de abajo dejaría de ser inalcanzable y el conteo lo delataría.
+    //
+    // Que el 404 con sesión sea indistinguible del 401 sin ella para quien no está
+    // admitido se comprueba contra la app servida, en `ops/evidence/T-0018.md`.
+    const before = handlerRuns
+    const uno = await guarded(requestWith(), config, handler)
+    const otro = await guarded(new Request('https://vs01.test/api/vs01/policy/no-existe'), config, handler)
     assert.equal(uno.status, otro.status)
     assert.equal(await uno.text(), await otro.text())
+    assert.equal(uno.headers.get('x-vs01-denial'), otro.headers.get('x-vs01-denial'))
+    assert.equal(handlerRuns, before, 'la negativa se arma sin consultar nada del recurso')
   })
 
   it('con sesión admitida sí corre la consulta', async () => {

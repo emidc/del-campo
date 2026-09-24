@@ -28,7 +28,18 @@ export const readCookie = (header: string | null, name: string): string | undefi
     const separator = entry.indexOf('=')
     if (separator === -1) continue
     if (entry.slice(0, separator) !== name) continue
-    return decodeURIComponent(entry.slice(separator + 1))
+    const value = entry.slice(separator + 1)
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      // `decodeURIComponent` lanza `URIError` ante un `%` mal formado, y este valor lo
+      // elige quien hace el request. Sin este catch, `vs01_session=%E0%A4%A` producía un
+      // 500 desde afuera y sin credencial: la excepción escapaba del guard y salía del
+      // route handler. Devolver el valor crudo lo deja seguir el camino normal y fallar
+      // como lo que es, una cookie inválida — el mismo invariante que `readSession`
+      // ya cumple de su lado.
+      return value
+    }
   }
   return undefined
 }

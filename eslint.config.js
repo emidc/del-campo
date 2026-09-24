@@ -78,6 +78,17 @@ export default tseslint.config(
       // `describe` e `it` del runner nativo devuelven una promesa que el propio runner
       // espera. Marcarlas con `void` en cada línea sería ruido que entrena a ignorar la
       // regla; declararlas seguras deja la regla intacta para las promesas de verdad.
+      // El tsconfig ya trata el guión bajo inicial como "a propósito sin usar"
+      // (`noUnusedParameters`). Sin esta línea, ESLint y TypeScript discrepan según la
+      // posición del parámetro: en `vs01/queries.ts` el `_principal` inicial no se
+      // reporta porque hay parámetros usados después, y en `vs01/batch.ts`, donde es el
+      // único, sí. La marca de R-25 —que un caso de uso no corre sin `Principal`— tiene
+      // que poder escribirse igual en los dos.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'all' },
+      ],
+
       '@typescript-eslint/no-floating-promises': [
         'error',
         {

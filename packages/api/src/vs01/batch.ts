@@ -6,6 +6,7 @@
 // que es exactamente el modo de falla que este requisito existe para evitar.
 
 import { sql } from '../db.ts'
+import type { Principal } from '../session/admission.ts'
 
 export interface BatchStamp {
   readonly known: boolean
@@ -29,7 +30,12 @@ const UNKNOWN: BatchStamp = {
   notes: null,
 }
 
-export const latestBatch = async (): Promise<BatchStamp> => {
+/**
+ * Exige `Principal` como todos los casos de uso de este directorio. La fecha del lote no
+ * es un dato de cliente, pero la propiedad que ADR-0059 declara es estructural —"una
+ * consulta de datos sin sesión no tipa"— y una excepción la vuelve una convención.
+ */
+export const latestBatch = async (_principal: Principal): Promise<BatchStamp> => {
   const rows = await sql()<BatchRow[]>`
     select started_at, source_manifest_sha256, notes
     from staging_import_batch

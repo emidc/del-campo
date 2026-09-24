@@ -24,7 +24,17 @@ let discovered: Promise<client.Configuration> | undefined
 const configuration = (config: OidcConfig): Promise<client.Configuration> => {
   // El discovery de Google es estable; recordarlo evita un round-trip por login sin
   // introducir estado compartido entre despliegues.
-  discovered ??= client.discovery(new URL(config.issuer), config.clientId, config.clientSecret)
+  //
+  // Pero sólo se recuerda el éxito: si se cacheara la promesa rechazada, un blip de red
+  // al arrancar dejaría todos los logins de esa instancia muertos hasta que se recicle,
+  // con el síntoma más caro de diagnosticar que hay — "a veces no anda y después se
+  // arregla solo".
+  discovered ??= client
+    .discovery(new URL(config.issuer), config.clientId, config.clientSecret)
+    .catch((error: unknown) => {
+      discovered = undefined
+      throw error
+    })
   return discovered
 }
 

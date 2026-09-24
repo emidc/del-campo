@@ -17,7 +17,7 @@ export default async function PartePage({
   const { id } = await params
   const asOf = fechaDeHoy()
   const [lote, vista] = await Promise.all([
-    latestBatch(),
+    latestBatch(principal),
     party(principal, id, asOf, `${asOf}T12:00:00Z`),
   ])
   if (vista === null) notFound()

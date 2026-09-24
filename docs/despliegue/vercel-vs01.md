@@ -121,6 +121,14 @@ ausencia de configuración es un error visible, nunca un bypass.
 1. En Vercel, **Deployments** → el despliegue anterior que estaba sano → **Promote to
    Production** (o «Instant Rollback»). Tarda segundos y no reconstruye.
 2. Comprobá que `/login` responde y que `/api/vs01/search` sin sesión devuelve `401`.
+   Comprobá también que una página con datos no se cachea río arriba — el HTML de
+   `/poliza/<id>` lleva número de póliza y nombre del tomador:
+
+   ```bash
+   curl -sI -H "Cookie: vs01_session=<la tuya>" https://<dominio>/poliza/<id> | grep -i 'cache-control\|x-vercel-cache'
+   ```
+
+   Tiene que decir `private`/`no-store` y no un `HIT` de caché.
 3. Si el problema fue una **variable**, corregila y redesplegá: un rollback de código no
    revierte variables, que viven fuera del despliegue.
 4. Las migraciones de base **no se revierten solas**. Cada una tiene su `down` en

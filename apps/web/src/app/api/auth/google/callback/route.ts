@@ -1,7 +1,5 @@
 import {
   HANDSHAKE_COOKIE,
-  SESSION_COOKIE,
-  SESSION_TTL_SECONDS,
   admissionConfig,
   claimsFromCallback,
   evaluateAdmission,
@@ -9,6 +7,7 @@ import {
   readHandshake,
   sealSession,
   sessionConfig,
+  sessionCookie,
 } from '@del-campo/api'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
@@ -61,15 +60,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.redirect(new URL(redirectTo, config.baseUrl))
   response.cookies.delete(HANDSHAKE_COOKIE)
   if (cookieValue !== null) {
-    response.cookies.set({
-      name: SESSION_COOKIE,
-      value: cookieValue,
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: session.secureCookies,
-      path: '/',
-      maxAge: SESSION_TTL_SECONDS,
-    })
+    // Los atributos salen de `sessionCookie`, que es lo que los tests describen. Copiarlos
+    // inline acá los dejaría fuera del alcance de esos tests: sacarle `httpOnly` a una
+    // copia habría dejado la suite en verde.
+    response.cookies.set({ ...sessionCookie(cookieValue, session.secureCookies) })
   }
   return response
 }

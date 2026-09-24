@@ -90,4 +90,23 @@ describe('readCookie', () => {
     assert.equal(readCookie(null, SESSION_COOKIE), undefined)
     assert.equal(readCookie('otra=1', SESSION_COOKIE), undefined)
   })
+
+  it('no lanza ante un porcentaje mal formado, que lo elige quien hace el request', () => {
+    // Regresión: `decodeURIComponent` lanzaba `URIError` y la excepción escapaba del
+    // guard, produciendo un 500 desde afuera y sin credencial alguna.
+    assert.doesNotThrow(() => readCookie(`${SESSION_COOKIE}=%E0%A4%A`, SESSION_COOKIE))
+  })
+})
+
+describe('una cookie malformada se niega, no rompe', () => {
+  it('%E0%A4%A produce 401 y no una excepción', async () => {
+    assert.equal(await reasonOfCookie('%E0%A4%A'), 'INVALID_TOKEN')
+    const outcome = await admitRequest(
+      new Request('https://vs01.test/api/vs01/search', {
+        headers: { cookie: `${SESSION_COOKIE}=%E0%A4%A` },
+      }),
+      config,
+    )
+    assert.equal(outcome.admitted, false)
+  })
 })
