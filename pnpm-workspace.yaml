@@ -1,5 +1,7 @@
 # Workspace del monolito modular de D-0012. Un paquete por límite de módulo de R-25:
 # el límite se hace cumplir por lint, pero la frontera empieza acá, en el grafo del
-# workspace. `apps/` no existe todavía y no se crea vacío: R-01.
+# workspace. `apps/` entra con T-0018, que es su primer habitante: R-01 pedía no
+# crearlo vacío, no no crearlo nunca.
 packages:
   - 'packages/*'
+  - 'apps/*'
