@@ -51,6 +51,10 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/.worktrees/**',
+      // Artefactos de build de Next.js: código generado, no código del repositorio.
+      // Lintearlos haría fallar `pnpm lint` según si alguien construyó antes o no,
+      // que es la peor propiedad posible para un guardrail.
+      '**/.next/**',
       'Claude outputs/**',
       'data/**',
       // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
