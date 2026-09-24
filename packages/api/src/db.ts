@@ -12,7 +12,7 @@ let pool: postgres.Sql | undefined
 
 export const sql = (): postgres.Sql => {
   if (pool !== undefined) return pool
-  const url = process.env['DATABASE_URL']
+  const url = process.env.DATABASE_URL
   if (url === undefined || url.trim() === '') {
     throw new Error('falta la variable de entorno DATABASE_URL; ver docs/despliegue/vercel-vs01.md')
   }

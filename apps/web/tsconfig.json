@@ -1,0 +1,24 @@
+{
+  "//": [
+    "Extiende el tsconfig raíz y sobrescribe sólo lo que el framework necesita: JSX,",
+    "la librería del DOM y la resolución de bundler, que no conviven con NodeNext ni",
+    "con el type stripping de Node. → DECISIONS/0058-nextjs-en-vercel.md",
+    "",
+    "R-01 pedía no tener un tsconfig por paquete hasta que existiera un segundo caso",
+    "que lo pidiera. Este es ese caso, y es el único: packages/ sigue con uno solo."
+  ],
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "allowJs": true,
+    "incremental": true,
+    "noEmit": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["next-env.d.ts", "next.config.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -28,8 +28,9 @@ const claims = (overrides: Partial<IdentityClaims> = {}): IdentityClaims => ({
 
 const denyReason = (state: Parameters<typeof evaluateAdmission>[0]): string => {
   const outcome = evaluateAdmission(state, config)
-  assert.equal(outcome.admitted, false, 'se esperaba que la admisión fuese negada')
-  return outcome.admitted ? '' : outcome.reason
+  // `assert.fail` devuelve `never`: el tipo se estrecha solo y no queda una rama muerta.
+  if (outcome.admitted) assert.fail('se esperaba que la admisión fuese negada')
+  return outcome.reason
 }
 
 describe('evaluateAdmission — los casos negativos que exige D-0059', () => {
@@ -109,8 +110,7 @@ describe('evaluateAdmission — los casos negativos que exige D-0059', () => {
 describe('evaluateAdmission — admisión', () => {
   it('admite y devuelve el sub como identidad, no el email', () => {
     const outcome = evaluateAdmission({ kind: 'CLAIMS', claims: claims() }, config)
-    assert.equal(outcome.admitted, true)
-    if (!outcome.admitted) return
+    assert.ok(outcome.admitted)
     assert.equal(outcome.principal.sub, 'sub-sintetico-001')
     assert.equal(outcome.principal.email, `operadora@${WORKSPACE}`)
   })

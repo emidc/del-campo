@@ -43,7 +43,7 @@ export const admissionConfig = (): AdmissionConfig => ({
 
 export const sessionConfig = (): SessionConfig => ({
   secret: required('VS01_SESSION_SECRET'),
-  secureCookies: process.env['NODE_ENV'] === 'production',
+  secureCookies: process.env.NODE_ENV === 'production',
 })
 
 export const oidcConfig = (): OidcConfig => ({

@@ -38,6 +38,15 @@ export {
 } from './session/session.ts'
 export type { CookieAttributes } from './session/session.ts'
 
+export {
+  HANDSHAKE_COOKIE,
+  HANDSHAKE_TTL_SECONDS,
+  readHandshake,
+  sealHandshake,
+} from './session/handshake.ts'
+
+export { deniedResponse, guarded, jsonResponse } from './http.ts'
+
 export { buildAuthorizationRequest, claimsFromCallback } from './session/oidc.ts'
 export type { AuthorizationHandshake, AuthorizationRequest } from './session/oidc.ts'
 

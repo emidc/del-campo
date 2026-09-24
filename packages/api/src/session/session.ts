@@ -74,16 +74,16 @@ export const readSession = (cookieValue: string | undefined, secret: string): Pr
     : jwtDecrypt(cookieValue, deriveKey(secret)).then(
         ({ payload }): SessionState => {
           const sub = payload.sub
-          const email = payload['email']
+          const email = payload.email
           if (typeof sub !== 'string' || typeof email !== 'string') return { kind: 'INVALID' }
           return {
             kind: 'CLAIMS',
             claims: {
               sub,
               email,
-              emailVerified: asBoolean(payload['emailVerified']),
-              hostedDomain: asNullableString(payload['hostedDomain']),
-              displayName: asNullableString(payload['displayName']),
+              emailVerified: asBoolean(payload.emailVerified),
+              hostedDomain: asNullableString(payload.hostedDomain),
+              displayName: asNullableString(payload.displayName),
             },
           }
         },

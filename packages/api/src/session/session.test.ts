@@ -28,8 +28,7 @@ const claims: IdentityClaims = {
 describe('sealSession / readSession', () => {
   it('ida y vuelta preserva los claims que la admisión mira', async () => {
     const state = await readSession(await sealSession(claims, SECRET), SECRET)
-    assert.equal(state.kind, 'CLAIMS')
-    if (state.kind !== 'CLAIMS') return
+    assert.ok(state.kind === 'CLAIMS')
     assert.deepEqual(state.claims, claims)
   })
 

@@ -74,15 +74,15 @@ export const claimsFromCallback = async (
   const claims = tokens.claims()
   if (claims === undefined) throw new Error('la respuesta de Google no trajo un ID token')
 
-  const email = claims['email']
+  const email = claims.email
   if (typeof email !== 'string') throw new Error('el ID token no trajo un email')
-  const hostedDomain = claims['hd']
-  const displayName = claims['name']
+  const hostedDomain = claims.hd
+  const displayName = claims.name
 
   return {
     sub: claims.sub,
     email,
-    emailVerified: claims['email_verified'] === true,
+    emailVerified: claims.email_verified === true,
     hostedDomain: typeof hostedDomain === 'string' ? hostedDomain : null,
     displayName: typeof displayName === 'string' ? displayName : null,
   }
