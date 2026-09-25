@@ -22,7 +22,7 @@ Branch a `main`. **No hace falta esperar el merge para importar el proyecto.**
 
 | Ajuste | Valor |
 | --- | --- |
-| Framework Preset | **Next.js** |
+| Framework Preset | **Next.js** — fijado también en `apps/web/vercel.json`; si queda vacío, el build termina con «No Output Directory named "public"» |
 | Root Directory | **`apps/web`** |
 | Include files outside root directory | **Sí** (activado) — el build necesita `packages/` |
 | Node.js Version | **24.x** |
