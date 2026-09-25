@@ -138,7 +138,11 @@ ausencia de configuración es un error visible, nunca un bypass.
 
 ## 8. Cuenta y costos
 
-Proyecto en la cuenta del owner. **No se contrató ningún plan ni se habilitó ningún cargo
-adicional**: la configuración de arriba entra en los planes gratuitos de Vercel y
-Supabase para un piloto interno de una sola persona. Si algo pidiera un plan pago, es una
-decisión del owner y no una consecuencia de esta tarea.
+Proyecto en la cuenta del owner. **Esta tarea no contrata ningún plan ni habilita
+cargos.** Técnicamente, la configuración de arriba entra en los límites gratuitos, pero
+el plan Hobby de Vercel se limita a uso personal no comercial según sus
+[Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage),
+y una herramienta interna de la correduría muy probablemente es uso comercial. Antes del
+piloto con datos reales y de la medición en producción, el owner decide el plan (Pro u
+otro) dentro del presupuesto del programa, que sigue abierto (Q4 Operating Plan,
+pregunta 9). Lo mismo aplica a revisar las condiciones del plan de Supabase.
