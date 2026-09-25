@@ -54,18 +54,26 @@ export const getDocumentAccessForPolicies = async (
     with target_policy as (
       select unnest(${policyIds}::uuid[]) as policy_id
     ),
+    -- Las tres CTEs agregan por Policy. Sin agregar, la PK de
+    -- policy_document_reference es external_reference_id y no policy_id, así que dos
+    -- referencias de la misma Policy devolvían dos filas: el conteo por categoría
+    -- llegaba a superar su propio denominador (SLICES/VS01.md §2) y el Map del consumidor
+    -- se quedaba en silencio con la última. El cargador de T-0017 ya deja ambiguos los
+    -- dos extremos de ese caso; acá la consulta deja de depender de que así sea.
     document as (
-      select pdr.policy_id, dl.drive_url
+      select pdr.policy_id, count(*) as candidatos, min(dl.drive_url) as drive_url
       from policy_document_reference pdr
       join external_reference er on er.id = pdr.external_reference_id
       join document_link dl on dl.id = er.resolved_target_id and dl.resource_type = 'POLICY'
       where er.resolution_status = 'RESOLVED'
+      group by pdr.policy_id
     ),
     pending as (
-      select pdr.policy_id, er.unresolved_reason
+      select pdr.policy_id, min(er.unresolved_reason) as unresolved_reason
       from policy_document_reference pdr
       join external_reference er on er.id = pdr.external_reference_id
       where er.resolution_status = 'UNRESOLVED'
+      group by pdr.policy_id
     ),
     client_holder as (
       select distinct on (pv.policy_id) pv.policy_id, pv.holder_party_id
@@ -74,15 +82,22 @@ export const getDocumentAccessForPolicies = async (
       order by pv.policy_id, pv.effective_from desc, pv.version_number desc
     ),
     client_folder as (
-      select ch.policy_id, dl.drive_url
+      select ch.policy_id, count(*) as candidatos, min(dl.drive_url) as drive_url
       from client_holder ch
       join document_link dl on dl.resource_type = 'PARTY' and dl.resource_id = ch.holder_party_id
+      group by ch.policy_id
     )
     select
       tp.policy_id,
-      document.drive_url as document_url,
-      client_folder.drive_url as client_folder_url,
-      pending.unresolved_reason as pending_reason
+      case when document.candidatos = 1 then document.drive_url end as document_url,
+      case when client_folder.candidatos = 1 then client_folder.drive_url end as client_folder_url,
+      coalesce(
+        pending.unresolved_reason,
+        -- Varios candidatos no es "el archivo de la póliza": D-0057 reserva "Abrir
+        -- documento" para la asociación revisada, y elegir uno sería presentar lo
+        -- ambiguo como inequívoco. Queda pendiente, como ya lo deja el cargador.
+        case when document.candidatos > 1 or client_folder.candidatos > 1 then 'AMBIGUOUS' end
+      ) as pending_reason
     from target_policy tp
     left join document on document.policy_id = tp.policy_id
     left join pending on pending.policy_id = tp.policy_id

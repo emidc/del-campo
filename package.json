@@ -9,14 +9,17 @@
   "scripts": {
     "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs && node --test scripts/tests/*.test.mjs && pnpm typecheck && pnpm lint && pnpm test",
     "decisions": "node scripts/decisions.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web",
     "lint": "eslint .",
     "test": "node --test --test-concurrency=1 \"packages/**/*.test.ts\"",
     "db:create": "node packages/db/src/cli.ts create",
     "db:reset": "node packages/db/src/cli.ts reset",
     "db:migrate": "node packages/db/src/cli.ts migrate",
     "db:down": "node packages/db/src/cli.ts down",
-    "db:version": "node packages/db/src/cli.ts version"
+    "db:version": "node packages/db/src/cli.ts version",
+    "dev": "pnpm --filter @del-campo/web dev",
+    "build": "pnpm --filter @del-campo/web build",
+    "vs01:seed": "node scripts/vs01/seed-sintetico.mjs"
   },
   "dependencies": {
     "yaml": "^2.8.1"
@@ -25,6 +28,7 @@
     "@eslint/js": "^9.39.0",
     "@types/node": "^24.9.0",
     "eslint": "^9.39.0",
+    "postgres": "^3.4.9",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.0"
   }

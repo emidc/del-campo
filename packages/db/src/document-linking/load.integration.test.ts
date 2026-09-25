@@ -536,3 +536,63 @@ describe('loadDocumentVerificationInput — T-0017', () => {
     })
   })
 })
+
+describe('la consulta se defiende sola de las referencias duplicadas', () => {
+  // El cargador nunca produce dos POLICY_DOCUMENT resueltos para la misma Policy: los
+  // deja ambiguos (test de arriba). Pero la invariante vivía sólo en el cargador, y
+  // `getDocumentAccessForPolicies` devolvía una fila por referencia, no por Policy. Con
+  // filas escritas por cualquier otro camino, el conteo por categoría superaba su propio
+  // denominador —lo que SLICES/VS01.md §2 exige que no pase— y el consumidor se quedaba
+  // en silencio con una de las dos.
+  it('dos documentos resueltos para una Policy dan una sola fila, ambigua y sin elegir', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0018 DUP')
+      const holderId = await createOrganization(tx, 'Cliente Sintetico T0018 DUP')
+      const policyId = await createPolicyFromZoho(tx, insurerId, 'POL-T0018-DUP', 'ZOHO-DUP', holderId)
+
+      for (const sufijo of ['a', 'b']) {
+        const link = one(
+          await tx<IdRow[]>`
+            insert into document_link (
+              resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
+              reconciliation_status
+            ) values (
+              'POLICY', ${policyId}, ${`dup-${sufijo}`},
+              ${`https://drive.example.invalid/file/dup-${sufijo}`}, 'FILE', 'SYNCED'
+            ) returning id
+          `,
+          'document_link',
+        )
+        const referencia = one(
+          await tx<IdRow[]>`
+            insert into external_reference (
+              source_system, source_entity_type, relation_type,
+              resolution_status, resolved_target_type, resolved_target_id
+            ) values (
+              'ZOHO', 'Notes', 'POLICY_DOCUMENT', 'RESOLVED', 'DOCUMENT_LINK', ${link.id}
+            ) returning id
+          `,
+          'external_reference',
+        )
+        await tx`
+          insert into policy_document_reference (external_reference_id, policy_id)
+          values (${referencia.id}, ${policyId})
+        `
+      }
+
+      const filas = await getDocumentAccessForPolicies(tx, [policyId])
+      assert.equal(filas.length, 1, 'una fila por Policy, no una por referencia')
+      const access = one(filas, 'document access')
+      assert.equal(access.document, null, 'ninguno de los dos se presenta como el documento')
+      assert.equal(access.pending?.reason, 'AMBIGUOUS')
+
+      const counts = await countDocumentLinkingCategories(tx, [policyId])
+      assert.equal(counts.denominator, 1)
+      assert.equal(
+        counts.withDocument + counts.withClientFolderOnly + counts.withPending + counts.withoutReference,
+        counts.denominator,
+        'las categorías nunca suman más que su denominador',
+      )
+    })
+  })
+})
