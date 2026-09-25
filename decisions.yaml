@@ -924,3 +924,31 @@ decisions:
       humana y el cambio llegue a main, o que el owner necesite revisar por comando para
       mantener confianza en las sesiones, en cuyo caso se reevalúa con sandbox de
       filesystem en lugar de volver al ask universal.
+
+  # ── Preparación de los casos de aceptación de VS01 (T-0018) ───────────────
+
+  - id: D-0061
+    title: Excepción acotada a R-19 para armar los casos de aceptación de VS01
+    status: ACCEPTED
+    date: 2026-09-25
+    source: >
+      Pedido explícito del owner del 2026-09-25 en la sesión de dirección Q4 (Cowork),
+      eligiendo registrar esta excepción; R-19; D-0039; SLICES/VS01.md §4.
+    statement: >
+      Para la preparación de los 20 casos de aceptación de T-0018, y sólo para eso, un
+      agente de desarrollo queda autorizado a tratar datos reales de clientes: proveedor
+      Anthropic, modelo claude-opus-5-5, en la sesión Cowork del owner, bajo su cuenta.
+      Puede leer los módulos Pólizas, Contactos y Cuentas del lote de Zoho del 16/09
+      preservado por T-0004, y los datos que el owner le entregó en esa sesión. Puede
+      escribir únicamente en data/vs01-acceptance/ (casos.csv, seleccion.md y
+      vinculos.csv), ignorado por Git. No accede a Zoho ni a Drive, no abre documentos y
+      no marca relaciones como VERIFIED: la comprobación de enlaces sigue siendo humana
+      (D-0057). El agente propone casos; la selección final y el congelamiento los hace
+      el owner (SLICES/VS01.md §4.1). La excepción no se extiende a otras tareas,
+      modelos, proveedores ni sesiones y vence al congelar los casos. Los límites de
+      R-19 siguen vigentes: sin credenciales, sin categorías especialmente sensibles y
+      sin PII en Git, logs, tareas, reportes versionados ni código; las salidas del
+      agente hacia la conversación se limitan a códigos de caso y chequeos agregados.
+      Se registra con honestidad que el owner ya había pegado fichas de pólizas en esa
+      conversación antes de esta decisión.
+
