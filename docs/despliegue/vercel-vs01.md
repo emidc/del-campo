@@ -88,18 +88,29 @@ Notas de uso:
 ## 5. Supabase
 
 - Sólo **Postgres** (D-0013). **No se habilita Supabase Auth**, ni Storage, ni Realtime.
-- Aplicá las migraciones de `packages/db/migrations/` en orden contra la base del
-  proyecto antes del primer deploy con datos.
-- Para el despliegue inicial autorizado, sembrá el lote sintético:
+- Usá un **proyecto de Supabase dedicado** a este despliegue. La base siempre se llama
+  `postgres`, así que no puede declararse sintética por su nombre.
+- **Cadenas de conexión** (Connect → Direct → Connection string):
+  - Para la app en Vercel (`DATABASE_URL`): **Transaction pooler**, puerto `6543`. La app ya
+    usa `prepare: false`, que ese modo exige.
+  - Para migrar y sembrar desde tu máquina: **Session pooler**, puerto `5432` del mismo host.
+    Las migraciones corren con `psql` y no conviene pasarlas por el modo transacción.
+  - En ambas, agregá `?sslmode=require` al final.
+- Desde el worktree, con `psql` instalado, aplicá las migraciones y sembrá el lote sintético
+  (la variable de la terminal tiene prioridad sobre el `.env` local):
 
   ```bash
-  DATABASE_URL='<cadena de Supabase>' node scripts/vs01/seed-sintetico.mjs
+  export DATABASE_URL='<session pooler>?sslmode=require'
+  pnpm db:migrate
+  node scripts/vs01/seed-sintetico.mjs --base-sintetica-confirmada
+  unset DATABASE_URL
   ```
 
-  El script se niega a correr contra la base de T-0013 y contra cualquier base cuyo
-  nombre no se declare sintética. La app muestra en pantalla
-  «LOTE SINTÉTICO — sin datos de clientes», de modo que nadie pueda confundir ese
-  despliegue con datos de la correduría.
+  El script se niega a correr contra la base de T-0013 y contra cualquier base que tenga
+  datos que no sean de este mismo lote sintético, con o sin `--reset`. La bandera
+  `--base-sintetica-confirmada` reemplaza la declaración por nombre, no la guarda de
+  contenido. La app muestra en pantalla «LOTE SINTÉTICO — sin datos de clientes», de modo
+  que nadie pueda confundir ese despliegue con datos de la correduría.
 - **La carga de datos reales es una acción aparte y la autorizás vos** (R-13). No está
   incluida en la autorización de preparar Vercel.
 

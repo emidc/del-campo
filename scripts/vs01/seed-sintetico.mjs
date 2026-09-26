@@ -11,7 +11,7 @@
 //   D · pendiente inaccesible, sin carpeta ni archivo    → pendiente sin enlace
 //   E · renovación de A, con endoso en el historial      → historial y navegación
 //
-// Uso: node scripts/vs01/seed-sintetico.mjs [--reset]
+// Uso: node scripts/vs01/seed-sintetico.mjs [--reset] [--base-sintetica-confirmada]
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -53,13 +53,20 @@ if (nombreBase.includes('t0013')) {
   )
   process.exit(1)
 }
-if (!/sintetic|synthetic|demo/i.test(nombreBase)) {
+// Supabase no deja elegir el nombre de la base (siempre es `postgres`). Para esos casos la
+// declaración pasa del nombre a una bandera explícita, y la guarda de contenido de abajo
+// garantiza que la bandera nunca alcance para tocar una base con datos que no sean de este
+// mismo lote sintético.
+const confirmada = process.argv.includes('--base-sintetica-confirmada')
+if (!/sintetic|synthetic|demo/i.test(nombreBase) && !confirmada) {
   console.error(
     `✗ ${nombreBase} no se declara sintética en su nombre.\n` +
-      '  Renombrala (p. ej. delcampo_t0018_sintetico) antes de sembrarla.',
+      '  Renombrala (p. ej. delcampo_t0018_sintetico) o, si es un proyecto de Supabase\n' +
+      '  dedicado a datos sintéticos, confirmalo con --base-sintetica-confirmada.',
   )
   process.exit(1)
 }
+const MARCA_SINTETICA = 'LOTE SINTÉTICO — sin datos de clientes'
 
 const sql = postgres(url, { max: 2 })
 const reset = process.argv.includes('--reset')
@@ -182,7 +189,18 @@ const limpiar = async (tx) => {
 
 try {
   await sql.begin(async (tx) => {
+    // Guarda de contenido: si la base tiene cualquier lote que no sea este sintético, o
+    // pólizas sin lote sintético que las explique, no se siembra ni se borra nada.
+    const ajenos = uno(await tx`select count(*)::int as n from staging_import_batch
+      where notes is distinct from ${MARCA_SINTETICA}`)
+    const sinteticos = uno(await tx`select count(*)::int as n from staging_import_batch
+      where notes = ${MARCA_SINTETICA}`)
     const yaHay = uno(await tx`select count(*)::int as n from policy`)
+    if (ajenos.n > 0 || (yaHay.n > 0 && sinteticos.n === 0)) {
+      throw new Error(
+        'la base contiene datos que no provienen del lote sintético. No se siembra ni se borra nada.',
+      )
+    }
     if (yaHay.n > 0 && !reset) {
       throw new Error(
         `la base ya tiene ${yaHay.n} póliza(s). Volvé a correr con --reset para reemplazarlas.`,
@@ -193,7 +211,7 @@ try {
     // El lote que la app informa en pantalla. Que diga "SINTÉTICO" es parte del punto:
     // nadie debe poder confundir este despliegue con datos de la correduría.
     await tx`insert into staging_import_batch (started_at, source_manifest_sha256, notes)
-      values (now(), ${'0'.repeat(64)}, 'LOTE SINTÉTICO — sin datos de clientes')`
+      values (now(), ${'0'.repeat(64)}, ${MARCA_SINTETICA})`
 
     const norte = await crearAseguradora(tx, 'Aseguradora Sintética Norte')
     const sur = await crearAseguradora(tx, 'Aseguradora Sintética Sur')
