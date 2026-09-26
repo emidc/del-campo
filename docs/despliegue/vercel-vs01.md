@@ -160,3 +160,60 @@ y una herramienta interna de la correduría muy probablemente es uso comercial. 
 piloto con datos reales y de la medición en producción, el owner decide el plan (Pro u
 otro) dentro del presupuesto del programa, que sigue abierto (Q4 Operating Plan,
 pregunta 9). Lo mismo aplica a revisar las condiciones del plan de Supabase.
+
+## 9. Carga de los datos reales (D-0062)
+
+La ejecuta **el owner** desde su Mac. Ningún agente ve estos datos (R-19). Antes de
+empezar: la rama con `scripts/guard-db-tests.mjs` mergeada, y **ninguna terminal con
+`DATABASE_URL` de Supabase exportada** mientras corras `pnpm check`.
+
+1. **Proyecto nuevo en Supabase** para producción, región São Paulo, contraseña
+   alfanumérica (`openssl rand -hex 24`). El proyecto sintético queda para Preview.
+2. **Copia de las tablas de VS01** desde la base local de T-0013, fuera del repositorio.
+   Es también tu backup manual: el plan Free no hace backups.
+
+   ```bash
+   mkdir -p ~/del-campo-privado && chmod 700 ~/del-campo-privado
+   pg_dump --data-only --no-owner --no-privileges \
+     -t party -t person_profile -t organization_profile -t organization_membership \
+     -t insurer -t insurer_alias -t policy -t endorsement -t policy_version \
+     -t document_link -t external_reference -t policy_document_reference \
+     -t staging_import_batch \
+     -f ~/del-campo-privado/vs01-datos-$(date +%F).sql \
+     postgres://localhost:5432/delcampo_t0013_dev
+   ```
+
+3. **Migraciones y carga**, con el Session pooler del proyecto de producción:
+
+   ```bash
+   cd ~/repos/del-campo/.worktrees/T-0018
+   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+   pnpm db:migrate
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
+     -f ~/del-campo-privado/vs01-datos-AAAA-MM-DD.sql
+   ```
+
+   `--single-transaction`: si algo falla, no queda nada a medias.
+   Si falla con `unrecognized configuration parameter "transaction_timeout"`, el Postgres
+   de Supabase es anterior al 17: borrá esa línea `SET` del archivo y repetí; nada se cargó.
+
+4. **Conteos: deben coincidir** entre la base local y producción (solo números):
+
+   ```bash
+   Q="select 'policy',count(*) from policy union all select 'party',count(*) from party
+      union all select 'policy_version',count(*) from policy_version
+      union all select 'external_reference',count(*) from external_reference
+      union all select 'policy_document_reference',count(*) from policy_document_reference"
+   psql "$DATABASE_URL" -tAc "$Q"
+   psql postgres://localhost:5432/delcampo_t0013_dev -tAc "$Q"
+   unset DATABASE_URL
+   ```
+
+5. **Vercel, entorno Production:** `DATABASE_URL` con el Transaction pooler (6543) del
+   proyecto de producción y `?sslmode=require`; `VS01_ADMITTED_ACCOUNTS` con la lista del
+   piloto; `VS01_BASE_URL` con el dominio de producción. Preview conserva la base
+   sintética. Redesplegá y comprobá que la cabecera ya no diga «LOTE SINTÉTICO».
+
+6. **Vínculos de los 20 casos:** después de verificar cada link de `vinculos.csv`, se
+   cargan con la CLI de T-0017 contra producción, por el Session pooler.
