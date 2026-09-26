@@ -96,6 +96,9 @@ Notas de uso:
   - Para migrar y sembrar desde tu máquina: **Session pooler**, puerto `5432` del mismo host.
     Las migraciones corren con `psql` y no conviene pasarlas por el modo transacción.
   - En ambas, agregá `?sslmode=require` al final.
+  - Usá una contraseña de base **sin símbolos** (`openssl rand -hex 24`). Con `#`, `@`, `/`,
+    `?` o `%`, `psql` acepta la cadena pero la librería de la app la interpreta mal
+    (`getaddrinfo ENOTFOUND postgres.<ref>`).
 - Desde el worktree, con `psql` instalado, aplicá las migraciones y sembrá el lote sintético
   (la variable de la terminal tiene prioridad sobre el `.env` local):
 
