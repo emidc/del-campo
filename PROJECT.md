@@ -76,17 +76,19 @@ para que el arnés pudiera sostener código de aplicación:
   un diff cuyo check local estaba en verde; se corrigieron y un revisor en frío los
   cerró uno por uno.
 
-Sigue `T-0016` —búsqueda y consulta de VS01—, que quedó `READY` porque sus dos
-condiciones ya se cumplen: el contrato de VS01 está revisado y el schema existe.
-`T-0013`, el importador, no avanza hasta que se responda Q-14: por qué vía llega el
-export de Zoho, quién lo produce y si un agente ve datos reales en algún momento. Es
-input humano y R-19 lo condiciona.
+Entre el 21 y el 28/09/2026 se completó VS01: `T-0013` (importador del lote de Zoho),
+`T-0016` (búsqueda y consulta), `T-0017` (vinculación documental con comprobación humana,
+D-0057) y `T-0018` (app interna en Vercel con login corporativo de Google, D-0058 y D-0059).
+Los datos reales se cargaron en Supabase bajo D-0062 y VS01 se aceptó el 28/09/2026 con
+20 de 20 casos y una reducción de la mediana de tiempo del 56,8 %, con la incertidumbre
+declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico.
 
 ### Qué sigue después de esta fase
 
-1. Completar las precondiciones de entorno y schema declaradas en T-0010 y T-0012.
-2. Implementar **Vertical Slice 01** conforme al contrato aprobado `SLICES/VS01.md`,
-   sus tareas y sus dependencias. → `D-0019`
+1. Retrospectiva de VS01 y decisión sobre mostrar los links de Zoho sin verificar
+   (modificaría D-0057) y sobre una medición confirmatoria sin la pista del botón.
+2. Deuda registrada: funciones de las migraciones sin `search_path` propio.
+3. Laboratorios de Q4 (Risk OS, Communication OS) según el Q4 Operating Plan.
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
 activa antes del primer acceso multi-principal, del portal externo o de un worker o
