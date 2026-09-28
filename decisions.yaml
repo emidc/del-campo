@@ -957,23 +957,22 @@ decisions:
     status: PROVISIONAL
     date: 2026-09-28
     source: >
-      Decisión y autorización del owner del 2026-09-26, ajustada el 2026-09-28 (R-13) en la sesión de dirección
+      Decisión y autorización del owner del 2026-09-26, ajustada el 2026-09-28 al proyecto nuevo en São Paulo (R-13) en la sesión de dirección
       Q4, tras revisar los riesgos del plan gratuito; pregunta abierta 9 del Q4 Operating
       Plan (presupuesto); D-0013, D-0014, D-0053, D-0058, D-0059.
     statement: >
-      El owner autoriza cargar en el proyecto de Supabase existente, en plan Free y región
-      us-east-2 (Ohio), los datos de VS01 de su base local de T-0013, para el piloto y la
-      medición de aceptación de T-0018, servidos por Vercel en plan Hobby. El lote
-      sintético de ese proyecto se elimina antes de la carga; el proyecto pasa a ser el de
-      producción.
+      El owner autoriza cargar en un proyecto de Supabase nuevo y dedicado a producción, en
+      plan Free y región sa-east-1 (São Paulo), los datos de VS01 de su base local de
+      T-0013, para el piloto y la medición de aceptación de T-0018, servidos por Vercel en
+      plan Hobby. El proyecto con el lote sintético se conserva como base de Preview.
       Se carga sólo lo que la app consulta: party, person_profile, organization_profile,
       organization_membership, insurer, insurer_alias, policy, endorsement,
       policy_version, document_link, external_reference, policy_document_reference y
       staging_import_batch. No se cargan las filas crudas de staging de Zoho, los puntos
       de contacto, los roles de parte, los vínculos de fuente ni usuarios. La carga la
       ejecuta el owner desde su máquina; ningún agente accede a los datos (R-19; D-0053
-      no se extiende). Preview deja de tener base: sus despliegues no reciben
-      DATABASE_URL, para que ningún preview sirva datos reales. Se aceptan
+      no se extiende). Los despliegues de Preview sólo reciben la cadena del proyecto
+      sintético, para que ningún preview sirva datos reales. Se aceptan
       explícitamente los riesgos del plan gratuito: las condiciones de uso de Vercel Hobby
       excluyen uso comercial, el proyecto de Supabase se pausa tras una semana sin
       actividad, no hay backups automáticos (el owner guarda una copia manual fuera del
