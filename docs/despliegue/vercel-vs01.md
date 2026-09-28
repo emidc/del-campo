@@ -88,7 +88,7 @@ Notas de uso:
 ## 5. Supabase
 
 - Sólo **Postgres** (D-0013). **No se habilita Supabase Auth**, ni Storage, ni Realtime.
-- Usá un **proyecto de Supabase dedicado** a este despliegue. La base siempre se llama
+- Usá un **proyecto de Supabase dedicado** a VS01 (desde D-0062, el de producción). La base siempre se llama
   `postgres`, así que no puede declararse sintética por su nombre.
 - **Cadenas de conexión** (Connect → Direct → Connection string):
   - Para la app en Vercel (`DATABASE_URL`): **Transaction pooler**, puerto `6543`. La app ya
@@ -163,14 +163,13 @@ pregunta 9). Lo mismo aplica a revisar las condiciones del plan de Supabase.
 
 ## 9. Carga de los datos reales (D-0062)
 
-La ejecuta **el owner** desde su Mac. Ningún agente ve estos datos (R-19). Antes de
-empezar: la rama con `scripts/guard-db-tests.mjs` mergeada, y **ninguna terminal con
-`DATABASE_URL` de Supabase exportada** mientras corras `pnpm check`.
+La ejecuta **el owner** desde su Mac. Ningún agente ve estos datos (R-19). Se reutiliza el
+proyecto de Supabase existente (Ohio): primero se borra el lote sintético y después se
+cargan las tablas de VS01. **Nunca corras `pnpm check` en una terminal con `DATABASE_URL`
+de Supabase exportada**; desde D-0062 las pruebas abortan si lo detectan.
 
-1. **Proyecto nuevo en Supabase** para producción, región São Paulo, contraseña
-   alfanumérica (`openssl rand -hex 24`). El proyecto sintético queda para Preview.
-2. **Copia de las tablas de VS01** desde la base local de T-0013, fuera del repositorio.
-   Es también tu backup manual: el plan Free no hace backups.
+1. **Copia de las tablas de VS01** desde la base local de T-0013, fuera del repositorio.
+   Es también el backup manual: el plan Free no hace backups.
 
    ```bash
    mkdir -p ~/del-campo-privado && chmod 700 ~/del-campo-privado
@@ -183,37 +182,63 @@ empezar: la rama con `scripts/guard-db-tests.mjs` mergeada, y **ninguna terminal
      postgres://localhost:5432/delcampo_t0013_dev
    ```
 
-3. **Migraciones y carga**, con el Session pooler del proyecto de producción:
+2. **Controlar la copia sin abrirla:** tiene que listar exactamente esas 13 tablas.
 
    ```bash
-   cd ~/repos/del-campo/.worktrees/T-0018
-   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   grep -o '^COPY public\.[a-z_]*' ~/del-campo-privado/vs01-datos-AAAA-MM-DD.sql | sort
+   ```
+
+3. **Borrar el lote sintético** (Session pooler, puerto 5432). El bloque aborta sin
+   borrar nada si encuentra cualquier lote que no sea el sintético.
+
+   ```bash
+   cd ~/repos/del-campo
+   read -rs "DATABASE_URL?Session pooler: "
    export DATABASE_URL="${DATABASE_URL}?sslmode=require"
-   pnpm db:migrate
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction <<'SQL'
+   do $$ begin
+     if exists (select 1 from staging_import_batch
+                where notes is distinct from 'LOTE SINTÉTICO — sin datos de clientes') then
+       raise exception 'la base tiene lotes que no son sintéticos: no se borra nada';
+     end if;
+   end $$;
+   delete from policy_document_reference; delete from external_reference;
+   delete from document_link; delete from policy_version; delete from endorsement;
+   delete from policy; delete from insurer_alias; delete from insurer;
+   delete from organization_membership; delete from contact_point; delete from party_role;
+   delete from party_source_link; delete from person_profile; delete from organization_profile;
+   delete from party; delete from staging_import_batch;
+   SQL
+   ```
+
+4. **Cargar los datos reales** en la misma terminal, en una sola transacción:
+
+   ```bash
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
      -f ~/del-campo-privado/vs01-datos-AAAA-MM-DD.sql
    ```
 
-   `--single-transaction`: si algo falla, no queda nada a medias.
-   Si falla con `unrecognized configuration parameter "transaction_timeout"`, el Postgres
-   de Supabase es anterior al 17: borrá esa línea `SET` del archivo y repetí; nada se cargó.
+   Si falla, no queda nada cargado. Con `unrecognized configuration parameter
+   "transaction_timeout"`, borrá esa línea `SET` del archivo y repetí.
 
-4. **Conteos: deben coincidir** entre la base local y producción (solo números):
+5. **Conteos: deben coincidir** entre producción y la base local (solo números):
 
    ```bash
    Q="select 'policy',count(*) from policy union all select 'party',count(*) from party
       union all select 'policy_version',count(*) from policy_version
       union all select 'external_reference',count(*) from external_reference
-      union all select 'policy_document_reference',count(*) from policy_document_reference"
+      union all select 'policy_document_reference',count(*) from policy_document_reference
+      union all select 'staging_import_batch',count(*) from staging_import_batch"
    psql "$DATABASE_URL" -tAc "$Q"
    psql postgres://localhost:5432/delcampo_t0013_dev -tAc "$Q"
    unset DATABASE_URL
    ```
 
-5. **Vercel, entorno Production:** `DATABASE_URL` con el Transaction pooler (6543) del
-   proyecto de producción y `?sslmode=require`; `VS01_ADMITTED_ACCOUNTS` con la lista del
-   piloto; `VS01_BASE_URL` con el dominio de producción. Preview conserva la base
-   sintética. Redesplegá y comprobá que la cabecera ya no diga «LOTE SINTÉTICO».
+6. **Vercel.** Production: `DATABASE_URL` (Transaction pooler, 6543, `?sslmode=require`)
+   ya apunta a este proyecto; revisá `VS01_ADMITTED_ACCOUNTS` (lista del piloto) y
+   `VS01_BASE_URL` (dominio de producción). Preview: **quitá `DATABASE_URL`**. Production
+   Branch: `main`. Redesplegá producción y comprobá que la cabecera ya no diga
+   «LOTE SINTÉTICO».
 
-6. **Vínculos de los 20 casos:** después de verificar cada link de `vinculos.csv`, se
+7. **Vínculos de los 20 casos:** después de verificar cada link de `vinculos.csv`, se
    cargan con la CLI de T-0017 contra producción, por el Session pooler.
