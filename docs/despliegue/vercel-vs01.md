@@ -234,7 +234,47 @@ Supabase exportada**; las pruebas abortan si lo detectan.
    conserva la cadena del proyecto sintético. Redesplegá producción y comprobá que la
    cabecera ya no diga «LOTE SINTÉTICO».
 
-6. **Vínculos de los 20 casos.** El lote real no trae referencias documentales asociadas
-   (`document_link` y `policy_document_reference` en 0). Después de verificar cada link
-   de `vinculos.csv`, se cargan con la CLI de T-0017 contra producción, por el Session
-   pooler. Hasta entonces, VS01 muestra las pólizas sin documento.
+6. **Vínculos documentales.** El lote real no trae referencias documentales asociadas
+   (`document_link` y `policy_document_reference` en 0): T-0013 no importa los links de
+   Zoho y D-0057 exige comprobación humana. Hasta cargar vínculos verificados, VS01
+   muestra las pólizas sin documento. La CLI de T-0017 sólo escribe en la base local de
+   T-0013 (D-0053); a producción llegan con el refresco de §10.
+
+## 10. Refrescar producción desde la base local
+
+La base local de T-0013 es la fuente; producción es una réplica de sus tablas de VS01.
+Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica entero.
+
+1. **Cargar los vínculos verificados en local** (solo filas `VERIFIED` o `PENDING` con
+   motivo, formato de las Notes de T-0017):
+
+   ```bash
+   cd ~/repos/del-campo
+   export DATABASE_URL=postgres://localhost:5432/delcampo_t0013_dev
+   node packages/db/src/document-linking/cli.ts load <ruta>/vinculos.csv
+   unset DATABASE_URL
+   ```
+
+2. **Nueva copia** con el comando de §9.1 (mismas 13 tablas) y sin la línea del
+   `search_path`.
+3. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
+   la copia nueva; si algo falla, producción queda como estaba.
+
+   ```bash
+   cat > ~/del-campo-privado/vaciar-vs01.sql <<'SQL'
+   delete from policy_document_reference; delete from external_reference;
+   delete from document_link; delete from policy_version; delete from endorsement;
+   delete from policy; delete from insurer_alias; delete from insurer;
+   delete from organization_membership; delete from person_profile;
+   delete from organization_profile; delete from party; delete from staging_import_batch;
+   SQL
+   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
+     -f ~/del-campo-privado/vaciar-vs01.sql \
+     -f ~/del-campo-privado/vs01-datos-AAAA-MM-DD.sql > ~/del-campo-privado/refresco.log 2>&1
+   echo "salida: $?"; grep -E '^COPY|ERROR' ~/del-campo-privado/refresco.log | cut -c1-80
+   ```
+
+4. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
+   coincidir con la base local. Después, `unset DATABASE_URL`.
