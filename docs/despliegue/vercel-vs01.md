@@ -234,7 +234,65 @@ Supabase exportada**; las pruebas abortan si lo detectan.
    conserva la cadena del proyecto sintético. Redesplegá producción y comprobá que la
    cabecera ya no diga «LOTE SINTÉTICO».
 
-6. **Vínculos de los 20 casos.** El lote real no trae referencias documentales asociadas
-   (`document_link` y `policy_document_reference` en 0). Después de verificar cada link
-   de `vinculos.csv`, se cargan con la CLI de T-0017 contra producción, por el Session
-   pooler. Hasta entonces, VS01 muestra las pólizas sin documento.
+6. **Vínculos documentales.** El lote real no trae referencias documentales asociadas
+   (`document_link` y `policy_document_reference` en 0): T-0013 no importa los links de
+   Zoho y D-0057 exige comprobación humana. Hasta cargar vínculos verificados, VS01
+   muestra las pólizas sin documento. La CLI de T-0017 sólo escribe en la base local de
+   T-0013 (D-0053); a producción llegan con el refresco de §10.
+
+## 10. Refrescar producción desde la base local
+
+La base local de T-0013 es la fuente; producción es una réplica de sus tablas de VS01.
+Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica entero.
+
+1. **Cargar los vínculos verificados en local** (solo filas `VERIFIED` o `PENDING` con
+   motivo, formato de las Notes de T-0017):
+
+   ```bash
+   cd ~/repos/del-campo
+   export DATABASE_URL=postgres://localhost:5432/delcampo_t0013_dev
+   node packages/db/src/document-linking/cli.ts load <ruta>/vinculos.csv
+   unset DATABASE_URL
+   ```
+
+2. **Dos copias nuevas.** `document_link` va en un archivo aparte y se carga al final:
+   su validación comprueba que la Policy exista, y `pg_dump` la ordena antes que
+   `policy` (`document_link.resource_id … does not reference an existing policy`).
+
+   ```bash
+   D=$(date +%F)
+   pg_dump --data-only --no-owner --no-privileges \
+     -t party -t person_profile -t organization_profile -t organization_membership \
+     -t insurer -t insurer_alias -t policy -t endorsement -t policy_version \
+     -t external_reference -t policy_document_reference -t staging_import_batch \
+     -f ~/del-campo-privado/vs01-base-$D.sql postgres://localhost:5432/delcampo_t0013_dev
+   pg_dump --data-only --no-owner --no-privileges -t document_link \
+     -f ~/del-campo-privado/vs01-vinculos-$D.sql postgres://localhost:5432/delcampo_t0013_dev
+   chmod 600 ~/del-campo-privado/vs01-*-$D.sql
+   sed -i '' "/set_config('search_path', '', false)/d" \
+     ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql
+   grep -c '^COPY public' ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql  # 12 y 1
+   ```
+
+3. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
+   base y vínculos, en ese orden; si algo falla, producción queda como estaba.
+
+   ```bash
+   cat > ~/del-campo-privado/vaciar-vs01.sql <<'SQL'
+   delete from policy_document_reference; delete from external_reference;
+   delete from document_link; delete from policy_version; delete from endorsement;
+   delete from policy; delete from insurer_alias; delete from insurer;
+   delete from organization_membership; delete from person_profile;
+   delete from organization_profile; delete from party; delete from staging_import_batch;
+   SQL
+   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
+     -f ~/del-campo-privado/vaciar-vs01.sql \
+     -f ~/del-campo-privado/vs01-base-$D.sql \
+     -f ~/del-campo-privado/vs01-vinculos-$D.sql > ~/del-campo-privado/refresco.log 2>&1
+   echo "salida: $?"; grep -E '^COPY|ERROR' ~/del-campo-privado/refresco.log | cut -c1-80
+   ```
+
+4. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
+   coincidir con la base local. Después, `unset DATABASE_URL`.

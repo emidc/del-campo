@@ -2,11 +2,12 @@
 id: T-0018
 title: Entregar la app interna y medir la aceptación de VS01
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-20
+closed: 2026-09-28
 blockedBy: [T-0013, T-0016, T-0017]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md]
 decisionRefs: [D-0013, D-0014, D-0019, D-0040, D-0057, D-0058, D-0059, D-0060]
@@ -99,3 +100,26 @@ admisión).
 
 La implementación puede comenzar con fixtures sintéticas mientras avanzan las
 precondiciones de piloto; la medición no comienza sin todas ellas.
+
+## Closure
+
+Cierre: **2026-09-28**. VS01 entregado en producción (Vercel + Supabase, datos del lote
+de Zoho del 16/09) y aceptado según `SLICES/VS01.md` §4, con evidencia en
+`ops/evidence/T-0018-aceptacion.md` y `ops/evidence/T-0018.md` (quinta vuelta).
+
+- **Aceptación según el protocolo:** 20 de 20 pólizas encontradas, 0 coincidencias falsas
+  inequívocas, 20 de 20 vínculos correctos y mediana 40 s contra 92,5 s de la línea base
+  (−56,8 %, 20 pares). Casos congelados antes de medir y verificados con
+  `freeze-cases.mjs --verify`.
+- **Incertidumbre aceptada por el owner:** durante la medición el botón «Abrir documento»
+  sólo estaba habilitado para las 20 pólizas conciliadas y sirvió de pista en C20. La
+  sensibilidad (C20 como no encontrado y fuera de los pares) también cumple: 19 de 20 y
+  −57,1 % con 19 pares, en el límite exacto de los umbrales.
+- **Riesgos aceptados del piloto:** plan gratuito de Vercel y Supabase (D-0062) y
+  `VS01_ADMITTED_ACCOUNTS` sin `sub` fijado (D-0059 lo deja opcional).
+- **Verificación:** las casillas de `## Verification` quedan sin tildar por la regla de
+  contrato congelado (T-0005); su cumplimiento se acredita en la evidencia citada.
+  El ensayo de vuelta a la versión anterior lo ejecutó e informó el owner.
+
+`SLICES/VS01.md` pasa a histórico. La revisión ciega del cierre (R-33) queda pendiente de
+ejecutarse antes del merge; sus hallazgos se registran en la evidencia.

@@ -2,11 +2,12 @@
 id: T-0017
 title: Preparar la vinculación documental de VS01 con conciliación asistida
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-09-20
+closed: 2026-09-28
 blockedBy: [T-0011, T-0013]
 contextRefs: [DOMAIN.md, decisions.yaml, SLICES/VS01.md, ENGINEERING_RULES.md,
               REVIEWS/T-0004-insumos-vs01.md, REVIEWS/T-0004-drive-validation.md]
@@ -102,3 +103,12 @@ y evidencia. Una Policy puede tener a lo sumo un `POLICY_DOCUMENT` verificado; m
 es `AMBIGUOUS`. Cambiar este formato durante la ejecución requiere revisar el contrato.
 
 Los mapeos de conciliación requieren evidencia humana suficiente conforme D-0032.
+
+## Closure
+
+Cierre: **2026-09-28**. La carga repetible del insumo revisado se implementó y verificó
+en `ops/evidence/T-0017.md`. En uso real, el owner verificó y cargó los vínculos de los 20
+casos de aceptación de VS01 (20 filas, 20 cargadas, 0 rechazadas) y producción se
+refrescó desde la base local (`docs/despliegue/vercel-vs01.md` §10). Los links de Zoho de
+las demás pólizas no se cargaron: mostrarlos sin comprobación humana requiere una
+decisión que modifique D-0057.
