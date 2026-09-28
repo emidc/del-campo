@@ -17,6 +17,7 @@ export function motivoDeRechazo(crudo) {
   const nombre = url.pathname.replace(/^\//, '')
   if (!HOSTS_LOCALES.has(url.hostname)) return `el host "${url.hostname}" no es local`
   if (!/_dev$|_test$/.test(nombre)) return `la base "${nombre}" no termina en _dev ni _test`
+  if (nombre.includes('t0013')) return `la base "${nombre}" es la de T-0013, con datos reales (D-0053)`
   return null
 }
 
