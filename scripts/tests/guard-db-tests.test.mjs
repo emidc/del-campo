@@ -17,3 +17,7 @@ test('rechaza bases locales que no son de desarrollo ni de prueba', () => {
   assert.match(motivoDeRechazo('postgres://localhost:5432/postgres'), /no termina/)
   assert.match(motivoDeRechazo('no-es-url'), /no es una URL/)
 })
+
+test('rechaza la base local de T-0013, que tiene datos reales', () => {
+  assert.match(motivoDeRechazo('postgres://localhost:5432/delcampo_t0013_dev'), /T-0013/)
+})
