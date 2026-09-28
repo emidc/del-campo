@@ -255,10 +255,27 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    unset DATABASE_URL
    ```
 
-2. **Nueva copia** con el comando de §9.1 (mismas 13 tablas) y sin la línea del
-   `search_path`.
+2. **Dos copias nuevas.** `document_link` va en un archivo aparte y se carga al final:
+   su validación comprueba que la Policy exista, y `pg_dump` la ordena antes que
+   `policy` (`document_link.resource_id … does not reference an existing policy`).
+
+   ```bash
+   D=$(date +%F)
+   pg_dump --data-only --no-owner --no-privileges \
+     -t party -t person_profile -t organization_profile -t organization_membership \
+     -t insurer -t insurer_alias -t policy -t endorsement -t policy_version \
+     -t external_reference -t policy_document_reference -t staging_import_batch \
+     -f ~/del-campo-privado/vs01-base-$D.sql postgres://localhost:5432/delcampo_t0013_dev
+   pg_dump --data-only --no-owner --no-privileges -t document_link \
+     -f ~/del-campo-privado/vs01-vinculos-$D.sql postgres://localhost:5432/delcampo_t0013_dev
+   chmod 600 ~/del-campo-privado/vs01-*-$D.sql
+   sed -i '' "/set_config('search_path', '', false)/d" \
+     ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql
+   grep -c '^COPY public' ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql  # 12 y 1
+   ```
+
 3. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
-   la copia nueva; si algo falla, producción queda como estaba.
+   base y vínculos, en ese orden; si algo falla, producción queda como estaba.
 
    ```bash
    cat > ~/del-campo-privado/vaciar-vs01.sql <<'SQL'
@@ -272,7 +289,8 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    export DATABASE_URL="${DATABASE_URL}?sslmode=require"
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
      -f ~/del-campo-privado/vaciar-vs01.sql \
-     -f ~/del-campo-privado/vs01-datos-AAAA-MM-DD.sql > ~/del-campo-privado/refresco.log 2>&1
+     -f ~/del-campo-privado/vs01-base-$D.sql \
+     -f ~/del-campo-privado/vs01-vinculos-$D.sql > ~/del-campo-privado/refresco.log 2>&1
    echo "salida: $?"; grep -E '^COPY|ERROR' ~/del-campo-privado/refresco.log | cut -c1-80
    ```
 
