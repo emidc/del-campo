@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-24
+updated: 2026-09-29
 
 decisions:
 
@@ -985,3 +985,35 @@ decisions:
       proveedor, o que el sistema pase a ser la base de trabajo antes de contratar los
       planes pagos.
 
+  - id: D-0063
+    title: Aislamiento por contexto dentro del monolito modular durante Q4 2026
+    status: PROVISIONAL
+    date: 2026-09-29
+    source: >
+      Q4 Operating Plan (Risk OS v1 y Communication OS, sin integración exigida en Q4);
+      revisión de arquitectura del 2026-09-29 con dos opiniones independientes, aprobada
+      por el owner el mismo día; D-0012,
+      D-0014, D-0028, D-0045, D-0062; DOMAIN.md §52 y §76; R-01, R-19, R-25.
+    adr: DECISIONS/0063-aislamiento-por-contexto-q4.md
+    statement: >
+      Dentro del monolito modular de D-0012, el código y los datos se organizan también
+      por contexto de negocio. Durante Q4 2026 hay tres contextos: Broker (packages/* y
+      apps/web actuales, sin moverse), Risk y Communication. Cada uno de los dos últimos
+      es un paquete del workspace bajo contexts/, con dominio, persistencia y aplicación
+      propios. Ningún contexto importa código de otro ni lee o escribe su esquema de
+      Postgres, y R-25 lo hace cumplir por lint desde el primer código de cada contexto.
+      Cada contexto es dueño de su esquema, con sus migraciones. No se crea un núcleo
+      compartido en Q4: una referencia a Party, si se agrega, es opaca y sin clave
+      foránea. El trabajo largo o continuo corre en un worker propio del contexto, cuyo
+      hosting sigue en D-0014. La unidad de despliegue de cada laboratorio la fija su
+      contrato. Ninguno se despliega en el entorno de producción de VS01 ni usa sus
+      credenciales o datos reales sin una autorización propia; D-0062 no se extiende.
+      Colas genéricas, outbox, bus de eventos y adapters genéricos esperan al segundo
+      caso (R-01). Extraer un contexto a un servicio independiente requiere evidencia
+      operacional, organizacional o de clasificación de datos.
+    falsified_by: >
+      Que un laboratorio no pueda cumplir su aceptación de Q4 sin leer o escribir datos de
+      Broker; que mantener los límites genere más retrabajo medible del que evita; que un
+      contexto necesite escalar, desplegarse o recuperarse de forma independiente, o que
+      la clasificación de datos exija una frontera de infraestructura; o la decisión de
+      cierre de Q4 sobre integrar, mantener separado o descartar cada laboratorio.
