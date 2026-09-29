@@ -1,6 +1,6 @@
 # Del Campo — PROJECT.md
 
-**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-20
+**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-29
 
 Este archivo es el índice del programa. Si algo no está acá, está en uno de los documentos que este archivo nombra. Si no está en ninguno, todavía no está decidido.
 
@@ -88,7 +88,10 @@ declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico
 1. Retrospectiva de VS01 y decisión sobre mostrar los links de Zoho sin verificar
    (modificaría D-0057) y sobre una medición confirmatoria sin la pista del botón.
 2. Deuda registrada: funciones de las migraciones sin `search_path` propio.
-3. Laboratorios de Q4 (Risk OS, Communication OS) según el Q4 Operating Plan.
+3. Laboratorios de Q4 (Risk OS, Communication OS) según el Q4 Operating Plan, como
+   contextos aislados dentro del monolito modular (D-0063). Primero el spike de
+   integración de WhatsApp (`T-0020`), después el spike de formatos y modelo de
+   Risk OS (`T-0021`): un spike por vez (§5).
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
 activa antes del primer acceso multi-principal, del portal externo o de un worker o
@@ -105,8 +108,11 @@ Enunciado explícitamente para que no reaparezca por la ventana:
 - Kanban, Gantt, dependency graph visual.
 - Adapters para más de un execution provider. → `D-0016`
 - Diseño del framework de evaluación de modelos.
-- Cualquier código de aplicación de Broker OS.
-- Cotización, emisión, WhatsApp, Gmail, portal externo, agentes con efectos externos.
+- Integración entre Broker, Risk OS y Communication OS durante Q4: ni código ni
+  esquemas compartidos. Se decide al cierre del trimestre. → `D-0063`
+- En WhatsApp, cualquier cosa fuera del alcance de Communication OS: grupos, adjuntos,
+  el número corporativo y conversaciones con clientes sin autorización propia (R-19).
+- Cotización, emisión, Gmail, portal externo, agentes con efectos externos.
 
 ---
 
