@@ -623,7 +623,11 @@ decisions:
       Abrir una carpeta no cuenta como abrir el documento objetivo. La conciliación
       prioriza los 20 casos congelados para la aceptación, sin reemplazar casos
       difíciles. La consulta automática de metadatos se evaluará en una tarea posterior
-      solo si aparece una necesidad concreta.
+      solo si aparece una necesidad concreta. Los enlaces que Zoho informa y nadie
+      comprobó se muestran como un nivel propio, distinto del comprobado, según D-0064.
+    superseded_in_part_by:
+      - clause: sólo se ofrecen como enlace las relaciones comprobadas por una persona
+        by: D-0064
 
   - id: D-0041
     title: InsuranceProduct proviene de un catálogo curado
@@ -1017,3 +1021,33 @@ decisions:
       contexto necesite escalar, desplegarse o recuperarse de forma independiente, o que
       la clasificación de datos exija una frontera de infraestructura; o la decisión de
       cierre de Q4 sobre integrar, mantener separado o descartar cada laboratorio.
+
+  # ── Enlaces de Drive informados por Zoho (Q4, S1) ─────────────────────────
+
+  - id: D-0064
+    title: VS01 muestra los enlaces de Drive de Zoho como un nivel propio, sin comprobar
+    status: ACCEPTED
+    date: 2026-10-01
+    source: >
+      Decisión del owner del 2026-10-01 para dejar operativo VS01; reemplaza en parte
+      D-0057. Evidencia del lote del 16/09: 590 pólizas con enlace a archivo y 61 a
+      carpeta en «URL drive doc poliza»; 264 Contactos y 83 Cuentas con «Drive URL» a
+      carpeta.
+    adr: DECISIONS/0064-enlaces-de-zoho-sin-comprobar.md
+    statement: >
+      Además de los vínculos comprobados por una persona (D-0057), VS01 ofrece los
+      enlaces de Drive que el lote de Zoho informa, como un nivel distinto y rotulado
+      «según Zoho, sin comprobar». El enlace de una Policy proviene de «URL drive doc
+      poliza» y sólo se usa si apunta a un archivo de Drive, que se ofrece como documento
+      de la póliza; si apunta a una carpeta se omite. El enlace de un Contacto o una
+      Cuenta proviene de «Drive URL» y sólo se usa si apunta a una carpeta, que se ofrece
+      como carpeta del cliente; si apunta a un archivo se omite. No se comprueba que el
+      destino exista, abra o sea un PDF: un 404 puede deberse a permisos de la cuenta.
+      Un vínculo comprobado por una persona prevalece siempre sobre uno de Zoho, y
+      comprobar un enlace de Zoho lo promueve a comprobado. Los enlaces de Zoho son una
+      foto del lote que se cargó y se reemplazan completos en cada carga de un lote
+      nuevo; nunca alteran los vínculos comprobados ni los pendientes registrados por una
+      persona. No cuentan como evidencia de verificación ni cambian la aceptación de VS01.
+      El generador lee el lote en la máquina del owner; los agentes de desarrollo
+      trabajan con datos sintéticos (R-19).
+
