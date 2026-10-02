@@ -218,10 +218,10 @@ const createFixture = async (tx: postgres.TransactionSql): Promise<Fixture> => {
   await tx`
     insert into document_link (
       resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
-      document_kind, reconciliation_status
+      document_kind, reconciliation_status, link_level
     ) values (
       'POLICY', ${policyOneId}, 'drive-sintetico-001', 'https://example.invalid/synthetic/001',
-      'FILE', 'POLIZA_SINTETICA', 'SYNCED'
+      'FILE', 'POLIZA_SINTETICA', 'SYNCED', 'HUMAN'
     )
   `
 

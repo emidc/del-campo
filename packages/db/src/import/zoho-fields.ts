@@ -20,6 +20,8 @@ export const CAMPOS_POLIZA = {
   prima: 'Prima',
   premio: 'Premio',
   moneda: 'Moneda',
+  // T-0022 / D-0064: enlace de Drive informado por Zoho para el documento de la póliza.
+  urlDriveDocPoliza: 'URL drive doc poliza',
 } as const
 
 export const CAMPOS_ENDOSO = {
@@ -45,6 +47,8 @@ export const CAMPOS_CONTACTO = {
   otroTelefono: 'Otro teléfono',
   movil: 'Móvil',
   fechaDeNacimiento: 'Fecha de nacimiento',
+  // T-0022 / D-0064: enlace de Drive informado por Zoho para la carpeta del cliente.
+  driveUrl: 'Drive URL',
 } as const
 
 export const CAMPOS_CUENTA = {
@@ -52,4 +56,6 @@ export const CAMPOS_CUENTA = {
   nombreDeCuenta: 'Nombre de Cuenta',
   cuit: 'CUIT',
   telefono: 'Teléfono',
+  // T-0022 / D-0064: enlace de Drive informado por Zoho para la carpeta del cliente.
+  driveUrl: 'Drive URL',
 } as const

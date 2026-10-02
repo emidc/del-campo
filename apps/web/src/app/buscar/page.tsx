@@ -103,6 +103,14 @@ function Resultados({ resultado }: { readonly resultado: SearchOutcome }) {
         {tally.denominator === 1 ? '' : 's'}: {tally.withDocument} con documento,{' '}
         {tally.withClientFolderOnly} sólo con carpeta del cliente, {tally.withPending} con
         pendiente documental y {tally.withoutReference} sin referencia.
+        {tally.withZohoDocument + tally.withZohoClientFolderOnly === 0 ? null : (
+          <>
+            {' '}
+            De esos enlaces, {tally.withZohoDocument} documento
+            {tally.withZohoDocument === 1 ? '' : 's'} y {tally.withZohoClientFolderOnly} carpeta
+            {tally.withZohoClientFolderOnly === 1 ? '' : 's'} vienen de Zoho y nadie los comprobó.
+          </>
+        )}
       </p>
 
       {resultado.candidates.map((candidato) => (

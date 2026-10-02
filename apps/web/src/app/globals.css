@@ -216,6 +216,32 @@ button,
   border-color: var(--borde);
 }
 
+/* T-0022 / D-0064: el nivel "según Zoho" se distingue a simple vista del comprobado.
+   El contorno punteado y el fondo lavado dicen "esto no lo revisó nadie" sin depender
+   del color, que el texto del enlace y el sello "Sin comprobar" ya refuerzan. */
+
+.enlace-documento--zoho {
+  background: transparent;
+  color: var(--acento);
+  border: 1px dashed var(--acento);
+}
+
+.enlace-carpeta--zoho {
+  background: transparent;
+  color: var(--alerta);
+  border: 1px dashed var(--alerta);
+}
+
+.sin-comprobar {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ausente);
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+}
+
 .pendiente {
   font-size: 0.78rem;
   color: var(--alerta);

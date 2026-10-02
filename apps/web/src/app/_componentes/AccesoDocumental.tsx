@@ -1,62 +1,48 @@
 import type { PolicyDocumentAccess } from '@del-campo/api'
 
-const MOTIVO: Record<string, string> = {
-  UNVERIFIED: 'sin comprobar',
-  AMBIGUOUS: 'ambiguo',
-  INACCESSIBLE: 'inaccesible con la cuenta que comprobó',
-  NO_REFERENCE: 'sin referencia en el origen',
-}
+import { describirAcceso } from './acceso-documental'
 
 /**
- * Los tres estados de D-0057, cada uno con su propia etiqueta y su propio aspecto:
+ * Los estados documentales de D-0057, más el nivel «según Zoho» de D-0064, cada uno con
+ * su propia etiqueta y su propio aspecto:
  *
- *  - **Abrir documento** — archivo de la póliza con asociación revisada;
- *  - **Abrir carpeta del cliente** — alternativa sustentada que **conserva** el pendiente
- *    documental; abrirla no cuenta como haber abierto el documento objetivo;
- *  - **ausencia** — no hay referencia sustentada. Se muestra; no se infiere inexistencia.
+ *  - **Abrir documento** — archivo de la póliza con asociación revisada por una persona;
+ *  - **Abrir documento (según Zoho)** — enlace que el lote informa y **nadie comprobó**;
+ *  - **Abrir carpeta del cliente** / **(según Zoho)** — alternativa que **conserva** el
+ *    pendiente documental; abrirla no cuenta como haber abierto el documento objetivo;
+ *  - **ausencia** — no hay referencia. Se muestra; no se infiere inexistencia.
  *
- * Nunca se rotula una carpeta como documento, y el pendiente no desaparece porque haya
- * carpeta. Por eso el pendiente se renderiza al lado del enlace y no en su lugar.
+ * El nivel sin comprobar se marca en el texto del enlace y con un sello aparte, no sólo
+ * con color: la distinción tiene que sobrevivir a quien no distingue colores y a una
+ * captura en blanco y negro. Qué rótulo corresponde lo decide `describirAcceso`, que
+ * está testeada; acá sólo se dibuja.
  */
 export function AccesoDocumental({ acceso }: { readonly acceso: PolicyDocumentAccess }) {
-  const pendiente =
-    acceso.pending === null ? null : (
-      <span className="pendiente">
-        Pendiente documental: {MOTIVO[acceso.pending.reason] ?? acceso.pending.reason}
-      </span>
-    )
+  const descripcion = describirAcceso(acceso)
 
-  if (acceso.document !== null) {
+  if (descripcion.forma === 'AUSENCIA') {
     return (
       <div className="fila-documental">
-        <a className="enlace-documento" href={acceso.document.url} target="_blank" rel="noreferrer">
-          Abrir documento
-        </a>
-        {pendiente}
+        <span className="sin-referencia">Sin referencia documental sustentada</span>
+        {descripcion.pendiente === null ? null : (
+          <span className="pendiente">Pendiente documental: {descripcion.pendiente}</span>
+        )}
       </div>
     )
   }
 
-  if (acceso.clientFolder !== null) {
-    return (
-      <div className="fila-documental">
-        <a className="enlace-carpeta" href={acceso.clientFolder.url} target="_blank" rel="noreferrer">
-          Abrir carpeta del cliente
-        </a>
-        <span className="pendiente">
-          No es el documento de la póliza
-          {acceso.pending === null
-            ? ''
-            : ` · ${MOTIVO[acceso.pending.reason] ?? acceso.pending.reason}`}
-        </span>
-      </div>
-    )
-  }
-
+  const { enlace } = descripcion
   return (
     <div className="fila-documental">
-      <span className="sin-referencia">Sin referencia documental sustentada</span>
-      {pendiente}
+      <a className={enlace.clase} href={enlace.url} target="_blank" rel="noreferrer">
+        {enlace.texto}
+      </a>
+      {enlace.sinComprobar ? <span className="sin-comprobar">Sin comprobar</span> : null}
+      {descripcion.forma === 'CARPETA' ? (
+        <span className="pendiente">{descripcion.aclaracion}</span>
+      ) : descripcion.pendiente === null ? null : (
+        <span className="pendiente">Pendiente documental: {descripcion.pendiente}</span>
+      )}
     </div>
   )
 }

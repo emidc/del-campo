@@ -207,7 +207,7 @@ describe('loadDocumentVerificationInput — T-0017', () => {
       const access = one(await getDocumentAccessForPolicies(tx, [policyId]), 'document access')
       assert.deepEqual(access, {
         policyId,
-        document: { kind: 'FILE', url: 'https://drive.example.invalid/file/001' },
+        document: { kind: 'FILE', url: 'https://drive.example.invalid/file/001', level: 'HUMAN' },
         clientFolder: null,
         pending: null,
       })
@@ -237,7 +237,7 @@ describe('loadDocumentVerificationInput — T-0017', () => {
       assert.deepEqual(access, {
         policyId,
         document: null,
-        clientFolder: { kind: 'FOLDER', url: 'https://drive.example.invalid/folder/002' },
+        clientFolder: { kind: 'FOLDER', url: 'https://drive.example.invalid/folder/002', level: 'HUMAN' },
         pending: null,
       })
     })
@@ -480,7 +480,11 @@ describe('loadDocumentVerificationInput — T-0017', () => {
       await loadDocumentVerificationInput(tx, batch2, secondPath)
 
       const accessOne = one(await getDocumentAccessForPolicies(tx, [policyOneId]), 'document access')
-      assert.deepEqual(accessOne.document, { kind: 'FILE', url: 'https://drive.example.invalid/file/009' })
+      assert.deepEqual(accessOne.document, {
+        kind: 'FILE',
+        url: 'https://drive.example.invalid/file/009',
+        level: 'HUMAN',
+      })
 
       const accessTwo = one(await getDocumentAccessForPolicies(tx, [policyTwoId]), 'document access')
       assert.equal(accessTwo.document, null)
@@ -532,6 +536,9 @@ describe('loadDocumentVerificationInput — T-0017', () => {
         withClientFolderOnly: 1,
         withPending: 1,
         withoutReference: 1,
+        // T-0022: sin lote de Zoho cargado, toda la cobertura es comprobada.
+        withZohoDocument: 0,
+        withZohoClientFolderOnly: 0,
       })
     })
   })
@@ -555,10 +562,10 @@ describe('la consulta se defiende sola de las referencias duplicadas', () => {
           await tx<IdRow[]>`
             insert into document_link (
               resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
-              reconciliation_status
+              reconciliation_status, link_level
             ) values (
               'POLICY', ${policyId}, ${`dup-${sufijo}`},
-              ${`https://drive.example.invalid/file/dup-${sufijo}`}, 'FILE', 'SYNCED'
+              ${`https://drive.example.invalid/file/dup-${sufijo}`}, 'FILE', 'SYNCED', 'HUMAN'
             ) returning id
           `,
           'document_link',

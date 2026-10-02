@@ -2,7 +2,7 @@
 id: T-0022
 title: Ofrecer en VS01 los enlaces de Drive de Zoho como nivel sin comprobar
 kind: FEATURE
-status: READY
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: M
