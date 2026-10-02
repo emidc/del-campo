@@ -59,6 +59,13 @@ describe('classifyDriveUrl — T-0022', () => {
    * `open?id=` sirve para archivo y para carpeta en Drive: no distingue. Adivinar sería
    * arriesgarse a ofrecer una carpeta como documento, que es lo que D-0057 prohíbe.
    */
+  it('un formulario no es el documento de una póliza y se omite', () => {
+    assert.deepEqual(classifyDriveUrl('https://docs.google.com/forms/d/SINTETICO-025/edit'), {
+      ok: false,
+      rejection: 'FORMA_DESCONOCIDA',
+    })
+  })
+
   it('una forma de Drive que no distingue archivo de carpeta se omite', () => {
     for (const url of [
       'https://drive.google.com/open?id=SINTETICO-030',

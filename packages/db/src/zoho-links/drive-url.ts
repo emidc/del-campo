@@ -26,11 +26,15 @@ const HOSTS = new Set(['drive.google.com', 'docs.google.com'])
 const FOLDER_PATH = /^\/drive(?:\/u\/\d+)?\/folders\/[^/]+/
 
 /**
- * Formas de archivo: `/file/d/<id>/...` de Drive y los documentos nativos de Google
- * (`/document/d/`, `/spreadsheets/d/`, `/presentation/d/`) en docs.google.com, que son
- * archivos aunque no vivan bajo `/file/`.
+ * Formas de archivo: `/file/d/<id>/...` de Drive y los tres documentos nativos de Google
+ * (`/document/d/`, `/spreadsheets/d/`, `/presentation/d/`), que son archivos aunque no
+ * vivan bajo `/file/`.
+ *
+ * `/forms/d/` queda deliberadamente afuera: un formulario no es el documento de una
+ * póliza, y aceptarlo acá lo ofrecería como tal. Si alguna fila del lote trae uno, cae
+ * en FORMA_DESCONOCIDA y se omite, que es el resultado correcto.
  */
-const FILE_PATH = /^\/(?:file|document|spreadsheets|presentation|forms)\/d\/[^/]+/
+const FILE_PATH = /^\/(?:file|document|spreadsheets|presentation)\/d\/[^/]+/
 
 export const classifyDriveUrl = (raw: string): DriveClassification => {
   const value = raw.trim()

@@ -377,6 +377,61 @@ describe('loadZohoLinks — T-0022 / D-0064', () => {
     })
   })
 
+  it('una carpeta de cliente comprobada prevalece sobre la de Zoho de la misma Party', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 D2')
+      const partyId = await createOrganization(tx, 'Cliente Sintetico T0022 D2')
+      await linkPartyToZoho(tx, 'Contactos', 'Z-C-035', partyId)
+      const policyId = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-035', 'Z-P-035', partyId)
+      // Carpeta comprobada por una persona, como la deja T-0017 para CLIENT_FOLDER.
+      await tx`
+        insert into document_link (
+          resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
+          reconciliation_status, link_level
+        ) values (
+          'PARTY', ${partyId}, ${CARPETA('comprobada')}, ${CARPETA('comprobada')}, 'FOLDER',
+          'SYNCED', 'HUMAN'
+        )
+      `
+
+      await loadZohoLinks(tx, escribirLote({ contactos: [['Z-C-035', CARPETA('zoho')]] }))
+
+      const acceso = one(await getDocumentAccessForPolicies(tx, [policyId]), 'acceso')
+      assert.deepEqual(acceso.clientFolder, {
+        kind: 'FOLDER',
+        url: CARPETA('comprobada'),
+        level: 'HUMAN',
+      })
+    })
+  })
+
+  it('una sola carpeta de Zoho sirve a todas las pólizas del mismo cliente', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 D3')
+      const partyId = await createOrganization(tx, 'Cliente Sintetico T0022 D3')
+      await linkPartyToZoho(tx, 'Cuentas', 'Z-A-036', partyId)
+      const unaPoliza = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-036', 'Z-P-036', partyId)
+      const otraPoliza = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-037', 'Z-P-037', partyId)
+
+      const resultado = await loadZohoLinks(
+        tx,
+        escribirLote({ cuentas: [['Z-A-036', CARPETA('compartida')]] }),
+      )
+      // Un enlace escrito, dos pólizas que lo ofrecen: la carpeta es del cliente, no de
+      // la póliza (D-0057, DOMAIN.md §47-49).
+      assert.equal(resultado.insertados.party, 1)
+
+      for (const policyId of [unaPoliza, otraPoliza]) {
+        const acceso = one(await getDocumentAccessForPolicies(tx, [policyId]), 'acceso')
+        assert.deepEqual(acceso.clientFolder, {
+          kind: 'FOLDER',
+          url: CARPETA('compartida'),
+          level: 'ZOHO_UNVERIFIED',
+        })
+      }
+    })
+  })
+
   it('un pendiente registrado por una persona sigue visible aunque Zoho ofrezca enlace', async () => {
     await inRollbackTransaction(async (tx) => {
       const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 E')
@@ -393,6 +448,94 @@ describe('loadZohoLinks — T-0022 / D-0064', () => {
         clientFolder: null,
         pending: { reason: 'INACCESSIBLE' },
       })
+    })
+  })
+
+  /**
+   * El caso que la revisión ciega de T-0022 encontró: con DOS relaciones humanas para la
+   * misma Policy existe material comprobado, y D-0057 reserva esa situación para el
+   * pendiente ambiguo. Ofrecer ahí el enlace de Zoho sería presentar como documento algo
+   * que nadie comprobó, en una Policy donde una persona sí trabajó.
+   */
+  it('con el vínculo humano ambiguo no se ofrece el enlace de Zoho', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 K')
+      const holderId = await createOrganization(tx, 'Cliente Sintetico T0022 K')
+      const policyId = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-100', 'Z-P-100', holderId)
+      await seedHumanPolicyDocument(tx, policyId, ARCHIVO('comprobado-a'))
+      await seedHumanPolicyDocument(tx, policyId, ARCHIVO('comprobado-b'))
+
+      await loadZohoLinks(tx, escribirLote({ polizas: [['Z-P-100', ARCHIVO('zoho-no-ofrecido')]] }))
+
+      const acceso = one(await getDocumentAccessForPolicies(tx, [policyId]), 'acceso')
+      assert.equal(acceso.document, null)
+      assert.deepEqual(acceso.pending, { reason: 'AMBIGUOUS' })
+    })
+  })
+
+  it('con la carpeta humana ambigua tampoco se ofrece la de Zoho', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 L')
+      const partyId = await createOrganization(tx, 'Cliente Sintetico T0022 L')
+      await linkPartyToZoho(tx, 'Contactos', 'Z-C-110', partyId)
+      const policyId = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-110', 'Z-P-110', partyId)
+      for (const sufijo of ['a', 'b']) {
+        const url = CARPETA('humana-' + sufijo)
+        await tx`
+          insert into document_link (
+            resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
+            reconciliation_status, link_level
+          ) values (
+            'PARTY', ${partyId}, ${url}, ${url}, 'FOLDER', 'SYNCED', 'HUMAN'
+          )
+        `
+      }
+
+      await loadZohoLinks(tx, escribirLote({ contactos: [['Z-C-110', CARPETA('zoho-no-ofrecida')]] }))
+
+      const acceso = one(await getDocumentAccessForPolicies(tx, [policyId]), 'acceso')
+      assert.equal(acceso.clientFolder, null)
+      assert.deepEqual(acceso.pending, { reason: 'AMBIGUOUS' })
+    })
+  })
+
+  it('una fila del lote sin "ID de registro" se cuenta aparte del fuera de scope', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const resultado = await loadZohoLinks(
+        tx,
+        escribirLote({
+          polizas: [
+            ['', ARCHIVO('120')],
+            ['Z-P-NO-IMPORTADA', ARCHIVO('121')],
+          ],
+        }),
+      )
+      assert.equal(resultado.polizas.omitidos.SIN_ID_DE_ORIGEN, 1)
+      assert.equal(resultado.polizas.omitidos.FUERA_DEL_SCOPE, 1)
+      assert.equal(resultado.insertados.policy, 0)
+    })
+  })
+
+  /**
+   * Única vía por la que un enlace podría llegar a la Policy equivocada: un
+   * `source_event_id` que resuelve a más de una Policy. No se elige ninguna.
+   */
+  it('un source_event_id que resuelve a dos Policies no recibe enlace', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const insurerId = await createInsurer(tx, 'Aseguradora Sintetica T0022 M')
+      const holderId = await createOrganization(tx, 'Cliente Sintetico T0022 M')
+      const una = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-130', 'Z-P-130', holderId)
+      const otra = await createPolicyFromZoho(tx, insurerId, 'POL-T0022-131', 'Z-P-130', holderId)
+
+      const resultado = await loadZohoLinks(
+        tx,
+        escribirLote({ polizas: [['Z-P-130', ARCHIVO('130')]] }),
+      )
+      assert.equal(resultado.polizas.omitidos.FUERA_DEL_SCOPE, 1)
+      assert.equal(resultado.insertados.policy, 0)
+      for (const policyId of [una, otra]) {
+        assert.equal(one(await getDocumentAccessForPolicies(tx, [policyId]), 'acceso').document, null)
+      }
     })
   })
 

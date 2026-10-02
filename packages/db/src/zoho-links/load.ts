@@ -31,6 +31,12 @@ export type SkipReason =
   | 'ARCHIVO_EN_CLIENTE'
   /** El registro de origen no está importado en Broker OS (fuera del scope de T-0013). */
   | 'FUERA_DEL_SCOPE'
+  /**
+   * La fila del lote no trae «ID de registro». Separado de FUERA_DEL_SCOPE a propósito:
+   * un registro no importado es esperable y masivo, una fila sin id es un defecto del
+   * export que conviene ver. Mezclados, el conteo agregado no permite distinguirlos.
+   */
+  | 'SIN_ID_DE_ORIGEN'
   /** Dos URLs distintas para el mismo recurso: no se elige ninguna (D-0057). */
   | 'AMBIGUO'
 
@@ -57,6 +63,7 @@ const SKIP_REASONS: readonly SkipReason[] = [
   'CARPETA_EN_POLIZA',
   'ARCHIVO_EN_CLIENTE',
   'FUERA_DEL_SCOPE',
+  'SIN_ID_DE_ORIGEN',
   'AMBIGUO',
 ]
 
@@ -199,7 +206,11 @@ const recorrerModulo = async (
       continue
     }
 
-    const resourceId = sourceId === '' ? undefined : spec.resolver.get(sourceId)
+    if (sourceId === '') {
+      tally.skip('SIN_ID_DE_ORIGEN')
+      continue
+    }
+    const resourceId = spec.resolver.get(sourceId)
     if (resourceId === undefined) {
       tally.skip('FUERA_DEL_SCOPE')
       continue

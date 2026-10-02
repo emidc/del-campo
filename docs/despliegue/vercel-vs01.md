@@ -297,7 +297,25 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    grep -c '^COPY public' ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql  # 12 y 1
    ```
 
-4. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
+4. **Migraciones pendientes en producción, ANTES de la carga.** El dump del paso 3 trae
+   todas las columnas que tiene la base local, así que una columna que exista en local y
+   no en producción hace fallar el `COPY` y, por `--single-transaction`, revierte el
+   refresco completo. Hoy la pendiente es `0005_zoho_document_links.sql`, que agrega
+   `document_link.link_level`: sin este paso, el refresco aborta con
+   `column "link_level" of relation "document_link" does not exist`.
+
+   Es una migración en producción: requiere aprobación humana (R-13).
+
+   ```bash
+   cd ~/repos/del-campo
+   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+   pnpm db:migrate
+   ```
+
+   Si no imprime ninguna migración nueva, producción ya estaba al día y seguís.
+
+5. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
    base y vínculos, en ese orden; si algo falla, producción queda como estaba.
 
    ```bash
@@ -308,8 +326,6 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    delete from organization_membership; delete from person_profile;
    delete from organization_profile; delete from party; delete from staging_import_batch;
    SQL
-   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
-   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
      -f ~/del-campo-privado/vaciar-vs01.sql \
      -f ~/del-campo-privado/vs01-base-$D.sql \
@@ -317,11 +333,11 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    echo "salida: $?"; grep -E '^COPY|ERROR' ~/del-campo-privado/refresco.log | cut -c1-80
    ```
 
-5. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
+6. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
    coincidir con la base local. Después, `unset DATABASE_URL`.
 
    El nivel viaja dentro de `document_link` (columna `link_level`), así que el dump y el
-   vaciado de los pasos 3 y 4 ya lo cubren: no hay tabla nueva que sumar. Conviene
+   vaciado de los pasos 3 y 5 ya lo cubren: no hay tabla nueva que sumar. Conviene
    comprobar que el desglose coincida con el de local:
 
    ```bash

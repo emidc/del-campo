@@ -118,22 +118,29 @@ export const getDocumentAccessForPolicies = async (
     select
       tp.policy_id,
       -- Precedencia de D-0064: un vínculo comprobado por una persona prevalece siempre.
-      -- El de Zoho sólo aparece cuando no hay humano que ofrecer, y nunca lo reemplaza.
-      coalesce(
-        case when document.candidatos = 1 then document.drive_url end,
-        zoho_document.drive_url
-      ) as document_url,
+      -- "Siempre" incluye el caso ambiguo: si una persona registró DOS relaciones para
+      -- la misma Policy, existe material comprobado y la respuesta es el pendiente
+      -- ambiguo que D-0057 reserva, no un enlace que nadie comprobó. Por eso la
+      -- condición es "candidatos is null" (no hay humano en absoluto) y no "no hay
+      -- exactamente uno": negando la igualdad, la ambigüedad humana caía en el
+      -- enlace de Zoho y lo ofrecía como documento de la póliza.
+      case
+        when document.candidatos = 1 then document.drive_url
+        when document.candidatos is null then zoho_document.drive_url
+      end as document_url,
       case
         when document.candidatos = 1 then 'HUMAN'
-        when zoho_document.drive_url is not null then 'ZOHO_UNVERIFIED'
+        when document.candidatos is null and zoho_document.drive_url is not null
+          then 'ZOHO_UNVERIFIED'
       end as document_level,
-      coalesce(
-        case when client_folder.candidatos = 1 then client_folder.drive_url end,
-        zoho_client_folder.drive_url
-      ) as client_folder_url,
+      case
+        when client_folder.candidatos = 1 then client_folder.drive_url
+        when client_folder.candidatos is null then zoho_client_folder.drive_url
+      end as client_folder_url,
       case
         when client_folder.candidatos = 1 then 'HUMAN'
-        when zoho_client_folder.drive_url is not null then 'ZOHO_UNVERIFIED'
+        when client_folder.candidatos is null and zoho_client_folder.drive_url is not null
+          then 'ZOHO_UNVERIFIED'
       end as client_folder_level,
       coalesce(
         pending.unresolved_reason,
