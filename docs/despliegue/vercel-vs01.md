@@ -189,6 +189,10 @@ Supabase exportada**; las pruebas abortan si lo detectan.
    ya no molesta, porque desde `0006_function_search_path.sql` las funciones de
    validación fijan el suyo (T-0023).
 
+   Este volcado único sirvió para la primera carga, con `document_link` vacía. Con
+   vínculos cargados, `pg_dump` ordena `document_link` antes que `policy` y la carga
+   aborta: para repetir la carga, volcá `document_link` aparte como en §10.3.
+
    ```bash
    grep -o '^COPY public\.[a-z_]*' ~/del-campo-privado/vs01-datos-*.sql | sort   # 13 tablas
    ```

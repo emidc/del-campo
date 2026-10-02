@@ -278,12 +278,18 @@ interface FilaFuncion {
   readonly cuerpo: string
 }
 
-/** Funciones de `public` que no pertenecen a una extensión (btree_gist vive en public). */
+/**
+ * Funciones de cualquier esquema propio —`public` hoy, los de D-0063 cuando existan— que
+ * no pertenecen a una extensión (btree_gist vive en public). Quedan fuera sólo los
+ * esquemas del sistema.
+ */
 const funcionesPropias = async (tx: postgres.TransactionSql | postgres.Sql): Promise<FilaFuncion[]> =>
   tx<FilaFuncion[]>`
     select p.oid::regprocedure::text as firma, p.proconfig as config, md5(p.prosrc) as cuerpo
       from pg_catalog.pg_proc p
-     where p.pronamespace = 'public'::regnamespace
+      join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+     where n.nspname <> 'information_schema'
+       and n.nspname not like 'pg\\_%'
        and not exists (
          select 1 from pg_catalog.pg_depend d
           where d.classid = 'pg_catalog.pg_proc'::regclass
@@ -339,8 +345,8 @@ describe('T-0023 — triggers con search_path vacío se comportan como con el de
   })
 })
 
-describe('T-0023 — catálogo: toda función propia de public fija su search_path', () => {
-  it('ninguna función de public creada por las migraciones carece de search_path en proconfig', async () => {
+describe('T-0023 — catálogo: toda función propia fija su search_path', () => {
+  it('ninguna función creada por las migraciones carece de search_path en proconfig', async () => {
     const filas = await funcionesPropias(sql)
     assert.ok(filas.length >= 14, `se esperaban al menos las 14 funciones de 0001–0004, hay ${String(filas.length)}`)
     assert.deepEqual(sinSearchPath(filas), [])
@@ -360,6 +366,18 @@ describe('T-0023 — catálogo: toda función propia de public fija su search_pa
       return sinSearchPath(await funcionesPropias(tx))
     })
     assert.deepEqual(faltantes, ['party_id_is_immutable()'])
+  })
+
+  it('causalidad: también detecta una función sin SET en un esquema que no es public', async () => {
+    const faltantes = await enTransaccionDescartable(async (tx) => {
+      await tx`create schema t0023_contexto`
+      await tx`
+        create function t0023_contexto.validar() returns trigger
+        language plpgsql as $$ begin return new; end; $$
+      `
+      return sinSearchPath(await funcionesPropias(tx))
+    })
+    assert.deepEqual(faltantes, ['t0023_contexto.validar()'])
   })
 
   it('aplicar, revertir y volver a aplicar deja configuración y cuerpos iguales', async () => {

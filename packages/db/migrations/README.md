@@ -24,7 +24,8 @@ El razonamiento completo está en `DECISIONS/0045-schema-en-migraciones-sql.md`.
 
 ## Funciones: `search_path` fijado
 
-Toda función que una migración cree en `public` declara su `search_path`:
+Toda función que una migración cree —en `public` o en cualquier otro esquema propio,
+como los de `D-0063`— declara su `search_path`:
 
 ```sql
 create function nombre() returns trigger
@@ -43,5 +44,5 @@ que una tabla temporal homónima no gane sobre la de `public`. → T-0023
 `create or replace function` reemplaza también la configuración: una migración que
 redefine una función existente repite la cláusula. Si la olvida,
 `src/function-search-path.integration.test.ts` falla en `pnpm check`, porque recorre
-`pg_proc` y exige `search_path` en toda función de `public` que no pertenezca a una
-extensión.
+`pg_proc` y exige `search_path` en toda función de un esquema propio que no pertenezca
+a una extensión. Una función de otro esquema lista el suyo y después `public` si lo usa.

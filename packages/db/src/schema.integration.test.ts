@@ -942,38 +942,17 @@ const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> =
 // Todo corre contra filas reales, commiteadas — no hay rollback posible acá porque
 // el punto es observar el efecto de dos transacciones que sí confirman.
 
-const FUNCION_CON_LOCK = `
-create or replace function prevent_party_merge_cycle() returns trigger
-language plpgsql as $f$
-declare
-  cursor_id uuid;
-  visited uuid[] := array[new.id];
-begin
-  if new.merged_into_party_id is null then
-    return new;
-  end if;
-
-  perform pg_advisory_xact_lock(7346501);
-
-  cursor_id := new.merged_into_party_id;
-  loop
-    if cursor_id = any (visited) then
-      raise exception
-        'merge cycle detected: party % cannot merge into % without forming a cycle (INV-003)',
-        new.id, new.merged_into_party_id;
-    end if;
-    visited := visited || cursor_id;
-
-    select merged_into_party_id into cursor_id from party where id = cursor_id;
-    if cursor_id is null then
-      exit;
-    end if;
-  end loop;
-
-  return new;
-end;
-$f$;
-`
+/**
+ * Definición vigente de la función real, tal como la dejaron las migraciones —cuerpo y
+ * `SET search_path` de 0006 incluidos—, para restaurarla después de la prueba sin lock.
+ * Una copia escrita a mano acá diverge en cuanto una migración cambia la función.
+ */
+const definicionVigente = async (): Promise<string> => {
+  const filas = await sql<{ definicion: string }[]>`
+    select pg_get_functiondef('prevent_party_merge_cycle()'::regprocedure) as definicion
+  `
+  return unaFila(filas, 'definición de prevent_party_merge_cycle').definicion
+}
 
 const FUNCION_SIN_LOCK_CON_SLEEP = `
 create or replace function prevent_party_merge_cycle() returns trigger
@@ -1017,6 +996,7 @@ const desmergearYLimpiar = async (a: string, b: string): Promise<void> => {
 
 describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultáneas', () => {
   it('sin el advisory lock, dos merges concurrentes A→B y B→A confirman un ciclo', async () => {
+    const original = await definicionVigente()
     await sql.unsafe(FUNCION_SIN_LOCK_CON_SLEEP)
 
     const filasA = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
@@ -1059,7 +1039,7 @@ describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultánea
       await clienteA.end()
       await clienteB.end()
       await desmergearYLimpiar(a, b)
-      await sql.unsafe(FUNCION_CON_LOCK)
+      await sql.unsafe(original)
     }
   })
 
