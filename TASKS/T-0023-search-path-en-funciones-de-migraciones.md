@@ -2,7 +2,7 @@
 id: T-0023
 title: Fijar el search_path de las funciones de las migraciones
 kind: MIGRATION
-status: READY
+status: DONE
 workstream: BOS
 riskClass: LOW
 size: S
@@ -84,3 +84,24 @@ primero no reescribe los cuerpos y cubre funciones que se agreguen con el mismo 
 el segundo no cambia el plan de ejecución. Decide el implementador y lo justifica en la
 evidencia. Si se elige `SET search_path`, incluir `pg_temp` al final para no resolver
 objetos temporales por delante de `public`.
+
+## Closure
+
+Cierre: **2026-10-02**. Migración `0006_function_search_path.sql` con su reversa: las 14
+funciones que las migraciones crean en `public` fijan `search_path = public, pg_temp`
+con `ALTER FUNCTION … SET`, sin tocar sus cuerpos. Evidencia en `ops/evidence/T-0023.md`
+y revisión ciega (R-33) en `REVIEWS/T-0023-search-path-en-funciones.md`.
+
+- **Pruebas:** `pnpm check` en verde (197). Siete triggers de 0001, 0002 y 0004 dan el
+  mismo resultado con `search_path` vacío y por defecto; la prueba de catálogo cubre todo
+  esquema propio, no sólo `public`, para que los contextos de D-0063 nazcan con la
+  convención.
+- **Producción:** aplicada por el owner; 14 de 14 funciones con `search_path` fijado.
+  También aplicada en `delcampo_t0013_dev`.
+- **Ficha:** §9 y §10 ya no piden quitar la línea del `search_path` de los volcados.
+- **Prueba existente modificada (R-13):** la de concurrencia BR-001 de
+  `schema.integration.test.ts` restaura ahora la definición vigente de la función en
+  lugar de una copia escrita a mano; sus aserciones no cambian. Aprobada por el owner con
+  el PR.
+- **Verificación:** las casillas de `## Verification` quedan sin tildar por la regla de
+  contrato congelado (T-0005); su cumplimiento se acredita en la evidencia citada.

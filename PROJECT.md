@@ -89,8 +89,8 @@ declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico
    ya se muestran como nivel sin comprobar (D-0064, `T-0022`, cerrada el 02/10/2026), y
    producción queda como foto del 16/09 sin refresco periódico hasta que Broker OS esté
    operativo: la pista del botón de la aceptación dejó de ser comparable.
-2. Deuda: funciones de las migraciones sin `search_path` propio (`T-0023`), antes del
-   primer contexto de D-0063.
+2. ~~Deuda: funciones de las migraciones sin `search_path` propio~~. Saldada por
+   `T-0023` el 02/10/2026, también en producción.
 3. Laboratorios de Q4 (Risk OS, Communication OS) según el Q4 Operating Plan, como
    contextos aislados dentro del monolito modular (D-0063). Primero el spike de
    integración de WhatsApp (`T-0020`), después el spike de formatos y modelo de
