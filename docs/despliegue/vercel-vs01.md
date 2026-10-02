@@ -236,9 +236,10 @@ Supabase exportada**; las pruebas abortan si lo detectan.
 
 6. **Vínculos documentales.** El lote real no trae referencias documentales asociadas
    (`document_link` y `policy_document_reference` en 0): T-0013 no importa los links de
-   Zoho y D-0057 exige comprobación humana. Hasta cargar vínculos verificados, VS01
-   muestra las pólizas sin documento. La CLI de T-0017 sólo escribe en la base local de
-   T-0013 (D-0053); a producción llegan con el refresco de §10.
+   Zoho y D-0057 exige comprobación humana. Los vínculos comprobados se cargan con la
+   CLI de T-0017 y los enlaces que Zoho informa, sin comprobar, con la de T-0022
+   (§10.1 y §10.2). Ambas escriben sólo en la base local de T-0013 (D-0053); a
+   producción llegan con el refresco de §10.
 
 ## 10. Refrescar producción desde la base local
 
@@ -252,10 +253,32 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    cd ~/repos/del-campo
    export DATABASE_URL=postgres://localhost:5432/delcampo_t0013_dev
    node packages/db/src/document-linking/cli.ts load <ruta>/vinculos.csv
+   ```
+
+2. **Regenerar el nivel «según Zoho»** (T-0022 / D-0064). Lee los módulos Pólizas,
+   Contactos y Cuentas del lote y **reemplaza por completo** la foto anterior: agrega,
+   cambia y quita enlaces de Zoho sin tocar un solo vínculo comprobado ni un pendiente
+   registrado por una persona. Es idempotente: correrla dos veces sobre el mismo lote
+   deja la base igual. Corre entera en una transacción.
+
+   Antes, aplicá la migración `0005_zoho_document_links.sql` en la base local si todavía
+   no está (`pnpm db:migrate` con el mismo `DATABASE_URL`).
+
+   ```bash
+   node packages/db/src/zoho-links/cli.ts load ~/repos/del-campo/data/zoho-export-2026-09-16
    unset DATABASE_URL
    ```
 
-2. **Dos copias nuevas.** `document_link` va en un archivo aparte y se carga al final:
+   La salida es sólo conteos: filas leídas, ofrecidos y omitidos por motivo
+   (`CARPETA_EN_POLIZA`, `ARCHIVO_EN_CLIENTE`, `FUERA_DEL_SCOPE`, `VACIA`, …). No imprime
+   ninguna URL ni ningún id de registro, así que se puede pegar entera en la evidencia
+   (R-19). Los ofrecidos van a ser bastante menos que los 590 / 264 / 83 del export
+   completo: sólo cuentan las pólizas y los clientes que T-0013 importó.
+
+   Para **quitar** el nivel de Zoho sin tocar lo comprobado, corré la carga sobre un lote
+   vacío, o `delete from document_link where link_level = 'ZOHO_UNVERIFIED'`.
+
+3. **Dos copias nuevas.** `document_link` va en un archivo aparte y se carga al final:
    su validación comprueba que la Policy exista, y `pg_dump` la ordena antes que
    `policy` (`document_link.resource_id … does not reference an existing policy`).
 
@@ -274,7 +297,25 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    grep -c '^COPY public' ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql  # 12 y 1
    ```
 
-3. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
+4. **Migraciones pendientes en producción, ANTES de la carga.** El dump del paso 3 trae
+   todas las columnas que tiene la base local, así que una columna que exista en local y
+   no en producción hace fallar el `COPY` y, por `--single-transaction`, revierte el
+   refresco completo. Hoy la pendiente es `0005_zoho_document_links.sql`, que agrega
+   `document_link.link_level`: sin este paso, el refresco aborta con
+   `column "link_level" of relation "document_link" does not exist`.
+
+   Es una migración en producción: requiere aprobación humana (R-13).
+
+   ```bash
+   cd ~/repos/del-campo
+   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
+   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
+   pnpm db:migrate
+   ```
+
+   Si no imprime ninguna migración nueva, producción ya estaba al día y seguís.
+
+5. **Reemplazo en producción en una sola transacción**: borra las tablas de VS01 y carga
    base y vínculos, en ese orden; si algo falla, producción queda como estaba.
 
    ```bash
@@ -285,8 +326,6 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    delete from organization_membership; delete from person_profile;
    delete from organization_profile; delete from party; delete from staging_import_batch;
    SQL
-   read -rs "DATABASE_URL?Session pooler de PRODUCCIÓN: "
-   export DATABASE_URL="${DATABASE_URL}?sslmode=require"
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
      -f ~/del-campo-privado/vaciar-vs01.sql \
      -f ~/del-campo-privado/vs01-base-$D.sql \
@@ -294,5 +333,18 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    echo "salida: $?"; grep -E '^COPY|ERROR' ~/del-campo-privado/refresco.log | cut -c1-80
    ```
 
-4. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
+6. **Conteos** como en §9.4, más `document_link` y `policy_document_reference`, que deben
    coincidir con la base local. Después, `unset DATABASE_URL`.
+
+   El nivel viaja dentro de `document_link` (columna `link_level`), así que el dump y el
+   vaciado de los pasos 3 y 5 ya lo cubren: no hay tabla nueva que sumar. Conviene
+   comprobar que el desglose coincida con el de local:
+
+   ```bash
+   psql "$DATABASE_URL" -tAc "select link_level, count(*) from document_link group by 1 order by 1"
+   ```
+
+   Esperado: una fila `HUMAN` con los vínculos comprobados y una `ZOHO_UNVERIFIED` con lo
+   que informó el paso 2. En producción, la pantalla rotula los segundos «según Zoho» con
+   el sello «sin comprobar»: si aparecen sin ese rótulo, el despliegue quedó atrás del
+   código y hay que redesplegar antes de que alguien los lea como comprobados.

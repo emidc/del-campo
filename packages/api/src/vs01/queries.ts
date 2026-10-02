@@ -34,6 +34,9 @@ export interface DocumentTally {
   readonly withClientFolderOnly: number
   readonly withPending: number
   readonly withoutReference: number
+  /** Subconjuntos de los dos primeros: cobertura que viene de Zoho y nadie comprobó (D-0064). */
+  readonly withZohoDocument: number
+  readonly withZohoClientFolderOnly: number
 }
 
 export interface SearchOutcome {

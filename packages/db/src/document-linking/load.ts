@@ -158,8 +158,11 @@ const projectPolicyDocument = async (sql: Ejecutor, input: UpsertedInput): Promi
     let driveLinkId = previous?.drive_link_id ?? null
     if (driveLinkId === null) {
       const [link] = await sql<{ id: string }[]>`
-        insert into document_link (resource_type, resource_id, drive_file_id, drive_url, drive_item_type, reconciliation_status)
-        values ('POLICY', ${input.policyId}, ${input.targetUrl}, ${input.targetUrl}, ${input.targetKind}, 'SYNCED')
+        insert into document_link (
+          resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
+          reconciliation_status, link_level
+        )
+        values ('POLICY', ${input.policyId}, ${input.targetUrl}, ${input.targetUrl}, ${input.targetKind}, 'SYNCED', 'HUMAN')
         returning id
       `
       driveLinkId = link?.id ?? null
@@ -248,6 +251,7 @@ const projectClientFolder = async (sql: Ejecutor, input: UpsertedInput): Promise
   const existing = await sql<{ id: string }[]>`
     select id from document_link
     where resource_type = 'PARTY' and resource_id = ${clientPartyId} and drive_file_id = ${input.targetUrl}
+      and link_level = 'HUMAN'
   `
   if (existing[0] !== undefined) {
     await sql`
@@ -259,8 +263,11 @@ const projectClientFolder = async (sql: Ejecutor, input: UpsertedInput): Promise
   }
 
   await sql`
-    insert into document_link (resource_type, resource_id, drive_file_id, drive_url, drive_item_type, reconciliation_status)
-    values ('PARTY', ${clientPartyId}, ${input.targetUrl}, ${input.targetUrl}, ${input.targetKind}, 'SYNCED')
+    insert into document_link (
+      resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
+      reconciliation_status, link_level
+    )
+    values ('PARTY', ${clientPartyId}, ${input.targetUrl}, ${input.targetUrl}, ${input.targetKind}, 'SYNCED', 'HUMAN')
   `
 }
 

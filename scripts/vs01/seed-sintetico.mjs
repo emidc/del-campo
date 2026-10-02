@@ -127,11 +127,11 @@ const crearPoliza = async (tx, { insurerId, numero, tomador, renovadaDe = null, 
 const vincularDocumento = async (tx, policyId, nombreArchivo) => {
   const link = uno(await tx`insert into document_link (
       resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
-      document_kind, reconciliation_status, last_seen_at
+      document_kind, reconciliation_status, last_seen_at, link_level
     ) values (
       'POLICY', ${policyId}, ${`sintetico-${nombreArchivo}`},
       ${`${DRIVE}/file/d/sintetico-${nombreArchivo}/view`}, 'FILE',
-      'POLIZA', 'SYNCED', now()
+      'POLIZA', 'SYNCED', now(), 'HUMAN'
     ) returning id`)
 
   const referencia = uno(await tx`insert into external_reference (
@@ -150,11 +150,11 @@ const vincularDocumento = async (tx, policyId, nombreArchivo) => {
 const vincularCarpetaDelCliente = async (tx, partyId, slug) => {
   await tx`insert into document_link (
       resource_type, resource_id, drive_file_id, drive_url, drive_item_type,
-      document_kind, reconciliation_status, last_seen_at
+      document_kind, reconciliation_status, last_seen_at, link_level
     ) values (
       'PARTY', ${partyId}, ${`sintetico-carpeta-${slug}`},
       ${`${DRIVE}/drive/folders/sintetico-carpeta-${slug}`}, 'FOLDER',
-      null, 'SYNCED', now()
+      null, 'SYNCED', now(), 'HUMAN'
     )`
 }
 

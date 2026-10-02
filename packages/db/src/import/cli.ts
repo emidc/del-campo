@@ -12,6 +12,7 @@ import { join, resolve } from 'node:path'
 
 import { importarCatalogoAseguradoras, RUTA_CATALOGO_APROBADO } from './catalog.ts'
 import { conectar } from './db.ts'
+import { rutaDeModulo } from './lote.ts'
 import { importarContactos, importarCuentas, importarMembresias } from './parties.ts'
 import { importarEndosos, importarPolizas, importarRenovaciones } from './policies.ts'
 import { generarReporte } from './report.ts'
@@ -57,30 +58,10 @@ const verificarManifiesto = async (): Promise<void> => {
 }
 
 const RUTAS_MODULO = {
-  polizas: resolve(
-    DIRECTORIO_LOTE,
-    'raw',
-    '025738fc637310e0d368afd49868375c1cce73c263cadf9821055d59dd47bc80',
-    '0001.csv',
-  ),
-  endosos: resolve(
-    DIRECTORIO_LOTE,
-    'raw',
-    '8ca87d205690ef89676c3a21d365d507335fcfe52ccd78206efeba28d971ca2c',
-    '0001.csv',
-  ),
-  contactos: resolve(
-    DIRECTORIO_LOTE,
-    'raw',
-    'fef574c156c24cd58a242fe77322b69386977b3c59522969397941732dae5501',
-    '0001.csv',
-  ),
-  cuentas: resolve(
-    DIRECTORIO_LOTE,
-    'raw',
-    'e2c4246d5b98ca59ecc01dac6375f73212a0c308d00b8c7c8e5920054993011e',
-    '0001.csv',
-  ),
+  polizas: rutaDeModulo(DIRECTORIO_LOTE, 'polizas'),
+  endosos: rutaDeModulo(DIRECTORIO_LOTE, 'endosos'),
+  contactos: rutaDeModulo(DIRECTORIO_LOTE, 'contactos'),
+  cuentas: rutaDeModulo(DIRECTORIO_LOTE, 'cuentas'),
 } as const
 
 const cargarStaging = async (): Promise<void> => {

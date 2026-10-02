@@ -465,8 +465,8 @@ describe('negativos — la base rechaza, no la aplicación', () => {
 
       await tx`
         insert into document_link (
-          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
-        ) values ('POLICY', ${policyId}, 'drive-file-1', 'FILE', 'SYNCED')
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status, link_level
+        ) values ('POLICY', ${policyId}, 'drive-file-1', 'FILE', 'SYNCED', 'HUMAN')
       `
 
       await assert.rejects(tx`delete from policy where id = ${policyId}`, /document_link asociados/i)
@@ -855,8 +855,8 @@ const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> =
       const policyId = await crearPolicy(tx, insurerId, 'CAU-DOC-0001')
       await tx`
         insert into document_link (
-          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
-        ) values ('POLICY', ${policyId}, 'drive-file-causal', 'FILE', 'SYNCED')
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status, link_level
+        ) values ('POLICY', ${policyId}, 'drive-file-causal', 'FILE', 'SYNCED', 'HUMAN')
       `
       await tx`drop trigger policy_no_delete_with_document_links on policy`
 
@@ -876,8 +876,8 @@ const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> =
       const policyId = await crearPolicy(tx, insurerId, 'CAU-DOC-0002')
       await tx`
         insert into document_link (
-          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status
-        ) values ('POLICY', ${policyId}, 'drive-file-causal-2', 'FILE', 'SYNCED')
+          resource_type, resource_id, drive_file_id, drive_item_type, reconciliation_status, link_level
+        ) values ('POLICY', ${policyId}, 'drive-file-causal-2', 'FILE', 'SYNCED', 'HUMAN')
       `
 
       await assert.rejects(tx`delete from policy where id = ${policyId}`, /document_link asociados/i)

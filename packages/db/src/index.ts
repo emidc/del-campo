@@ -28,6 +28,7 @@ export type {
   ClientFolderAccess,
   DocumentAccess,
   DocumentLinkingCounts,
+  LinkLevel,
   PendingDocumentInfo,
   PolicyDocumentAccess,
 } from './document-linking/query.ts'
