@@ -21,3 +21,28 @@ Las invariantes centrales de `DOMAIN.md` —intervalos de `PolicyVersion` no sol
 parcial— no son expresables en los DSL de schema disponibles. Un modelo en TypeScript
 dejaría las invariantes centrales fuera de la vista del archivo que dice ser el schema.
 El razonamiento completo está en `DECISIONS/0045-schema-en-migraciones-sql.md`.
+
+## Funciones: `search_path` fijado
+
+Toda función que una migración cree —en `public` o en cualquier otro esquema propio,
+como los de `D-0063`— declara su `search_path`:
+
+```sql
+create function nombre() returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$ … $$;
+```
+
+Una función sin esa cláusula resuelve sus tablas contra el `search_path` de la sesión
+que dispara el trigger, no contra el de quien escribió la migración. Un volcado de
+`pg_dump` lo deja vacío, y la carga fallaba con `relation "party" does not exist`
+(`ops/evidence/T-0018.md`); con los esquemas por contexto de `D-0063` el mismo error
+aparece con cualquier sesión que no tenga `public` adelante. `pg_temp` va al final para
+que una tabla temporal homónima no gane sobre la de `public`. → T-0023
+
+`create or replace function` reemplaza también la configuración: una migración que
+redefine una función existente repite la cláusula. Si la olvida,
+`src/function-search-path.integration.test.ts` falla en `pnpm check`, porque recorre
+`pg_proc` y exige `search_path` en toda función de un esquema propio que no pertenezca
+a una extensión. Una función de otro esquema lista el suyo y después `public` si lo usa.

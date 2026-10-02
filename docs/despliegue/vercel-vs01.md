@@ -185,12 +185,15 @@ Supabase exportada**; las pruebas abortan si lo detectan.
    ```
 
    Las advertencias de claves circulares en `party` y `policy` son autorreferencias y no
-   impiden la carga. **Quitá la línea que vacía el `search_path`**: las funciones de
-   validación de las migraciones nombran tablas sin esquema y fallan sin él
-   (`relation "party" does not exist`).
+   impiden la carga. El archivo se carga tal cual: la línea que vacía el `search_path`
+   ya no molesta, porque desde `0006_function_search_path.sql` las funciones de
+   validación fijan el suyo (T-0023).
+
+   Este volcado único sirvió para la primera carga, con `document_link` vacía. Con
+   vínculos cargados, `pg_dump` ordena `document_link` antes que `policy` y la carga
+   aborta: para repetir la carga, volcá `document_link` aparte como en §10.3.
 
    ```bash
-   sed -i '' "/set_config('search_path', '', false)/d" ~/del-campo-privado/vs01-datos-*.sql
    grep -o '^COPY public\.[a-z_]*' ~/del-campo-privado/vs01-datos-*.sql | sort   # 13 tablas
    ```
 
@@ -292,17 +295,15 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    pg_dump --data-only --no-owner --no-privileges -t document_link \
      -f ~/del-campo-privado/vs01-vinculos-$D.sql postgres://localhost:5432/delcampo_t0013_dev
    chmod 600 ~/del-campo-privado/vs01-*-$D.sql
-   sed -i '' "/set_config('search_path', '', false)/d" \
-     ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql
    grep -c '^COPY public' ~/del-campo-privado/vs01-base-$D.sql ~/del-campo-privado/vs01-vinculos-$D.sql  # 12 y 1
    ```
 
 4. **Migraciones pendientes en producción, ANTES de la carga.** El dump del paso 3 trae
    todas las columnas que tiene la base local, así que una columna que exista en local y
    no en producción hace fallar el `COPY` y, por `--single-transaction`, revierte el
-   refresco completo. Hoy la pendiente es `0005_zoho_document_links.sql`, que agrega
-   `document_link.link_level`: sin este paso, el refresco aborta con
-   `column "link_level" of relation "document_link" does not exist`.
+   refresco completo. Hoy la pendiente es `0006_function_search_path.sql` (T-0023): los
+   volcados del paso 3 se cargan con la línea que vacía el `search_path`, y sin esta
+   migración el refresco aborta con `relation "party" does not exist`. No toca datos.
 
    Es una migración en producción: requiere aprobación humana (R-13).
 
