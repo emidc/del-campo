@@ -2,7 +2,7 @@
 id: T-0022
 title: Ofrecer en VS01 los enlaces de Drive de Zoho como nivel sin comprobar
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
@@ -87,3 +87,19 @@ archivo y 61 a carpeta; 264 Contactos y 83 Cuentas con carpeta. Los ofrecidos en
 serán menos, porque sólo cuentan las pólizas y clientes importados por T-0013.
 El refresco de §10 copia `document_link`: si el nivel se guarda en otra tabla, esa tabla
 se suma a la copia y al vaciado de producción, en el orden que exijan sus validaciones.
+
+## Closure
+
+Cierre: **2026-10-02**. Implementación fusionada en `main` (PR #41, `23673bf`) con
+`pnpm check` en verde y revisión ciega (R-33) en `REVIEWS/T-0022-enlaces-de-zoho.md`.
+Corrida real ejecutada por el owner, con evidencia en `ops/evidence/T-0022.md`.
+
+- **Producción:** 1930 pólizas; `document_link` con 20 vínculos `HUMAN` intactos y 924
+  `ZOHO_UNVERIFIED` (577 de póliza, 347 de cliente), idénticos a la base local.
+- **Omitidos:** 61 pólizas con carpeta, 1 cliente con archivo, 1 URL fuera de Drive y 13
+  pólizas fuera del scope importado; ninguna forma de URL desconocida.
+- **Decisión del owner:** sin refresco periódico hasta que Broker OS esté operativo.
+  Riesgos aceptados: datos desactualizados respecto de Zoho y pausa de Supabase Free
+  por inactividad.
+- **Verificación:** las casillas de `## Verification` quedan sin tildar por la regla de
+  contrato congelado (T-0005); su cumplimiento se acredita en la evidencia citada.
