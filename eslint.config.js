@@ -57,6 +57,9 @@ export default tseslint.config(
       '**/.next/**',
       'Claude outputs/**',
       'data/**',
+      // Código descartable de spikes, fuera del workspace y del tsconfig raíz: no es
+      // código del producto y R-25 no lo alcanza. Se chequea con `tsc -p SPIKES/<id>`.
+      'SPIKES/**',
       // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
       // workspace: no están en el programa de TypeScript y R-25 no los alcanza.
       '**/*.mjs',

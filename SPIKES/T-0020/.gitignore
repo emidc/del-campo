@@ -1,0 +1,4 @@
+# Ya cubierto por el .gitignore raíz; repetido para que el spike no dependa de él.
+.env
+# Capturas reales sin redactar (R-19). Solo entran al repo las redactadas, a fixtures/.
+captures/

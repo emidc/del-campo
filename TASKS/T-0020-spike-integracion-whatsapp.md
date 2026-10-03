@@ -2,7 +2,7 @@
 id: T-0020
 title: Decidir cómo Communication OS sincroniza mensajes 1:1 de WhatsApp
 kind: SPIKE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
@@ -118,3 +118,10 @@ escrito en `SPIKES/T-0020-integracion-whatsapp.md`:
   prueba salga bien.
 - **Las capacidades de WhatsApp cambian seguido.** Toda afirmación sobre la plataforma
   lleva fuente y fecha, y no se acepta de memoria de un modelo.
+
+## Cierre
+
+Cerrada el 2026-10-03. Documento: `SPIKES/T-0020-integracion-whatsapp.md`. Evidencia:
+`ops/evidence/T-0020.md`. La prueba de concepto se hizo con el número de prueba de Meta,
+no con el número dedicado. El owner aceptó esa desviación el 2026-10-03 y postergó la
+repetición con el dedicado (ver la evidencia, "Aceptación del owner").

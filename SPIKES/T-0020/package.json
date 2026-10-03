@@ -1,0 +1,14 @@
+{
+  "//": "Spike T-0020: fuera del workspace de pnpm a propósito. Se corre con `node --run`.",
+  "name": "spike-t0020-whatsapp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:setup": "node --env-file-if-exists=.env setup-db.ts",
+    "start": "node --env-file-if-exists=.env server.ts",
+    "list": "node --env-file-if-exists=.env list.ts",
+    "replay": "node --env-file-if-exists=.env replay.ts",
+    "redact": "node redact.ts",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"*.test.ts\""
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "//": "Solo para el editor y un `tsc -p SPIKES/T-0020` manual. El tsconfig raíz no incluye SPIKES/.",
+  "extends": "../../tsconfig.json",
+  "include": ["*.ts"]
+}
