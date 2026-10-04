@@ -101,8 +101,8 @@ declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico
    Pendientes del owner para Communication OS, sin fecha:
    - alta del número dedicado en la WABA y repetición de la prueba de `T-0020` con él;
    - verificación del negocio en Meta, necesaria para el número corporativo;
-   - confirmar que la UI de Communication OS corre solo en local, token de usuario del
-     sistema, subdominio y consentimiento de los participantes (`SLICES/CO01.md` §7).
+   - credencial compartida de la UI (D-0066), token de usuario del sistema,
+     subdominio y consentimiento de los participantes (`SLICES/CO01.md` §7).
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
 activa antes del primer acceso multi-principal, del portal externo o de un worker o

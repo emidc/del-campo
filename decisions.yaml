@@ -1078,3 +1078,27 @@ decisions:
       cada webhook se conserva 30 días para reprocesar y después se borra. El contenido,
       el wamid y los identificadores del participante se tratan como datos personales
       de clientes (R-19). El email sigue rigiéndose por D-0010.
+
+  - id: D-0066
+    title: La UI de Communication OS usa una credencial compartida durante CO01
+    status: PROVISIONAL
+    date: 2026-10-03
+    source: >
+      Pedido del owner del 2026-10-03 ("usuario y contraseña genéricos"); SLICES/CO01.md;
+      D-0059, D-0063, D-0065; R-05, R-16, R-19.
+    adr: DECISIONS/0066-credencial-compartida-co01.md
+    statement: >
+      Durante CO01, la UI de Communication OS exige una única credencial compartida
+      (usuario y contraseña) antes de mostrar conversaciones o permitir responder. La
+      credencial se valida en el servidor, solo sobre HTTPS, y se guarda como variable
+      del despliegue: la contraseña, como hash, nunca en el repositorio. La genera, carga
+      y rota el owner (R-16). El receptor de webhooks queda fuera de esta credencial y se
+      protege con la firma de Meta. No se agregan dependencias ni proveedores de
+      identidad. El mecanismo concreto (Basic Auth o formulario con cookie de sesión
+      firmada) lo elige la tarea que implementa la UI.
+    falsified_by: >
+      Que Communication OS se integre en Broker OS, que la UI la use más de un operador
+      que necesite responsabilidad individual, que entren conversaciones con clientes
+      reales, o que la credencial se filtre. Cualquiera de esos casos exige reemplazarla
+      por el login de VS01 (D-0059) u otro mecanismo con identidad individual.
+
