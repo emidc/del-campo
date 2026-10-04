@@ -85,7 +85,7 @@ de webhooks. Habilita la tarea de la UI y la del despliegue de CO01.
 ```bash
 pnpm check
 createdb delcampo_communication_test
-DATABASE_URL=postgres://localhost:5432/delcampo_communication_test pnpm test
+COMMUNICATION_DATABASE_URL=postgres://localhost:5432/delcampo_communication_test pnpm test
 ```
 
 Comprobaciones humanas, registradas en `ops/evidence/T-0024.md`:
