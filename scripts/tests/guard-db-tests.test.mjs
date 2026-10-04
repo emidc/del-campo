@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { motivoDeRechazo, valorDeEnv } from '../guard-db-tests.mjs'
+import { motivoDeRechazo, motivoDelEntorno, valorDeEnv } from '../guard-db-tests.mjs'
 
 test('acepta bases locales de desarrollo y de prueba', () => {
   assert.equal(motivoDeRechazo('postgres://localhost:5432/delcampo_t0018_test'), null)
@@ -36,4 +36,15 @@ test('del .env toma la última asignación, como los consumidores', () => {
   assert.equal(valorDeEnv('# DATABASE_URL=postgres://remoto/x\nDATABASE_URL=postgres://localhost:5432/delcampo_dev\n').valor,
     'postgres://localhost:5432/delcampo_dev')
   assert.equal(valorDeEnv('OTRA=1\n').valor, undefined)
+})
+
+test('la base del contexto communication pasa por la misma guarda', () => {
+  const sinArchivo = () => ({})
+  assert.equal(motivoDelEntorno({ COMMUNICATION_DATABASE_URL: 'postgres://localhost:5432/delcampo_communication_test' }, sinArchivo), null)
+  assert.match(motivoDelEntorno({ COMMUNICATION_DATABASE_URL: 'postgres://db.example.com:5432/delcampo_communication_test' }, sinArchivo),
+    /^COMMUNICATION_DATABASE_URL: .*no es local/)
+  assert.match(motivoDelEntorno({ COMMUNICATION_DATABASE_URL: 'postgres://localhost:5432/postgres' }, sinArchivo), /no termina/)
+  assert.match(motivoDelEntorno({ DATABASE_URL: 'postgres://remoto.example.com/x_test',
+    COMMUNICATION_DATABASE_URL: 'postgres://localhost:5432/delcampo_communication_test' }, sinArchivo), /no es local/)
+  assert.equal(motivoDelEntorno({}, () => ({ ambiguo: 2 })).includes('valores distintos'), true)
 })
