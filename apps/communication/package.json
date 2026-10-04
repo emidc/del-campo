@@ -1,0 +1,23 @@
+{
+  "name": "@del-campo/communication-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "hash-password": "node scripts/hash-password.ts",
+    "fake-meta": "node scripts/fake-meta.ts"
+  },
+  "dependencies": {
+    "@del-campo/communication": "workspace:*",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  }
+}

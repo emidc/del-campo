@@ -9,7 +9,7 @@
   "scripts": {
     "check": "node scripts/check-docs.mjs && node scripts/check-agent-run.mjs && node --test scripts/tests/*.test.mjs && pnpm typecheck && pnpm lint && pnpm test",
     "decisions": "node scripts/decisions.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web && tsc --noEmit -p apps/communication",
     "lint": "eslint .",
     "test": "node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \"packages/**/*.test.ts\" \"apps/**/src/**/*.test.ts\" \"contexts/**/src/**/*.test.ts\"",
     "db:create": "node packages/db/src/cli.ts create",

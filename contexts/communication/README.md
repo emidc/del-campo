@@ -2,20 +2,23 @@
 
 Contexto de D-0063 para el laboratorio de WhatsApp de Q4 (`SLICES/CO01.md`). Recibe los
 webhooks de WhatsApp Cloud API y guarda los mensajes tal como fija D-0065. Lo creó
-T-0024.
+T-0024; T-0025 le sumó las lecturas de la UI, el envío por Cloud API y los intentos de
+envío.
 
 No importa nada de Broker OS (`packages/*`, `apps/*`) ni de otro contexto, y Broker no
-lo importa. Lo hace cumplir `pnpm lint` (R-25).
+lo importa. Su único consumidor es su app, `apps/communication`, que importa solo la raíz
+del paquete. Lo hace cumplir `pnpm lint` (R-25).
 
 ## Estructura
 
 | Carpeta | Qué hay | Puede importar |
 |---|---|---|
-| `src/domain/` | Parseo del webhook, regla de estados, retención. Puro. | Solo `src/domain/` |
+| `src/domain/` | Parseo del webhook, regla de estados, retención, ventana de servicio, reglas de la respuesta. Puro. | Solo `src/domain/` |
+| `src/integration/` | Cliente de envío de Cloud API (D-0063 lo ubica en el contexto). | `domain`, `node:*` |
 | `src/persistence/` | Conexión, runner de migraciones, escrituras y lecturas. | `domain`, `postgres`, `node:*` |
-| `src/application/` | Receptor del webhook y operaciones. **Lo único que exporta el paquete.** | `domain`, `persistence` |
+| `src/application/` | Receptor del webhook, lecturas de la UI, envío y operaciones. **Lo único que exporta el paquete.** | `domain`, `integration`, `persistence` |
 | `migrations/` | SQL del esquema `communication`, con su reversa en `down/`. | — |
-| `fixtures/` | Payloads de Meta: sintéticos y reales redactados de T-0020 (R-27). | — |
+| `fixtures/` | Payloads de Meta: sintéticos, reales redactados de T-0020 (R-27) y `send-*.documented.json`, con la forma documentada del envío, sin captura real. | — |
 
 ## Esquema
 
@@ -28,6 +31,7 @@ Todo vive en el esquema de Postgres `communication`, incluido el ledger de migra
 | `message` | Textos entrantes y salientes. `wamid` único; participante por `wa_id`, BSUID o ambos. |
 | `outbound_status` | El último estado de cada `wamid` saliente (`sent` < `delivered` < `read` < `failed`). No tiene FK a `message`: también registra estados de salientes que no salieron de acá. |
 | `unsupported_message` | Entrantes de tipos fuera de alcance: que llegaron, de quién y cuándo, sin contenido. |
+| `outbound_attempt` | Cada intento de envío desde la UI, con su clave de idempotencia guardada antes de llamar a la API (R-20): `pending`, `accepted`, `rejected` o `unconfirmed`. El texto se borra al aceptarse, porque ya está en `message`, y a los 30 días en los no aceptados. |
 
 ## Bases locales
 
@@ -60,9 +64,9 @@ su ledger.
 
 | Capa | Archivos | Qué cubre |
 |---|---|---|
-| unit | `*.test.ts` | Parseo, firma, desafío, regla de estados, runner. |
-| integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención y migraciones. |
-| contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`. |
+| unit | `*.test.ts` | Parseo, firma, desafío, regla de estados, runner, ventana de servicio, reglas de la respuesta. |
+| integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención y migraciones; y lo de la UI: lista, hilo, envío, idempotencia del envío, ventana cerrada, retención de intentos. |
+| contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`, y el cliente de envío contra la forma documentada de `fixtures/send-*`. |
 
 Los de integración y de contrato corren siempre sobre `delcampo_communication_test`:
 la crean si no existe, aplican las migraciones y vacían sus tablas antes de cada test.
@@ -77,7 +81,10 @@ node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
   "contexts/communication/src/**/*.test.ts" # solo este contexto
 ```
 
-## Uso desde una app (la tarea de la UI y la del despliegue)
+## Uso desde una app
+
+La app de la UI es `apps/communication` (T-0025); ver su README. El receptor se monta
+así:
 
 ```ts
 import { connect, createWebhookHandler, deliveryStore } from '@del-campo/communication'
@@ -95,9 +102,17 @@ if (process) waitUntil(process())
 return response
 ```
 
-Además exporta `recordOutboundMessage` (persistir un saliente con el `wamid` que
-devolvió la API), `purgeExpiredDeliveries` (retención de 30 días) y `listThread` (el
-hilo de un participante, en orden, con el estado de cada saliente).
+Además exporta:
+
+- `conversationList` y `conversationThread`: lo que muestra la UI, sin `wamid` ni `wa_id`
+  completo.
+- `sendReply` y `cloudApiSender`: responder desde el hilo con la clave de idempotencia
+  persistida antes del envío (R-20).
+- `applyRetention`: la retención completa para la tarea programada. Borra las entregas
+  crudas y el texto de los intentos no aceptados de más de 30 días, y cierra como
+  `unconfirmed` los `pending` abandonados.
+- `purgeExpiredDeliveries`: solo las entregas crudas.
+- `recordOutboundMessage` y `listThread`, de T-0024.
 
 ## Datos
 

@@ -14,6 +14,8 @@
 // andamiaje especulativo: es la transcripción de una regla ya vigente, y el costo de
 // escribirla hoy es una línea. → R-25
 
+import { dirname, relative, resolve } from 'node:path'
+
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
@@ -49,7 +51,59 @@ const brokerNoImportaContextos = [
     'Broker no importa un contexto (R-25, D-0063).',
   ),
   ...prohibirImports('/(^|\\x2F)contexts\\x2F/', 'Broker no importa un contexto por ruta (R-25, D-0063).'),
+  // Ni la app de un contexto (T-0025): por nombre de paquete o por su carpeta.
+  ...prohibirImports(
+    `/^@del-campo\\x2F(${CONTEXTOS.join('|')})-web(\\x2F|$)/`,
+    'Broker no importa la app de un contexto (R-25, D-0063).',
+  ),
+  ...prohibirImports(
+    `/(^|\\x2F)(${CONTEXTOS.join('|')})\\x2Fsrc\\x2F/`,
+    'Broker no importa la app de un contexto por ruta (R-25, D-0063).',
+  ),
 ]
+
+/**
+ * La app de un contexto (D-0063, T-0025) importa del workspace solo la raíz de su
+ * contexto. Lo demás se prohíbe por especificador: otro `@del-campo/*` —Broker, otro
+ * contexto o un archivo interno del suyo—, el driver de la base, y rutas que nombren
+ * `packages/`, `apps/` o `contexts/`. Que un relativo no salga de la carpeta de la app
+ * lo cubre la regla local `sin-salir-de`, porque la profundidad de las rutas de Next
+ * hace imposible contarlo con una regex.
+ */
+const appDeContexto = (contexto) => [
+  ...prohibirImports(
+    `/^@del-campo\\x2F(?!${contexto}$)/`,
+    `apps/${contexto} importa del workspace solo @del-campo/${contexto} (R-25, D-0063).`,
+  ),
+  ...prohibirImports('/^postgres(\\x2F|$)/', `apps/${contexto} no toca la base: pasa por @del-campo/${contexto} (R-25, D-0063).`),
+  ...prohibirImports('/(^|\\x2F)(packages|apps|contexts)\\x2F/', `apps/${contexto} no importa por ruta otro paquete (R-25, D-0063).`),
+  ...prohibirImports('/^\\x2F/', `apps/${contexto} no importa por ruta absoluta (R-25, D-0063).`),
+]
+
+/**
+ * Regla local, sin dependencias: un import relativo no puede resolver fuera de `raiz`
+ * (relativa a este archivo). Cubre import, export-from e import() con literal.
+ */
+const sinSalirDe = {
+  meta: { type: 'problem', schema: [{ type: 'string' }] },
+  create(context) {
+    const raiz = resolve(import.meta.dirname, context.options[0])
+    const revisar = (node) => {
+      const fuente = node.source
+      if (fuente?.type !== 'Literal' || typeof fuente.value !== 'string' || !fuente.value.startsWith('.')) return
+      const destino = relative(raiz, resolve(dirname(context.filename), fuente.value))
+      if (destino.startsWith('..') || resolve(destino) === destino) {
+        context.report({ node: fuente, message: `Un import relativo no sale de ${context.options[0]} (R-25, D-0063).` })
+      }
+    }
+    return {
+      ImportDeclaration: revisar,
+      ExportNamedDeclaration: revisar,
+      ExportAllDeclaration: revisar,
+      ImportExpression: revisar,
+    }
+  },
+}
 
 /**
  * Un contexto no importa nada del workspace: ni `@del-campo/*` (Broker u otro contexto)
@@ -101,6 +155,11 @@ export default tseslint.config(
       // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
       // workspace: no están en el programa de TypeScript y R-25 no los alcanza.
       '**/*.mjs',
+      // …salvo dentro de la app y del contexto de communication, que no tienen .mjs
+      // propios: uno nuevo ahí se lintea con sus límites, y como no está en ningún
+      // tsconfig, falla. Sin esto, un .mjs saltaba R-25 (hallazgo C3 de T-0025).
+      '!apps/communication/**/*.mjs',
+      '!contexts/communication/**/*.mjs',
     ],
   },
 
@@ -144,8 +203,11 @@ export default tseslint.config(
   // ── R-25, D-0063 · Broker no importa contextos ────────────────────────────
   // Va antes del bloque de packages/domain: ese bloque redefine no-restricted-syntax y,
   // en flat config, el último gana. Por eso domain repite esta lista en el suyo.
+  // La app de un contexto (apps/communication) tiene su propio bloque, más abajo: D-0063
+  // le permite importar su contexto. Toda otra app, presente o futura, queda acá.
   {
     files: ['packages/**/*.ts', 'apps/**/*.{ts,tsx}'],
+    ignores: ['apps/communication/**'],
     rules: {
       'no-restricted-syntax': ['error', ...brokerNoImportaContextos],
     },
@@ -205,6 +267,18 @@ export default tseslint.config(
         ...noBareImports('contexts/communication/src/domain'),
         ...prohibirImports('/(^|\\x2F)(persistence|application)\\x2F/', 'domain no importa nada fuera de domain (D-0063).'),
       ],
+    },
+  },
+
+  // ── R-25, D-0063 · apps/communication (T-0025) ──────────────────────────
+  // Puede importar: @del-campo/communication (solo la raíz), next, react, react-dom,
+  // node:* y relativos dentro de apps/communication. Nada más del workspace.
+  {
+    files: ['apps/communication/**/*.{ts,tsx,js,mjs}'],
+    plugins: { local: { rules: { 'sin-salir-de': sinSalirDe } } },
+    rules: {
+      'no-restricted-syntax': ['error', ...appDeContexto('communication')],
+      'local/sin-salir-de': ['error', 'apps/communication'],
     },
   },
 

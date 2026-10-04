@@ -1,0 +1,13 @@
+{
+  "_origen": "Forma documentada por Meta (Cloud API, error codes), no capturada: T-0025. HTTP 400. Se le agregó al message un número sintético, que el documentado no trae, para probar la redacción.",
+  "error": {
+    "message": "(#131030) Recipient phone number 15550199001 not in allowed list",
+    "type": "OAuthException",
+    "code": 131030,
+    "error_data": {
+      "messaging_product": "whatsapp",
+      "details": "Recipient phone number not in allowed list: Add recipient phone number to recipient list and try again."
+    },
+    "fbtrace_id": "SYNTHtraceid0002"
+  }
+}

@@ -31,6 +31,28 @@ importers:
         specifier: ^8.46.0
         version: 8.70.0(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
 
+  apps/communication:
+    dependencies:
+      '@del-campo/communication':
+        specifier: workspace:*
+        version: link:../../contexts/communication
+      next:
+        specifier: ^16.3.6
+        version: 16.3.6(@types/node@24.13.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: ^19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+
   apps/web:
     dependencies:
       '@del-campo/api':

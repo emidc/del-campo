@@ -1,0 +1,6 @@
+{
+  "_origen": "Forma documentada por Meta (Cloud API, Send messages), no capturada: T-0025. Valores sintéticos.",
+  "messaging_product": "whatsapp",
+  "contacts": [{ "input": "15550199001", "wa_id": "15550199001" }],
+  "messages": [{ "id": "wamid.SYNTH-OUTBOUND-0001" }]
+}
