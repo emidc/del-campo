@@ -125,3 +125,8 @@ Cerrada el 2026-10-03. Documento: `SPIKES/T-0020-integracion-whatsapp.md`. Evide
 `ops/evidence/T-0020.md`. La prueba de concepto se hizo con el número de prueba de Meta,
 no con el número dedicado. El owner aceptó esa desviación el 2026-10-03 y postergó la
 repetición con el dedicado (ver la evidencia, "Aceptación del owner").
+
+Lo que desbloqueó: D-0065 (mecanismo de integración y persistencia, con su ADR
+`DECISIONS/0065-whatsapp-cloud-api-y-persistencia.md`), que reemplaza a D-0028; la
+entrada para D-0014, en ese ADR; y el contrato `SLICES/CO01.md`, aprobado por el owner el
+2026-10-03.

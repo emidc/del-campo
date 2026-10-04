@@ -1,6 +1,6 @@
 # Del Campo — PROJECT.md
 
-**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-09-29
+**Estado:** candidato a baseline v1.0 · **Fase actual:** Project OS Zero · **Actualizado:** 2026-10-03
 
 Este archivo es el índice del programa. Si algo no está acá, está en uno de los documentos que este archivo nombra. Si no está en ninguno, todavía no está decidido.
 
@@ -92,9 +92,17 @@ declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico
 2. ~~Deuda: funciones de las migraciones sin `search_path` propio~~. Saldada por
    `T-0023` el 02/10/2026, también en producción.
 3. Laboratorios de Q4 (Risk OS, Communication OS) según el Q4 Operating Plan, como
-   contextos aislados dentro del monolito modular (D-0063). Primero el spike de
-   integración de WhatsApp (`T-0020`), después el spike de formatos y modelo de
-   Risk OS (`T-0021`): un spike por vez (§5).
+   contextos aislados dentro del monolito modular (D-0063). El spike de integración de
+   WhatsApp (`T-0020`) cerró el 03/10/2026: WhatsApp entra por Cloud API oficial, con
+   copia del contenido (D-0065), y el contrato de Communication OS es `SLICES/CO01.md`,
+   aprobado el 03/10/2026. Sigue el spike de formatos y modelo de Risk OS (`T-0021`):
+   un spike por vez (§5).
+
+   Pendientes del owner para Communication OS, sin fecha:
+   - alta del número dedicado en la WABA y repetición de la prueba de `T-0020` con él;
+   - verificación del negocio en Meta, necesaria para el número corporativo;
+   - confirmar que la UI de Communication OS corre solo en local, token de usuario del
+     sistema, subdominio y consentimiento de los participantes (`SLICES/CO01.md` §7).
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) no bloquea VS01. Se
 activa antes del primer acceso multi-principal, del portal externo o de un worker o
@@ -140,6 +148,7 @@ Con un solo desarrollador, el límite no es una preferencia de método: es la ú
 | `DECISIONS/` | Los ADR completos | Cuando el índice no alcanza |
 | `TASKS/` | Las tareas | — |
 | `SLICES/VS01.md` | Contrato de software y aceptación de VS01; caduca al entregarse | Antes de implementar VS01 |
+| `SLICES/CO01.md` | Contrato de software y aceptación de Communication OS en Q4; caduca al aceptarse | Antes de implementar Communication OS |
 | `ops/AGENTRUN.md` | Esquema del registro de ejecución | Al tocar el hook o analizar runs |
 | `docs/history/SOURCES.md` | Procedencia del bundle y fuentes citadas pero no recibidas | Al auditar el baseline |
 
