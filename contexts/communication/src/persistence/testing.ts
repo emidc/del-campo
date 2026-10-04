@@ -68,6 +68,7 @@ export const openTestDatabase = async (): Promise<Sql> => {
 export const truncateAll = async (sql: Sql): Promise<void> => {
   await sql`
     truncate communication.webhook_delivery, communication.message,
-             communication.outbound_status, communication.unsupported_message
+             communication.outbound_status, communication.unsupported_message,
+             communication.outbound_attempt
     restart identity`
 }

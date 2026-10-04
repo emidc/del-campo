@@ -2,10 +2,34 @@
 // app o su tarea programada— importa de acá y de ningún otro archivo.
 
 export type { Participant } from '../domain/payload.ts'
+export { MAX_REPLY_LENGTH } from '../domain/reply.ts'
 export type { OutboundStatus } from '../domain/status.ts'
+export type { ServiceWindow } from '../domain/window.ts'
+export {
+  cloudApiConfigProblem,
+  cloudApiSender,
+  type CloudApiConfig,
+  type SendOutcome,
+  type TextSender,
+} from '../integration/cloud-api.ts'
 export { connect, type Sql } from '../persistence/database.ts'
 export { listThread, type OutboundMessage, type ThreadMessage } from '../persistence/store.ts'
-export { purgeExpiredDeliveries, recordOutboundMessage } from './operations.ts'
+export {
+  conversationList,
+  conversationThread,
+  type ConversationList,
+  type ConversationSummary,
+  type ConversationThread,
+  type ParticipantLabel,
+  type ThreadItem,
+} from './conversations.ts'
+export {
+  applyRetention,
+  purgeExpiredDeliveries,
+  recordOutboundMessage,
+  type RetentionResult,
+} from './operations.ts'
+export { sendReply, type ReplyDeps, type ReplyRequest, type ReplyResult } from './reply.ts'
 export {
   createWebhookHandler,
   deliveryStore,

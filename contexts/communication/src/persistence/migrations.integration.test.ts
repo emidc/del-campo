@@ -8,7 +8,8 @@ import type { Sql } from './database.ts'
 import { appliedMigrations, down, migrate } from './migrations.ts'
 import { openTestDatabase } from './testing.ts'
 
-const TABLES = ['webhook_delivery', 'message', 'outbound_status', 'unsupported_message']
+const TABLES = ['webhook_delivery', 'message', 'outbound_status', 'unsupported_message', 'outbound_attempt']
+const FILES = ['0001_communication_schema.sql', '0002_outbound_attempt.sql']
 
 let sql: Sql
 before(async () => {
@@ -33,11 +34,11 @@ describe('migraciones del contexto', () => {
     let reverted: string | null
     const order: string[] = []
     while ((reverted = await down(sql)) !== null) order.push(reverted)
-    assert.deepEqual(order, ['0001_communication_schema.sql'])
+    assert.deepEqual(order, [...FILES].reverse())
     assert.deepEqual(await existing(), [])
     assert.deepEqual(await appliedMigrations(sql), [])
 
-    assert.deepEqual(await migrate(sql), ['0001_communication_schema.sql'])
+    assert.deepEqual(await migrate(sql), FILES)
     assert.deepEqual(await existing(), [...TABLES].sort())
     assert.deepEqual(await migrate(sql), [], 'una segunda pasada no aplica nada')
   })

@@ -1,0 +1,19 @@
+{
+  "//": [
+    "Igual que apps/web (D-0058): extiende el raíz y sobrescribe solo lo que Next.js",
+    "necesita. Incluye scripts/ para que el type check y el lint los cubran."
+  ],
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "allowJs": true,
+    "incremental": true,
+    "noEmit": true,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "next.config.ts", "src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -2,7 +2,7 @@
 id: T-0025
 title: Entregar la UI de conversaciones de CO01, con credencial compartida y respuesta
 kind: FEATURE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
