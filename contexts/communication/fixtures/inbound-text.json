@@ -1,0 +1,27 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "900000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": { "display_phone_number": "15550100001", "phone_number_id": "800000000000001" },
+            "contacts": [{ "profile": { "name": "Ana Prueba" }, "wa_id": "15550199001" }],
+            "messages": [
+              {
+                "from": "15550199001",
+                "id": "wamid.SYNTH-INBOUND-0001",
+                "timestamp": "1790000000",
+                "type": "text",
+                "text": { "body": "Hola, este es un mensaje de prueba." }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

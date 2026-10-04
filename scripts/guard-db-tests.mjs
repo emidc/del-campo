@@ -54,10 +54,21 @@ const leerEnv = () => {
   return valorDeEnv(readFileSync(archivo, 'utf8'))
 }
 
-const delEnv = process.env.DATABASE_URL === undefined ? leerEnv() : { valor: process.env.DATABASE_URL }
-const motivo = delEnv.ambiguo
-  ? `el .env declara ${delEnv.ambiguo} valores distintos de DATABASE_URL y no se puede saber cuál usarían los tests`
-  : motivoDeRechazo(delEnv.valor)
+// Los tests del contexto communication (D-0063) usan su propia base. La toman de
+// COMMUNICATION_DATABASE_URL o, si falta, de DATABASE_URL con otro nombre de base
+// (contexts/communication/src/persistence/testing.ts). Las dos pasan por la misma guarda.
+export function motivoDelEntorno(env, envDelArchivo) {
+  const delEnv = env.DATABASE_URL === undefined ? envDelArchivo() : { valor: env.DATABASE_URL }
+  if (delEnv.ambiguo) {
+    return `el .env declara ${delEnv.ambiguo} valores distintos de DATABASE_URL y no se puede saber cuál usarían los tests`
+  }
+  const motivo = motivoDeRechazo(delEnv.valor)
+  if (motivo) return motivo
+  const deComunicacion = motivoDeRechazo(env.COMMUNICATION_DATABASE_URL)
+  return deComunicacion ? `COMMUNICATION_DATABASE_URL: ${deComunicacion}` : null
+}
+
+const motivo = motivoDelEntorno(process.env, leerEnv)
 if (motivo) {
   console.error(`✗ Pruebas abortadas: ${motivo}. Las pruebas de integración sólo corren contra ` +
     'un Postgres local terminado en _dev o _test. Si exportaste la cadena de Supabase, ' +

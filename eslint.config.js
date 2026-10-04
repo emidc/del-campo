@@ -29,6 +29,44 @@ const noBareImports = (paquete) =>
       message: `${paquete} no importa nada, tampoco de forma dinámica (R-25).`,
     })
 
+/**
+ * Prohíbe todo especificador que cumpla `regex`, en las cuatro formas de importar. La
+ * regex va dentro de un selector de esquery: la barra se escribe `\x2F` para no depender
+ * de cómo esquery trata una `/` escapada dentro de la regex.
+ */
+const prohibirImports = (regex, mensaje) =>
+  ['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration', 'ImportExpression']
+    .map((tipo) => ({ selector: `${tipo}[source.value=${regex}]`, message: mensaje }))
+
+// ── D-0063 · Contextos ───────────────────────────────────────────────────────
+// Cada contexto es un paquete bajo `contexts/`. Broker (`packages/*`, `apps/*`) no
+// importa ningún contexto, ni por nombre ni por ruta relativa.
+const CONTEXTOS = ['communication']
+
+const brokerNoImportaContextos = [
+  ...prohibirImports(
+    `/^@del-campo\\x2F(${CONTEXTOS.join('|')})(\\x2F|$)/`,
+    'Broker no importa un contexto (R-25, D-0063).',
+  ),
+  ...prohibirImports('/(^|\\x2F)contexts\\x2F/', 'Broker no importa un contexto por ruta (R-25, D-0063).'),
+]
+
+/**
+ * Un contexto no importa nada del workspace: ni `@del-campo/*` (Broker u otro contexto)
+ * ni una ruta relativa que salga de su `src/`. Dentro de `src/` las capas están a un
+ * nivel (`src/domain`, `src/persistence`, `src/application`), así que un especificador
+ * con dos segmentos `..` en cualquier posición —no solo al principio: `./../../x` o
+ * `../domain/../../x` también salen— ya no está en `src/`. Además se prohíbe por
+ * segmento llegar a `packages/`, `apps/` o `contexts/`, como en la regla de Broker.
+ * (Hallazgo A2 de la revisión ciega de T-0024.)
+ */
+const contextoAislado = (contexto) => [
+  ...prohibirImports('/^@del-campo\\x2F/', `${contexto} no importa otros paquetes del workspace (R-25, D-0063).`),
+  ...prohibirImports('/(^|\\x2F)\\.\\.\\x2F(.*\\x2F)?\\.\\.(\\x2F|$)/', `${contexto} no importa fuera de su src/ (R-25, D-0063).`),
+  ...prohibirImports('/(^|\\x2F)(packages|apps|contexts)\\x2F/', `${contexto} no importa Broker ni otro contexto por ruta (R-25, D-0063).`),
+  ...prohibirImports('/^\\x2F/', `${contexto} no importa por ruta absoluta (R-25, D-0063).`),
+]
+
 /** Un límite dirigido: `desde` no puede importar ninguno de `prohibidos`. */
 const limite = (desde, prohibidos, motivo) => ({
   'no-restricted-imports': [
@@ -103,11 +141,21 @@ export default tseslint.config(
     },
   },
 
+  // ── R-25, D-0063 · Broker no importa contextos ────────────────────────────
+  // Va antes del bloque de packages/domain: ese bloque redefine no-restricted-syntax y,
+  // en flat config, el último gana. Por eso domain repite esta lista en el suyo.
+  {
+    files: ['packages/**/*.ts', 'apps/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', ...brokerNoImportaContextos],
+    },
+  },
+
   // ── R-25 · packages/domain no importa nada ────────────────────────────────
   {
     files: ['packages/domain/src/**/*.ts'],
     rules: {
-      'no-restricted-syntax': ['error', ...noBareImports('packages/domain')],
+      'no-restricted-syntax': ['error', ...noBareImports('packages/domain'), ...brokerNoImportaContextos],
     },
   },
 
@@ -123,6 +171,41 @@ export default tseslint.config(
     files: ['apps/web/**/*.{ts,tsx}'],
     rules: limite('apps/web', ['@del-campo/db'],
       'la web pasa por api, no por la base'),
+  },
+
+  // ── R-25, D-0063 · contexts/communication ─────────────────────────────────
+  // Tres bloques en orden de especificidad; cada uno repite la lista del anterior porque
+  // redefine la misma regla. domain no importa nada fuera de domain; persistence no
+  // importa application; application es lo único que el paquete exporta (package.json).
+  {
+    files: ['contexts/communication/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', ...contextoAislado('contexts/communication')],
+    },
+  },
+  {
+    files: ['contexts/communication/src/persistence/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...contextoAislado('contexts/communication'),
+        ...prohibirImports('/(^|\\x2F)application\\x2F/', 'persistence no importa application (D-0063).'),
+      ],
+    },
+  },
+  {
+    files: ['contexts/communication/src/domain/**/*.{ts,tsx}'],
+    // Los tests de domain importan node:test y node:assert. No son código de dominio:
+    // quedan bajo el bloque general del contexto, que igual les prohíbe salir de él.
+    ignores: ['contexts/communication/src/domain/**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...contextoAislado('contexts/communication'),
+        ...noBareImports('contexts/communication/src/domain'),
+        ...prohibirImports('/(^|\\x2F)(persistence|application)\\x2F/', 'domain no importa nada fuera de domain (D-0063).'),
+      ],
+    },
   },
 
   // El config de ESLint es JS y no está en el programa de TypeScript.

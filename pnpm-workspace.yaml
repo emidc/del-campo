@@ -5,3 +5,6 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+  # Contextos de D-0063: un paquete por laboratorio, con dominio, persistencia y
+  # aplicación propios. El primero es communication (T-0024).
+  - 'contexts/*'

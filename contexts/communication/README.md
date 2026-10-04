@@ -1,0 +1,107 @@
+# Communication OS — `@del-campo/communication`
+
+Contexto de D-0063 para el laboratorio de WhatsApp de Q4 (`SLICES/CO01.md`). Recibe los
+webhooks de WhatsApp Cloud API y guarda los mensajes tal como fija D-0065. Lo creó
+T-0024.
+
+No importa nada de Broker OS (`packages/*`, `apps/*`) ni de otro contexto, y Broker no
+lo importa. Lo hace cumplir `pnpm lint` (R-25).
+
+## Estructura
+
+| Carpeta | Qué hay | Puede importar |
+|---|---|---|
+| `src/domain/` | Parseo del webhook, regla de estados, retención. Puro. | Solo `src/domain/` |
+| `src/persistence/` | Conexión, runner de migraciones, escrituras y lecturas. | `domain`, `postgres`, `node:*` |
+| `src/application/` | Receptor del webhook y operaciones. **Lo único que exporta el paquete.** | `domain`, `persistence` |
+| `migrations/` | SQL del esquema `communication`, con su reversa en `down/`. | — |
+| `fixtures/` | Payloads de Meta: sintéticos y reales redactados de T-0020 (R-27). | — |
+
+## Esquema
+
+Todo vive en el esquema de Postgres `communication`, incluido el ledger de migraciones
+(`communication.schema_migrations`).
+
+| Tabla | Qué guarda |
+|---|---|
+| `webhook_delivery` | Cada POST con firma válida, crudo, con su hora de recepción y el resultado del procesamiento (`pending`, `processed` o `failed` con su error). Se borra a los 30 días. |
+| `message` | Textos entrantes y salientes. `wamid` único; participante por `wa_id`, BSUID o ambos. |
+| `outbound_status` | El último estado de cada `wamid` saliente (`sent` < `delivered` < `read` < `failed`). No tiene FK a `message`: también registra estados de salientes que no salieron de acá. |
+| `unsupported_message` | Entrantes de tipos fuera de alcance: que llegaron, de quién y cuándo, sin contenido. |
+
+## Bases locales
+
+Solo dos: `delcampo_communication_dev` y `delcampo_communication_test`, en `localhost`.
+Son bases aparte de las de Broker. El runner rechaza cualquier otra.
+
+```bash
+# Crear la base de desarrollo y aplicar las migraciones
+pnpm --filter @del-campo/communication db:create
+
+# Lo mismo sobre la de tests
+COMMUNICATION_DATABASE_URL=postgres://localhost:5432/delcampo_communication_test \
+  pnpm --filter @del-campo/communication db:create
+
+# Aplicar las pendientes / revertir la última aplicada
+pnpm --filter @del-campo/communication db:migrate
+pnpm --filter @del-campo/communication db:down
+
+# Descartar todo
+dropdb delcampo_communication_dev
+```
+
+Sin `COMMUNICATION_DATABASE_URL`, el runner apunta a `delcampo_communication_dev`.
+`db:down` revierte una sola migración; con todas revertidas, queda el esquema vacío con
+su ledger.
+
+## Tests
+
+`pnpm test` incluye los del contexto, en tres capas (R-26):
+
+| Capa | Archivos | Qué cubre |
+|---|---|---|
+| unit | `*.test.ts` | Parseo, firma, desafío, regla de estados, runner. |
+| integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención y migraciones. |
+| contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`. |
+
+Los de integración y de contrato corren siempre sobre `delcampo_communication_test`:
+la crean si no existe, aplican las migraciones y vacían sus tablas antes de cada test.
+La URL sale de `COMMUNICATION_DATABASE_URL` o, si falta, de `DATABASE_URL` con el
+nombre de la base cambiado. Así, `pnpm check` local y CI los corren en esa base y nunca
+en la de Broker. `scripts/guard-db-tests.mjs` valida las dos variables antes de
+cualquier test.
+
+```bash
+pnpm test                                   # todo el workspace
+node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
+  "contexts/communication/src/**/*.test.ts" # solo este contexto
+```
+
+## Uso desde una app (la tarea de la UI y la del despliegue)
+
+```ts
+import { connect, createWebhookHandler, deliveryStore } from '@del-campo/communication'
+
+const sql = connect(process.env.COMMUNICATION_DATABASE_URL!)
+const handle = createWebhookHandler({
+  verifyToken: process.env.WHATSAPP_VERIFY_TOKEN!,
+  appSecret: process.env.WHATSAPP_APP_SECRET!,   // obligatorio: no hay modo sin firma
+  store: deliveryStore(sql),
+})
+
+// En un route handler: responder primero, procesar después.
+const { response, process } = await handle(request)
+if (process) waitUntil(process())
+return response
+```
+
+Además exporta `recordOutboundMessage` (persistir un saliente con el `wamid` que
+devolvió la API), `purgeExpiredDeliveries` (retención de 30 días) y `listThread` (el
+hilo de un participante, en orden, con el estado de cada saliente).
+
+## Datos
+
+Los mensajes son datos personales de clientes, y el `wamid` también, porque codifica el
+teléfono (D-0065, R-19). Nada de contenido, teléfonos ni `wamid` en logs. Los fixtures
+son sintéticos o redactados; un fixture nuevo de un payload real pasa por
+`SPIKES/T-0020/redact.ts` y por revisión a mano.

@@ -1,0 +1,17 @@
+{
+  "name": "@del-campo/communication",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/application/index.ts"
+  },
+  "scripts": {
+    "db:create": "node src/persistence/cli.ts create",
+    "db:migrate": "node src/persistence/cli.ts migrate",
+    "db:down": "node src/persistence/cli.ts down"
+  },
+  "dependencies": {
+    "postgres": "^3.4.9"
+  }
+}
