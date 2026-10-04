@@ -2,7 +2,7 @@
 id: T-0024
 title: Crear el contexto communication con su esquema y la recepción de webhooks de WhatsApp
 kind: FEATURE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
