@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-09-29
+updated: 2026-10-03
 
 decisions:
 
@@ -370,7 +370,7 @@ decisions:
 
   - id: D-0028
     title: Persistencia de comunicaciones, Gmail vs WhatsApp
-    status: OPEN
+    status: SUPERSEDED
     date: 2026-09-07
     source: DOMAIN.md §50-52, §69
     statement: >
@@ -1051,3 +1051,30 @@ decisions:
       El generador lee el lote en la máquina del owner; los agentes de desarrollo
       trabajan con datos sintéticos (R-19).
 
+  # ── WhatsApp en Communication OS (Q4) ────────────────────────────────────
+
+  - id: D-0065
+    title: WhatsApp entra a Communication OS por Cloud API oficial, con copia del contenido
+    status: ACCEPTED
+    date: 2026-10-03
+    supersedes: [D-0028]
+    source: >
+      T-0020 (SPIKES/T-0020-integracion-whatsapp.md y ops/evidence/T-0020.md), con la
+      documentación de Meta consultada el 2026-10-02. Respuesta del owner del
+      2026-10-03: el equipo no va a escribir desde la app del teléfono, y no se enviarán
+      mensajes fuera de la ventana de servicio. D-0010, D-0063; R-19.
+    adr: DECISIONS/0065-whatsapp-cloud-api-y-persistencia.md
+    statement: >
+      Communication OS integra WhatsApp mediante la Cloud API oficial de Meta, con
+      números registrados solo en la API: esos números no se usan desde la app del
+      teléfono y todo saliente se envía desde Communication OS. No se usan sesiones de
+      dispositivo vinculado ni bibliotecas no oficiales, ni coexistencia con la app
+      WhatsApp Business. Como Cloud API no permite releer mensajes, Communication OS
+      guarda una copia: el texto de entrantes y salientes, el wamid como clave única,
+      la dirección, el phone_number_id, el wa_id y el BSUID del participante (cualquiera
+      de los dos puede faltar), el timestamp de WhatsApp y el de recepción, y el último
+      estado de cada saliente. El saliente se persiste al enviarlo, con el wamid que
+      devuelve la API; los webhooks de estado solo lo actualizan. El payload crudo de
+      cada webhook se conserva 30 días para reprocesar y después se borra. El contenido,
+      el wamid y los identificadores del participante se tratan como datos personales
+      de clientes (R-19). El email sigue rigiéndose por D-0010.

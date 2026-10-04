@@ -1484,17 +1484,10 @@ Normalmente no conservará una segunda copia completa del cuerpo.
 
 # 52. WhatsApp Communication
 
-La persistencia dependerá del POC y capacidades de Meta.
-
-Puede necesitar almacenar más información para:
-
-- attachments;
-- búsqueda;
-- procesamiento;
-- historial;
-- auditoría.
-
-Decisión abierta.
+El mecanismo de integración y la política de persistencia los fija D-0065. A diferencia
+del email (§51), Communication OS guarda una copia del contenido, porque la API de
+WhatsApp no permite releer mensajes. La superficie y la aceptación de Q4 están en
+`SLICES/CO01.md`.
 
 ---
 
@@ -2013,6 +2006,7 @@ reproduce ni los afirma. Referencia sus IDs estables:
 - `D-0026` — Representación de InsuranceProduct.
 - `D-0027` — Estructura de PortfolioAssignment.
 - `D-0028` — Persistencia de comunicaciones, Gmail vs WhatsApp.
+- `D-0065` — WhatsApp en Communication OS: Cloud API oficial y copia del contenido.
 - `D-0029` — Abstracción RiskObject.
 - `D-0030` — Granularidad futura de Prospect.
 
