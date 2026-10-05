@@ -1,6 +1,7 @@
-# Decisiones de la metodología de criticidad · v0.0
+# Decisiones de la metodología de criticidad · v0.1
 
-> Fecha: 2026-10-05 · Versión: **v0.0** (aprobada por Emiliano, 2026-10-05) · Fase 0 del plan EMI-15 + EMI-41.
+> Fecha: 2026-10-05 · Versión: **v0.1** (aprobada por Emiliano, 2026-10-05 20:46 UTC, Fase 3) · v0.0 aprobada en la Fase 0 del plan EMI-15 + EMI-41.
+> v0.1 aplica `anexo-cambios-fase-3.md`: cambia D4, D5, D8, D10, D13, D14, D15, D16, D17, D18, D19, D20 y D21, y agrega D23–D25. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.1).
 > Este documento **supera** a `plan-pasos-1-2.md` (§3.1, §3.2 y §6) y al conjunto de `fuentes/decisiones-pre-revision.md`. Ninguno de los dos se edita; donde difieren de lo que sigue, vale esto.
 > Los cambios se registran en `changelog-metodologia.md`.
 
@@ -138,23 +139,18 @@
 - **Uso en v1:** priorizar.
 
 ### D4 · Probabilidad P
-- **Texto vigente:** Probabilidad de que el evento ocurra durante los próximos 12 meses. P incorpora exposición, condiciones actuales y controles preventivos; cubre todo lo anterior al evento. Escala 1–5 con ancla principal en evidencia observable: antecedentes, recurrencia, presencia de condiciones causales, experiencia en empresas comparables. Los porcentajes quedan como referencia secundaria cuando existe información cuantitativa real. La redacción de cada nivel se escribe en la Fase 3.
-- **Estado:** decidida (plan, Fase 0 "P" y Fase 3 "Escala P").
-- **Antes:** escala 1 Remota (<5%) … 5 Muy probable (>70%), porcentajes como anclas orientativas, prohibido inventarlos sin evidencia (pre-revisión D4).
-- **Origen del cambio:** I11, C3.
+- **Texto vigente:** Probabilidad de que el evento iniciador (D15) ocurra al menos una vez durante los próximos 12 meses. P incorpora exposición, condiciones actuales y controles preventivos; cubre todo lo anterior al evento. Cuenta como antecedente toda ocurrencia del evento iniciador, aunque su consecuencia haya sido contenida; una ocurrencia de la causa sin evento es un precursor. Escala 1–5. El nivel lo indica la fuente de evidencia de mayor jerarquía disponible: dato cuantitativo confiable y comparable (se traduce con la referencia porcentual) > historia propia representativa > organizaciones comparables > sector > juicio experto. Si dos fuentes fuertes divergen, se registra el rango y la incertidumbre sube al menos a medium. Los ajustes de ±1 por controles preventivos nuevos o condiciones agravadas son hipótesis de calibración. Anclas: `metodologia-v0.md` §3.
+- **Estado:** decidida (plan, Fase 0 "P" y Fase 3 "Escala P"); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Probabilidad de que el evento ocurra durante los próximos 12 meses. P incorpora exposición, condiciones actuales y controles preventivos; cubre todo lo anterior al evento. Escala 1–5 con ancla principal en evidencia observable: antecedentes, recurrencia, presencia de condiciones causales, experiencia en empresas comparables. Los porcentajes quedan como referencia secundaria cuando existe información cuantitativa real. La redacción de cada nivel se escribe en la Fase 3." Antes de v0.0: escala 1 Remota (<5%) … 5 Muy probable (>70%), porcentajes como anclas orientativas, prohibido inventarlos sin evidencia (pre-revisión D4).
+- **Origen del cambio:** Fase 3: anclas de P; evento iniciador (F3-6); jerarquía de evidencia pedida por Emiliano; CP-06, CP-07. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #6, #7.
 - **Uso en v1:** priorizar; matriz.
 
 ### D5 · Impacto I y sus dimensiones
-- **Texto vigente:** Cuatro dimensiones, escalas ordinales 1–5; se conserva cada una e `I efectivo = max(dimensiones)`.
-  - **Económico:** consecuencia monetaria para esta empresa, relativa a su capacidad económica, no a montos absolutos universales. Magnitud de referencia: resultado operativo anual. Incluye daño directo, multas y pérdida económica por interrupción.
-  - **Personas:** consecuencias humanas. No se monetizan.
-  - **Continuidad:** consecuencia operativa no monetaria: tiempo sin operar, degradación de servicio, incapacidad de cumplir funciones críticas.
-  - **Legal/regulatorio:** consecuencia jurídica/regulatoria no monetaria: pérdida de habilitación, restricción de operar, responsabilidad relevante, intervención regulatoria.
-  - Reputación queda fuera de v0 (D13). Las anclas de cada nivel se escriben en la Fase 3.
-- **Estado:** decidida (plan, Fase 0 "I" y Fase 3 "Escalas de I"; respuestas, pregunta 2).
-- **Antes:** dimensiones nombradas "con anclas" que no existían; "personas y dinero no conmensurables" (pre-revisión D5).
-- **Origen del cambio:** C7, I9, C10.
+- **Texto vigente:** Cuatro dimensiones, escalas ordinales 1–5; se conserva cada una; `I efectivo = max(dimensiones)` se muestra y desempata, y la criticidad se calcula por dimensión (D14). Las dimensiones son tipos de consecuencia, no capas causales: todo lo monetario va a Económico. Económico: consecuencia monetaria para esta empresa como proporción de su resultado operativo anual (RO): 1 < 2%; 2 de 2% a < 10%; 3 de 10% a < 30%; 4 de 30% a < 100%; 5 ≥ 100% (cortes a calibrar). Incluye daño directo, multas y pérdida por interrupción medida como margen de contribución; sin margen conocido se registra un rango entre margen operativo y facturación perdida. Magnitud de referencia: RO normalizado; si no sirve, promedio normalizado de ejercicios positivos; si no, otra medida documentada con anomalía A6; si no, `unknown`. Personas: consecuencias humanas, no se monetizan; nivel 4 = una muerte plausible o daño irreversible grave; nivel 5 = más de una muerte plausible. Continuidad: consecuencia operativa no monetaria, medida por la duración de la interrupción bruta de funciones críticas (reparación o reposición normal de lo dañado, sin alternativas de la organización). Legal/regulatorio: consecuencia jurídica/regulatoria no monetaria; las multas van a Económico. Se evalúa el escenario plausible si el evento ocurre y nada actúa después, hasta que la organización vuelve a operar con normalidad o la pérdida queda definitiva; el peor creíble va al rango (D8). La equivalencia entre dimensiones nivel a nivel (D11) es una hipótesis de calibración. Reputación queda fuera de v0 (D13). Anclas: `metodologia-v0.md` §4.
+- **Estado:** decidida (plan, Fase 0 "I" y Fase 3 "Escalas de I"; respuestas, pregunta 2); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Cuatro dimensiones, escalas ordinales 1–5; se conserva cada una e `I efectivo = max(dimensiones)`. **Económico:** consecuencia monetaria para esta empresa, relativa a su capacidad económica, no a montos absolutos universales. Magnitud de referencia: resultado operativo anual. Incluye daño directo, multas y pérdida económica por interrupción. **Personas:** consecuencias humanas. No se monetizan. **Continuidad:** consecuencia operativa no monetaria: tiempo sin operar, degradación de servicio, incapacidad de cumplir funciones críticas. **Legal/regulatorio:** consecuencia jurídica/regulatoria no monetaria: pérdida de habilitación, restricción de operar, responsabilidad relevante, intervención regulatoria. Reputación queda fuera de v0 (D13). Las anclas de cada nivel se escriben en la Fase 3." Antes de v0.0: dimensiones nombradas "con anclas" que no existían; "personas y dinero no conmensurables" (pre-revisión D5).
+- **Origen del cambio:** Fase 3: anclas de I; correcciones de Emiliano a facturación perdida y fallback del RO; CP-11, CP-13, CP-16. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #5, #11, #13.
 - **Uso en v1:** priorizar; matriz.
 
@@ -168,10 +164,10 @@
 - **Origen del cambio:** I2, C5, I1, C6 (la "variante más limpia" de la recomendación 6 de la revisión).
 
 ### D8 · Unknowns: valor plausible, rango y techo
-- **Texto vigente:** Si existe un valor defendible más plausible: ese valor calcula la criticidad; se conserva el rango; el extremo superior genera un techo plausible; el techo no participa del ranking. Si no existe ningún valor plausible defendible: el factor queda `unknown`; no se inventa un valor; la criticidad puede quedar no evaluable; se genera necesidad de validación. Un riesgo no evaluable va a una lista separada "no evaluable", con su motivo y su necesidad de validación, nunca mezclado en el ranking; si tiene consecuencia extrema, la bandera también aplica.
-- **Estado:** decidida (plan, Fase 0 "Unknowns"; evaluación, H7).
-- **Antes:** "Ante un rango, se conserva el rango y para priorización provisional se usa el extremo superior plausible" (pre-revisión D8; similar en plan-pasos §3.2).
-- **Origen del cambio:** C1, C6, I12. Con esto desaparece la contradicción D8↔D9.
+- **Texto vigente:** Si existe un valor defendible más plausible (la mejor estimación profesional, no el peor valor no descartable): ese valor calcula la criticidad; se conserva el rango; el extremo superior genera un techo plausible; el techo no participa del ranking. Hay valor defendible si la evidencia fija el nivel o lo acota a un rango de como máximo tres niveles contiguos. Si no: el factor queda `unknown`; no se inventa un valor; se genera necesidad de validación. Si P es `unknown`, el riesgo es no evaluable. Si una dimensión de I o un aspecto de V es `unknown`, el riesgo es evaluable sólo si la cota de esa parte (con su extremo superior registrado, o 5) no supera la criticidad de las partes conocidas. Un riesgo no evaluable va a una lista separada "no evaluable", con su motivo y su necesidad de validación, nunca mezclado en el ranking; las banderas se disparan también con el extremo superior registrado de una dimensión `unknown`. Los no evaluables y los riesgos con unknowns o incertidumbre alta entran en una cola de validación, separada del ranking, que prioriza qué información obtener primero.
+- **Estado:** decidida (plan, Fase 0 "Unknowns"; evaluación, H7); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Si existe un valor defendible más plausible: ese valor calcula la criticidad; se conserva el rango; el extremo superior genera un techo plausible; el techo no participa del ranking. Si no existe ningún valor plausible defendible: el factor queda `unknown`; no se inventa un valor; la criticidad puede quedar no evaluable; se genera necesidad de validación. Un riesgo no evaluable va a una lista separada "no evaluable", con su motivo y su necesidad de validación, nunca mezclado en el ranking; si tiene consecuencia extrema, la bandera también aplica." Antes de v0.0: "Ante un rango, se conserva el rango y para priorización provisional se usa el extremo superior plausible" (pre-revisión D8; similar en plan-pasos §3.2).
+- **Origen del cambio:** Fase 3: unknowns en factores compuestos (protocolo PA 3); criterio de valor defendible y cola de validación pedidos por Emiliano; CP-08. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #8.
 - **Uso en v1:** ordenar la lista.
 
@@ -189,10 +185,10 @@
 - **Origen del cambio:** C5, I3, O2, y la eliminación de pisos (D20).
 
 ### D10 · Ranking
-- **Texto vigente:** Versión inicial a definir en la Fase 3. Default que usa esa fase: banda → C_raw → I efectivo → amplitud de I (dimensiones en nivel ≥ I efectivo − 1) → I_personas → empate legítimo; P deja de ser desempate. La incertidumbre no participa del ranking. Un orden técnico por risk_id/nombre puede usarse en la UI para estabilidad, sin representar prioridad. Los desempates y su orden son hipótesis experimentales.
-- **Estado:** abierta (Fase 3; default de evaluación, H6).
-- **Antes:** ver D10 (pre-revisión).
-- **Origen del cambio:** C5, I3, O2.
+- **Texto vigente:** Versión inicial: banda → C_raw → I efectivo → I_personas → empate legítimo, dentro de una misma organización. Se quita la amplitud de I porque cuenta dos veces la misma pérdida. P no es desempate. Compiten sólo riesgos evaluables y riesgos padre (con la posición de su sub-riesgo determinante); quedan fuera los sub-riesgos, los escenarios por causa común, los no evaluables, el techo y la incertidumbre. Las banderas no mueven el orden. Un orden técnico por risk_id/nombre puede usarse en la UI para estabilidad, sin representar prioridad. Los desempates y su orden son hipótesis experimentales. El orden entre organizaciones distintas queda abierto (Fase 6).
+- **Estado:** decidida (Fase 3; respuestas F3-4; aprobada 2026-10-05). Los desempates siguen siendo hipótesis experimentales.
+- **Antes:** v0.0: "Versión inicial a definir en la Fase 3. Default que usa esa fase: banda → C_raw → I efectivo → amplitud de I (dimensiones en nivel ≥ I efectivo − 1) → I_personas → empate legítimo; P deja de ser desempate. La incertidumbre no participa del ranking. Un orden técnico por risk_id/nombre puede usarse en la UI para estabilidad, sin representar prioridad. Los desempates y su orden son hipótesis experimentales." Antes de v0.0: ver D10 (pre-revisión).
+- **Origen del cambio:** F3-4 aprobada por Emiliano; CP-13 (la amplitud cuenta dos veces la misma pérdida). (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #1, #3, #5.
 - **Uso en v1:** ordenar la lista.
 
@@ -213,74 +209,74 @@
 - **Uso en v1:** matriz; ordenar la lista.
 
 ### D13 · Excluidos de v0
-- **Texto vigente:** Quedan fuera salvo que los casos demuestren que son necesarios: velocidad de materialización, detectabilidad, correlación/dependencia entre riesgos, asegurabilidad como factor de criticidad. Reputación queda fuera de v0. Reputación y la observación cuantitativa que sostiene cada factor se registran como texto, sin entrar en el score.
-- **Estado:** decidida (pre-revisión D13 y D5, ratificada por plan Fase 0; evaluación, H15 para el registro textual).
-- **Antes:** sin cambio en la lista (plan-pasos §3.2).
-- **Origen del cambio:** O7, O4 (registro textual).
+- **Texto vigente:** Quedan fuera del score salvo que los casos demuestren que son necesarios: velocidad de materialización, detectabilidad, correlación/dependencia entre riesgos, asegurabilidad como factor de criticidad. La correlación sigue fuera del score de cada riesgo; se representa sólo en el escenario por causa común (D24), fuera del ranking. Reputación queda fuera de v0. Reputación y la observación que sostiene cada factor se registran como texto, sin entrar en el score.
+- **Estado:** decidida (pre-revisión D13 y D5, ratificada por plan Fase 0; evaluación, H15 para el registro textual); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Quedan fuera salvo que los casos demuestren que son necesarios: velocidad de materialización, detectabilidad, correlación/dependencia entre riesgos, asegurabilidad como factor de criticidad. Reputación queda fuera de v0. Reputación y la observación cuantitativa que sostiene cada factor se registran como texto, sin entrar en el score." Antes de v0.0: sin cambio en la lista (plan-pasos §3.2).
+- **Origen del cambio:** F3-5 aprobada por Emiliano; CP-20. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** ninguno todavía.
 - **Uso en v1:** no aplica (excluye elementos).
 
 ### D14 · Fórmula bajo prueba
-- **Texto vigente:** `C_raw = P × I × V`, con P, I y V ordinales 1–5. Es un índice ordinal de priorización, no una medición cardinal ni actuarial, y se trata explícitamente como hipótesis falsable. Toma 30 valores no equiespaciados (reemplaza "rango 1–125") y no se presenta como escala cardinal continua. **Falsación:** si 3 casos independientes previamente adjudicados producen órdenes incorrectos que no pueden corregirse mediante calibración, anclas o desempates simples, la regla de combinación se considera falsada y se reabre.
-- **Estado:** decidida (plan, Fase 0 "Fórmula bajo prueba", Fase 3 y Fase 5 "Criterio de falsación"; respuestas, pregunta 7).
-- **Antes:** "C_raw = P × I × V … Rango posible: 1–125" (pre-revisión D14). Antes aún: matriz (plan-pasos §3.2 D6).
-- **Origen del cambio:** C4, O1, I5.
+- **Texto vigente:** Para cada dimensión d de I: `C_d = P × I_d × V_d`, donde `V_d` es el peor de los aspectos de V que actúan sobre esa dimensión (D15). `C_raw = max_d C_d`; la dimensión que da el máximo es la dimensión determinante. P, I_d y V_d son categorías ordenadas 1–5. `C_raw` es un índice heurístico de prioridad calculado sobre categorías ordenadas: no es una medición cardinal ni actuarial, ni una escala ordinal bien definida, porque depende de haber codificado los niveles como 1 a 5. Toma 30 valores no equiespaciados y no se presenta como escala continua. Se trata explícitamente como hipótesis falsable. **Falsación:** si 3 casos independientes previamente adjudicados producen órdenes incorrectos que no pueden corregirse mediante calibración, anclas o desempates simples, la regla de combinación se considera falsada y se reabre; la alternativa a estudiar es una tabla de decisión calibrada o un agregador basado en escenarios, no pesos.
+- **Estado:** decidida (plan, Fase 0 "Fórmula bajo prueba", Fase 3 y Fase 5 "Criterio de falsación"; respuestas, pregunta 7); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "`C_raw = P × I × V`, con P, I y V ordinales 1–5. Es un índice ordinal de priorización, no una medición cardinal ni actuarial, y se trata explícitamente como hipótesis falsable. Toma 30 valores no equiespaciados (reemplaza "rango 1–125") y no se presenta como escala cardinal continua. **Falsación:** si 3 casos independientes previamente adjudicados producen órdenes incorrectos que no pueden corregirse mediante calibración, anclas o desempates simples, la regla de combinación se considera falsada y se reabre." Antes de v0.0: "C_raw = P × I × V … Rango posible: 1–125" (pre-revisión D14). Antes aún: matriz (plan-pasos §3.2 D6).
+- **Origen del cambio:** Emiliano: un aspecto de V que no actúa sobre la dimensión dominante no debe multiplicarla; el producto de ordinales no es una escala ordinal. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #1, #3; falsación en Fase 5.
 - **Uso en v1:** priorizar; ordenar la lista.
 
 ### D15 · V y frontera P/V
-- **Texto vigente:** V representa la vulnerabilidad desde que el evento ocurre: contención, respuesta, redundancia, recuperación. P y V quedan separados mediante un corte temporal en el instante del evento: P cubre todo lo anterior. V se evalúa post-evento, con rúbrica de contención y recuperación; ante perfiles mixtos, se documenta qué aspecto domina. Escala 1–5 (anclas en Fase 3). Anti doble conteo: un mismo control o condición no se descuenta simultáneamente en varios factores salvo mecanismos causales diferentes y explícitamente documentados.
-- **Estado:** decidida (plan, Fase 0 "V" y Fase 3 "V 1–5"; anti doble conteo de pre-revisión).
-- **Antes:** "V mide qué tan susceptible es la organización a sufrir consecuencias relevantes si el evento ocurre, considerando controles, preparación, redundancias, capacidad de respuesta y recuperación actuales" (pre-revisión). Antes aún: "P = frecuencia del evento en el entorno; V = qué tan preparada está esta empresa" (plan-pasos §6).
-- **Origen del cambio:** C3, I10 (la regla "aspecto más débil" de I10 no se adoptó).
+- **Texto vigente:** V representa la vulnerabilidad desde que el evento ocurre. P y V quedan separados mediante un corte temporal en el evento iniciador: el primer punto de la cadena en que el peligro se materializó y, si nada actúa después, la consecuencia se desarrolla sola (ignición, robo o uso de la credencial). P cubre todo lo anterior. Todo control que actúa después del evento iniciador va a V, incluidos los pasivos (rociadores, detección, sectorización, restricción de acceso, copias de seguridad). V tiene dos aspectos que se evalúan y registran por separado, cada uno 1–5 y contra el escenario bruto de I: contención (cuánto daño se produce; incluye respuesta) y recuperación (cuánto dura la interrupción y qué se repone; incluye redundancia). Las rúbricas describen capacidades y su prueba, sin contar niveles de I. Un aspecto sólo actúa sobre las dimensiones a las que causalmente afecta: contención sobre las cuatro; recuperación sobre Continuidad y Económico. Para cada dimensión, `V_d` es el peor de los aspectos que actúan sobre ella. Anti doble conteo: un mismo control o condición no se descuenta simultáneamente en varios factores salvo mecanismos causales diferentes y explícitamente documentados. Rúbricas: `metodologia-v0.md` §5.
+- **Estado:** decidida (plan, Fase 0 "V" y Fase 3 "V 1–5"; anti doble conteo de pre-revisión); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "V representa la vulnerabilidad desde que el evento ocurre: contención, respuesta, redundancia, recuperación. P y V quedan separados mediante un corte temporal en el instante del evento: P cubre todo lo anterior. V se evalúa post-evento, con rúbrica de contención y recuperación; ante perfiles mixtos, se documenta qué aspecto domina. Escala 1–5 (anclas en Fase 3). Anti doble conteo: un mismo control o condición no se descuenta simultáneamente en varios factores salvo mecanismos causales diferentes y explícitamente documentados." Antes de v0.0: "V mide qué tan susceptible es la organización a sufrir consecuencias relevantes si el evento ocurre, considerando controles, preparación, redundancias, capacidad de respuesta y recuperación actuales" (pre-revisión). Antes aún: "P = frecuencia del evento en el entorno; V = qué tan preparada está esta empresa" (plan-pasos §6).
+- **Origen del cambio:** F3-6 aprobada; F3-3 rechazada como regla universal y reemplazada por V por dimensión; CP-06, CP-07, CP-14; cierra la contradicción abierta #4. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #6, #7, #14, #CI.
 - **Uso en v1:** priorizar; plan de acción.
 
 ### D16 · Acciones
-- **Texto vigente:** Una acción no modifica automáticamente P, I o V. El cambio esperado de una acción es sólo una hipótesis. Una acción puede modificar P, V o dimensiones específicas de I solamente cuando existe un mecanismo causal explícito compatible con la definición de ese factor; más de un factor sólo con mecanismos diferentes claramente explicados, sin doble contar el mismo beneficio.
-- **Estado:** decidida (plan, Fase 0 "Dinámica"; mecanismo causal de pre-revisión D16).
-- **Antes:** sin cambio de fondo en pre-revisión. Antes aún: "Cada acción declara qué factor pretende mejorar y en cuánto" (plan-pasos §6).
-- **Origen del cambio:** —
+- **Texto vigente:** Una acción no modifica automáticamente P, I o V. El cambio esperado de una acción es sólo una hipótesis. Una acción puede modificar P, V o dimensiones específicas de I solamente cuando existe un mecanismo causal explícito compatible con la definición de ese factor; más de un factor sólo con mecanismos diferentes claramente explicados, sin doble contar el mismo beneficio. Una acción que declara mejorar V nombra el aspecto (contención o recuperación). El estado y la eficacia de la acción se rigen por D25.
+- **Estado:** decidida (plan, Fase 0 "Dinámica"; mecanismo causal de pre-revisión D16); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Una acción no modifica automáticamente P, I o V. El cambio esperado de una acción es sólo una hipótesis. Una acción puede modificar P, V o dimensiones específicas de I solamente cuando existe un mecanismo causal explícito compatible con la definición de ese factor; más de un factor sólo con mecanismos diferentes claramente explicados, sin doble contar el mismo beneficio." Antes de v0.0: sin cambio de fondo en pre-revisión. Antes aún: "Cada acción declara qué factor pretende mejorar y en cuánto" (plan-pasos §6).
+- **Origen del cambio:** V partida en aspectos; CP-10. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #10.
 - **Uso en v1:** plan de acción.
 
 ### D17 · Seguro y transferencia
-- **Texto vigente:** La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto. La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`.
-- **Estado:** decidida (plan, Fase 0 "Seguro y transferencia" y Fase 15).
-- **Antes:** "Se propone conservar impacto económico bruto e impacto económico retenido. La cobertura puede reducir el retenido y modificar I efectivo si esa dimensión era dominante" (pre-revisión D17): **superada**. Antes aún: "baja el impacto económico para la empresa" (plan-pasos §6).
-- **Origen del cambio:** I7, I4.
+- **Texto vigente:** La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto. La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`. Los eventos de una póliza (firma, consumo del límite, renovación) tienen su propio historial en `risk-transfer`, enlazado desde el riesgo; no generan una reevaluación del riesgo ni usan `motivo`.
+- **Estado:** decidida (plan, Fase 0 "Seguro y transferencia" y Fase 15); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto. La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`." Antes de v0.0: "Se propone conservar impacto económico bruto e impacto económico retenido. La cobertura puede reducir el retenido y modificar I efectivo si esa dimensión era dominante" (pre-revisión D17): **superada**. Antes aún: "baja el impacto económico para la empresa" (plan-pasos §6).
+- **Origen del cambio:** Emiliano: un evento de póliza no cambia el riesgo, así que no usa `cambio_contexto`. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #9, #LC.
 - **Uso en v1:** transferencia.
 
 ### D18 · Cuándo cambia la criticidad
-- **Texto vigente:** Los factores cambian únicamente después de una reevaluación sustentada en evidencia aceptada. La criticidad no baja porque una acción fue planificada o figura como completada. Puede subir sin ninguna acción si nueva información muestra que P, I o V eran mayores. Todo cambio debe quedar históricamente reconstruible.
-- **Estado:** decidida (plan, Fase 0 "Dinámica"; resto de pre-revisión D18).
-- **Antes:** sin cambio de fondo en pre-revisión. Antes aún: "al ejecutarla con evidencia (base: observed)" (plan-pasos §6).
-- **Origen del cambio:** —
+- **Texto vigente:** Los factores cambian únicamente después de una reevaluación sustentada en evidencia aceptada. La criticidad no baja porque una acción fue planificada o figura como completada. Puede subir o bajar sin ninguna acción, por información nueva que muestra que P, I o V eran distintos de lo registrado, o por un cambio de contexto real. Cada cambio lleva su `motivo` (D22): `informacion_nueva` si la evaluación anterior no registraba el hecho; `correccion_evaluacion` si lo registraba como cierto y era falso. Un cambio de versión de la metodología puede cambiar el score o la banda sin que cambie el riesgo, y nunca cuenta como mejora ni empeoramiento. Todo cambio debe quedar históricamente reconstruible.
+- **Estado:** decidida (plan, Fase 0 "Dinámica"; resto de pre-revisión D18); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Los factores cambian únicamente después de una reevaluación sustentada en evidencia aceptada. La criticidad no baja porque una acción fue planificada o figura como completada. Puede subir sin ninguna acción si nueva información muestra que P, I o V eran mayores. Todo cambio debe quedar históricamente reconstruible." Antes de v0.0: sin cambio de fondo en pre-revisión. Antes aún: "al ejecutarla con evidencia (base: observed)" (plan-pasos §6).
+- **Origen del cambio:** CP-19: la criticidad cambia en los dos sentidos sin acción; criterio de motivo aprobado por Emiliano. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #4, #10.
 - **Uso en v1:** historial; plan de acción.
 
 ### D19 · A qué está condicionado I
-- **Texto vigente:** I representa la magnitud potencial bruta de las consecuencias para esta organización, dado que el evento ocurrió, antes de considerar controles posteriores al evento y antes de transferencia financiera.
-- **Estado:** decidida (plan, Fase 0 "I"; respuestas, pregunta 1).
-- **Antes:** no existía. La revisión (C2) proponía "suponiendo una organización de capacidad típica para su tamaño y sector"; **gana el plan** ("esta organización"). Lo que la empresa *es* (tamaño, activos, personas expuestas, procesos) va a I; lo que hace desde el evento va a V (evaluación, H2).
-- **Origen del cambio:** C2.
+- **Texto vigente:** I representa la magnitud potencial bruta de las consecuencias para esta organización, dado que el evento ocurrió, antes de considerar controles posteriores al evento y antes de transferencia financiera. Lo que la organización es (personas, activos, datos y procesos que el evento alcanzaría hoy) va a I; lo que hace o tiene preparado desde el evento va a V. Test: si la medida puede fallar y la consecuencia llegaría igual, es una barrera y va a V; si lo expuesto no está ahí, es exposición y va a I. I-continuidad es la interrupción con la reparación o reposición normal de lo dañado; la ausencia de plan de continuidad, de alternativas o de redundancia no sube I: va a V-recuperación.
+- **Estado:** decidida (plan, Fase 0 "I"; respuestas, pregunta 1); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "I representa la magnitud potencial bruta de las consecuencias para esta organización, dado que el evento ocurrió, antes de considerar controles posteriores al evento y antes de transferencia financiera." Antes de v0.0: no existía. La revisión (C2) proponía "suponiendo una organización de capacidad típica para su tamaño y sector"; **gana el plan** ("esta organización"). Lo que la empresa *es* (tamaño, activos, personas expuestas, procesos) va a I; lo que hace desde el evento va a V (evaluación, H2).
+- **Origen del cambio:** CP-16: la falta de continuidad va a V; cierra la contradicción abierta #1; test de la barrera aprobado. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #CI, #11.
 - **Uso en v1:** priorizar; transferencia.
 
 ### D20 · Consecuencia extrema
-- **Texto vigente:** No existen pisos automáticos de banda en v0. Las consecuencias extremas generan `consecuencia_extrema = true`, que debe permanecer explícitamente visible y filtrable y no altera la banda. Se dispara cuando cualquier dimensión de I = 5. Los casos de propiedad determinarán si hace falta algún piso normativo específico.
-- **Estado:** decidida (plan, Fase 0 "Consecuencias extremas" y Fase 3 "Extremos"; respuestas, pregunta 3).
-- **Antes:** pisos de D7.
-- **Origen del cambio:** I2, C5, I1. Número nuevo (regla sin número en el plan).
+- **Texto vigente:** No existen pisos automáticos de banda en v0. Las consecuencias extremas generan `consecuencia_extrema = true`, que debe permanecer explícitamente visible y filtrable y no altera la banda ni el ranking. Se dispara cuando cualquier dimensión de I = 5 (valor plausible). Convive con `safety_critical` (D23), que es la regla normativa de seguridad que pidieron los casos de propiedad; tampoco fija un piso de banda.
+- **Estado:** decidida (plan, Fase 0 "Consecuencias extremas" y Fase 3 "Extremos"; respuestas, pregunta 3); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "No existen pisos automáticos de banda en v0. Las consecuencias extremas generan `consecuencia_extrema = true`, que debe permanecer explícitamente visible y filtrable y no altera la banda. Se dispara cuando cualquier dimensión de I = 5. Los casos de propiedad determinarán si hace falta algún piso normativo específico." Antes de v0.0: pisos de D7.
+- **Origen del cambio:** F3-1 (modificada por Emiliano); CP-02, CP-15. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #2, #15.
 - **Uso en v1:** ordenar la lista (filtro); matriz.
 
 ### D21 · Granularidad del riesgo
-- **Texto vigente:** Un riesgo representa un evento con una cadena de consecuencias que comparte P y V. Si dos consecuencias requieren P o V diferentes, probablemente deben representarse como riesgos distintos. En la evaluación ciega ambos evaluadores trabajan sobre la misma lista de riesgos ya definida.
-- **Estado:** decidida (plan, Fase 1 "Granularidad del riesgo").
-- **Antes:** no existía (sólo la anomalía A7).
-- **Origen del cambio:** I8. Número nuevo.
+- **Texto vigente:** Un riesgo representa un escenario: un evento con una cadena de consecuencias que comparte P y V. Si el evento o la cadena de consecuencias son distintos, son riesgos distintos. Si el evento y la consecuencia que sufre la organización son los mismos pero las causas tienen P o V diferentes, es un riesgo padre: un agrupador sin factores propios, con un sub-riesgo por causa, cada uno evaluado como escenario completo; nunca se toma la P de un sub-riesgo y la V de otro. Sólo el padre compite en el ranking principal, con la posición de su sub-riesgo determinante (el primero por D10); los sub-riesgos son detalle de análisis y tratamiento. Esa función de agregación es una hipótesis a validar, junto con la invariancia de granularidad. En la evaluación ciega ambos evaluadores trabajan sobre la misma lista de riesgos ya definida.
+- **Estado:** decidida (plan, Fase 1 "Granularidad del riesgo"); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Antes:** v0.0: "Un riesgo representa un evento con una cadena de consecuencias que comparte P y V. Si dos consecuencias requieren P o V diferentes, probablemente deben representarse como riesgos distintos. En la evaluación ciega ambos evaluadores trabajan sobre la misma lista de riesgos ya definida." Antes de v0.0: no existía (sólo la anomalía A7).
+- **Origen del cambio:** F3-2 aprobada como modelo; roll-up rediseñado por pedido de Emiliano; CP-12; revisión I8. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #12.
 - **Uso en v1:** ordenar la lista.
 
@@ -291,6 +287,30 @@
 - **Origen del cambio:** C9, I17. Número nuevo.
 - **Qué la pone a prueba:** Fase 2 #10, #LC.
 - **Uso en v1:** historial; plan de acción.
+
+### D23 · `safety_critical`
+- **Texto vigente:** Un riesgo con I-personas ≥ 4 (al menos una muerte plausible o daño irreversible grave) lleva `safety_critical = true`. Obliga a que aparezca siempre en una vista de seguridad y a que tenga registrada en todo momento una acción en curso o una decisión explícita de la dirección sobre su tratamiento, con fecha de revisión; sin ninguna de las dos, alerta visible. No fuerza banda, no fija piso y no mueve el ranking. Un riesgo remoto puede llegar a la banda más alta por el producto, pero no está obligado.
+- **Estado:** decidida (v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)).
+- **Antes:** no existía.
+- **Origen del cambio:** F3-1 modificada por Emiliano: una muerte plausible no puede quedar fuera; CP-02, CP-15.. Número nuevo.
+- **Qué la pone a prueba:** Fase 2 #2, #15 (CP-02, CP-15; circulares).
+- **Uso en v1:** vista de seguridad; plan de acción.
+
+### D24 · Escenario por causa común
+- **Texto vigente:** Cuando una misma causa puede materializar de forma plausible y material dos o más riesgos de la organización a la vez, se registra un escenario por causa común con sus miembros. Plausible: una sola ocurrencia de la causa puede producir los eventos de los miembros sin coincidencias independientes. Material: la consecuencia conjunta alcanza en alguna dimensión un nivel más alto que cualquier miembro solo. Se evalúa con P, I y V propios sobre la materialización conjunta (Económico sumado sin contar dos veces una pérdida; Personas conjunto; Continuidad la interrupción conjunta; Legal el máximo). Se ve en una vista aparte para acumulación de exposición y transferencia; nunca entra al ranking principal, no modifica los factores de sus miembros y no les suma.
+- **Estado:** decidida (v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)).
+- **Antes:** no existía.
+- **Origen del cambio:** F3-5 aprobada, con el criterio de creación cambiado por Emiliano; CP-20.. Número nuevo.
+- **Qué la pone a prueba:** Fase 2 CP-20 (circular).
+- **Uso en v1:** vista de escenarios agregados; transferencia.
+
+### D25 · Estado y eficacia de una acción
+- **Texto vigente:** Una acción cuya ejecución material está verificada queda `cumplida`, aunque su efecto sea menor al esperado. Su eficacia es un campo aparte: `efecto_total`, `efecto_parcial` o `sin_efecto_medible`, con nota de lo esperado, lo obtenido y la brecha. El factor toma el valor reevaluado, no el esperado.
+- **Estado:** decidida (v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)).
+- **Antes:** no existía.
+- **Origen del cambio:** CP-10, aprobado por Emiliano; cierra la contradicción abierta #5.. Número nuevo.
+- **Qué la pone a prueba:** Fase 2 #10 (CP-10; circular).
+- **Uso en v1:** plan de acción; historial.
 
 ---
 
@@ -328,11 +348,11 @@ La Fase 1 las ajusta (en particular A9: evaluación del plan y revisión I12).
 
 **Pares que todavía chocan después de consolidar**
 
-1. **D19 ↔ D15 en continuidad.** "Tiempo sin operar" es I-continuidad (bruto, de esta organización) y "recuperación" es V; un mismo hecho (no hay plan de continuidad) puede cargarse en cualquiera de los dos. → Fase 2 #CI, adjudica Emiliano.
-2. **P6 ↔ D20 + D12.** Sin pisos, un extremo remoto queda en la banda que le da el producto; P6 se cumple sólo por la bandera y el filtro (evaluación H6). Si un riesgo remoto puede llegar a Crítica sigue sin decidir. → Fase 2 #2 y #15, Fase 9.
+1. **D19 ↔ D15 en continuidad.** "Tiempo sin operar" es I-continuidad (bruto, de esta organización) y "recuperación" es V; un mismo hecho (no hay plan de continuidad) puede cargarse en cualquiera de los dos. → **Resuelta en v0.1** por D19 (CP-16: la falta de continuidad va a V-recuperación).
+2. **P6 ↔ D20 + D12.** Sin pisos, un extremo remoto queda en la banda que le da el producto; P6 se cumple sólo por la bandera y el filtro (evaluación H6). Si un riesgo remoto puede llegar a Crítica sigue sin decidir. → **Resuelta en la regla en v0.1** por D20 y D23 (`safety_critical`); el número queda para la Fase 9.
 3. **D20 (disparo con cualquier I = 5) ↔ C6.** Con `max()` sobre cuatro dimensiones la bandera puede marcar buena parte de la lista y dejar de distinguir. → medir la frecuencia en el dry run, Fase 4 (evaluación H4).
-4. **D15 (perfil mixto: "documentar qué aspecto domina") ↔ P4.** No hay regla que fije V ante un perfil mixto, así que dos evaluadores pueden divergir sin error. → Fase 2 #14, Fase 3.
-5. **D16 + D18 ↔ P10 cuando la reevaluación no confirma el cambio esperado.** No está escrito qué estado toma la acción ni qué se registra (I16). → Fase 2 #10; regla en Fase 1 (historial) o Fase 3.
+4. **D15 (perfil mixto: "documentar qué aspecto domina") ↔ P4.** No hay regla que fije V ante un perfil mixto, así que dos evaluadores pueden divergir sin error. → **Resuelta en v0.1** por D15 (contención y recuperación separadas, V por dimensión).
+5. **D16 + D18 ↔ P10 cuando la reevaluación no confirma el cambio esperado.** No está escrito qué estado toma la acción ni qué se registra (I16). → **Resuelta en v0.1** por D25 y protocolo §6.3 (CP-10).
 6. **EMI-17 (procedencia por riesgo) ↔ D8 (rango y valor plausible por factor).** I13. → Fase 1 (el prompt pide procedencia por factor), Fase 15.
 
 **"Inconsistencias entre decisiones" de la revisión (10)**
