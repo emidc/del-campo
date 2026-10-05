@@ -1,7 +1,8 @@
 # Protocolo experimental · metodología de criticidad
 
-> Fecha: 2026-10-05 · Versión: **protocolo v0.0** (aprobado por Emiliano, 2026-10-05) · Fase 1 del plan EMI-15 + EMI-41.
-> Se apoya en `decisiones-v0.md` **v0.0** (aprobada 2026-10-05). Cita sus números: D8 unknowns y techo, D14 fórmula y falsación, D15 V y corte P/V, D17 seguro bruto, D20 `consecuencia_extrema`, D21 granularidad, D22 `motivo`; D10 (ranking) sigue abierta para la Fase 3.
+> Fecha: 2026-10-05 · Versión: **protocolo v0.1** (v0.0 aprobado por Emiliano en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado).
+> Se apoya en `decisiones-v0.md` **v0.1** y en `metodologia-v0.md` **metodologia v0.1** (Fase 3). Cita sus números: D8 unknowns y techo, D10 ranking, D14 fórmula por dimensión y falsación, D15 V (contención y recuperación) y corte P/V, D17 seguro bruto, D20 `consecuencia_extrema`, D21 granularidad y riesgo padre, D22 `motivo`, D23 `safety_critical`, D24 escenario por causa común, D25 estado y eficacia de una acción.
+> **Cambios de v0.1** (fila CH-074 del changelog): campos de la ficha para contención y recuperación por separado, V por dimensión, dimensión determinante, `safety_critical`, tipo de objeto (riesgo, padre, sub-riesgo, escenario); "visible" en la Fase 4 incluye la vista de seguridad; métricas por aspecto de V. Lo marcado **[PA n]** remite al "Para aprobar" de v0.0, ya aprobado.
 
 **Abreviaturas de fuentes.** *respuestas* = `fuentes/respuestas-emiliano.md` · *plan* = `fuentes/plan-emi15-emi41.md` · *evaluación* = `evaluacion-plan-emi15-emi41.md` · *revisión* = `revision-adversarial-v0.md` · *plan-pasos* = `plan-pasos-1-2.md` · *decisiones* = `v0/decisiones-v0.md`. Las reglas que no salen literales de una fuente están marcadas **[PA n]** y se confirman en "Para aprobar".
 
@@ -10,7 +11,7 @@
 ## 1. Alcance y versión
 
 1. Este protocolo gobierna las fases 2 a 12 del plan: casos de propiedad, metodología v0, dry run, adjudicación, cobertura y construcción de EMI-41, evaluación ciega, calibración, regresión, v1 candidate y revisión profesional.
-2. Versión vigente: `protocolo v0.0`. Toda ficha, registro y reporte escribe la versión del protocolo y la de la metodología con la que se produjo.
+2. Versión vigente: `protocolo v0.1`. Toda ficha, registro y reporte escribe la versión del protocolo y la de la metodología con la que se produjo.
 3. **Preregistro.** Lo que no está escrito acá antes de ver un resultado no puede usarse para aprobar ni para descartar la metodología.
 4. **Desviaciones.** Cambiar el protocolo después de haber visto cualquier resultado de la fase afectada exige una fila en `changelog-metodologia.md` con la razón, sube la versión (`protocolo v0.1`, …) y queda marcado como **desviación del preregistro** en el informe de la fase y en el cierre de EMI-15. Un cambio hecho antes de ver resultados también va al changelog, sin la marca.
 5. La tipología de anomalías de la sección 4 reemplaza la tabla "Tipología de anomalías A1–A10" de `decisiones-v0.md` (que la deja a cargo de esta fase). Las filas de changelog que lo registran están en el Anexo A y se agregan al aprobarse este documento **[PA 1]**.
@@ -27,13 +28,16 @@ Una ficha = **un evento de evaluación** de un riesgo por un evaluador: la evalu
 |---|---|---|
 | `evaluacion_id` | texto | único, `EV-NNNN` |
 | `risk_id` | texto | el de la lista de riesgos; en evaluación ciega viene dado |
-| `caso_empresa` | texto | caso de propiedad (`Fase 2 #N`, `#CI`, `#LC`, `#P11`) o empresa sintética |
+| `caso_empresa` | texto | caso de propiedad (`CP-NN`) o empresa sintética |
+| `tipo_objeto` | enum | `riesgo` \| `padre` \| `sub_riesgo` \| `escenario` (D21, D24; metodología §1.2). Una ficha de `padre` no lleva factores propios: toma los de su sub-riesgo determinante (metodología §1.4) |
+| `riesgo_padre_id` | texto | obligatorio si `tipo_objeto = sub_riesgo` |
+| `miembros` | texto | obligatorio si `tipo_objeto = escenario`: `risk_id` de los riesgos que lo componen, separados por `;` |
 | `evaluador` | texto | identificador de la persona o de la sesión de agente |
 | `actor` | enum | `human` \| `ai` \| `import` (EMI-17). **Ficha de agente: `ai` obligatorio.** |
 | `fase` | entero | 2–12 |
 | `corrida_id` | texto | identificador de la corrida (sección 7) |
-| `version_metodologia` | texto | p. ej. `v0.0` |
-| `version_protocolo` | texto | p. ej. `protocolo v0.0` |
+| `version_metodologia` | texto | p. ej. `metodologia v0.1` |
+| `version_protocolo` | texto | p. ej. `protocolo v0.1` |
 | `fecha` | fecha | ISO `AAAA-MM-DD` |
 | `tipo_evaluacion` | enum | `inicial` \| `reevaluacion` |
 | `evaluacion_anterior_id` | texto | obligatorio si `reevaluacion` |
@@ -43,17 +47,17 @@ Una ficha = **un evento de evaluación** de un riesgo por un evaluador: la evalu
 | `accion_efecto` | enum | `efecto_total` \| `efecto_parcial` \| `sin_efecto_medible`; sólo con `accion_id` (sección 6.3) **[PA 9]** |
 | `accion_brecha_nota` | texto | obligatorio si `accion_efecto` ≠ `efecto_total` |
 | `riesgo_causa` | texto | causa |
-| `riesgo_evento` | texto | evento (el instante del corte P/V de D15) |
+| `riesgo_evento` | texto | evento iniciador: el corte P/V de D15 (metodología §2.1) |
 | `riesgo_consecuencia` | texto | cadena de consecuencias |
 | `informacion_ref` | texto | referencia a la ficha de información usada (sección 10) |
 
 ### 2.2 Por factor
 
-Seis factores: `p`, `i_econ`, `i_pers`, `i_cont`, `i_legal`, `v`. Cada uno lleva los mismos seis campos (`<f>` = prefijo del factor). Es la procedencia **por factor** que pide I13, con el vocabulario de EMI-17 sin campos nuevos de procedencia: sólo cambia a qué se aplica.
+Siete factores: `p`, `i_econ`, `i_pers`, `i_cont`, `i_legal`, `v_cont` (contención) y `v_rec` (recuperación). V ya no se asigna como un factor único: sus dos aspectos se evalúan por separado y V se aplica por dimensión (D15, metodología §5). Cada factor lleva los mismos seis campos (`<f>` = prefijo del factor). Es la procedencia **por factor** que pide I13, con el vocabulario de EMI-17 sin campos nuevos de procedencia: sólo cambia a qué se aplica.
 
 | Campo | Tipo | Valores permitidos |
 |---|---|---|
-| `<f>_valor` | enum | `1`–`5` (valor plausible de D8) \| `unknown` (D8: no hay valor plausible defendible) |
+| `<f>_valor` | enum | `1`–`5` (valor plausible de D8) \| `unknown` (D8: la evidencia no fija el nivel ni lo acota a tres niveles contiguos; metodología §9.2) \| `no_aplica` (sólo `v_rec`: no hay nada que restablecer ni reponer; metodología §5.5) |
 | `<f>_min` | entero | `1`–`5`, ≤ `<f>_valor`; vacío si no hay rango |
 | `<f>_max` | entero | `1`–`5`, ≥ `<f>_valor`; vacío si no hay rango. Es el **techo del factor** (D8) |
 | `<f>_base` | enum | `observed` \| `reported` \| `inferred` \| `assumed` (EMI-17) |
@@ -63,25 +67,27 @@ Seis factores: `p`, `i_econ`, `i_pers`, `i_cont`, `i_legal`, `v`. Cada uno lleva
 Reglas de llenado:
 - Si `<f>_valor = unknown`, `<f>_min` y `<f>_max` pueden registrarse si el evaluador puede acotarlo; si no, quedan vacíos **[PA 2]**.
 - Con rango, `<f>_valor` es el que entra en la criticidad; el rango se conserva y `<f>_max` sólo alimenta el techo (D8).
+- Con `<f>_valor` conocido, el rango cubre como máximo tres niveles contiguos (`<f>_max − <f>_min ≤ 2`); si la evidencia no lo acota a eso, el factor es `unknown` (metodología §9.2).
 
 ### 2.3 Resultado y cierre
 
 | Campo | Tipo | Valores permitidos |
 |---|---|---|
-| `i_efectivo` | enum | `1`–`5` \| `unknown`. `max(dimensiones)` (D5); si alguna dimensión es `unknown`, lo que diga `metodologia-v0.md`; si no lo dice, anomalía A2 **[PA 3]** |
+| `i_efectivo` | enum | `1`–`5` \| `unknown`. `max(dimensiones)` (D5); se muestra y desempata (D10). Con una dimensión `unknown`, se aplica metodología §9.3 |
 | `i_efectivo_dimensiones` | texto | dimensión o dimensiones que dan el máximo (`econ;cont`) |
-| `v_aspecto_dominante` | enum | `contencion` \| `respuesta` \| `redundancia` \| `recuperacion` \| `sin_perfil_mixto` (D15: ante perfil mixto se documenta qué domina; hace medible la contradicción abierta #4) |
-| `v_perfil_mixto_nota` | texto | obligatorio si el aspecto dominante no es `sin_perfil_mixto`: qué aspecto está fuerte y cuál débil |
+| `v_aspectos_aplicables` | texto | derivado, nunca a mano: por dimensión, qué aspectos de V entraron en `V_d` (`econ:cont,rec;pers:cont;cont:cont,rec;legal:cont`); con `v_rec = no_aplica`, recuperación no figura (metodología §5.5) |
+| `c_dimension_determinante` | texto | derivado: dimensión o dimensiones cuyo `C_d = P × I_d × V_d` da `c_raw` (D14) |
 | `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3) **[PA 4]** |
 | `consecuencia_extrema_dimensiones` | texto | dimensiones que la disparan |
-| `evaluable` | booleano | `false` si algún factor necesario quedó `unknown` según D8 |
+| `safety_critical` | booleano | `true` si `i_pers_valor ≥ 4`; en un riesgo no evaluable, también si `i_pers` es `unknown` y `i_pers_max ≥ 4` (D23) |
+| `evaluable` | booleano | `false` si `p` es `unknown`, o si la cota de alguna dimensión con partes `unknown` supera el `c_raw` de las conocidas (D8, metodología §9.3) |
 | `motivo_no_evaluable` | texto | obligatorio si `evaluable = false`: qué factor y por qué |
 | `necesidad_validacion` | texto | obligatorio si `evaluable = false` o hay algún `unknown`: qué hay que averiguar |
 | `uncertainty` | enum | `low` \| `medium` \| `high` (EMI-17, a nivel de riesgo, D9) |
 | `uncertainty_nota` | texto | obligatorio si `medium` o `high`: qué falta confirmar |
-| `c_raw` | entero | criticidad obtenida (D14), vacío si `evaluable = false`. Interno: no se muestra como escala (D12) |
+| `c_raw` | entero | `max_d (P × I_d × V_d)` (D14), vacío si `evaluable = false`. Índice heurístico interno: no se muestra como escala (D12) |
 | `banda` | enum | `Baja` \| `Media` \| `Alta` \| `Crítica`; **vacío hasta que la Fase 9 fije umbrales** |
-| `techo_plausible` | entero | criticidad con `<f>_max` donde hay rango y `<f>_valor` donde no; no participa del ranking (D8) |
+| `techo_plausible` | entero | `max_d (P_max × I_d_max × V_d_max)`, con `<f>_max` donde hay rango y `<f>_valor` donde no; no participa del ranking (D8) |
 | `reglas_aplicadas` | texto | números de regla separados por `;` (`D8;D15;D20`) |
 | `justificacion` | texto | 1–3 frases que expliquen el resultado citando reglas (P3) |
 | `reputacion_texto` | texto | opcional; observación reputacional en texto. **No entra en I** (D13, O7) |
@@ -90,13 +96,13 @@ Reglas de llenado:
 | `fecha_revision` | fecha | ISO |
 | `anomalias` | texto | `anomalia_id` del registro, separados por `;` |
 
-Ejemplo parcial de ficha, sin resultado: *riesgo* "Cortocircuito en tablero eléctrico → incendio en depósito → pérdida de stock y parada de despacho"; `p_valor = 3`, `p_base = reported`, `p_observacion = "dos principios de incendio en cinco años según el responsable de planta"`; `i_cont_valor = 4`, `i_cont_min = 3`, `i_cont_max = 5`, `i_cont_base = inferred`; `v_aspecto_dominante = recuperacion`, `v_perfil_mixto_nota = "detección y rociadores (contención fuerte), sin depósito alternativo (recuperación débil)"`.
+Ejemplo parcial de ficha, sin resultado: *riesgo* "Cortocircuito en tablero eléctrico → incendio en depósito → pérdida de stock y parada de despacho"; `p_valor = 3`, `p_base = reported`, `p_observacion = "dos principios de incendio en cinco años según el responsable de planta"`; `i_cont_valor = 4`, `i_cont_min = 3`, `i_cont_max = 5`, `i_cont_base = inferred`; `v_cont_observacion = "detección y rociadores probados en el último ensayo"`, `v_rec_observacion = "sin depósito alternativo ni acuerdo con terceros"`.
 
 ---
 
 ## 3. Granularidad (D21)
 
-**Regla.** Un riesgo es un evento con una cadena de consecuencias que comparte P y V. Si dos consecuencias requieren P o V diferentes, se representan como riesgos distintos. Si comparten P y V, son un solo riesgo con varias dimensiones de I.
+**Regla.** Un riesgo es un evento con una cadena de consecuencias que comparte P y V. Si el evento o las consecuencias son distintos, se representan como riesgos distintos. Si comparten P y V, son un solo riesgo con varias dimensiones de I. Si el evento y la consecuencia son los mismos pero las causas tienen P o V distintas, es un riesgo padre con un sub-riesgo por causa (D21, metodología §1.3).
 
 Cuándo partir:
 1. **V distinta.** "Incendio en la planta" e "incendio en el depósito tercerizado": el evento se parece, pero la planta tiene detección y brigada y el depósito no tiene ninguna; la respuesta post-evento es otra. Dos riesgos.
@@ -115,7 +121,7 @@ Una anomalía es una fricción entre la metodología y un caso. Se registra en e
 
 | Código | Nombre | Señal observable | Ejemplo |
 |---|---|---|---|
-| A1 | Divergencia entre evaluadores | Dos evaluadores con la misma ficha de información difieren en ≥1 nivel en un factor o dimensión, o en banda, o en posición de ranking. Se registra **por factor** (campo `factor`). | Emiliano pone `v = 2` y el agente `v = 4` al mismo riesgo de ransomware. |
+| A1 | Divergencia entre evaluadores | Dos evaluadores con la misma ficha de información difieren en ≥1 nivel en un factor o dimensión, o en banda, o en posición de ranking. Se registra **por factor** (campo `factor`). | Emiliano pone `v_rec = 2` y el agente `v_rec = 4` al mismo riesgo de ransomware. |
 | A2 | Unknown sin regla | El evaluador no sabe qué valor poner, inventa uno, o D8 y `metodologia-v0.md` no dicen qué hacer (p. ej. I efectivo con una dimensión `unknown`). | Nadie sabe cuántas personas trabajan en el turno noche y no hay regla para elegir entre plausible y `unknown`. |
 | A3 | Extremos | Un riesgo con `consecuencia_extrema = true` queda en una posición que el evaluador juzga incorrecta, o la bandera marca riesgos que no parecen extremos. | Un derrumbe remoto con víctimas fatales queda último en la lista y sólo la bandera lo distingue. |
 | A4 | Colisión de ranking | Dos riesgos quedan empatados sin regla de desempate en D10, o su orden lo decide un desempate que el evaluador juzga irrelevante para la prioridad. | Dos riesgos con los mismos factores en distinto orden quedan empatados y el evaluador cree que uno es claramente más urgente. |
@@ -153,7 +159,7 @@ Plantilla: `plantillas/registro-anomalias.csv`. Una fila por anomalía; una fila
 | `fase` | entero | 2–12 |
 | `version_metodologia` | texto | versión con la que apareció |
 | `codigo` | enum | `A1`–`A12` |
-| `factor` | enum | `p` \| `i_econ` \| `i_pers` \| `i_cont` \| `i_legal` \| `i_efectivo` \| `v` \| `banda` \| `ranking` \| `na` **[PA 5]** |
+| `factor` | enum | `p` \| `i_econ` \| `i_pers` \| `i_cont` \| `i_legal` \| `i_efectivo` \| `v_cont` \| `v_rec` \| `banda` \| `ranking` \| `na` **[PA 5]** |
 | `riesgos_involucrados` | texto | `risk_id` separados por `;` |
 | `descripcion` | texto | qué pasó, en 1–3 frases |
 | `dato_vs_metodologia` | enum | `dato` \| `metodologia` \| `sin_clasificar` |
@@ -220,9 +226,11 @@ Entrada: `metodologia-v0.md` congelada y los casos de propiedad adjudicados en l
 | 5 | **PASS** | Todos los criterios adjudicados juzgables en la Fase 4 (quién queda arriba, si pueden empatar, si alguno debe quedar visible, qué sería profesionalmente incorrecto) se cumplen. |
 | — | **FAIL — calibración** | No se usa en la Fase 4. |
 
-"Visible" en la Fase 4 significa: el riesgo tiene `consecuencia_extrema = true` y aparece en el filtro de la bandera, o figura en la lista "no evaluable" con motivo (D8, D20) **[PA 7]**.
+"Visible" en la Fase 4 significa: el riesgo tiene `consecuencia_extrema = true` y aparece en el filtro de la bandera, o tiene `safety_critical = true` y aparece en la vista de seguridad, o figura en la lista "no evaluable" con motivo (D8, D20, D23) **[PA 7]**.
 
-**Frecuencia de `consecuencia_extrema` (H4, contradicción abierta #3).** El reporte informa cuántos casos tienen la bandera sobre el total, y cuántos la tienen por cada dimensión de I. Como los casos de propiedad son extremos por diseño, ese número no estima la frecuencia en la población: se repite sobre las empresas sintéticas en las fases 7 y 8 y se reporta igual. No se fija un umbral **[PA 8]**.
+**Propiedades.** Además de los órdenes adjudicados, el dry run intenta romper las propiedades de `metodologia-v0.md` §14 (monotonía, invariancia de granularidad, causalidad de V, unknowns, separación, historial, producto) y registra cada contraejemplo como anomalía. **Casos de origen:** el resultado de un caso sobre una regla que lo lista como caso de origen se reporta como circular y no cuenta como evidencia a favor.
+
+**Frecuencia de `consecuencia_extrema` (H4, contradicción abierta #3).** El reporte informa cuántos casos tienen la bandera sobre el total, y cuántos la tienen por cada dimensión de I; lo mismo para `safety_critical`. Como los casos de propiedad son extremos por diseño, ese número no estima la frecuencia en la población: se repite sobre las empresas sintéticas en las fases 7 y 8 y se reporta igual. No se fija un umbral **[PA 8]**.
 
 ---
 
@@ -253,7 +261,7 @@ Entrada: `metodologia-v0.md` congelada y los casos de propiedad adjudicados en l
 
 **Misma información.** Ambos reciben exactamente la misma ficha de información por riesgo: contexto de la empresa (P, I, V y transferencia según la Fase 7) y la redacción `causa → evento → consecuencia`, **sin factores asignados**. La lista de riesgos es fija (D21, sección 3).
 
-**Qué produce cada uno.** Una ficha (sección 2) por riesgo: factores con rango y procedencia, I efectivo, V, `uncertainty`, `c_raw`, techo y justificación. Las fichas del agente nacen `actor = ai`, `review_status = pending`.
+**Qué produce cada uno.** Una ficha (sección 2) por riesgo: factores con rango y procedencia, I efectivo, contención y recuperación, `uncertainty`, `c_raw`, techo y justificación. Las fichas del agente nacen `actor = ai`, `review_status = pending`.
 
 **Muestra (respuesta 8).** Si hay **≤ 40** riesgos, se evalúan todos. Si hay más, **30 estratificados por empresa** **[PA 12]**:
 - a cada empresa le tocan riesgos en proporción a cuántos tiene, con un mínimo de 3 por empresa (o todos, si tiene menos), redondeando hasta sumar 30;
@@ -270,7 +278,7 @@ Se calculan sobre los pares de fichas (Emiliano, agente) de la Fase 8. Se report
 
 | Nivel | Métrica | Target |
 |---|---|---|
-| Por factor: P, cada dimensión de I, I efectivo, V | % de pares dentro de ±1 nivel | **≥ 80%** en cada factor por separado |
+| Por factor: P, cada dimensión de I, I efectivo, contención, recuperación | % de pares dentro de ±1 nivel | **≥ 80%** en cada factor por separado |
 | Por factor | % de acuerdo exacto | sin target (baseline) |
 | Por factor | kappa ponderado (pesos lineales) **[PA 13]** | sin target (baseline) |
 | Banda | % de coincidencia | **≥ 70%**, medible recién cuando existan umbrales (Fase 9) |
@@ -279,7 +287,7 @@ Se calculan sobre los pares de fichas (Emiliano, agente) de la Fase 8. Se report
 
 Reglas de cálculo:
 1. **Por qué acuerdo exacto y kappa (H11).** Dos evaluadores al azar en una escala 1–5 caen dentro de ±1 en 13 de 25 combinaciones (~52%). El 80% se lee contra ese piso.
-2. **Unknowns.** Un par donde alguno de los dos puso `unknown` no entra en ±1, exacto ni kappa de ese factor; se reporta aparte como **acuerdo de evaluabilidad** (% de pares donde ambos pusieron valor o ambos `unknown`) **[PA 14]**.
+2. **Unknowns.** Un par donde alguno de los dos puso `unknown` (o `no_aplica` en recuperación) no entra en ±1, exacto ni kappa de ese factor; se reporta aparte como **acuerdo de evaluabilidad** (% de pares donde ambos pusieron valor o ambos `unknown`) **[PA 14]**.
 3. **Rangos.** Se compara `<f>_valor` (el plausible). La coincidencia de rangos se reporta aparte, sin target.
 4. **Banda.** Con los umbrales de la Fase 9, la banda de cada ficha de la Fase 8 se calcula desde sus factores; el informe declara que los umbrales se calibraron sobre parte de esas mismas empresas.
 5. **Ranking.** Se ordena cada empresa con la versión de D10 vigente; los riesgos no evaluables quedan fuera del ranking y se cuentan aparte.
@@ -305,8 +313,8 @@ Procedimiento del plan, en este orden. El agente propone; Emiliano aprueba los u
 ## 13. Regresión (Fase 10)
 
 **Qué se re-ejecuta.** Ante cada cambio de metodología (cada fila nueva del changelog que sube versión): **todos** los casos de propiedad y **todos** los riesgos de EMI-41.
-- Si el cambio toca sólo cómo se combinan factores ya asignados (D10, D12, D14, D20), se recalcula desde los factores guardados.
-- Si toca cómo se asigna un factor (D4, D5, D8, D15, D19 o las anclas), el agente reevalúa los factores afectados con fichas nuevas `motivo = cambio_version_metodologia`, `review_status = pending` (sección 6.4) **[PA 16]**.
+- Si el cambio toca sólo cómo se combinan factores ya asignados (D10, D12, D14, D20, D23, o la tabla de aspectos de V por dimensión), se recalcula desde los factores guardados.
+- Si toca cómo se asigna un factor (D4, D5, D8, D15, D19, D21 o las anclas y rúbricas), el agente reevalúa los factores afectados con fichas nuevas `motivo = cambio_version_metodologia`, `review_status = pending` (sección 6.4) **[PA 16]**.
 
 **Formato del reporte.** Una fila por caso o riesgo:
 

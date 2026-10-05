@@ -39,7 +39,7 @@ Criterios adjudicados que sólo se refieren a la banda; pasan a la Fase 9.
 | FAIL — contradicción | | |
 | FAIL — combinación | | |
 
-## 5. Frecuencia de `consecuencia_extrema` (H4)
+## 5. Frecuencia de `consecuencia_extrema` y `safety_critical` (H4)
 
 | Medida | N / total |
 |---|---|
@@ -48,14 +48,37 @@ Criterios adjudicados que sólo se refieren a la banda; pasan a la Fase 9.
 | … disparada por I-personas | |
 | … disparada por I-continuidad | |
 | … disparada por I-legal/regulatorio | |
+| Casos con `safety_critical` | |
 
 Nota obligatoria: los casos de propiedad son extremos por diseño; esta frecuencia no estima la de la población (§8, §12).
 
 ## 6. Lista "no evaluable"
 
-| Caso | Factor `unknown` | Motivo | Necesidad de validación | `consecuencia_extrema` |
-|---|---|---|---|---|
-| | | | | |
+| Caso | Factor `unknown` | Motivo | Necesidad de validación | `consecuencia_extrema` | `safety_critical` | Lugar en la cola de validación |
+|---|---|---|---|---|---|---|
+| | | | | | | |
+
+## 6b. Propiedades (`metodologia-v0.md` §14)
+
+Un renglón por propiedad, aunque no se haya encontrado contraejemplo.
+
+| Propiedad | ¿Contraejemplo? | Caso y riesgos | Anomalía |
+|---|---|---|---|
+| Monotonía | | | |
+| Invariancia de granularidad | | | |
+| Causalidad de V | | | |
+| Unknowns | | | |
+| Separación (sub-riesgos, escenarios) | | | |
+| Historial | | | |
+| Producto (orden incorrecto o sensible a la codificación) | | | |
+
+## 6c. Resultados circulares
+
+Casos cuyo resultado sobre una regla los lista como caso de origen; no cuentan como evidencia a favor.
+
+| Caso | Regla (sección de la metodología) | Resultado |
+|---|---|---|
+| | | |
 
 ## 7. Conteo hacia la falsación de D14 (propuesto)
 
