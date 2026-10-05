@@ -52,6 +52,12 @@
 | CH-045 | 2026-10-05 | v0.0 | D20 | — | Nueva (número asignado en la consolidación): sin pisos; `consecuencia_extrema` visible y filtrable, se dispara con cualquier dimensión de I = 5 | I2, C5, I1; respuesta 3 | plan, Fase 0; respuestas, pregunta 3 |
 | CH-046 | 2026-10-05 | v0.0 | D21 | — | Nueva (número asignado en la consolidación): granularidad, un riesgo comparte P y V | I8 | plan, Fase 1 |
 | CH-047 | 2026-10-05 | v0.0 | D22 | — | Nueva (número asignado en la consolidación): `motivo` en cada reevaluación | C9, I17 | plan, Fase 1 |
+| CH-048 | 2026-10-05 | protocolo v0.0 | A9 | La criticidad cambia según si la información es `observed` o `assumed` | La procedencia modifica la criticidad por un camino distinto de valor plausible, rango y techo (D8), o un factor baja por falta de evidencia | I12: con D8 la forma anterior se dispara por diseño | revisión I12; prompt Fase 1 |
+| CH-049 | 2026-10-05 | protocolo v0.0 | A4 | Empate sin desempate | Colisión de ranking: empate sin regla, o orden decidido por un desempate irrelevante | El plan pide registrar "colisiones de ranking" | plan, Fase 1 "Anomalías" |
+| CH-050 | 2026-10-05 | protocolo v0.0 | A3, A6 | Redacción con pisos e inherente/residual | Redacción sin pisos (D20) y con D2, D19 y D3 | Alinear con decisiones v0.0 | decisiones v0.0 |
+| CH-051 | 2026-10-05 | protocolo v0.0 | A11 | — | Nueva: solapamiento P/I/V | El plan la pide y no encaja en A6 ni A10 | plan, Fase 1 "Anomalías" |
+| CH-052 | 2026-10-05 | protocolo v0.0 | A12 | — | Nueva: contradicción entre reglas | El plan la pide y no encaja en ninguna | plan, Fase 1 "Anomalías" |
+| CH-053 | 2026-10-05 | protocolo v0.0 | Protocolo | plan-pasos §2 | `protocolo.md` v0.0: ficha por factor, historial, dry run, falsación, evaluación ciega, métricas, calibración, regresión | Fase 1 del plan | plan, Fase 1 |
 
 ## Cómo se registra un cambio
 
