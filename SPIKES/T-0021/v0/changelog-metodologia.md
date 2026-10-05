@@ -58,6 +58,9 @@
 | CH-051 | 2026-10-05 | protocolo v0.0 | A11 | — | Nueva: solapamiento P/I/V | El plan la pide y no encaja en A6 ni A10 | plan, Fase 1 "Anomalías" |
 | CH-052 | 2026-10-05 | protocolo v0.0 | A12 | — | Nueva: contradicción entre reglas | El plan la pide y no encaja en ninguna | plan, Fase 1 "Anomalías" |
 | CH-053 | 2026-10-05 | protocolo v0.0 | Protocolo | plan-pasos §2 | `protocolo.md` v0.0: ficha por factor, historial, dry run, falsación, evaluación ciega, métricas, calibración, regresión | Fase 1 del plan | plan, Fase 1 |
+| CH-054 | 2026-10-05 | v0.0 | Casos Fase 2 | Lista mínima de 15 casos más #CI, #LC y #P11 | 20 casos: CP-01–CP-15 = lista del plan; CP-16 = #CI; CP-17 = #LC; CP-18 = #P11 | Respuesta 6; #P11 no se fusionó con el caso 4 porque este mejora V y #P11 mejora la dimensión dominante de I | plan, Fase 2; respuestas, pregunta 6 |
+| CH-055 | 2026-10-05 | v0.0 | Casos Fase 2 | — | Suma CP-19 "Un año de cambios sin acciones" | Ningún caso probaba la criticidad que cambia sin acciones ni los valores de `motivo` distintos de `accion_ejecutada` (D18, P9, D22) | Fase 2, matriz de cobertura |
+| CH-056 | 2026-10-05 | v0.0 | Casos Fase 2 | — | Suma CP-20 "Dos riesgos que vienen juntos" | Ningún caso probaba la exclusión de la correlación entre riesgos (D13) | Fase 2, matriz de cobertura |
 
 ## Cómo se registra un cambio
 
