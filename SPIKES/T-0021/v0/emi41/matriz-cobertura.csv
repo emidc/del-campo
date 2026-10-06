@@ -1,0 +1,36 @@
+contraste,nombre,S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S12,S13,S14,S15,S16,S17,S18,S19,S20,S21,S22,S23,S24,S25,S26,S27,S28,S29,S30,S31,S32,S33,S34,S35,S36,S37,casos_de_propiedad
+C01,Alta severidad / baja probabilidad,,,,,,,directo,directo,,,directo,,,,,,,,,directo,costado,directo,,,,directo,,,,,directo,,,,,,,"CP-02, CP-15"
+C02,Alta frecuencia / baja severidad,,costado,directo,,,,,,,directo,,,,,costado,,,directo,,,,costado,,costado,,,directo,directo,costado,,,,,,directo,,directo,CP-02
+C03,Exposición humana,costado,directo,costado,,directo,,directo,directo,costado,costado,costado,,,directo,costado,,costado,directo,,directo,directo,directo,,directo,,directo,,,,,costado,directo,,costado,,directo,costado,"CP-02, CP-15, CP-18"
+C04,Dependencia tecnológica,,,directo,directo,,,,,,,,directo,,costado,,,,,,,,,,,directo,directo,costado,costado,directo,directo,,,,,,costado,costado,CP-07
+C05,Regulación fuerte,,,,,,,directo,directo,directo,,directo,costado,,,,,directo,directo,costado,,costado,directo,,,directo,directo,directo,,directo,,directo,,,costado,,,,CP-13
+C06,Concentración de activos,directo,directo,,,,directo,directo,costado,,,,,directo,,,directo,directo,,directo,directo,directo,directo,directo,directo,,,costado,directo,,,,costado,directo,,,,directo,CP-05
+C07,Alta resiliencia,,,,,,,costado,,,,costado,,,,,,,,,,,,,,,costado,,,directo,directo,,,,,,,,CP-03
+C08,Alta vulnerabilidad,,,,directo,,directo,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,directo,CP-16
+C09,PyME vs grande,,,,costado,,directo,directo,,,directo,,,,,directo,,,,,,,costado,costado,,,costado,,,costado,,,costado,,directo,costado,,directo,CP-11
+C10,Transferencia relevante,costado,costado,,,costado,,costado,,,,,,,costado,directo,,costado,,,,directo,directo,,,,,,,directo,costado,costado,,costado,,,,,"CP-09, CP-17"
+C11,Información incompleta,,,costado,costado,,costado,,costado,costado,costado,,directo,costado,,,costado,,,,,,costado,,,,directo,,,,,,,,,,,directo,CP-08
+C12,Operaciones redundantes,,,,,,,,,,,,,,,,,,,,,,,,,,directo,directo,,directo,directo,,,,,,,,CP-14 (○)
+C13,Exposición a terceros,directo,costado,directo,directo,directo,directo,costado,,directo,directo,directo,directo,directo,directo,,directo,directo,costado,directo,costado,directo,directo,directo,,costado,costado,,costado,directo,,directo,directo,directo,directo,costado,directo,,—
+C14,Evento fuera de 12 meses,,,,,,,,,directo,,,,,,,,,costado,,,directo,,,,,,,,,,,,,,,,,—
+C15,RO nulo o negativo,,,,,,,,,,,,directo,,,,directo,,,,,,,,,,directo,,,,,,,,,,directo,directo,—
+C16,Padre con causas distintas,,,,,directo,,,,,,,,,,,,,,,,,,,,,,,,directo,directo,,,,,,,,CP-12
+C17,Escenario por causa común,,,,,,,directo,,,,costado,,,,,,,,directo,,,directo,,,,,,,,,,,,,,costado,,CP-20
+C18,"Límite, deducible, exclusiones",directo,,costado,,costado,costado,costado,,,,directo,,costado,,directo,,,,,,directo,directo,costado,costado,,,,,directo,costado,costado,,costado,,,,directo,"CP-09, CP-17 (sólo límite)"
+C19,Riesgos corrientes,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,directo,—
+C20,Fuentes de P divergentes,,,,,,,,,directo,,,costado,,,directo,,,,,,,,,,costado,directo,,,directo,,,,,,,,,—
+C21,Margen de contribución desconocido,,,,,,costado,,,,costado,,,,,,,,,,,directo,,,,,,,,,,,,,,,,directo,—
+C22,Recuperación no_aplica,costado,directo,,costado,,,,directo,,,,,,costado,,,,costado,,,,directo,,,,directo,,,,,,,,costado,,costado,directo,—
+C23,Estacionalidad,directo,,,,,directo,,,,,,,,directo,directo,costado,costado,,,directo,directo,,,,,,,,,,,,,,directo,,,—
+C24,Reglas con evidencia circular,,directo,,,,,,directo,,,,,,,,,,,,,,directo,,,,directo,,,,,,,,,,,directo,"CP-06, 07, 16, 18 (origen)"
+C25,Granularidad ambigua en lista fija,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,fase7_cerrado,CP-12 (○)
+C26,Responsabilidad por producto y retiro,directo,,,,,,,,,,,,directo,,,directo,directo,directo,directo,,,directo,directo,directo,directo,,,directo,,,,,,,,,,—
+C27,Exposición humana cambiante u operación móvil,,,,,directo,,,,,,,,,,,,,,,,,,,,,,,,,,directo,directo,,,directo,,,—
+C28,Personas vulnerables o multitudes,,,,,,,,,,,,,,directo,,,,,,,,,,,,directo,,costado,,,,,,,directo,directo,,CP-15 (○)
+C29,Tecnología sin historia sectorial,,,,,,,,,,,,directo,,,,,,,,,,,,,,,,,,,,,,,,,,—
+C30,Gobernanza y muchos terceros,,,,,,,,,,,,,,,,directo,,,costado,,,,,,,,,,,,,,,,,,,—
+C31,Ciclo productivo largo,directo,,,,,,,,directo,,,,,,,,,,,,,,,,,,,,,,,,,,,,,—
+C32,Servicio crítico para clientes,,,,directo,,,,,,,,,,,,,,,,,,,directo,,,,,,,directo,,,,directo,,,,—
+C33,Multi-sitio con redundancia natural,,,directo,,,,,,,,,,,,,,,,,,,,,,,,directo,directo,,,,,,,,,,CP-05 (○)
+C34,"Baja exposición humana, activos de alto valor",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,directo,,,,,—
+C35,Evento gradual o exposición crónica,,,,,,,,,,directo,,,,,,,,,,costado,,,,,,,,,,,,,directo,,,,,—
