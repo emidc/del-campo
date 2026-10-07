@@ -1,0 +1,5 @@
+{
+  "//": "Solo para `tsc -p SPIKES/T-0021/regresion-ejecutable`. El tsconfig raíz no incluye SPIKES/.",
+  "extends": "../../../tsconfig.json",
+  "include": ["*.ts"]
+}

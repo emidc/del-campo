@@ -1,0 +1,10 @@
+{
+  "//": "Arnés de regresión de T-0021: fuera del workspace de pnpm a propósito, como el spike T-0020. Se corre con `node --run`.",
+  "name": "spike-t0021-regresion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"*.test.ts\"",
+    "typecheck": "tsc --noEmit -p ."
+  }
+}
