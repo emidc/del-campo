@@ -1,0 +1,27 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S03-R01,S03,Comercio y logística,riesgo,,,Siniestro vial de un camión propio
+S03-R02,S03,Comercio y logística,riesgo,,,Robo de carga en ruta
+S03-R03,S03,Comercio y logística,riesgo,,,Robo en el depósito
+S03-R04,S03,Comercio y logística,riesgo,,,"Caída del sistema de gestión del depósito, sin soporte del fabricante"
+S03-R05,S03,Comercio y logística,riesgo,,,Incendio en el depósito con mercadería de clientes
+S03-R06,S03,Comercio y logística,riesgo,,,Lesiones en la carga y descarga
+S03-R07,S03,Comercio y logística,riesgo,,,Daño a mercadería de clientes por manipulación
+S13-R01,S13,Comercio y logística,riesgo,,,Incendio en el depósito con productos incompatibles
+S13-R02,S13,Comercio y logística,riesgo,,,Venta de un lote contaminado o mal rotulado a un cliente
+S13-R03,S13,Comercio y logística,riesgo,,,Retención en aduana de una importación sin la que no se abastece a los clientes
+S13-R04,S13,Comercio y logística,riesgo,,,Quiebra del proveedor extranjero único de un reactivo homologado
+S13-R05,S13,Comercio y logística,riesgo,,,Derrame durante el transporte a un cliente
+S13-R06,S13,Comercio y logística,riesgo,,,Robo de mercadería
+S27-R01,S27,Comercio y logística,riesgo,,,Robo a mano armada en una sucursal
+S27-R02,S27,Comercio y logística,riesgo,,,Faltante de medicamentos de stock regulado
+S27-R03,S27,Comercio y logística,riesgo,,,Falla del frío en una sucursal
+S27-R04,S27,Comercio y logística,riesgo,,,Ransomware sobre el sistema de ventas y recetas
+S27-R05,S27,Comercio y logística,riesgo,,,Error de dispensa a un paciente
+S27-R06,S27,Comercio y logística,riesgo,,,Incendio en el centro de distribución
+S28-R01,S28,Comercio y logística,riesgo,,,Incendio en el centro de distribución
+S28-R02,S28,Comercio y logística,riesgo,,,Incendio en un local
+S28-R03,S28,Comercio y logística,riesgo,,,Caída de un cliente en un local
+S28-R04,S28,Comercio y logística,riesgo,,,Venta de un alimento contaminado
+S28-R05,S28,Comercio y logística,riesgo,,,Hurto en los locales
+S28-R06,S28,Comercio y logística,riesgo,,,Falla del frío en un local
+S28-R07,S28,Comercio y logística,riesgo,,,Caída del sistema de cobro en todos los locales

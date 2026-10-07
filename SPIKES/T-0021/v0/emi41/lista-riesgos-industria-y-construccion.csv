@@ -1,0 +1,53 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S02-R01,S02,Industria y construcción,riesgo,,,Atrapamiento de un operario en una prensa
+S02-R02,S02,Industria y construcción,riesgo,,,Caída de una carga desde el puente grúa
+S02-R03,S02,Industria y construcción,riesgo,,,Incendio en la nave iniciado en el sector de soldadura
+S02-R04,S02,Industria y construcción,riesgo,,,Proyección de partículas a los ojos en el amolado
+S02-R05,S02,Industria y construcción,riesgo,,,Rotura de la prensa hidráulica principal
+S02-R06,S02,Industria y construcción,riesgo,,,Corte del suministro eléctrico de la red
+S02-R07,S02,Industria y construcción,riesgo,,,Incumplimiento de una entrega al cliente principal
+S05-P01,S05,Industria y construcción,padre,,,Caída de un trabajador desde altura
+S05-P01-S01,S05,Industria y construcción,sub_riesgo,S05-P01,,Caída de un trabajador desde altura en el edificio en altura
+S05-P01-S02,S05,Industria y construcción,sub_riesgo,S05-P01,,Caída de un trabajador desde altura en la nave industrial
+S05-P01-S03,S05,Industria y construcción,sub_riesgo,S05-P01,,Caída de un trabajador desde altura en la obra vial (puentes y alcantarillas)
+S05-R04,S05,Industria y construcción,riesgo,,,Derrumbe de una excavación en la obra vial
+S05-R05,S05,Industria y construcción,riesgo,,,Caída de una carga de la grúa torre sobre la vía pública
+S05-R06,S05,Industria y construcción,riesgo,,,Accidente de un trabajador de un subcontratista
+S05-R07,S05,Industria y construcción,riesgo,,,Robo de materiales y herramientas en obra
+S05-R08,S05,Industria y construcción,riesgo,,,Atraso de la obra de la escuela con multa contractual
+S05-R09,S05,Industria y construcción,riesgo,,,Daño a una construcción lindera
+S22-E01,S22,Industria y construcción,escenario,,S22-R07;S22-R03,Lluvia intensa que inunda el predio y arrastra producto al arroyo
+S22-R01,S22,Industria y construcción,riesgo,,,Incendio en el depósito de solventes inflamables
+S22-R02,S22,Industria y construcción,riesgo,,,Liberación de cloro gaseoso durante la descarga de una cisterna
+S22-R03,S22,Industria y construcción,riesgo,,,Derrame de producto al desagüe pluvial y al arroyo
+S22-R04,S22,Industria y construcción,riesgo,,,Accidente con autoelevador en la playa de carga
+S22-R05,S22,Industria y construcción,riesgo,,,Lesiones por contacto con producto corrosivo en el envasado
+S22-R06,S22,Industria y construcción,riesgo,,,Rotura del reactor de mezcla principal
+S22-R07,S22,Industria y construcción,riesgo,,,Inundación del predio por desborde del arroyo
+S22-R08,S22,Industria y construcción,riesgo,,,Sanción por incumplimiento de la habilitación ambiental de vertidos
+S22-R09,S22,Industria y construcción,riesgo,,,Venta de un lote fuera de especificación que daña instalaciones de un cliente
+S23-R01,S23,Industria y construcción,riesgo,,,Piezas con soldadura de tuerca fuera de especificación que llevan a un retiro de vehículos
+S23-R02,S23,Industria y construcción,riesgo,,,Falla del conjunto embrague-freno de la prensa transfer que detiene la línea de estampado
+S23-R03,S23,Industria y construcción,riesgo,,,Interrupción de entregas del centro de servicio de acero
+S23-R04,S23,Industria y construcción,riesgo,,,Rescisión del contrato de suministro por la terminal B
+S23-R05,S23,Industria y construcción,riesgo,,,Incendio en la nave de inyección
+S23-R06,S23,Industria y construcción,riesgo,,,Atrapamiento de la mano de un operario en una prensa mecánica
+S24-R01,S24,Industria y construcción,riesgo,,,Incendio en el depósito de materia prima y producto terminado
+S24-R02,S24,Industria y construcción,riesgo,,,Atrapamiento de un operario entre los platos de una inyectora
+S24-R03,S24,Industria y construcción,riesgo,,,Rotura del reductor de la línea de coextrusión
+S24-R04,S24,Industria y construcción,riesgo,,,Material no apto para contacto con alimentos en un lote de envases
+S24-R05,S24,Industria y construcción,riesgo,,,Corte del suministro eléctrico de la red
+S24-R06,S24,Industria y construcción,riesgo,,,Quemadura de un operario con material fundido
+S25-R01,S25,Industria y construcción,riesgo,,,Lote de comprimidos fuera de especificación que obliga a retirarlo del mercado
+S25-R02,S25,Industria y construcción,riesgo,,,Contaminación cruzada con cefalosporina en la línea de llenado del área estéril
+S25-R03,S25,Industria y construcción,riesgo,,,Excursión de temperatura en el transporte de inyectables de 2 a 8 °C
+S25-R04,S25,Industria y construcción,riesgo,,,Suspensión de la elaboración en el área de comprimidos por la autoridad sanitaria
+S25-R05,S25,Industria y construcción,riesgo,,,Contaminación microbiológica del sistema de agua purificada
+S25-R06,S25,Industria y construcción,riesgo,,,Ransomware en el sistema de serialización y trazabilidad
+S37-R01,S37,Industria y construcción,riesgo,,,Incendio en el taller
+S37-R02,S37,Industria y construcción,riesgo,,,Contacto de la mano de un operario con la hoja de la sierra escuadradora o la fresa de la tupí
+S37-R03,S37,Industria y construcción,riesgo,,,"Cortes, golpes y lesiones por esfuerzo en el taller y en obra"
+S37-R04,S37,Industria y construcción,riesgo,,,Rotura del husillo del centro de mecanizado CNC
+S37-R05,S37,Industria y construcción,riesgo,,,Pérdida del principal cliente corporativo
+S37-R06,S37,Industria y construcción,riesgo,,,Robo de herramientas y máquinas portátiles
+S37-R07,S37,Industria y construcción,riesgo,,,Ransomware en la computadora de gestión y facturación
