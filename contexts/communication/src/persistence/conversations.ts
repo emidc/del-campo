@@ -1,5 +1,5 @@
-// Lecturas de la UI (T-0025): la lista de conversaciones, el hilo con sus marcadores y
-// la última entrega recibida.
+// Lecturas de la UI (T-0025): la lista de conversaciones y el hilo con sus marcadores. El
+// estado de las entregas está en store.ts (`deliveryBacklog`).
 //
 // Una conversación es un participante. Su clave de agrupación es el `wa_id` o, si falta,
 // el BSUID; su id es el menor id de las filas de ese grupo en `message` y en
@@ -110,9 +110,3 @@ export const listUnsupported = async (sql: Sql, participant: Participant): Promi
     where (${participant.waId}::text is not null and wa_id = ${participant.waId})
        or (${participant.bsuid}::text is not null and bsuid = ${participant.bsuid})
     order by wa_timestamp, id`
-
-/** La hora de la última entrega de webhook recibida, de cualquier participante. */
-export const lastDeliveryReceivedAt = async (sql: Sql): Promise<Date | null> => {
-  const [row] = await sql<{ at: Date | null }[]>`select max(received_at) as at from communication.webhook_delivery`
-  return row?.at ?? null
-}

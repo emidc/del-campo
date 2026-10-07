@@ -9,7 +9,7 @@ import { appliedMigrations, down, migrate } from './migrations.ts'
 import { openTestDatabase } from './testing.ts'
 
 const TABLES = ['webhook_delivery', 'message', 'outbound_status', 'unsupported_message', 'outbound_attempt']
-const FILES = ['0001_communication_schema.sql', '0002_outbound_attempt.sql']
+const FILES = ['0001_communication_schema.sql', '0002_outbound_attempt.sql', '0003_delivery_reprocessing.sql']
 
 let sql: Sql
 before(async () => {
@@ -41,6 +41,25 @@ describe('migraciones del contexto', () => {
     assert.deepEqual(await migrate(sql), FILES)
     assert.deepEqual(await existing(), [...TABLES].sort())
     assert.deepEqual(await migrate(sql), [], 'una segunda pasada no aplica nada')
+  })
+
+  it('la reversa de 0003 saca las columnas de reproceso sin tocar las entregas', async () => {
+    const columns = async (): Promise<string[]> => {
+      const rows = await sql<{ c: string }[]>`
+        select column_name as c from information_schema.columns
+        where table_schema = 'communication' and table_name = 'webhook_delivery'
+          and column_name in ('reprocess_count', 'last_reprocessed_at') order by column_name`
+      return rows.map((r) => r.c)
+    }
+    await sql`insert into communication.webhook_delivery (signature, body_raw) values ('valid', '{}')`
+    assert.deepEqual(await columns(), ['last_reprocessed_at', 'reprocess_count'])
+    assert.equal(await down(sql), '0003_delivery_reprocessing.sql')
+    assert.deepEqual(await columns(), [])
+    assert.deepEqual(await migrate(sql), ['0003_delivery_reprocessing.sql'])
+    const [row] = await sql<{ n: number; c: number }[]>`
+      select count(*)::int as n, min(reprocess_count) as c from communication.webhook_delivery`
+    assert.deepEqual({ ...row }, { n: 1, c: 0 })
+    await sql`delete from communication.webhook_delivery`
   })
 
   it('no toca nada fuera del esquema communication', async () => {

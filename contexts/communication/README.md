@@ -27,7 +27,7 @@ Todo vive en el esquema de Postgres `communication`, incluido el ledger de migra
 
 | Tabla | Qué guarda |
 |---|---|
-| `webhook_delivery` | Cada POST con firma válida, crudo, con su hora de recepción y el resultado del procesamiento (`pending`, `processed` o `failed` con su error). Se borra a los 30 días. |
+| `webhook_delivery` | Cada POST con firma válida, crudo, con su hora de recepción, el resultado del procesamiento (`pending`, `processed` o `failed` con su error) y cuántas veces se reprocesó. Las procesadas se borran a los 30 días; las `pending` y `failed` se conservan hasta que el reproceso las recupere (T-0026). |
 | `message` | Textos entrantes y salientes. `wamid` único; participante por `wa_id`, BSUID o ambos. |
 | `outbound_status` | El último estado de cada `wamid` saliente (`sent` < `delivered` < `read` < `failed`). No tiene FK a `message`: también registra estados de salientes que no salieron de acá. |
 | `unsupported_message` | Entrantes de tipos fuera de alcance: que llegaron, de quién y cuándo, sin contenido. |
@@ -65,7 +65,7 @@ su ledger.
 | Capa | Archivos | Qué cubre |
 |---|---|---|
 | unit | `*.test.ts` | Parseo, firma, desafío, regla de estados, runner, ventana de servicio, reglas de la respuesta. |
-| integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención y migraciones; y lo de la UI: lista, hilo, envío, idempotencia del envío, ventana cerrada, retención de intentos. |
+| integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención, reproceso y migraciones; y lo de la UI: lista, hilo, envío, idempotencia del envío, ventana cerrada, retención de intentos. |
 | contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`, y el cliente de envío contra la forma documentada de `fixtures/send-*`. |
 
 Los de integración y de contrato corren siempre sobre `delcampo_communication_test`:
@@ -93,6 +93,7 @@ const sql = connect(process.env.COMMUNICATION_DATABASE_URL!)
 const handle = createWebhookHandler({
   verifyToken: process.env.WHATSAPP_VERIFY_TOKEN!,
   appSecret: process.env.WHATSAPP_APP_SECRET!,   // obligatorio: no hay modo sin firma
+  phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID!, // lo de otro número se ignora (CO01 §3)
   store: deliveryStore(sql),
 })
 
@@ -109,9 +110,15 @@ Además exporta:
 - `sendReply` y `cloudApiSender`: responder desde el hilo con la clave de idempotencia
   persistida antes del envío (R-20).
 - `applyRetention`: la retención completa para la tarea programada. Borra las entregas
-  crudas y el texto de los intentos no aceptados de más de 30 días, y cierra como
-  `unconfirmed` los `pending` abandonados.
-- `purgeExpiredDeliveries`: solo las entregas crudas.
+  crudas procesadas y el texto de los intentos no aceptados de más de 30 días, y cierra
+  como `unconfirmed` los `pending` abandonados. Las entregas vencidas sin procesar no se
+  borran: se cuentan en `unprocessedKept`.
+- `purgeExpiredDeliveries`: solo las entregas crudas procesadas.
+- `reprocessDeliveries`: vuelve a procesar las entregas `failed` y las `pending` de más de
+  15 minutos (Meta no reintenta después de un 200). Idempotente, una transacción por
+  entrega con la fila bloqueada; devuelve qué reprocesó y cómo terminó cada una.
+- `deliveryHealth`: última entrega recibida, último procesamiento y cuántas hay `failed`
+  o atascadas. La lista y el hilo lo incluyen como `deliveries`.
 - `recordOutboundMessage` y `listThread`, de T-0024.
 
 ## Datos

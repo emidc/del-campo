@@ -13,6 +13,8 @@ import { GET as threadGET } from '../app/api/conversations/[id]/route.ts'
 import { POST as replyPOST } from '../app/api/conversations/[id]/reply/route.ts'
 import { GET as listGET } from '../app/api/conversations/route.ts'
 import { POST as loginPOST } from '../app/api/login/route.ts'
+import { GET as reprocessGET } from '../app/api/jobs/reprocess/route.ts'
+import { GET as retentionGET } from '../app/api/jobs/retention/route.ts'
 import { POST as logoutPOST } from '../app/api/logout/route.ts'
 import { authConfigFromEnv, hashPassword, issueSession, SESSION_COOKIE } from './auth.ts'
 
@@ -184,6 +186,51 @@ describe('login y origen', () => {
   })
 })
 
+describe('tareas programadas: sin CRON_SECRET no corre nada (T-0026)', () => {
+  const CRON = 'secreto-de-cron-de-prueba-0123456789abcdef'
+  const JOB_ENDPOINTS = [
+    { name: 'GET /api/jobs/retention', call: retentionGET, url: `${ORIGIN}/api/jobs/retention` },
+    { name: 'GET /api/jobs/reprocess', call: reprocessGET, url: `${ORIGIN}/api/jobs/reprocess` },
+  ]
+  const DENIED: { readonly name: string; readonly headers: () => Record<string, string> }[] = [
+    { name: 'sin header', headers: () => ({}) },
+    { name: 'otro secreto', headers: () => ({ authorization: `Bearer ${CRON}-otro` }) },
+    { name: 'el secreto sin Bearer', headers: () => ({ authorization: CRON }) },
+    { name: 'Bearer vacío', headers: () => ({ authorization: 'Bearer ' }) },
+    { name: 'la cookie válida de la UI', headers: () => ({ cookie: `${SESSION_COOKIE}=${validCookie}` }) },
+  ]
+  let savedCron: string | undefined
+  before(() => {
+    savedCron = process.env.CRON_SECRET
+  })
+  after(() => {
+    if (savedCron === undefined) Reflect.deleteProperty(process.env, 'CRON_SECRET')
+    else process.env.CRON_SECRET = savedCron
+  })
+
+  for (const endpoint of JOB_ENDPOINTS) {
+    for (const denied of DENIED) {
+      it(`${endpoint.name}, ${denied.name}: 401 sin datos`, async () => {
+        process.env.CRON_SECRET = CRON
+        const response = await endpoint.call(new Request(endpoint.url, { headers: denied.headers() }))
+        assert.equal(response.status, 401)
+        assert.deepEqual(await response.json(), { error: 'sin credencial válida' })
+      })
+    }
+    it(`${endpoint.name}, sin CRON_SECRET configurado: 503 aun con un Bearer`, async () => {
+      delete process.env.CRON_SECRET
+      const response = await endpoint.call(new Request(endpoint.url, { headers: { authorization: `Bearer ${CRON}` } }))
+      assert.equal(response.status, 503)
+      assert.deepEqual(await response.json(), { error: 'las tareas no están configuradas' })
+    })
+    it(`${endpoint.name}, con un CRON_SECRET corto: 503`, async () => {
+      process.env.CRON_SECRET = 'corto'
+      const response = await endpoint.call(new Request(endpoint.url, { headers: { authorization: 'Bearer corto' } }))
+      assert.equal(response.status, 503)
+    })
+  }
+})
+
 describe('estructura: toda página y todo endpoint pasan por el guard', () => {
   const APP = fileURLToPath(new URL('../app/', import.meta.url))
   const walk = (dir: string): string[] =>
@@ -195,6 +242,8 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
   // Las únicas excepciones, con su motivo: el login es donde se obtiene la credencial,
   // el logout solo borra la cookie, y el webhook lo protege la firma de Meta (D-0066).
   const PUBLIC = new Set(['login/page.tsx', 'api/login/route.ts', 'api/logout/route.ts', 'webhook/route.ts'])
+  // Las tareas programadas no usan la credencial de la UI sino su propio secreto (T-0026).
+  const JOBS = 'api/jobs/'
 
   it('hay páginas y endpoints que revisar', () => {
     assert.ok(files.includes('page.tsx'))
@@ -205,6 +254,13 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
     it(file, () => {
       const source = readFileSync(join(APP, file), 'utf8')
       if (PUBLIC.has(file)) return
+      if (file.startsWith(JOBS)) {
+        const handlers = source.match(/export (const|function|async function) (GET|POST|PUT|PATCH|DELETE)\b/g) ?? []
+        const guarded = source.match(/withJobSecret\(/g) ?? []
+        assert.ok(handlers.length > 0, `${file} no exporta handlers`)
+        assert.equal(guarded.length, handlers.length, `${file}: cada handler pasa por withJobSecret`)
+        return
+      }
       if (file.endsWith('page.tsx')) assert.match(source, /await requireSession\(\)/, `${file} no llama a requireSession()`)
       else {
         const handlers = source.match(/export (const|function|async function) (GET|POST|PUT|PATCH|DELETE)\b/g) ?? []

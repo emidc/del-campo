@@ -72,13 +72,18 @@ describe('lista de conversaciones', () => {
       list.conversations.map((c) => [c.profileName, c.waIdLast4, c.bsuid, c.window.open]),
       [['Ana P.', '9001', null, true], ['Beto Prueba', '9002', null, true], ['Sin Teléfono', null, 'AR.SYNTHBSUID1', false]],
     )
-    assert.ok(list.lastDeliveryAt instanceof Date)
+    assert.ok(list.deliveries.lastDeliveryAt instanceof Date)
+    assert.ok(list.deliveries.lastProcessedAt instanceof Date)
+    assert.deepEqual([list.deliveries.failed, list.deliveries.stalled, list.deliveries.oldestUnprocessedAt], [0, 0, null])
     const serialized = JSON.stringify(list)
     for (const forbidden of [ANA, BETO, 'wamid.']) assert.ok(!serialized.includes(forbidden), forbidden)
   })
 
   it('sin entregas, la última entrega es null', async () => {
-    assert.deepEqual(await conversationList(sql), { conversations: [], lastDeliveryAt: null })
+    assert.deepEqual(await conversationList(sql), {
+      conversations: [],
+      deliveries: { lastDeliveryAt: null, lastProcessedAt: null, failed: 0, stalled: 0, oldestUnprocessedAt: null },
+    })
   })
 
   it('un participante que solo mandó tipos fuera de alcance también tiene conversación (A1)', async () => {
@@ -318,7 +323,7 @@ describe('retención de intentos (D-0065)', () => {
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'sin confirmar nuevo', sha256('d'::bytea), 'unconfirmed', null, 'x', now() - interval '1 day', now() - interval '1 day')`
 
     const result = await applyRetention(sql)
-    assert.deepEqual(result, { deliveries: 0, staleAttempts: 0, attemptBodies: 2 })
+    assert.deepEqual(result, { deliveries: 0, unprocessedKept: 0, staleAttempts: 0, attemptBodies: 2 })
     const rows = await sql<{ body: string | null }[]>`select body from communication.outbound_attempt order by id`
     assert.deepEqual(rows.map((r) => r.body), [null, null, 'rechazado nuevo', 'sin confirmar nuevo'])
     assert.equal(await count('outbound_attempt'), 4, 'las filas quedan, sin texto')
@@ -331,7 +336,7 @@ describe('retención de intentos (D-0065)', () => {
       values
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'colgado', sha256('e'::bytea), now() - interval '2 hours'),
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'en curso', sha256('f'::bytea), now() - interval '5 seconds')`
-    assert.deepEqual(await applyRetention(sql), { deliveries: 0, staleAttempts: 1, attemptBodies: 0 })
+    assert.deepEqual(await applyRetention(sql), { deliveries: 0, unprocessedKept: 0, staleAttempts: 1, attemptBodies: 0 })
     const rows = await sql<{ state: string; body: string }[]>`select state, body from communication.outbound_attempt order by id`
     assert.deepEqual(rows.map((r) => ({ ...r })), [{ state: 'unconfirmed', body: 'colgado' }, { state: 'pending', body: 'en curso' }])
 

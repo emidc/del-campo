@@ -50,6 +50,16 @@ export interface ParsedDelivery {
   readonly statuses: StatusUpdate[]
   /** Motivos estructurales de cada elemento descartado. Sin datos del mensaje. */
   readonly discarded: string[]
+  /**
+   * Elementos de otro número de la WABA, que no se persisten: el contexto opera un solo
+   * número (CO01 §3). No son un error, así que no marcan la entrega como `failed`.
+   */
+  readonly ignored: number
+}
+
+export interface ParseOptions {
+  /** Si está, solo se aceptan los cambios cuyo `metadata.phone_number_id` es este. */
+  readonly phoneNumberId?: string
 }
 
 type Obj = Record<string, unknown>
@@ -104,8 +114,9 @@ const statusErrorOf = (status: Obj): StatusError | null => {
   return code === null && title === null ? null : { code, title }
 }
 
-export const parseDelivery = (payload: unknown): ParsedDelivery => {
-  const out: ParsedDelivery = { texts: [], unsupported: [], statuses: [], discarded: [] }
+export const parseDelivery = (payload: unknown, options: ParseOptions = {}): ParsedDelivery => {
+  const out: Omit<ParsedDelivery, 'ignored'> = { texts: [], unsupported: [], statuses: [], discarded: [] }
+  let ignored = 0
 
   for (const entry of arr(obj(payload)?.entry)) {
     for (const rawChange of arr(obj(entry)?.changes)) {
@@ -120,6 +131,10 @@ export const parseDelivery = (payload: unknown): ParsedDelivery => {
       const phoneNumberId = str(obj(value.metadata)?.phone_number_id)
       if (phoneNumberId === null) {
         for (let i = 0; i < messages.length + statuses.length; i++) out.discarded.push('cambio sin metadata.phone_number_id')
+        continue
+      }
+      if (options.phoneNumberId !== undefined && phoneNumberId !== options.phoneNumberId) {
+        ignored += messages.length + statuses.length
         continue
       }
       const contacts = contactsOf(value)
@@ -195,5 +210,5 @@ export const parseDelivery = (payload: unknown): ParsedDelivery => {
       }
     }
   }
-  return out
+  return { ...out, ignored }
 }
