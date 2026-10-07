@@ -64,6 +64,85 @@ function vecinosPeores(k: FactoresConocidos): FactoresConocidos[] {
   return out
 }
 
+// ── Factores con partes unknown, para las propiedades de §9.3 ──────────────
+
+type Parte = Dimension | 'vCont' | 'vRec'
+/** Las partes que pueden ser unknown sin volver no evaluable al riesgo por sí solas (P va aparte). */
+const PARTES_V_I: readonly Parte[] = [...DIMENSIONES, 'vCont', 'vRec']
+interface Rango { readonly min?: Nivel; readonly max?: Nivel }
+interface Desconocida extends Rango { readonly parte: Parte }
+
+function valorDe(k: FactoresConocidos, parte: Parte): Recuperacion {
+  return parte === 'vCont' ? k.vCont : parte === 'vRec' ? k.vRec : k.i[parte]
+}
+
+function conUnknown(k: FactoresConocidos, partes: readonly Desconocida[]): Factores {
+  let f = aFactores(k)
+  for (const { parte, min, max } of partes) {
+    const x: Factor<Nivel> = { valor: 'unknown', ...(min === undefined ? {} : { min }), ...(max === undefined ? {} : { max }) }
+    if (parte === 'vCont') f = { ...f, vCont: x }
+    else if (parte === 'vRec') f = { ...f, vRec: x }
+    else f = { ...f, i: { ...f.i, [parte]: x } }
+  }
+  return f
+}
+
+/** Cada valor posible de lo desconocido: cada parte toma cada nivel de `min` (o 1) a `max` (o 5). */
+function completaciones(k: FactoresConocidos, partes: readonly Desconocida[]): FactoresConocidos[] {
+  let out: FactoresConocidos[] = [k]
+  for (const { parte, min, max } of partes) {
+    const niveles = NIVELES.filter((n) => n >= (min ?? 1) && n <= (max ?? 5))
+    out = out.flatMap((x) => niveles.map((n): FactoresConocidos =>
+      parte === 'vCont' ? { ...x, vCont: n } : parte === 'vRec' ? { ...x, vRec: n } : { ...x, i: { ...x.i, [parte]: n } }))
+  }
+  return out
+}
+
+/**
+ * Comprueba §9.3 sobre un caso. El esperado no usa la cota: recorre los valores posibles.
+ *   - Una dimensión es conocida si su I_d y los aspectos de V que entran en ella (§5.5) lo son.
+ *   - Evaluable ⇔ hay alguna dimensión conocida y todos los valores posibles dan el C_raw de las
+ *     conocidas (solidez: no se informa un C_raw que lo desconocido podría cambiar; completitud:
+ *     no se saca del ranking a quien lo desconocido no puede mover). La igualdad entra (§9.3, "≤").
+ *   - I efectivo con una dimensión unknown: `≥ n`, n = máximo de las conocidas, y nunca más que
+ *     el I efectivo real de ningún valor posible (§7.2 [F5-6]: el techo no es el valor).
+ */
+function comprobarUnknown(k: FactoresConocidos, partes: readonly Desconocida[]): void {
+  if (partes.some((x) => x.parte === 'vRec') && k.vRec === 'no_aplica') return
+  const f = conUnknown(k, partes)
+  const desconocidas = new Set(partes.map((x) => x.parte))
+  const conocida = (d: Dimension) => !desconocidas.has(d) && !desconocidas.has('vCont') && !((d === 'econ' || d === 'cont') && desconocidas.has('vRec'))
+  const conocidas = DIMENSIONES.filter(conocida)
+  const reales = completaciones(k, partes)
+  const posibles = reales.map(criticidad)
+  const ref = posibles[0]
+  assert.ok(ref)
+  const cRawConocidas = Math.max(...conocidas.map((d) => ref.cPorDimension[d]))
+  const invariante = posibles.every((c) => c.cRaw === cRawConocidas)
+  const ev = evaluar(f)
+  // El mensaje se arma sólo si falla: el recorrido tiene cientos de miles de casos.
+  const falla = (que: string): never => assert.fail(`${que} · ${JSON.stringify(k)} con unknown ${JSON.stringify(partes)}`)
+  if (ev.evaluable !== (conocidas.length > 0 && invariante)) {
+    falla(`evaluable ${String(ev.evaluable)}; C_raw de las conocidas ${String(cRawConocidas)}, posibles ${[...new Set(posibles.map((c) => c.cRaw))].join('/')}`)
+  }
+  if (ev.evaluable && ev.cRaw !== cRawConocidas) falla(`C_raw ${String(ev.cRaw)} ≠ ${String(cRawConocidas)}`)
+
+  const iDesconocida = DIMENSIONES.some((d) => desconocidas.has(d))
+  const ie = iEfectivo(f.i)
+  const nConocidas = Math.max(...DIMENSIONES.filter((d) => !desconocidas.has(d)).map((d) => k.i[d]))
+  if (ie.completo === iDesconocida) falla(`I efectivo completo = ${String(ie.completo)}`)
+  if (ie.n !== nConocidas) falla(`I efectivo ${String(ie.n)}, máximo de las conocidas ${String(nConocidas)}`)
+  for (const x of reales) {
+    if (ie.n > Math.max(x.i.econ, x.i.pers, x.i.cont, x.i.legal)) falla(`≥ ${String(ie.n)} supera el I efectivo de ${JSON.stringify(x.i)}`)
+  }
+}
+
+/** Ítem de ranking desde factores con unknown, por el mismo camino que una ficha (§9.3 → I efectivo). */
+function itemDeFactores(id: string, f: Factores): ItemRanking | null {
+  const e = evaluar(f)
+  return e.evaluable ? { id, cRaw: e.cRaw, iEfectivo: iEfectivo(f.i), iPers: f.i.pers.valor } : null
+}
+
 // ── §5.5 · V secuencial contra los perfiles PV-1 a PV-5 ──────────────────────
 
 describe('§5.5 V por dimensión: perfiles PV-1 a PV-5 (casos de origen, log grupo 2)', () => {
@@ -328,9 +407,10 @@ describe('§8 banderas', () => {
     assert.equal(safetyCritical(i({ valor: 4 })), true)
     assert.equal(safetyCritical(i({ valor: 3 })), false)
   })
-  it('no evaluable: unknown con max registrado en el umbral dispara; unknown sin max, no', () => {
+  it('no evaluable: unknown con max registrado en el umbral dispara; con max debajo del umbral, no', () => {
     assert.equal(safetyCritical(i({ valor: 'unknown', max: 4 })), true)
-    assert.equal(safetyCritical(i({ valor: 'unknown' })), false)
+    assert.equal(safetyCritical(i({ valor: 'unknown', max: 3 })), false)
+    // Unknown sin max: ambigüedad a de COLD-REVIEW §9, pendiente del owner (sinteticos.test.ts, bloque todo).
   })
   it('consecuencia_extrema por cualquier dimensión en 5, con la lista de dimensiones', () => {
     assert.deepEqual(consecuenciaExtrema(i({ valor: 5 }, { valor: 5 })), ['econ', 'pers'])
@@ -399,8 +479,9 @@ describe('§14 propiedades sobre las 93.750 combinaciones de factores', () => {
       const antes = item('antes', k)
       for (const peor of vecinosPeores(k)) {
         const despues = item('despues', peor)
-        assert.ok(despues.cRaw >= antes.cRaw)
-        assert.notEqual(compararD10(despues, antes), 'despues')
+        if (despues.cRaw < antes.cRaw || compararD10(despues, antes) === 'despues') {
+          assert.fail(`C_raw o posición bajan: ${JSON.stringify(k)} → ${JSON.stringify(peor)}`)
+        }
       }
     }
   })
@@ -409,8 +490,7 @@ describe('§14 propiedades sobre las 93.750 combinaciones de factores', () => {
     for (const k of todasLasCombinaciones()) {
       const ref = criticidad({ ...k, vRec: 'no_aplica' }).cPorDimension
       const c = criticidad(k).cPorDimension
-      assert.equal(c.pers, ref.pers)
-      assert.equal(c.legal, ref.legal)
+      if (c.pers !== ref.pers || c.legal !== ref.legal) assert.fail(`la recuperación mueve personas o legal: ${JSON.stringify(k)}`)
     }
   })
 
@@ -431,31 +511,67 @@ describe('§14 propiedades sobre las 93.750 combinaciones de factores', () => {
     }
   })
 
-  it('4 · unknown: si el riesgo es evaluable, ningún valor posible de lo desconocido cambia C_raw', () => {
-    // Una parte unknown a la vez, con y sin max, sobre I en {1, 3, 5} para acotar el recorrido.
-    const tres: Nivel[] = [1, 3, 5]
-    const recs: Recuperacion[] = [...NIVELES, 'no_aplica']
-    for (const p of NIVELES) for (const e of tres) for (const pe of tres) for (const co of tres) for (const l of tres)
-      for (const vc of NIVELES) for (const vr of recs) {
-        const k = conocidos(p, [e, pe, co, l], vc, vr)
-        const f = aFactores(k)
-        const variantes: { f: Factores; posibles: FactoresConocidos[] }[] = []
-        for (const max of [undefined, 1, 3, 5] as const) {
-          const u = max === undefined ? { valor: 'unknown' as const } : { valor: 'unknown' as const, max }
-          const hasta = NIVELES.filter((n) => n <= (max ?? 5))
-          for (const d of DIMENSIONES) {
-            if (max !== undefined && k.i[d] > max) continue
-            variantes.push({ f: { ...f, i: { ...f.i, [d]: u } }, posibles: hasta.map((n) => ({ ...k, i: { ...k.i, [d]: n } })) })
+  it('4 · unknown, una parte: evaluable ⇔ hay una dimensión conocida y ningún valor posible de lo desconocido cambia C_raw', () => {
+    // Solidez y completitud de §9.3 contra la semántica ("lo desconocido no puede cambiar el resultado"),
+    // Todos los niveles 1–5; rangos sin max, max 1 a 4 y min 2 con max 4. Max 5 no se recorre:
+    // para §9.3 es idéntico a no tener max (la cota usa `max ?? 5`).
+    const rangos: Rango[] = [{}, { max: 1 }, { max: 2 }, { max: 3 }, { max: 4 }, { min: 2, max: 4 }]
+    let n = 0
+    for (const k of todasLasCombinaciones()) for (const parte of PARTES_V_I) {
+      if (valorDe(k, parte) !== 1) continue // la parte unknown no depende de su valor base: una vez por combinación
+      for (const r of rangos) { comprobarUnknown(k, [{ parte, ...r }]); n++ }
+    }
+    assert.equal(n, 656_250, 'tamaño del dominio')
+  })
+
+  it('4 · unknown, dos partes a la vez: la misma equivalencia, sobre niveles {1, 2, 4, 5}', () => {
+    // P multiplica todas las C_d por igual: no cambia qué cota supera a C_raw. Bastan dos valores.
+    const L: Nivel[] = [1, 2, 4, 5]
+    const PS: Nivel[] = [2, 5]
+    const recs: Recuperacion[] = [1, 2, 4, 5, 'no_aplica']
+    const rangos: Rango[] = [{}, { max: 2 }, { max: 4 }, { min: 2, max: 4 }]
+    let n = 0
+    for (const p of PS) for (const e of L) for (const pe of L) for (const c of L) for (const l of L) for (const vc of L) for (const vr of recs) {
+      const k = conocidos(p, [e, pe, c, l], vc, vr)
+      for (let a = 0; a < PARTES_V_I.length; a++) for (let b = a + 1; b < PARTES_V_I.length; b++) {
+        const [pa, pb] = [PARTES_V_I[a], PARTES_V_I[b]]
+        if (pa === undefined || pb === undefined || valorDe(k, pa) !== 1 || valorDe(k, pb) !== 1) continue
+        for (const ra of rangos) for (const rb of rangos) { comprobarUnknown(k, [{ parte: pa, ...ra }, { parte: pb, ...rb }]); n++ }
+      }
+    }
+    assert.equal(n, 143_360, 'tamaño del dominio')
+  })
+
+  it('4 · P unknown: nunca evaluable, aunque lo demás no pueda cambiar nada', () => {
+    for (const k of todasLasCombinaciones()) {
+      if (evaluar({ ...aFactores(k), p: { valor: 'unknown', max: 1 } }).evaluable) assert.fail(`P unknown evaluable: ${JSON.stringify(k)}`)
+    }
+  })
+
+  it('1 · monotonía con ≥ n: subir un factor conocido de un riesgo con I unknown nunca baja C_raw ni la posición', () => {
+    const recs: Recuperacion[] = [1, 3, 5, 'no_aplica']
+    let n = 0
+    for (const k of todasLasCombinaciones()) {
+      if (!recs.includes(k.vRec)) continue
+      for (const d of DIMENSIONES) {
+        if (k.i[d] !== 1) continue
+        for (const r of [{}, { max: 2 }, { max: 4 }] as Rango[]) {
+          const f = conUnknown(k, [{ parte: d, ...r }])
+          const antes = itemDeFactores('antes', f)
+          if (antes === null) continue
+          for (const peor of vecinosPeores(k)) {
+            if (peor.i[d] !== k.i[d]) continue // sólo factores conocidos
+            const despues = itemDeFactores('despues', conUnknown(peor, [{ parte: d, ...r }]))
+            if (despues === null) continue // §9.3 puede sacarlo del ranking: punto abierto AN-0021/0023
+            if (despues.cRaw < antes.cRaw || compararD10(despues, antes) === 'despues') {
+              assert.fail(`C_raw o posición bajan: ${JSON.stringify(k)} con ${d} unknown ${JSON.stringify(r)} → ${JSON.stringify(peor)}`)
+            }
+            n++
           }
-          if (max === undefined || k.vCont <= max) variantes.push({ f: { ...f, vCont: u }, posibles: hasta.map((n) => ({ ...k, vCont: n })) })
-          if (vr !== 'no_aplica' && (max === undefined || vr <= max)) variantes.push({ f: { ...f, vRec: u }, posibles: hasta.map((n) => ({ ...k, vRec: n })) })
-        }
-        for (const { f: conUnknown, posibles } of variantes) {
-          const ev = evaluar(conUnknown)
-          if (!ev.evaluable) continue
-          for (const real of posibles) assert.equal(criticidad(real).cRaw, ev.cRaw)
         }
       }
+    }
+    assert.equal(n, 477_514, 'transiciones con ambos evaluables')
   })
 
   it('el techo plausible nunca es menor que C_raw', () => {

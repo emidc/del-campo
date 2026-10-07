@@ -18,7 +18,7 @@ funciones puras y versionadas, que es lo que pide §14 "Insumos para EMI-16". Cu
 ```bash
 pnpm install --frozen-lockfile                      # desde la raíz, una vez
 cd SPIKES/T-0021/regresion-ejecutable
-node --run test                                     # 144 tests, ~1,2 s
+node --run test                                     # 195 tests (188 + 7 todo), ~6 s
 node --run typecheck                                # tsc estricto con el tsconfig raíz
 cd ../../.. && ./node_modules/.bin/eslint --no-ignore SPIKES/T-0021/regresion-ejecutable/*.ts
 ```
@@ -37,6 +37,8 @@ pero este contenedor trae la 22.
 | `metodologia.test.ts` | Reglas contra oráculos externos (ejemplos de la metodología y del log, números de los casos) y las propiedades de §14 sobre toda la escala. |
 | `fichas.test.ts` | Las 51 fichas: derivados, rangos, unknown, historial, objetos fuera del ranking, recodificación. |
 | `casos.test.ts` | Veredicto de los 20 casos contra el aprobado, orden de cada momento, comprobaciones propias de cada caso y diagnóstico de bandas. |
+| `sinteticos.test.ts` | Casos sintéticos de la remediación: D10 después de `C_raw`, `unknown` y `≥ n` de punta a punta, padre, banderas con `unknown`, rango económico, una prueba por rama de `juzgar`, y las lecturas ambiguas como `todo`. |
+| `COLD-REVIEW.md`, `REMEDIATION.md` | Revisión adversarial en frío del arnés y su remediación (mutaciones, matriz de sobrevivientes, alcance del oráculo). |
 
 **Para que los tests no reproduzcan su propia lógica**, el valor esperado nunca sale de
 `metodologia.ts`. Sale de alguna de estas fuentes:
@@ -59,25 +61,25 @@ profesional (se lista y no se afirma).
 | Mejora de un solo aspecto (2c–2d) y P11 | §5.5, §14.7 | E/O | Transiciones PV-5→PV-1, PV-5→PV-2, PV-1+r3; P11 sobre las 25 combinaciones (c, r) |
 | `C_d = P × I_d × V_d`, `C_raw = max_d`, dimensión determinante | §6.1–6.2 | E | Ejemplos de AN-0158 y AN-0159; los 50 `C_raw` y las 50 determinantes registradas; 30 valores posibles (§6.3) |
 | Techo plausible | §6.6 | E | Las 51 fichas, `CP-08-R2` incluida (125 con los unknown en 5) |
-| I efectivo y `≥ n` | §4.1.1, §7.2 [F5-6] | E | Las 51 fichas; `≥ n` decide o queda indeterminado (casos sintéticos de la regla) |
-| `consecuencia_extrema` y `safety_critical`, incluido no evaluable con `max` | §8.1, §8.2 | E | Las 51 fichas; umbral 4/3 de personas; unknown con y sin `max` |
+| I efectivo y `≥ n` | §4.1.1, §7.2 [F5-6] | E | Las 51 fichas; de punta a punta desde `Factores` con un `unknown` (derivado `≥ n`, `n` sin el techo, posición provisional o decidida); `n` y su cota inferior en todo el dominio de la propiedad 4 |
+| `consecuencia_extrema` y `safety_critical`, incluido no evaluable con `max` | §8.1, §8.2 | E | Las 51 fichas; umbral 4/3 de personas; unknown con `max` en y debajo del umbral, para las dos banderas. Unknown sin `max` y evaluable con unknown: pendientes del owner (`todo`) |
 | Nivel económico por % del RO, el corte va arriba | §4.2 | E | Ejemplo de §4.2 (30% → 4), cuatro cortes exactos, CP-11 A/B contra las fichas |
-| Rango económico sin margen de contribución | §4.2.3 [F5-1] | R | CP-13 R1 (3–4) y CP-16 R1 (2–4) recalculados desde los montos del caso y comparados con la ficha |
+| Rango económico sin margen de contribución | §4.2.3 [F5-1] | R | CP-13 R1 (3–4) y CP-16 R1 (2–4) recalculados desde los montos del caso y comparados con la ficha; caso sintético donde los costos directos cruzan el corte del 100% en el máximo |
 | Dato auxiliar: base `assumed`/`inferred`, `uncertainty ≥ medium` si cruza niveles | §4.2.3, §9.2 [F5-1] | R | Los 14 `i_econ` que F4 dejó unknown (identificados desde el CSV de F4, no a mano) |
-| Valor defendible: tabla de tres filas | §9.2 [F5-1] | E | Las tres filas, más rango ≤ 3 niveles que contiene al valor en las 51 fichas |
-| Criticidad con partes unknown (cota) | §9.3 | E | Casos sintéticos de cada rama; CP-08 R2 no evaluable |
-| Unknown nunca da un `C_raw` bajo | §14.4 | E | Una parte unknown a la vez, con y sin `max`, sobre 12.150 combinaciones: si es evaluable, todo valor posible de lo desconocido da el mismo `C_raw` |
+| Valor defendible: tabla de tres filas | §9.2 [F5-1] | E | Las tres filas, más rango ≤ 3 niveles que contiene al valor en las 51 fichas (P, I, contención y recuperación) |
+| Criticidad con partes unknown (cota) | §9.3 | E | Casos sintéticos de cada rama y del borde de igualdad (por I, por un aspecto de V, con dos unknown); CP-08 R2 no evaluable |
+| Unknown nunca da un `C_raw` bajo | §14.4 | E | Equivalencia (solidez y completitud): evaluable ⇔ hay dimensión conocida y ningún valor posible de lo desconocido cambia `C_raw`. 656.250 casos con una parte unknown (I 1–5, `max` y `min`), 143.360 con dos, y P unknown |
 | Incertidumbre y rango no mueven `C_raw`, sólo el techo | §9.1 | E | Caso sintético; CP-08 R1 se ordena por 60 y no por el techo de 100 |
 | No evaluable: lista aparte con motivo y necesidad de validación | §9.4 | E | CP-08 R2 |
 | Continuidad por duración bruta, degradación un nivel abajo | §4.4 | E | Panificadora (§2.4), CP-13, CP-14 y CP-16 contra las fichas; bordes |
 | P por antecedentes (5, 4 con 36 meses incluidos, 3), sin ocurrencias no indica nivel | §3.2, §3.3 [F5-4A] | E | CP-12 R1a/R1b/R1c/R2 y CP-16 R1 contra las fichas; bordes de 36 y 37 meses |
 | Precursor = 3, condición causal sólo ±1 contra la fuente, tope 1–5 | §3.3, §3.4 [F5-4A] | E | CP-11 A/B, CP-19 base y marzo, CP-08 R1, CP-13 R1 contra las fichas |
-| D10: C_raw → I efectivo → I-personas → empate; sin P ni V como desempate | §7.2 [F5-6] | O | Casos sintéticos; los 28 órdenes registrados; PV-5 = PV-2 y PV-1 = PV-4 |
+| D10: C_raw → I efectivo → I-personas → empate; sin P ni V ni amplitud como desempate | §7.2 [F5-6] | O | Casos sintéticos por `rankingPrincipal`, entre ellos igual `C_raw` con criterios cruzados y distinta amplitud; los 28 órdenes registrados (16 con más de un riesgo); PV-5 = PV-2 y PV-1 = PV-4 |
 | Ranking sólo dentro de una organización | §7.1.4 (CH-075) | E | `rankingPrincipal` rechaza CP-11 A+B |
-| Padre: hijo prioritario, empatados, provisional, sin posición | §1.4 [F5-3] | E | Las cuatro ramas; CP-12 R1-B con los factores de R1c |
+| Padre: hijo prioritario, empatados, provisional, sin posición | §1.4 [F5-3] | E | Las cuatro ramas; padre sintético con fila propia distinta, hijos de igual `C_raw` separados por D10 (pasos 3 y 4), ítem exacto del hijo, sin roll-up; CP-12 R1-B con los factores de R1c |
 | Sub-riesgos y escenarios fuera del ranking | §7.1.2, §10.4, §14.5 | E | `rankingPrincipal` los rechaza |
 | Escenario por causa común: miembros, materialidad, legal = máximo | §10.2–10.3 | E | CP-20 E1 |
-| Monotonía de `C_raw` y de la posición | §14.1 | O | Las 93.750 combinaciones y cada vecino que empeora un factor |
+| Monotonía de `C_raw` y de la posición | §14.1 | O | Las 93.750 combinaciones y cada vecino que empeora un factor; 477.514 transiciones con un I unknown (`≥ n`) |
 | Causalidad de V | §14.3 | E | La recuperación nunca cambia `C_personas` ni `C_legal`, en las 93.750 combinaciones |
 | Historial: cambio de versión sin sobrescribir | §11.1, §14.6, protocolo §6.4 | E | Las 51 fichas apuntan a su ficha de F4, del mismo riesgo y con id distinto |
 | `motivo` de cada reevaluación | §11.1 | E | CP-19: `informacion_nueva`, `correccion_evaluacion`, `cambio_contexto`, encadenados |
@@ -86,7 +88,7 @@ profesional (se lista y no se afirma).
 | Banda vacía hasta la Fase 9 | §6.5 | E | Las 51 fichas |
 | Bandas adjudicadas | protocolo §8, §12 | R | Diagnóstico, no veredicto (ver "Bandas") |
 | Recodificación 1, 2, 3, 5, 8 | §14.8, AN-0161 | E | Reproduce los números del reporte: 125 de 1128 pares y los 6 pares dentro de los casos |
-| Categorías de veredicto (combinación / ranking / PASS) | protocolo §8 | E | Los 20 veredictos y sus secundarias contra el reporte de regresión |
+| Categorías de veredicto (combinación / ranking / PASS) | protocolo §8 | E | Los 20 veredictos y sus secundarias contra el reporte de regresión; una prueba sintética por rama de `juzgar`; PASS sin criterio ejecutable reportado como tal |
 
 ## Casos que quedan ejecutables
 
@@ -99,9 +101,9 @@ profesional (se lista y no se afirma).
 
 **Resultado: ninguna diferencia contra lo aprobado.** El arnés reproduce:
 
-- los 20 veredictos, es decir 16 PASS y 4 FAIL (CP-01, CP-12 y CP-16 por combinación; CP-07 por ranking), con sus secundarias;
+- los 20 veredictos, es decir 16 PASS y 4 FAIL (CP-01, CP-12 y CP-16 por combinación; CP-07 por ranking), con sus secundarias. De los 16 PASS, 3 (CP-09, CP-11 y CP-17) no tienen ningún criterio ejecutable: el arnés los reporta como `sin_criterio_ejecutable`, no como evidencia;
 - CP-14, que es FAIL contra la adjudicación original y PASS contra la revisada;
-- los 28 órdenes registrados;
+- los 28 órdenes registrados, de los que sólo 16 ordenan más de un riesgo;
 - los 50 `C_raw`;
 - los números de la recodificación.
 
@@ -111,28 +113,35 @@ siga viendo. Si un cambio volviera PASS a alguno, el test también lo marca.
 
 ## Número y tipo de aserciones
 
-**144 tests** en 3 archivos, con **213 líneas con `assert`**. Las de propiedades corren en
-bucle y suman cientos de miles de comprobaciones.
+**195 tests** en 4 archivos: 188 normativos y 7 `todo` (lecturas ambiguas que corren pero no
+deciden el veredicto de la suite). **314 líneas con `assert.`**. Las de propiedades corren en
+bucle y suman millones de comprobaciones.
 
 El conteo es por bloque de tests, y el tipo es el que predomina en cada bloque. Algunos
 bloques mezclan tipos, y se marcan así.
 
 | Bloque | Tests | Tipo |
 |---|---|---|
-| Veredicto de cada caso (20, más CP-14 original, conteo, sin indeterminados) | 24 | Ordinal |
-| Orden de cada momento contra F5-REG-01 | 28 | Ordinal |
+| Veredicto de cada caso (20, más CP-14 original, conteo, PASS juzgados/vacuos, sin indeterminados) | 25 | Ordinal |
+| Orden de cada momento contra F5-REG-01 (más el conteo de cobertura) | 29 | Ordinal; 12 de los 28 son de un solo riesgo y lo dicen en el nombre |
 | Comprobaciones propias de cada caso | 12 | Exacta y ordinal (movimientos de CP-10 y CP-18) |
 | Perfiles PV-1 a PV-5 | 10 | 6 exactas, 4 ordinales |
-| §14: monotonía, causalidad de V, mejora, unknown, techo | 5 | Monotonía ordinal; las demás exactas |
+| §14: monotonía (con y sin unknown), causalidad de V, mejora, unknown (una parte, dos partes, P), techo | 8 | Monotonía ordinal; las demás exactas |
 | §7.2 D10 | 6 | Ordinal |
 | §6, §4.2, §4.4, §3.3–3.4, §9.3, §8, §1.4 | 35 | Exacta (las 2 de rango económico de §4.2, de rango) |
 | Fichas: forma, derivados, objetos fuera del ranking, recodificación | 14 | Exacta |
 | §9.2 y §9 rangos/unknown | 7 | Rango |
 | Bandas | 3 | Banda (diagnóstico) |
+| Sintéticos de la remediación (D10, unknown, padre, banderas, económico, `juzgar`) | 39 | Exacta y ordinal |
+| Lecturas pendientes del owner | 7 `todo` | No deciden: ver `REMEDIATION.md` §8 |
 | Juicio profesional | 0 | Los criterios están listados en el campo `juicio` de cada caso en `casos.ts` y abajo; no se afirman |
 
-**Prueba del arnés por mutación.** Se plantaron 12 errores en `metodologia.ts` (copia en un
-directorio temporal). La suite detectó 11:
+**Prueba del arnés por mutación.** La campaña vigente es la de `REMEDIATION.md` §5–§6: 56
+mutaciones (las 19 que sobrevivían a la revisión en frío y 37 nuevas). Mueren 51. Sobreviven
+B01 (bloqueada por una ambigüedad), U07 y J01 (lecturas alternativas) y dos equivalentes.
+
+La primera campaña, de esta misma carpeta, plantó 12 errores en `metodologia.ts` y la suite
+detectó 11:
 
 - V_econ calculado con `max`;
 - la regla v0.1 de "el peor de los dos";
@@ -234,7 +243,8 @@ desaparece, el test falla.
     log 4A y la ficha. Si el registro fuera de tres años, daría 4.
 13. **§7.2 sólo define el paso indeterminado para dos riesgos.** Para un bloque de tres o más
     riesgos con igual `C_raw` y algún par indeterminado, el arnés deja todo el bloque en una
-    posición provisional común. Hoy no hay ningún caso así: ningún evaluable tiene unknown.
+    posición provisional común. Hoy no hay ninguna ficha así (ningún evaluable de la Fase 5
+    tiene unknown), y los sintéticos sólo prueban bloques de dos.
 14. **§6.6 no dice cómo es el techo con un factor unknown.** El dato registrado (CP-08 R2 =
     125) coincide con usar su `max`, o 5, como en §9.3. El arnés sigue al dato.
 15. **Los números de la recodificación (§4 del reporte) sólo se reproducen con dos
@@ -263,10 +273,10 @@ resultados distintos.
 
 | Comando | Resultado |
 |---|---|
-| `node --run test` (en esta carpeta) | 144 pass, 0 fail |
+| `node --run test` (en esta carpeta) | 195 tests: 188 pass, 0 fail, 7 todo |
 | `node --run typecheck` | sin errores |
 | `eslint --no-ignore` sobre esta carpeta | sin errores |
-| Mutación (12 errores plantados) | 11 detectados; 1 equivalente |
+| Mutación (`REMEDIATION.md`, 56 mutaciones) | 51 detectadas; sobreviven 1 bloqueada, 2 interpretativas y 2 equivalentes |
 | `node scripts/check-docs.mjs`, `node scripts/check-agent-run.mjs`, `pnpm typecheck`, `pnpm lint` | pasan |
 | `pnpm test` (raíz) | 166 pass. Los 14 fail y 51 cancelados son tests de integración que necesitan el Postgres local (`ECONNREFUSED 127.0.0.1:5432`). Este contenedor no lo tiene y el arnés no los toca. |
 
@@ -287,7 +297,7 @@ Las fuentes usadas son:
 
 ## Archivos
 
-Nuevos, todos en `SPIKES/T-0021/regresion-ejecutable/`: `README.md`, `package.json`,
+Todos en `SPIKES/T-0021/regresion-ejecutable/`: `README.md`, `package.json`,
 `tsconfig.json`, `metodologia.ts`, `fichas.ts`, `casos.ts`, `verificacion.ts`,
-`metodologia.test.ts`, `fichas.test.ts` y `casos.test.ts`. No se modificó ningún archivo
-existente.
+`metodologia.test.ts`, `fichas.test.ts`, `casos.test.ts`, `sinteticos.test.ts`,
+`COLD-REVIEW.md` y `REMEDIATION.md`. Ninguno modifica archivos fuera de la carpeta.

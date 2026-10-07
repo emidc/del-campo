@@ -136,7 +136,8 @@ export type Categoria = 'PASS' | 'FAIL — combinación' | 'FAIL — ranking' | 
 
 export interface Resultado {
   readonly expectativa: Expectativa
-  readonly estado: 'cumple' | 'falla' | 'indeterminado'
+  /** `no_juzgado`: la expectativa no tiene criterio ejecutable (`sin_orden`); no cuenta como evidencia. */
+  readonly estado: 'cumple' | 'falla' | 'indeterminado' | 'no_juzgado'
   /** Para una falla: `combinación` si los `c_raw` difieren, `ranking` si son iguales (protocolo §8). */
   readonly categoria?: 'combinación' | 'ranking'
   readonly detalle: string
@@ -146,6 +147,11 @@ export interface Veredicto {
   readonly categoria: Categoria
   readonly secundarias: Categoria[]
   readonly resultados: Resultado[]
+  /**
+   * Separa un PASS con evidencia de uno vacuo: `sin_criterio_ejecutable` si ninguna
+   * expectativa se juzgó (lista vacía o sólo `sin_orden`). No cambia la categoría.
+   */
+  readonly evidencia: 'criterios_juzgados' | 'sin_criterio_ejecutable'
 }
 
 function cRawDe(r: RankingPrincipal, riskId: string): number {
@@ -202,7 +208,7 @@ export function juzgar(
       }
       case 'sin_orden':
         rankingDe(x.momento)
-        return { expectativa: x, estado: 'cumple', detalle: `${x.a} y ${x.b}: la adjudicación no exige orden entre ellos` }
+        return { expectativa: x, estado: 'no_juzgado', detalle: `${x.a} y ${x.b}: la adjudicación no exige orden entre ellos` }
       case 'no_en_mitad_inferior': {
         const r = rankingDe(x.momento)
         const n = r.posiciones.reduce((s, p) => s + p.ids.length, 0)
@@ -248,5 +254,6 @@ export function juzgar(
   // Orden de protocolo §8 (las categorías contradicción y definición dependen de anomalías, no de las fichas).
   const orden: Categoria[] = ['FAIL — combinación', 'FAIL — ranking', 'INDETERMINADO']
   const encontradas = orden.filter((c) => presentes.has(c))
-  return { categoria: encontradas[0] ?? 'PASS', secundarias: encontradas.slice(1), resultados }
+  const evidencia = resultados.some((r) => r.estado !== 'no_juzgado') ? 'criterios_juzgados' : 'sin_criterio_ejecutable'
+  return { categoria: encontradas[0] ?? 'PASS', secundarias: encontradas.slice(1), resultados, evidencia }
 }

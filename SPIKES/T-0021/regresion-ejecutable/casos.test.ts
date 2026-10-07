@@ -21,7 +21,7 @@ function ficha(id: string): Ficha {
 }
 
 function resumen(v: Veredicto): string {
-  return v.resultados.filter((r) => r.estado !== 'cumple').map((r) => `${r.estado}: ${r.detalle}`).join('; ') || 'todo cumple'
+  return v.resultados.filter((r) => r.estado === 'falla' || r.estado === 'indeterminado').map((r) => `${r.estado}: ${r.detalle}`).join('; ') || 'todo cumple'
 }
 
 describe('veredicto de cada caso = veredicto aprobado de F5-REG-01 (reporte-regresion §2)', () => {
@@ -30,7 +30,8 @@ describe('veredicto de cada caso = veredicto aprobado de F5-REG-01 (reporte-regr
   })
 
   for (const caso of CASOS) {
-    it(`${caso.id}: ${caso.aprobado.categoria}`, () => {
+    const vacuo = caso.adjudicacion.every((x) => x.tipo === 'sin_orden')
+    it(`${caso.id}: ${caso.aprobado.categoria}${vacuo ? ' (sin criterio ejecutable: no juzgado por el arnés)' : ''}`, () => {
       const v = juzgar(caso.adjudicacion, caso.momentos, fichas)
       assert.equal(v.categoria, caso.aprobado.categoria, resumen(v))
       assert.deepEqual(v.secundarias, caso.aprobado.secundarias, resumen(v))
@@ -53,6 +54,12 @@ describe('veredicto de cada caso = veredicto aprobado de F5-REG-01 (reporte-regr
     ])
   })
 
+  it('16 PASS = 13 con criterios juzgados + 3 sin criterio ejecutable (CP-09, CP-11, CP-17): esos 3 no son evidencia', () => {
+    const pass = CASOS.map((c) => [c.id, juzgar(c.adjudicacion, c.momentos, fichas)] as const).filter(([, v]) => v.categoria === 'PASS')
+    assert.equal(pass.length, 16)
+    assert.deepEqual(pass.filter(([, v]) => v.evidencia === 'sin_criterio_ejecutable').map(([id]) => id), ['CP-09', 'CP-11', 'CP-17'])
+  })
+
   it('ningún criterio adjudicado juzgable queda indeterminado', () => {
     for (const caso of CASOS) {
       const v = juzgar(caso.adjudicacion, caso.momentos, fichas)
@@ -62,9 +69,17 @@ describe('veredicto de cada caso = veredicto aprobado de F5-REG-01 (reporte-regr
 })
 
 describe('orden de cada momento = orden registrado en F5-REG-01', () => {
+  const riesgos = (esperado: readonly (readonly string[])[]) => esperado.reduce((n, g) => n + g.length, 0)
+
+  it('cobertura: 16 de los 28 momentos ordenan más de un riesgo; los otros 12 sólo comprueban que el riesgo entra', () => {
+    const momentos = CASOS.flatMap((c) => Object.values(c.ordenRegistrado))
+    assert.equal(momentos.length, 28)
+    assert.equal(momentos.filter((o) => riesgos(o) > 1).length, 16)
+  })
+
   for (const caso of CASOS) {
     for (const [momento, esperado] of Object.entries(caso.ordenRegistrado)) {
-      it(`${caso.id} ${momento}`, () => {
+      it(`${caso.id} ${momento}${riesgos(esperado) === 1 ? ' (un solo riesgo: trivial, no es evidencia de orden)' : ''}`, () => {
         const ids = caso.momentos[momento]
         assert.ok(ids)
         const r = rankingPrincipal(ids.map(ficha), fichas)
