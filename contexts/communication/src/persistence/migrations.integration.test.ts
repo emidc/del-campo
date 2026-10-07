@@ -9,7 +9,12 @@ import { appliedMigrations, down, migrate } from './migrations.ts'
 import { openTestDatabase } from './testing.ts'
 
 const TABLES = ['webhook_delivery', 'message', 'outbound_status', 'unsupported_message', 'outbound_attempt']
-const FILES = ['0001_communication_schema.sql', '0002_outbound_attempt.sql', '0003_delivery_reprocessing.sql']
+const FILES = [
+  '0001_communication_schema.sql',
+  '0002_outbound_attempt.sql',
+  '0003_delivery_reprocessing.sql',
+  '0004_delivery_phone_filter.sql',
+]
 
 let sql: Sql
 before(async () => {
@@ -53,12 +58,29 @@ describe('migraciones del contexto', () => {
     }
     await sql`insert into communication.webhook_delivery (signature, body_raw) values ('valid', '{}')`
     assert.deepEqual(await columns(), ['last_reprocessed_at', 'reprocess_count'])
+    assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
     assert.equal(await down(sql), '0003_delivery_reprocessing.sql')
     assert.deepEqual(await columns(), [])
-    assert.deepEqual(await migrate(sql), ['0003_delivery_reprocessing.sql'])
+    assert.deepEqual(await migrate(sql), ['0003_delivery_reprocessing.sql', '0004_delivery_phone_filter.sql'])
     const [row] = await sql<{ n: number; c: number }[]>`
       select count(*)::int as n, min(reprocess_count) as c from communication.webhook_delivery`
     assert.deepEqual({ ...row }, { n: 1, c: 0 })
+    await sql`delete from communication.webhook_delivery`
+  })
+
+  it('la reversa de 0004 deja las ignored como failed, a la vista, y no como processed', async () => {
+    await sql`
+      insert into communication.webhook_delivery
+        (signature, body_raw, processing, processed_at, ignored_count, phone_number_filter)
+      values ('valid', '{}', 'ignored', now(), 1, '800000000000001'), ('valid', '{}', 'processed', now(), 0, null)`
+    assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
+    const rows = await sql<{ processing: string; error: string | null }[]>`
+      select processing, processing_error as error from communication.webhook_delivery order by id`
+    assert.deepEqual(rows.map((r) => [r.processing, r.error]), [
+      ['failed', 'ignorada: todo su contenido era de otro número'],
+      ['processed', null],
+    ])
+    assert.deepEqual(await migrate(sql), ['0004_delivery_phone_filter.sql'])
     await sql`delete from communication.webhook_delivery`
   })
 

@@ -6,7 +6,7 @@ import { openTestDatabase, truncateAll } from '../persistence/testing.ts'
 import { recordDelivery } from '../persistence/store.ts'
 import { applyRetention, purgeExpiredDeliveries } from './operations.ts'
 import { reprocessDeliveries } from './reprocess.ts'
-import { readFixture, sign, statusPayload, TEST_APP_SECRET, TEST_VERIFY_TOKEN, textPayload, webhookPost } from './testing.ts'
+import { readFixture, sign, statusPayload, TEST_APP_SECRET, TEST_PHONE_NUMBER_ID, TEST_VERIFY_TOKEN, textPayload, webhookPost } from './testing.ts'
 import { createWebhookHandler, deliveryStore } from './webhook.ts'
 
 let sql: Sql
@@ -14,7 +14,12 @@ let deliver: (body: string) => Promise<void>
 
 before(async () => {
   sql = await openTestDatabase()
-  const handle = createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store: deliveryStore(sql) })
+  const handle = createWebhookHandler({
+    verifyToken: TEST_VERIFY_TOKEN,
+    appSecret: TEST_APP_SECRET,
+    phoneNumberId: TEST_PHONE_NUMBER_ID,
+    store: deliveryStore(sql),
+  })
   deliver = async (body) => {
     const { process } = await handle(webhookPost(body, sign(body)))
     await process?.()
@@ -72,7 +77,7 @@ describe('retención de entregas crudas (D-0065)', () => {
     await sql`update communication.webhook_delivery set received_at = now() - interval '31 days'`
     assert.equal(await purgeExpiredDeliveries(sql), 0)
 
-    assert.equal((await reprocessDeliveries(sql)).processed, 1)
+    assert.equal((await reprocessDeliveries(sql, { phoneNumberId: TEST_PHONE_NUMBER_ID })).processed, 1)
     assert.equal(await purgeExpiredDeliveries(sql), 1)
     assert.equal(await count('webhook_delivery'), 0)
     assert.equal(await count('message'), 1)

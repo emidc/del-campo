@@ -13,6 +13,7 @@ import {
   sign,
   statusPayload,
   TEST_APP_SECRET,
+  TEST_PHONE_NUMBER_ID,
   TEST_VERIFY_TOKEN,
   textPayload,
   webhookPost,
@@ -24,7 +25,12 @@ let deliver: (body: string, signature?: string | null) => Promise<number>
 
 before(async () => {
   sql = await openTestDatabase()
-  const handle = createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store: deliveryStore(sql) })
+  const handle = createWebhookHandler({
+    verifyToken: TEST_VERIFY_TOKEN,
+    appSecret: TEST_APP_SECRET,
+    phoneNumberId: TEST_PHONE_NUMBER_ID,
+    store: deliveryStore(sql),
+  })
   deliver = async (body, signature = sign(body)) => {
     const { response, process } = await handle(webhookPost(body, signature))
     await process?.()

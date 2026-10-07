@@ -11,3 +11,13 @@ export const STALLED_PENDING_AFTER_MS = 15 * 60 * 1000
 
 /** Las `pending` recibidas estrictamente antes de este instante están atascadas. */
 export const stalledBefore = (now: Date): Date => new Date(now.getTime() - STALLED_PENDING_AFTER_MS)
+
+/**
+ * Una entrega `ignored` traía solo elementos de otro número. Con el número bien
+ * configurado es tráfico ajeno, y con el número mal configurado es todo lo que llega: la
+ * UI muestra las de este período para que lo segundo no pase por sano. Pasado el período
+ * deja de alertar, para que una entrega ajena aislada no deje la alerta encendida.
+ */
+export const IGNORED_ALERT_WINDOW_MS = 24 * 60 * 60 * 1000
+
+export const ignoredSince = (now: Date): Date => new Date(now.getTime() - IGNORED_ALERT_WINDOW_MS)

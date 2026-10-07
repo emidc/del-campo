@@ -5,7 +5,7 @@
 
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-import { applyRetention, reprocessDeliveries, type Sql } from '@del-campo/communication'
+import { applyRetention, normalizePhoneNumberId, reprocessDeliveries, type Sql } from '@del-campo/communication'
 
 import { json, type Env } from './guard.ts'
 
@@ -14,7 +14,12 @@ export const MIN_CRON_SECRET_LENGTH = 32
 const sameSecret = (a: string, b: string): boolean =>
   timingSafeEqual(createHash('sha256').update(a).digest(), createHash('sha256').update(b).digest())
 
-/** `null` si el request trae el secreto; si no, la negativa, sin datos. Sin secreto configurado, 503. */
+/**
+ * `null` si el request trae el secreto; si no, la negativa, sin datos. Sin secreto
+ * configurado, 503. El secreto solo viaja en `Authorization: Bearer`, como lo manda
+ * Vercel Cron, y se compara entero: un prefijo, un sufijo o un valor parecido no pasan.
+ * Nunca se loguea.
+ */
 export const jobDenial = (request: Request, env: Env): Response | null => {
   const secret = env.CRON_SECRET ?? ''
   if (secret.length < MIN_CRON_SECRET_LENGTH) return json({ error: 'las tareas no están configuradas' }, 503)
@@ -36,17 +41,21 @@ export const withJobSecret =
 export const retentionJobResponse = async (sql: Sql, log: (line: string) => void): Promise<Response> => {
   const result = await applyRetention(sql)
   log(
-    `retención: ${String(result.deliveries)} entregas borradas, ${String(result.unprocessedKept)} vencidas sin procesar ` +
+    `retención: ${String(result.deliveries)} entregas borradas (${String(result.ignoredDeleted)} ignoradas por ser de otro número), ` +
+      `${String(result.unprocessedKept)} vencidas sin procesar ` +
       `conservadas, ${String(result.staleAttempts)} intentos cerrados, ${String(result.attemptBodies)} textos borrados`,
   )
   return json(result)
 }
 
 export const reprocessJobResponse = async (sql: Sql, env: Env, log: (line: string) => void): Promise<Response> => {
-  // El mismo filtro por número que el receptor: sin número, no se reprocesa.
-  const phoneNumberId = env.WHATSAPP_PHONE_NUMBER_ID ?? ''
-  if (phoneNumberId === '') return json({ error: 'falta WHATSAPP_PHONE_NUMBER_ID' }, 503)
+  // El mismo filtro por número que el receptor: sin número válido, no se reprocesa.
+  const phoneNumberId = normalizePhoneNumberId(env.WHATSAPP_PHONE_NUMBER_ID)
+  if (phoneNumberId === null) return json({ error: 'falta WHATSAPP_PHONE_NUMBER_ID o no es numérico' }, 503)
   const result = await reprocessDeliveries(sql, { phoneNumberId, log })
-  log(`reproceso: ${String(result.processed)} procesadas, ${String(result.failed)} fallidas, ${String(result.skipped)} salteadas`)
+  log(
+    `reproceso: ${String(result.processed)} procesadas, ${String(result.ignored)} de otro número, ` +
+      `${String(result.failed)} fallidas, ${String(result.skipped)} salteadas`,
+  )
   return json(result)
 }

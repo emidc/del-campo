@@ -3,7 +3,7 @@
 
 import { visibleAttemptState } from '../domain/reply.ts'
 import { redactErrorTitle } from '../integration/cloud-api.ts'
-import { stalledBefore } from '../domain/reprocessing.ts'
+import { ignoredSince, stalledBefore } from '../domain/reprocessing.ts'
 import { serviceWindow, type ServiceWindow } from '../domain/window.ts'
 import { listOpenAttempts } from '../persistence/attempts.ts'
 import {
@@ -42,6 +42,12 @@ export interface DeliveryHealth {
   /** Entregas `pending` que nadie está procesando. */
   readonly stalled: number
   readonly oldestUnprocessedAt: Date | null
+  /**
+   * Entregas de las últimas 24 h que traían solo contenido de otro número y no se
+   * guardaron. Es lo único que produce un `WHATSAPP_PHONE_NUMBER_ID` equivocado: sin esto,
+   * la UI se vería al día sin mensajes nuevos.
+   */
+  readonly ignored: number
 }
 
 const toHealth = (b: DeliveryBacklog): DeliveryHealth => ({
@@ -50,10 +56,11 @@ const toHealth = (b: DeliveryBacklog): DeliveryHealth => ({
   failed: b.failed,
   stalled: b.stalled,
   oldestUnprocessedAt: b.oldestUnprocessedAt,
+  ignored: b.ignored,
 })
 
 export const deliveryHealth = async (sql: Sql, now: Date = new Date()): Promise<DeliveryHealth> =>
-  toHealth(await deliveryBacklog(sql, stalledBefore(now)))
+  toHealth(await deliveryBacklog(sql, stalledBefore(now), ignoredSince(now)))
 
 export interface ConversationList {
   readonly conversations: ConversationSummary[]
