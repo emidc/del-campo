@@ -29,6 +29,7 @@ export const deliveriesBody = (d: DeliveryHealth) => ({
   failed: d.failed,
   stalled: d.stalled,
   oldestUnprocessedAt: iso(d.oldestUnprocessedAt),
+  ignored: d.ignored,
 })
 
 export const listBody = (list: ConversationList) => ({

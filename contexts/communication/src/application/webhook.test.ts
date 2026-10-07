@@ -9,6 +9,7 @@ import {
   readFixture,
   sign,
   TEST_APP_SECRET,
+  TEST_PHONE_NUMBER_ID,
   TEST_VERIFY_TOKEN,
   WEBHOOK_URL,
   webhookPost,
@@ -48,7 +49,7 @@ const memoryStore = (): MemoryStore => {
 }
 
 const handlerWith = (store: DeliveryStore) =>
-  createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store })
+  createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, phoneNumberId: TEST_PHONE_NUMBER_ID, store })
 
 const body = readFixture('inbound-text.json')
 
@@ -71,8 +72,8 @@ describe('verifySignature', () => {
 
 describe('configuración', () => {
   it('no hay modo sin firma: sin App Secret no se construye el receptor', () => {
-    assert.throws(() => createWebhookHandler({ verifyToken: 't', appSecret: '', store: memoryStore() }), /App Secret/)
-    assert.throws(() => createWebhookHandler({ verifyToken: '', appSecret: 's', store: memoryStore() }), /token/)
+    assert.throws(() => createWebhookHandler({ verifyToken: 't', appSecret: '', phoneNumberId: TEST_PHONE_NUMBER_ID, store: memoryStore() }), /App Secret/)
+    assert.throws(() => createWebhookHandler({ verifyToken: '', appSecret: 's', phoneNumberId: TEST_PHONE_NUMBER_ID, store: memoryStore() }), /token/)
   })
 })
 
@@ -157,7 +158,11 @@ describe('POST: recepción', () => {
   it('el log no lleva contenido, teléfonos ni wamid', async () => {
     const lines: string[] = []
     const handle = createWebhookHandler({
-      verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store: memoryStore(), log: (l) => lines.push(l),
+      verifyToken: TEST_VERIFY_TOKEN,
+      appSecret: TEST_APP_SECRET,
+      phoneNumberId: TEST_PHONE_NUMBER_ID,
+      store: memoryStore(),
+      log: (l) => lines.push(l),
     })
     const { process } = await handle(webhookPost(body))
     await process?.()

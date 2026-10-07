@@ -62,6 +62,17 @@ export interface ParseOptions {
   readonly phoneNumberId?: string
 }
 
+/**
+ * El `phone_number_id` configurado, sin los espacios o saltos de línea que deja pegarlo en
+ * una variable de entorno, o `null` si no tiene la forma de uno: Meta lo manda como un
+ * string de dígitos. Que tenga la forma no prueba que sea el del número de la WABA; eso
+ * solo se comprueba contra Meta.
+ */
+export const normalizePhoneNumberId = (raw: string | undefined): string | null => {
+  const value = (raw ?? '').trim()
+  return /^\d{1,32}$/.test(value) ? value : null
+}
+
 type Obj = Record<string, unknown>
 const obj = (x: unknown): Obj | undefined =>
   typeof x === 'object' && x !== null && !Array.isArray(x) ? (x as Obj) : undefined
@@ -113,6 +124,17 @@ const statusErrorOf = (status: Obj): StatusError | null => {
   const title = str(first.title) ?? str(first.message)
   return code === null && title === null ? null : { code, title }
 }
+
+/** Elementos que una entrega escribe: textos, fuera de alcance y estados. */
+export const appliedCount = (p: ParsedDelivery): number => p.texts.length + p.unsupported.length + p.statuses.length
+
+/**
+ * Cómo termina una entrega parseada. Con descartes, `failed`: se ve y se reprocesa. Sin
+ * nada escrito y con algo de otro número, `ignored`: no es un éxito, porque es también lo
+ * que produce un `phone_number_id` mal configurado.
+ */
+export const deliveryOutcome = (p: ParsedDelivery): 'processed' | 'ignored' | 'failed' =>
+  p.discarded.length > 0 ? 'failed' : appliedCount(p) === 0 && p.ignored > 0 ? 'ignored' : 'processed'
 
 export const parseDelivery = (payload: unknown, options: ParseOptions = {}): ParsedDelivery => {
   const out: Omit<ParsedDelivery, 'ignored'> = { texts: [], unsupported: [], statuses: [], discarded: [] }

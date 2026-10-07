@@ -1,7 +1,7 @@
 // Lo único que exporta @del-campo/communication (D-0063). Quien consuma el contexto —su
 // app o su tarea programada— importa de acá y de ningún otro archivo.
 
-export type { Participant } from '../domain/payload.ts'
+export { normalizePhoneNumberId, type Participant } from '../domain/payload.ts'
 export { MAX_REPLY_LENGTH } from '../domain/reply.ts'
 export type { OutboundStatus } from '../domain/status.ts'
 export type { ServiceWindow } from '../domain/window.ts'

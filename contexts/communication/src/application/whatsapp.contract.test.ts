@@ -47,7 +47,13 @@ describe('contrato: payloads reales de punta a punta contra Postgres', () => {
 
   before(async () => {
     sql = await openTestDatabase()
-    const handle = createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store: deliveryStore(sql) })
+    const handle = createWebhookHandler({
+      verifyToken: TEST_VERIFY_TOKEN,
+      appSecret: TEST_APP_SECRET,
+      // El número de los fixtures reales redactados (T-0020).
+      phoneNumberId: '900000000000002',
+      store: deliveryStore(sql),
+    })
     deliver = async (body) => {
       const { response, process } = await handle(webhookPost(body, sign(body)))
       await process?.()

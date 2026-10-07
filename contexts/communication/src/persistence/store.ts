@@ -1,7 +1,7 @@
 // Escrituras y lecturas del esquema `communication`. Idempotentes donde Meta puede
 // repetir: cada mensaje se persiste una sola vez por `wamid`, y un estado solo avanza.
 
-import type { InboundText, ParsedDelivery, Participant, StatusUpdate } from '../domain/payload.ts'
+import { appliedCount, deliveryOutcome, type InboundText, type ParsedDelivery, type Participant, type StatusUpdate } from '../domain/payload.ts'
 import { outranks, type OutboundStatus } from '../domain/status.ts'
 import type { Sql, TransactionSql } from './database.ts'
 
@@ -54,11 +54,30 @@ const applyStatus = async (tx: TransactionSql, s: StatusUpdate): Promise<void> =
 }
 
 /**
- * Persiste el contenido de una entrega dentro de `tx` y la marca procesada. Si hubo
- * elementos descartados, la entrega queda `failed` con los motivos, aunque lo válido se
- * haya guardado: así se ve y se puede reprocesar, que es idempotente.
+ * Cuánto espera un lock el procesamiento de una entrega. Sin tope, una transacción ajena
+ * abierta con el mismo `wamid` lo traba sin límite, y en el reproceso traba también a
+ * todas las entregas que siguen en el lote (revisión fría de T-0026, S-HOL). Al vencer,
+ * Postgres cancela la sentencia y la entrega queda `failed`, visible y reprocesable.
  */
-export const applyDelivery = async (tx: TransactionSql, delivery: Delivery, parsed: ParsedDelivery): Promise<void> => {
+export const LOCK_TIMEOUT = '5s'
+
+/** Pone el tope de `LOCK_TIMEOUT` a los locks del resto de `tx`. */
+export const boundLockWaits = async (tx: TransactionSql): Promise<void> => {
+  await tx.unsafe(`set local lock_timeout = '${LOCK_TIMEOUT}'`)
+}
+
+/**
+ * Persiste el contenido de una entrega dentro de `tx` y registra cómo terminó, con el
+ * número contra el que se filtró. Si hubo elementos descartados, la entrega queda
+ * `failed` con los motivos, aunque lo válido se haya guardado: así se ve y se puede
+ * reprocesar, que es idempotente. Si todo era de otro número, queda `ignored`.
+ */
+export const applyDelivery = async (
+  tx: TransactionSql,
+  delivery: Delivery,
+  parsed: ParsedDelivery,
+  phoneNumberFilter: string,
+): Promise<void> => {
   // Los estados se aplican en orden de `wamid`: dos entregas con estados de los mismos
   // salientes toman los `for update` en el mismo orden y no se traban entre sí. El
   // resultado no cambia, porque un estado solo avanza (nota N5 de la revisión ciega).
@@ -82,18 +101,29 @@ export const applyDelivery = async (tx: TransactionSql, delivery: Delivery, pars
     : `${String(parsed.discarded.length)} elemento(s) descartado(s): ${parsed.discarded.join('; ')}`
   await tx`
     update communication.webhook_delivery
-    set processing = ${error === null ? 'processed' : 'failed'}, processed_at = now(), processing_error = ${error}
+    set processing = ${deliveryOutcome(parsed)}, processed_at = now(), processing_error = ${error},
+        applied_count = ${appliedCount(parsed)}, ignored_count = ${parsed.ignored},
+        phone_number_filter = ${phoneNumberFilter}
     where id = ${delivery.id}`
 }
 
 /** `applyDelivery` en su propia transacción: todo o nada. */
-export const processDelivery = async (sql: Sql, delivery: Delivery, parsed: ParsedDelivery): Promise<void> => {
-  await sql.begin((tx) => applyDelivery(tx, delivery, parsed))
+export const processDelivery = async (
+  sql: Sql,
+  delivery: Delivery,
+  parsed: ParsedDelivery,
+  phoneNumberFilter: string,
+): Promise<void> => {
+  await sql.begin(async (tx) => {
+    await boundLockWaits(tx)
+    await applyDelivery(tx, delivery, parsed, phoneNumberFilter)
+  })
 }
 
 /**
  * Registra que el procesamiento falló. Solo el mensaje del error: los detalles de
- * Postgres traen valores. Una entrega que otro ya procesó no vuelve a `failed`.
+ * Postgres traen valores. Una entrega que otro ya procesó no vuelve a `failed`. Una
+ * `ignored` sí: si su reproceso falla, queda a la vista como cualquier otra.
  */
 export const markDeliveryFailed = async (sql: Sql | TransactionSql, deliveryId: number, error: unknown): Promise<void> => {
   const message = error instanceof Error ? error.message : 'error desconocido'
@@ -127,33 +157,52 @@ export const insertOutboundMessage = async (sql: Sql, m: OutboundMessage): Promi
   return Number(row.id)
 }
 
+export interface DeletedDeliveries {
+  readonly processed: number
+  /** Las `ignored` borradas: se informan aparte, porque pueden ser lo de un número mal configurado. */
+  readonly ignored: number
+}
+
 /**
- * Borra las entregas crudas procesadas recibidas antes de `cutoff`. No toca ninguna otra
- * tabla. Las `pending` y `failed` no se borran: su cuerpo crudo es la única copia de lo
- * que todavía no llegó a `message`, y borrarlo sería perderlo en silencio (T-0026).
+ * Borra las entregas crudas `processed` e `ignored` recibidas antes de `cutoff`: las dos
+ * ya tienen un resultado y el crudo vive 30 días (D-0065). No toca ninguna otra tabla.
+ * Las `pending` y `failed` no se borran: su cuerpo crudo es la única copia de lo que
+ * todavía no llegó a `message`, y borrarlo sería perderlo en silencio (T-0026).
  */
-export const deleteProcessedDeliveriesReceivedBefore = async (sql: Sql, cutoff: Date): Promise<number> => {
-  const result = await sql`
+export const deleteSettledDeliveriesReceivedBefore = async (sql: Sql, cutoff: Date): Promise<DeletedDeliveries> => {
+  const rows = await sql<{ processing: string }[]>`
     delete from communication.webhook_delivery
-    where received_at < ${cutoff} and processing = 'processed'`
-  return result.count
+    where received_at < ${cutoff} and processing in ('processed', 'ignored')
+    returning processing`
+  const ignored = rows.filter((r) => r.processing === 'ignored').length
+  return { processed: rows.length - ignored, ignored }
 }
 
 /** Las entregas sin procesar que la retención conserva por estar vencidas. */
 export const countUnprocessedDeliveriesReceivedBefore = async (sql: Sql, cutoff: Date): Promise<number> => {
   const [row] = await sql<{ n: number }[]>`
     select count(*)::int as n from communication.webhook_delivery
-    where received_at < ${cutoff} and processing <> 'processed'`
+    where received_at < ${cutoff} and processing in ('pending', 'failed')`
   return row?.n ?? 0
 }
 
-/** Las entregas que esperan reproceso: `failed`, y `pending` recibidas antes de `stalledBefore`. */
-export const listDeliveriesToReprocess = async (sql: Sql, stalledBefore: Date, limit: number): Promise<number[]> => {
+/**
+ * Las entregas que esperan reproceso: `failed`; `pending` recibidas antes de
+ * `stalledBefore`; e `ignored` filtradas contra otro número que `phoneNumberId`, es
+ * decir, antes de que se corrigiera el número configurado.
+ */
+export const listDeliveriesToReprocess = async (
+  sql: Sql,
+  stalledBefore: Date,
+  phoneNumberId: string,
+  limit: number,
+): Promise<number[]> => {
   // Primero las que nunca se reprocesaron y después las que hace más que no: una entrega
   // que falla siempre no tapa a las demás.
   const rows = await sql<{ id: string }[]>`
     select id from communication.webhook_delivery
     where processing = 'failed' or (processing = 'pending' and received_at < ${stalledBefore})
+       or (processing = 'ignored' and phone_number_filter <> ${phoneNumberId})
     order by last_reprocessed_at nulls first, id
     limit ${limit}`
   return rows.map((r) => Number(r.id))
@@ -171,12 +220,14 @@ export const claimDeliveryForReprocess = async (
   tx: TransactionSql,
   id: number,
   stalledBefore: Date,
+  phoneNumberId: string,
 ): Promise<ClaimedDelivery | null> => {
   const [row] = await tx<{ receivedAt: Date; bodyRaw: string }[]>`
     select received_at as "receivedAt", body_raw as "bodyRaw"
     from communication.webhook_delivery
     where id = ${id}
-      and (processing = 'failed' or (processing = 'pending' and received_at < ${stalledBefore}))
+      and (processing = 'failed' or (processing = 'pending' and received_at < ${stalledBefore})
+           or (processing = 'ignored' and phone_number_filter <> ${phoneNumberId}))
     for update skip locked`
   if (row === undefined) return null
   await tx`
@@ -196,13 +247,17 @@ export interface DeliveryBacklog {
   readonly stalled: number
   /** La recepción de la entrega sin procesar más vieja, `failed` o atascada. */
   readonly oldestUnprocessedAt: Date | null
+  /** `ignored` recibidas desde `ignoredSince`: todo su contenido era de otro número. */
+  readonly ignored: number
 }
 
-export const deliveryBacklog = async (sql: Sql, stalledBefore: Date): Promise<DeliveryBacklog> => {
+export const deliveryBacklog = async (sql: Sql, stalledBefore: Date, ignoredSince: Date): Promise<DeliveryBacklog> => {
   const [row] = await sql<DeliveryBacklog[]>`
     select
       (select max(received_at) from communication.webhook_delivery) as "lastReceivedAt",
       (select max(processed_at) from communication.webhook_delivery where processing = 'processed') as "lastProcessedAt",
+      (select count(*)::int from communication.webhook_delivery
+       where processing = 'ignored' and received_at >= ${ignoredSince}) as ignored,
       count(*) filter (where processing = 'failed')::int as failed,
       count(*) filter (where processing = 'pending')::int as stalled,
       min(received_at) as "oldestUnprocessedAt"

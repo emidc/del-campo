@@ -6,7 +6,7 @@ import { clearSettledAttemptBodies, settleStalePendingAttempts } from '../persis
 import type { Sql } from '../persistence/database.ts'
 import {
   countUnprocessedDeliveriesReceivedBefore,
-  deleteProcessedDeliveriesReceivedBefore,
+  deleteSettledDeliveriesReceivedBefore,
   insertOutboundMessage,
   type OutboundMessage,
 } from '../persistence/store.ts'
@@ -31,19 +31,26 @@ export const recordOutboundMessage = async (sql: Sql, message: OutboundMessage):
 }
 
 /**
- * Borra las entregas crudas procesadas de más de 30 días (D-0065) y devuelve cuántas.
- * Los mensajes quedan. Las `pending` y `failed` no se borran aunque estén vencidas: el
- * crudo es para reprocesar, y borrar lo que todavía no se recuperó lo perdería en
- * silencio. Se cuentan en `applyRetention` y la UI las muestra como atraso.
+ * Borra las entregas crudas `processed` e `ignored` de más de 30 días (D-0065) y devuelve
+ * cuántas. Los mensajes quedan. Las `pending` y `failed` no se borran aunque estén
+ * vencidas: el crudo es para reprocesar, y borrar lo que todavía no se recuperó lo
+ * perdería en silencio. Se cuentan en `applyRetention` y la UI las muestra como atraso.
  */
-export const purgeExpiredDeliveries = (sql: Sql, now: Date = new Date()): Promise<number> =>
-  deleteProcessedDeliveriesReceivedBefore(sql, retentionCutoff(now))
+export const purgeExpiredDeliveries = async (sql: Sql, now: Date = new Date()): Promise<number> => {
+  const deleted = await deleteSettledDeliveriesReceivedBefore(sql, retentionCutoff(now))
+  return deleted.processed + deleted.ignored
+}
 
 /** Un `pending` de más de una hora no está en curso: el envío tiene un timeout de 15 s. */
 const STALE_PENDING_FOR_RETENTION_MS = 60 * 60 * 1000
 
 export interface RetentionResult {
   readonly deliveries: number
+  /**
+   * De `deliveries`, las `ignored`: todo su contenido era de otro número. Si el número
+   * configurado estuvo mal hasta su vencimiento, esto es lo que se perdió; queda contado.
+   */
+  readonly ignoredDeleted: number
   /** Entregas vencidas que no se borraron por no estar procesadas. Distinto de 0 pide revisión. */
   readonly unprocessedKept: number
   readonly staleAttempts: number
@@ -57,9 +64,15 @@ export interface RetentionResult {
  * que su texto también entre en la retención. Los mensajes no se tocan.
  */
 export const applyRetention = async (sql: Sql, now: Date = new Date()): Promise<RetentionResult> => {
-  const deliveries = await purgeExpiredDeliveries(sql, now)
+  const deleted = await deleteSettledDeliveriesReceivedBefore(sql, retentionCutoff(now))
   const staleAttempts = await settleStalePendingAttempts(sql, new Date(now.getTime() - STALE_PENDING_FOR_RETENTION_MS), now)
   const attemptBodies = await clearSettledAttemptBodies(sql, retentionCutoff(now))
   const unprocessedKept = await countUnprocessedDeliveriesReceivedBefore(sql, retentionCutoff(now))
-  return { deliveries, unprocessedKept, staleAttempts, attemptBodies }
+  return {
+    deliveries: deleted.processed + deleted.ignored,
+    ignoredDeleted: deleted.ignored,
+    unprocessedKept,
+    staleAttempts,
+    attemptBodies,
+  }
 }

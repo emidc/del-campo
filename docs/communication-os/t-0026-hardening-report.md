@@ -6,6 +6,9 @@
   de base, RLS / Data API, límite de login) quedan como pasos de verificación, no como
   política inventada.
 - **Aislamiento:** no se leyó ni se tocó `v0/fase-8/` ni `v0/fase-9/` ni material de Risk OS.
+- **Actualización:** la revisión fría (`T-0026-COLD-REVIEW.md`) y la remediación
+  (`T-0026-REMEDIATION.md`) son la capa de evidencia más reciente. Las afirmaciones de
+  este informe que dejaron de ser ciertas están marcadas **[Obsoleto]** donde aparecen.
 
 ## 1. Qué había de T-0026 antes de este trabajo
 
@@ -114,6 +117,9 @@ en la UI (H3) y en `unprocessedKept`.
 D-0065 con un "salvo las no procesadas, que se conservan hasta recuperarlas o
 descartarlas con decisión del owner". Este trabajo no edita `decisions.yaml`: el
 CLAUDE.md del repo pide plan mode para eso.
+**[Obsoleto]** Registrarlo editando D-0065 contradice su ADR, que pide un ADR nuevo que
+la reemplace (revisión fría §7). La propuesta para ese ADR está en
+`T-0026-REMEDIATION.md` §10.
 
 **Tests.**
 - `retention.integration.test.ts`: una `failed` y una `pending` vencidas no se borran,
@@ -306,6 +312,9 @@ tabla de intentos o aceptar el riesgo durante las 72 h.
   número propio pasa.
 - `reprocess.integration.test.ts`: el receptor filtrado deja la entrega `processed` sin
   mensajes, el reproceso filtra igual, y un `phoneNumberId` vacío es un error.
+  **[Obsoleto]** Ese `processed` sin mensajes era la pérdida silenciosa S9b de la
+  revisión fría. Ahora una entrega con todo de otro número queda `ignored`, la UI la
+  muestra y el reproceso la vuelve a evaluar si cambia el número (`T-0026-REMEDIATION.md` §4).
 
 **Queda manual.**
 - Confirmar en el panel de Meta que la WABA solo tiene el número dedicado, o anotar qué
@@ -377,6 +386,9 @@ conecta a la base hosteada ni ve credenciales.
 - [ ] Cron configurados (a decidir según plan; ejemplo para `vercel.json` del proyecto):
       `{"crons":[{"path":"/api/jobs/reprocess","schedule":"0 * * * *"},{"path":"/api/jobs/retention","schedule":"30 3 * * *"}]}`.
       En Hobby solo es diaria: el reproceso se corre además a mano.
+      **[Obsoleto]** `apps/communication/vercel.json` ya existe, con las dos tareas
+      diarias, que corren en cualquier plan. Una frecuencia mayor es decisión del owner
+      (`T-0026-REMEDIATION.md` §9).
 - [ ] Contra producción: sin credencial y con credencial inválida, páginas y endpoints de
       datos y envío responden sin datos. `/webhook` sin firma → 401.
       `/api/jobs/retention` y `/api/jobs/reprocess` sin `Authorization: Bearer` o con
