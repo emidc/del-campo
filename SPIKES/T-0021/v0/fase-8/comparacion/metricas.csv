@@ -1,0 +1,105 @@
+seccion,metrica,factor,n,numerador,valor,target,cumple,nota
+condiciones,versiones declaradas,todas,285,,metodologia v0.2 + protocolo v0.2,,,
+factor,% dentro de ±1,p,30,29,96.7,≥ 80%,sí,
+factor,% exacto,p,30,21,70.0,,,
+factor,kappa ponderado lineal,p,30,,0.596,,,
+factor,acuerdo de evaluabilidad,p,30,30,100.0,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,p,30,16,53.3,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,p,30,29,96.7,,,
+factor,% dentro de ±1,i_econ,21,21,100.0,≥ 80%,sí,
+factor,% exacto,i_econ,21,15,71.4,,,
+factor,kappa ponderado lineal,i_econ,21,,0.791,,,
+factor,acuerdo de evaluabilidad,i_econ,30,22,73.3,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,i_econ,21,10,47.6,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,i_econ,21,21,100.0,,,
+factor,% dentro de ±1,i_pers,30,30,100.0,≥ 80%,sí,
+factor,% exacto,i_pers,30,20,66.7,,,
+factor,kappa ponderado lineal,i_pers,30,,0.802,,,
+factor,acuerdo de evaluabilidad,i_pers,30,30,100.0,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,i_pers,30,17,56.7,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,i_pers,30,30,100.0,,,
+factor,% dentro de ±1,i_cont,26,26,100.0,≥ 80%,sí,
+factor,% exacto,i_cont,26,21,80.8,,,
+factor,kappa ponderado lineal,i_cont,26,,0.886,,,
+factor,acuerdo de evaluabilidad,i_cont,30,26,86.7,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,i_cont,26,16,61.5,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,i_cont,26,25,96.2,,,
+factor,% dentro de ±1,i_legal,30,30,100.0,≥ 80%,sí,
+factor,% exacto,i_legal,30,25,83.3,,,
+factor,kappa ponderado lineal,i_legal,30,,0.876,,,
+factor,acuerdo de evaluabilidad,i_legal,30,30,100.0,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,i_legal,30,13,43.3,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,i_legal,30,29,96.7,,,
+factor,% dentro de ±1,i_efectivo,21,21,100.0,≥ 80%,sí,
+factor,% exacto,i_efectivo,21,13,61.9,,,
+factor,kappa ponderado lineal,i_efectivo,21,,0.616,,,
+factor,acuerdo de evaluabilidad,i_efectivo,30,22,73.3,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,% dentro de ±1,v_cont,30,30,100.0,≥ 80%,sí,
+factor,% exacto,v_cont,30,20,66.7,,,
+factor,kappa ponderado lineal,v_cont,30,,0.416,,,
+factor,acuerdo de evaluabilidad,v_cont,30,30,100.0,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,v_cont,30,11,36.7,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,v_cont,30,26,86.7,,,
+factor,% dentro de ±1,v_rec,25,25,100.0,≥ 80%,sí,
+factor,% exacto,v_rec,25,18,72.0,,,
+factor,kappa ponderado lineal,v_rec,25,,0.543,,,
+factor,acuerdo de evaluabilidad,v_rec,30,30,100.0,,,"mismo estado: ambos valor, ambos unknown/≥n o ambos no_aplica"
+factor,rango idéntico,v_rec,25,5,20.0,,,"rango = (min, max), o (valor, valor) sin rango"
+factor,rangos que se solapan,v_rec,25,24,96.0,,,
+riesgo,% coincidencia,evaluable,30,24,80.0,,,"true: Emiliano 23, agente 29; kappa 0.204"
+riesgo,% coincidencia,consecuencia_extrema,30,23,76.7,,,"true: Emiliano 12, agente 5; kappa 0.462"
+riesgo,% coincidencia,safety_critical,30,26,86.7,,,"true: Emiliano 12, agente 8; kappa 0.706"
+riesgo,"c_raw idéntico (informativo, sin target)",c_raw,23,10,43.5,,,
+riesgo,banda,banda,,,pendiente de la Fase 9,,,
+ranking_par,orden D10,S01-R01 vs S01-R02,1,1,Emiliano > · agente >,,,> = el primero va antes
+ranking_par,orden D10,S22-R02 vs S22-R03,1,0,Emiliano > · agente <,,,> = el primero va antes
+ranking_par,orden D10,S36-R03 vs S36-R04,1,1,Emiliano > · agente >,,,> = el primero va antes
+ranking,concordancia de orden (pares de una misma empresa),ranking,3,2,66.7,,,"fuera por no evaluable en algún evaluador: S04-R03/S04-R05, S12-R01/S12-R05, S13-R04/S13-R05"
+banderas_agente,consecuencia_extrema,agro-y-alimentos,59,12,20.3,,,
+banderas_agente,safety_critical,agro-y-alimentos,59,17,28.8,,,
+banderas_agente,consecuencia_extrema por econ,agro-y-alimentos,59,11,18.6,,,
+banderas_agente,consecuencia_extrema por pers,agro-y-alimentos,59,1,1.7,,,
+banderas_agente,consecuencia_extrema por cont,agro-y-alimentos,59,8,13.6,,,
+banderas_agente,consecuencia_extrema por legal,agro-y-alimentos,59,0,0.0,,,
+banderas_agente,consecuencia_extrema,comercio-y-logistica,26,5,19.2,,,
+banderas_agente,safety_critical,comercio-y-logistica,26,7,26.9,,,
+banderas_agente,consecuencia_extrema por econ,comercio-y-logistica,26,5,19.2,,,
+banderas_agente,consecuencia_extrema por pers,comercio-y-logistica,26,0,0.0,,,
+banderas_agente,consecuencia_extrema por cont,comercio-y-logistica,26,4,15.4,,,
+banderas_agente,consecuencia_extrema por legal,comercio-y-logistica,26,0,0.0,,,
+banderas_agente,consecuencia_extrema,energia-y-agua,24,3,12.5,,,
+banderas_agente,safety_critical,energia-y-agua,24,4,16.7,,,
+banderas_agente,consecuencia_extrema por econ,energia-y-agua,24,3,12.5,,,
+banderas_agente,consecuencia_extrema por pers,energia-y-agua,24,0,0.0,,,
+banderas_agente,consecuencia_extrema por cont,energia-y-agua,24,3,12.5,,,
+banderas_agente,consecuencia_extrema por legal,energia-y-agua,24,0,0.0,,,
+banderas_agente,consecuencia_extrema,industria-y-construccion,51,12,23.5,,,
+banderas_agente,safety_critical,industria-y-construccion,51,18,35.3,,,
+banderas_agente,consecuencia_extrema por econ,industria-y-construccion,51,10,19.6,,,
+banderas_agente,consecuencia_extrema por pers,industria-y-construccion,51,1,2.0,,,
+banderas_agente,consecuencia_extrema por cont,industria-y-construccion,51,6,11.8,,,
+banderas_agente,consecuencia_extrema por legal,industria-y-construccion,51,0,0.0,,,
+banderas_agente,consecuencia_extrema,mineria,43,10,23.3,,,
+banderas_agente,safety_critical,mineria,43,21,48.8,,,
+banderas_agente,consecuencia_extrema por econ,mineria,43,6,14.0,,,
+banderas_agente,consecuencia_extrema por pers,mineria,43,5,11.6,,,
+banderas_agente,consecuencia_extrema por cont,mineria,43,8,18.6,,,
+banderas_agente,consecuencia_extrema por legal,mineria,43,0,0.0,,,
+banderas_agente,consecuencia_extrema,servicios-a-personas,27,7,25.9,,,
+banderas_agente,safety_critical,servicios-a-personas,27,8,29.6,,,
+banderas_agente,consecuencia_extrema por econ,servicios-a-personas,27,6,22.2,,,
+banderas_agente,consecuencia_extrema por pers,servicios-a-personas,27,4,14.8,,,
+banderas_agente,consecuencia_extrema por cont,servicios-a-personas,27,1,3.7,,,
+banderas_agente,consecuencia_extrema por legal,servicios-a-personas,27,0,0.0,,,
+banderas_agente,consecuencia_extrema,tecnologia-y-pagos,22,1,4.5,,,
+banderas_agente,safety_critical,tecnologia-y-pagos,22,0,0.0,,,
+banderas_agente,consecuencia_extrema por econ,tecnologia-y-pagos,22,1,4.5,,,
+banderas_agente,consecuencia_extrema por pers,tecnologia-y-pagos,22,0,0.0,,,
+banderas_agente,consecuencia_extrema por cont,tecnologia-y-pagos,22,1,4.5,,,
+banderas_agente,consecuencia_extrema por legal,tecnologia-y-pagos,22,0,0.0,,,
+banderas_agente,consecuencia_extrema,total,252,50,19.8,,,
+banderas_agente,safety_critical,total,252,75,29.8,,,
+banderas_agente,consecuencia_extrema por econ,total,252,42,16.7,,,
+banderas_agente,consecuencia_extrema por pers,total,252,11,4.4,,,
+banderas_agente,consecuencia_extrema por cont,total,252,31,12.3,,,
+banderas_agente,consecuencia_extrema por legal,total,252,0,0.0,,,

@@ -1,0 +1,48 @@
+Semilla: 731905
+Filas leídas: 255
+
+Minería: 43 unidades, 43 fichas, cuota 5
+  + S08-R03
+  + S07-R01
+  + S10-R03
+  + S12-R01
+  + S12-R05
+
+Energía y agua: 24 unidades, 24 fichas, cuota 3
+  + S32-R03
+  + S31-R06
+  + S33-R05
+
+Agro y alimentos: 59 unidades, 59 fichas, cuota 7
+  + S20-R06
+  + S15-R04
+  + S18-R03
+  + S01-R01
+  + S01-R02
+  + S19-R06
+  + S21-R01
+
+Industria y construcción: 49 unidades, 51 fichas, cuota 6
+  + S22-R03
+  + S37-R03
+  + S22-R02
+  + S02-R07
+  + S24-R03
+  + S05-R08
+
+Comercio y logística: 26 unidades, 26 fichas, cuota 3
+  + S13-R04
+  + S28-R07
+  + S13-R05
+
+Tecnología y pagos: 18 unidades, 22 fichas, cuota 3
+  + S04-R05
+  + S04-R03
+  + S29-R06
+
+Servicios a personas: 27 unidades, 27 fichas, cuota 3
+  + S14-R01
+  + S36-R04
+  + S36-R03
+
+Total en la muestra: 30 fichas
