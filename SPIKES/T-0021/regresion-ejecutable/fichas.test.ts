@@ -94,12 +94,14 @@ describe('derivados registrados = derivados recalculados (§5.5, §6, §8, §9.3
 describe('§9 rangos, unknown y no evaluables', () => {
   it('§9.2: todo rango registrado tiene como máximo tres niveles y contiene el valor', () => {
     for (const f of fichas) {
-      const todos = [['p', f.factores.p], ...DIMENSIONES.map((d) => [d, f.factores.i[d]] as const), ['vCont', f.factores.vCont]] as const
+      const todos = [
+        ['p', f.factores.p], ...DIMENSIONES.map((d) => [d, f.factores.i[d]] as const), ['vCont', f.factores.vCont], ['vRec', f.factores.vRec],
+      ] as const
       for (const [nombre, x] of todos) {
         if (x.min === undefined && x.max === undefined) continue
         const [min, max] = [x.min ?? 1, x.max ?? 5]
         assert.ok(max - min <= 2, `${f.evaluacionId} ${nombre}: ${String(min)}–${String(max)}`)
-        if (x.valor !== 'unknown') assert.ok(min <= x.valor && x.valor <= max, `${f.evaluacionId} ${nombre}`)
+        if (x.valor !== 'unknown' && x.valor !== 'no_aplica') assert.ok(min <= x.valor && x.valor <= max, `${f.evaluacionId} ${nombre}`)
       }
     }
   })
