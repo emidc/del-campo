@@ -115,9 +115,9 @@ describe('parseo de entrantes', () => {
 
   it('ignora campos suscriptos que no son messages y payloads sin forma', () => {
     assert.deepEqual(parseDelivery({ entry: [{ changes: [{ field: 'account_update', value: { messages: [{}] } }] }] }),
-      { texts: [], unsupported: [], statuses: [], discarded: [] })
+      { texts: [], unsupported: [], statuses: [], discarded: [], ignored: 0 })
     for (const basura of [null, 42, 'x', [], { entry: 'no' }, { entry: [{ changes: [null] }] }]) {
-      assert.deepEqual(parseDelivery(basura), { texts: [], unsupported: [], statuses: [], discarded: [] })
+      assert.deepEqual(parseDelivery(basura), { texts: [], unsupported: [], statuses: [], discarded: [], ignored: 0 })
     }
   })
 })
@@ -147,5 +147,33 @@ describe('parseo de estados', () => {
   it('un estado desconocido se descarta con su nombre, que no es dato personal', () => {
     const p = parseDelivery(change({ statuses: [{ id: 'wamid.D', status: 'deleted', timestamp: '1790000200' }] }))
     assert.deepEqual([p.statuses, p.discarded], [[], ['estado desconocido: deleted']])
+  })
+})
+
+describe('filtro por número (CO01 §3)', () => {
+  const otherNumber = {
+    object: 'whatsapp_business_account',
+    entry: [{ id: '900000000000001', changes: [{ field: 'messages', value: {
+      messaging_product: 'whatsapp',
+      metadata: { display_phone_number: '15550100009', phone_number_id: '800000000000009' },
+      contacts: [{ profile: { name: 'Otra' }, wa_id: '15550199009' }],
+      messages: [{ from: '15550199009', id: 'wamid.SYNTH-OTRO', timestamp: '1790000100', type: 'text', text: { body: 'hola' } }],
+      statuses: [{ id: 'wamid.SYNTH-OTRO-OUT', status: 'read', timestamp: '1790000100' }],
+    } }] }],
+  }
+
+  it('sin número configurado se acepta cualquier phone_number_id', () => {
+    const p = parseDelivery(otherNumber)
+    assert.deepEqual([p.texts.length, p.statuses.length, p.ignored], [1, 1, 0])
+  })
+
+  it('con número configurado, lo de otro número se ignora sin descartar ni persistir', () => {
+    const p = parseDelivery(otherNumber, { phoneNumberId: '800000000000001' })
+    assert.deepEqual(p, { texts: [], unsupported: [], statuses: [], discarded: [], ignored: 2 })
+  })
+
+  it('con número configurado, lo del número propio pasa igual', () => {
+    const p = parseDelivery(fixture('inbound-text.json'), { phoneNumberId: '800000000000001' })
+    assert.deepEqual([p.texts.length, p.ignored], [1, 0])
   })
 })

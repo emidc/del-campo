@@ -87,12 +87,37 @@ export const participantLabel = (l: Label): string => {
   return `${name} · ${l.bsuid ?? 'sin identificador'}`
 }
 
-export function Freshness({ lastDeliveryAt, poll }: { readonly lastDeliveryAt: string | null; readonly poll: Poll<unknown> }) {
+/** El estado de las entregas de webhook, como lo devuelven la lista y el hilo. */
+export interface Deliveries {
+  readonly lastDeliveryAt: string | null
+  readonly lastProcessedAt: string | null
+  readonly failed: number
+  readonly stalled: number
+  readonly oldestUnprocessedAt: string | null
+}
+
+/**
+ * Recibir no es procesar: una entrega recibida y no procesada no aparece en el hilo. Si
+ * hay `failed` o atascadas, se dice, para que la hora de la última entrega no aparente
+ * que todo está al día (T-0026).
+ */
+export function Freshness({ deliveries, poll }: { readonly deliveries: Deliveries | null; readonly poll: Poll<unknown> }) {
+  const backlog = deliveries === null ? 0 : deliveries.failed + deliveries.stalled
   return (
-    <p className="muted">
-      Última entrega de webhook recibida: <strong>{formatTime(lastDeliveryAt)}</strong>
-      {poll.state === 'error' ? <span className="error"> · {poll.message}</span> : null}
-    </p>
+    <>
+      <p className="muted">
+        Última entrega de webhook recibida: <strong>{formatTime(deliveries?.lastDeliveryAt ?? null)}</strong>
+        {' · '}último procesamiento: <strong>{formatTime(deliveries?.lastProcessedAt ?? null)}</strong>
+        {poll.state === 'error' ? <span className="error"> · {poll.message}</span> : null}
+      </p>
+      {deliveries !== null && backlog > 0 ? (
+        <p className="notice error" role="alert">
+          Hay entregas de webhook sin procesar: {String(deliveries.failed)} con error y {String(deliveries.stalled)}{' '}
+          atascadas, la más vieja de {formatTime(deliveries.oldestUnprocessedAt)}. Sus mensajes pueden faltar en
+          los hilos hasta que se reprocesen.
+        </p>
+      ) : null}
+    </>
   )
 }
 

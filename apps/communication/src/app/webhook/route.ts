@@ -13,9 +13,12 @@ export const dynamic = 'force-dynamic'
 const handle = async (request: Request): Promise<Response> => {
   const appSecret = process.env.WHATSAPP_APP_SECRET ?? ''
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN ?? ''
+  // Solo se persiste lo del número que opera el contexto (CO01 §3): sin número, tampoco
+  // se recibe.
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID ?? ''
   // Sin configuración, 503: Meta reintenta, y no hay modo sin firma.
-  if (appSecret === '' || verifyToken === '') return new Response(null, { status: 503 })
-  const receive = createWebhookHandler({ appSecret, verifyToken, store: deliveryStore(database()), log })
+  if (appSecret === '' || verifyToken === '' || phoneNumberId === '') return new Response(null, { status: 503 })
+  const receive = createWebhookHandler({ appSecret, verifyToken, phoneNumberId, store: deliveryStore(database()), log })
   const { response, process: processDelivery } = await receive(request)
   if (processDelivery !== null) after(processDelivery)
   return response

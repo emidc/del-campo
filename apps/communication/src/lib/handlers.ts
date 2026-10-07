@@ -8,6 +8,7 @@ import {
   sendReply,
   type ConversationList,
   type ConversationThread,
+  type DeliveryHealth,
   type ReplyResult,
   type Sql,
 } from '@del-campo/communication'
@@ -22,8 +23,16 @@ export const parseConversationId = (raw: string): number | null =>
 
 const iso = (d: Date | null): string | null => (d === null ? null : d.toISOString())
 
+export const deliveriesBody = (d: DeliveryHealth) => ({
+  lastDeliveryAt: iso(d.lastDeliveryAt),
+  lastProcessedAt: iso(d.lastProcessedAt),
+  failed: d.failed,
+  stalled: d.stalled,
+  oldestUnprocessedAt: iso(d.oldestUnprocessedAt),
+})
+
 export const listBody = (list: ConversationList) => ({
-  lastDeliveryAt: iso(list.lastDeliveryAt),
+  deliveries: deliveriesBody(list.deliveries),
   conversations: list.conversations.map((c) => ({
     id: c.id,
     profileName: c.profileName,
@@ -37,7 +46,7 @@ export const listBody = (list: ConversationList) => ({
 export const threadBody = (thread: ConversationThread, canSend: boolean) => ({
   id: thread.id,
   label: thread.label,
-  lastDeliveryAt: iso(thread.lastDeliveryAt),
+  deliveries: deliveriesBody(thread.deliveries),
   window: { open: thread.window.open, closesAt: iso(thread.window.closesAt) },
   canReply: thread.canReply && canSend,
   replyBlockedReason: !thread.canReply

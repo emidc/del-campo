@@ -17,9 +17,11 @@ export { listThread, type OutboundMessage, type ThreadMessage } from '../persist
 export {
   conversationList,
   conversationThread,
+  deliveryHealth,
   type ConversationList,
   type ConversationSummary,
   type ConversationThread,
+  type DeliveryHealth,
   type ParticipantLabel,
   type ThreadItem,
 } from './conversations.ts'
@@ -29,6 +31,13 @@ export {
   recordOutboundMessage,
   type RetentionResult,
 } from './operations.ts'
+export {
+  REPROCESS_BATCH,
+  reprocessDeliveries,
+  type ReprocessOptions,
+  type ReprocessOutcome,
+  type ReprocessResult,
+} from './reprocess.ts'
 export { sendReply, type ReplyDeps, type ReplyRequest, type ReplyResult } from './reply.ts'
 export {
   createWebhookHandler,

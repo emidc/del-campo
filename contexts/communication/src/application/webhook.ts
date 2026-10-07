@@ -36,6 +36,11 @@ export interface WebhookConfig {
   /** El App Secret de la app de Meta. Obligatorio: no hay modo sin firma. */
   readonly appSecret: string
   readonly store: DeliveryStore
+  /**
+   * El número de Del Campo que opera el contexto. Lo de otro número de la WABA se ignora
+   * sin persistirlo (CO01 §3). El adaptador del despliegue lo exige.
+   */
+  readonly phoneNumberId?: string
   /** Solo conteos e ids técnicos: nada de contenido, teléfonos ni `wamid` (R-19). */
   readonly log?: (line: string) => void
 }
@@ -67,6 +72,8 @@ export const createWebhookHandler = (config: WebhookConfig): ((request: Request)
   if (config.appSecret === '') throw new Error('falta el App Secret: el receptor no acepta entregas sin firma')
   if (config.verifyToken === '') throw new Error('falta el token de verificación del webhook')
   const log = config.log ?? (() => undefined)
+  if (config.phoneNumberId === '') throw new Error('el phone_number_id del receptor no puede estar vacío')
+  const parseOptions = config.phoneNumberId === undefined ? {} : { phoneNumberId: config.phoneNumberId }
 
   const verify = (url: URL): WebhookResult => {
     const q = url.searchParams
@@ -105,12 +112,12 @@ export const createWebhookHandler = (config: WebhookConfig): ((request: Request)
         return
       }
       try {
-        const parsed = parseDelivery(payload)
+        const parsed = parseDelivery(payload, parseOptions)
         await config.store.process(delivery, parsed)
         log(
           `entrega ${String(delivery.id)}: ${String(parsed.texts.length)} textos, ` +
             `${String(parsed.statuses.length)} estados, ${String(parsed.unsupported.length)} fuera de alcance, ` +
-            `${String(parsed.discarded.length)} descartados`,
+            `${String(parsed.discarded.length)} descartados, ${String(parsed.ignored)} de otro número`,
         )
       } catch (error) {
         await config.store.fail(delivery.id, error)

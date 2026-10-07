@@ -20,6 +20,8 @@ hace cumplir `pnpm lint` (R-25).
 | `GET /api/conversations/{id}` | Datos del hilo | Credencial compartida |
 | `POST /api/conversations/{id}/reply` | Envío | Credencial compartida y mismo origen |
 | `GET`/`POST /webhook` | Receptor de Meta (T-0024) | Firma `X-Hub-Signature-256`, **no** la credencial |
+| `GET /api/jobs/retention` | Retención de D-0065 (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la credencial |
+| `GET /api/jobs/reprocess` | Reproceso de entregas `failed` y atascadas (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la credencial |
 
 El `{id}` de una conversación es opaco: no codifica el teléfono ni el `wamid`.
 
@@ -48,8 +50,8 @@ y con Basic Auth cada consulta recalcularía el hash de la contraseña.
 - **Sin configuración, se niega todo:** si falta o es inválida cualquiera de las tres
   variables, las páginas mandan a `/login`, que dice que la UI no está configurada, y
   los endpoints responden 503. No hay modo abierto.
-- **Sin límite de intentos de login** en T-0025, porque la UI solo corre en local. Se
-  revisa en la tarea de despliegue, cuando la UI sea pública.
+- **Sin límite de intentos de login** en T-0025, porque la UI solo corre en local. Sigue
+  sin límite en la app; ver `docs/communication-os/t-0026-hardening-report.md` (H7).
 
 ## Variables de entorno
 
@@ -63,14 +65,39 @@ locales viven en un `.env.local` de esta carpeta, que está gitignored.
 | `COMMUNICATION_UI_PASSWORD_HASH` | Hash de la contraseña (ver arriba) | Sí, o la UI se niega |
 | `COMMUNICATION_UI_SESSION_SECRET` | Clave de la firma de la cookie, de 32 caracteres o más | Sí, o la UI se niega |
 | `WHATSAPP_ACCESS_TOKEN` | Token de usuario del sistema de Meta | Para enviar |
-| `WHATSAPP_PHONE_NUMBER_ID` | Número desde el que se envía | Para enviar |
+| `WHATSAPP_PHONE_NUMBER_ID` | Número desde el que se envía, y el único cuyos webhooks se persisten (CO01 §3) | Para enviar, recibir y reprocesar |
 | `WHATSAPP_GRAPH_API_VERSION` | Versión de la Graph API, por ejemplo `v23.0` | Para enviar |
 | `WHATSAPP_GRAPH_BASE_URL` | Solo para el Meta simulado; solo acepta `localhost` | No |
 | `WHATSAPP_APP_SECRET` | Firma de los webhooks | Para recibir |
 | `WHATSAPP_VERIFY_TOKEN` | Verificación de la URL del webhook | Para recibir |
+| `CRON_SECRET` | Secreto de las tareas programadas, de 32 caracteres o más. Vercel lo manda solo a sus cron jobs | Para retención y reproceso |
 
 Sin la configuración de envío, la UI muestra las conversaciones y deshabilita la
-respuesta. Sin la del webhook, `/webhook` responde 503 y Meta reintenta.
+respuesta. Sin la del webhook (incluido `WHATSAPP_PHONE_NUMBER_ID`), `/webhook` responde
+503 y Meta reintenta. Sin `CRON_SECRET`, las tareas responden 503.
+
+## Entregas sin procesar y tareas programadas (T-0026)
+
+Recibir no es procesar. El receptor guarda la entrega, responde 200 y la procesa
+después; si eso falla, la entrega queda `failed`, y si el proceso cae antes, queda
+`pending`. Meta no reintenta después de un 200, así que:
+
+- **La UI muestra el atraso:** junto a la última entrega recibida, el último
+  procesamiento y, si hay entregas `failed` o `pending` de más de 15 minutos, un aviso
+  con cuántas son y desde cuándo. Sus mensajes pueden faltar en los hilos hasta que se
+  reprocesen.
+- **`/api/jobs/reprocess`** las vuelve a procesar. Es idempotente: no duplica mensajes ni
+  retrocede estados, y se puede correr programado y a pedido:
+
+  ```bash
+  curl -sS -H "Authorization: Bearer $CRON_SECRET" https://<dominio>/api/jobs/reprocess
+  ```
+
+- **`/api/jobs/retention`** borra las entregas procesadas de más de 30 días y el texto
+  de los intentos no aceptados. Las vencidas sin procesar **no** las borra: las cuenta en
+  `unprocessedKept`, que tiene que ser 0.
+
+Las dos responden JSON con conteos e ids de entrega, sin contenido.
 
 ## Actualización: polling
 
@@ -78,8 +105,8 @@ La lista y el hilo se consultan cada 3 s mientras la pestaña está visible, y a
 ella. Un mensaje nuevo o un cambio de estado aparece en unos 3 s más lo que tarda la
 consulta. Se eligió polling y no push porque SSE o WebSocket en Vercel chocan con la
 duración de las funciones y pedirían infraestructura nueva. Cada pantalla muestra la
-hora de la última entrega de webhook recibida, para que no aparente estar al día si el
-receptor dejó de recibir.
+hora de la última entrega de webhook recibida y el atraso de procesamiento, para que no
+aparente estar al día si el receptor dejó de recibir o de procesar.
 
 ## Responder y la idempotencia (R-20)
 

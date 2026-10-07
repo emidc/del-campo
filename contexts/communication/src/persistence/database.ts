@@ -8,8 +8,13 @@ export type TransactionSql = postgres.TransactionSql
 
 export const SCHEMA = 'communication'
 
+/**
+ * `prepare: false` porque en Vercel la conexión pasa por el Transaction pooler de
+ * Supabase (D-0013), que no admite sentencias preparadas con nombre; es lo mismo que hace
+ * VS01 (`packages/api/src/db.ts`). Contra una conexión directa o de sesión no cambia nada.
+ */
 export const connect = (databaseUrl: string): Sql =>
-  postgres(databaseUrl, { max: 5, onnotice: () => undefined })
+  postgres(databaseUrl, { max: 5, prepare: false, onnotice: () => undefined })
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
