@@ -1,7 +1,8 @@
 # Protocolo experimental · metodología de criticidad
 
-> Fecha: 2026-10-05 · Versión: **protocolo v0.1** (v0.0 aprobado por Emiliano en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado).
-> Se apoya en `decisiones-v0.md` **v0.1** y en `metodologia-v0.md` **metodologia v0.1** (Fase 3). Cita sus números: D8 unknowns y techo, D10 ranking, D14 fórmula por dimensión y falsación, D15 V (contención y recuperación) y corte P/V, D17 seguro bruto, D20 `consecuencia_extrema`, D21 granularidad y riesgo padre, D22 `motivo`, D23 `safety_critical`, D24 escenario por causa común, D25 estado y eficacia de una acción.
+> Fecha: 2026-10-07 · Versión: **protocolo v0.2** (aprobado por Emiliano el 2026-10-07 02:02 UTC, Fase 5; **congelado para la Fase 8**). Historia: v0.0 aprobado en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado.
+> **Cambios de v0.2** (fila CH-087 del changelog; detalle en `fase-5/cambios-protocolo-v0.2.md`): `unknown` sólo sin valor más plausible defendible; padre sin score propio y `prioridad_provisional`; V secuencial en `v_aspectos_aplicables`; `i_efectivo ≥ n`; §11 por CH-077; §13 con adjudicación revisada. Son cambios después de ver los resultados de la Fase 4: **desviación del preregistro** respecto de v0.1, aprobada por Emiliano.
+> Se apoya en `decisiones-v0.md` **v0.2** y en `metodologia-v0.md` **metodologia v0.2** (Fase 5). Cita sus números: D8 unknowns y techo, D10 ranking, D14 fórmula por dimensión y falsación, D15 V (contención y recuperación) y corte P/V, D17 seguro bruto, D20 `consecuencia_extrema`, D21 granularidad y riesgo padre, D22 `motivo`, D23 `safety_critical`, D24 escenario por causa común, D25 estado y eficacia de una acción.
 > **Cambios de v0.1** (fila CH-074 del changelog): campos de la ficha para contención y recuperación por separado, V por dimensión, dimensión determinante, `safety_critical`, tipo de objeto (riesgo, padre, sub-riesgo, escenario); "visible" en la Fase 4 incluye la vista de seguridad; métricas por aspecto de V. Lo marcado **[PA n]** remite al "Para aprobar" de v0.0, ya aprobado.
 
 **Abreviaturas de fuentes.** *respuestas* = `fuentes/respuestas-emiliano.md` · *plan* = `fuentes/plan-emi15-emi41.md` · *evaluación* = `evaluacion-plan-emi15-emi41.md` · *revisión* = `revision-adversarial-v0.md` · *plan-pasos* = `plan-pasos-1-2.md` · *decisiones* = `v0/decisiones-v0.md`. Las reglas que no salen literales de una fuente están marcadas **[PA n]** y se confirman en "Para aprobar".
@@ -11,7 +12,7 @@
 ## 1. Alcance y versión
 
 1. Este protocolo gobierna las fases 2 a 12 del plan: casos de propiedad, metodología v0, dry run, adjudicación, cobertura y construcción de EMI-41, evaluación ciega, calibración, regresión, v1 candidate y revisión profesional.
-2. Versión vigente: `protocolo v0.1`. Toda ficha, registro y reporte escribe la versión del protocolo y la de la metodología con la que se produjo.
+2. Versión vigente: `protocolo v0.2`. Toda ficha, registro y reporte escribe la versión del protocolo y la de la metodología con la que se produjo.
 3. **Preregistro.** Lo que no está escrito acá antes de ver un resultado no puede usarse para aprobar ni para descartar la metodología.
 4. **Desviaciones.** Cambiar el protocolo después de haber visto cualquier resultado de la fase afectada exige una fila en `changelog-metodologia.md` con la razón, sube la versión (`protocolo v0.1`, …) y queda marcado como **desviación del preregistro** en el informe de la fase y en el cierre de EMI-15. Un cambio hecho antes de ver resultados también va al changelog, sin la marca.
 5. La tipología de anomalías de la sección 4 reemplaza la tabla "Tipología de anomalías A1–A10" de `decisiones-v0.md` (que la deja a cargo de esta fase). Las filas de changelog que lo registran están en el Anexo A y se agregan al aprobarse este documento **[PA 1]**.
@@ -29,7 +30,7 @@ Una ficha = **un evento de evaluación** de un riesgo por un evaluador: la evalu
 | `evaluacion_id` | texto | único, `EV-NNNN` |
 | `risk_id` | texto | el de la lista de riesgos; en evaluación ciega viene dado |
 | `caso_empresa` | texto | caso de propiedad (`CP-NN`) o empresa sintética |
-| `tipo_objeto` | enum | `riesgo` \| `padre` \| `sub_riesgo` \| `escenario` (D21, D24; metodología §1.2). Una ficha de `padre` no lleva factores propios: toma los de su sub-riesgo determinante (metodología §1.4) |
+| `tipo_objeto` | enum | `riesgo` \| `padre` \| `sub_riesgo` \| `escenario` (D21, D24; metodología §1.2). Una ficha de `padre` no lleva factores ni score propios: se muestra en la posición de su hijo prioritario, con sus factores (o los de todos los hijos empatados en el primer lugar) (metodología §1.4) |
 | `riesgo_padre_id` | texto | obligatorio si `tipo_objeto = sub_riesgo` |
 | `miembros` | texto | obligatorio si `tipo_objeto = escenario`: `risk_id` de los riesgos que lo componen, separados por `;` |
 | `evaluador` | texto | identificador de la persona o de la sesión de agente |
@@ -57,7 +58,7 @@ Siete factores: `p`, `i_econ`, `i_pers`, `i_cont`, `i_legal`, `v_cont` (contenci
 
 | Campo | Tipo | Valores permitidos |
 |---|---|---|
-| `<f>_valor` | enum | `1`–`5` (valor plausible de D8) \| `unknown` (D8: la evidencia no fija el nivel ni lo acota a tres niveles contiguos; metodología §9.2) \| `no_aplica` (sólo `v_rec`: no hay nada que restablecer ni reponer; metodología §5.5) |
+| `<f>_valor` | enum | `1`–`5` (valor plausible de D8) \| `unknown` (D8: la evidencia no fija el nivel, no lo acota a tres niveles contiguos, o lo acota pero no da base para preferir un nivel dentro del rango; metodología §9.2). Un dato auxiliar desconocido (margen de contribución, duración exacta, número de personas) no vuelve `unknown` al factor si hay valor más plausible defendible; el supuesto se escribe en `<f>_observacion` \| `no_aplica` (sólo `v_rec`: no hay nada que restablecer ni reponer; metodología §5.5) |
 | `<f>_min` | entero | `1`–`5`, ≤ `<f>_valor`; vacío si no hay rango |
 | `<f>_max` | entero | `1`–`5`, ≥ `<f>_valor`; vacío si no hay rango. Es el **techo del factor** (D8) |
 | `<f>_base` | enum | `observed` \| `reported` \| `inferred` \| `assumed` (EMI-17) |
@@ -73,9 +74,10 @@ Reglas de llenado:
 
 | Campo | Tipo | Valores permitidos |
 |---|---|---|
-| `i_efectivo` | enum | `1`–`5` \| `unknown`. `max(dimensiones)` (D5); se muestra y desempata (D10). Con una dimensión `unknown`, se aplica metodología §9.3 |
+| `i_efectivo` | enum | `1`–`5` \| `≥ n`. `max(dimensiones)` (D5); se muestra y desempata (D10). Con una dimensión `unknown`, se registra `≥ n` con `n` = máximo de las dimensiones conocidas; el `<f>_max` de la `unknown` nunca se usa. Si lo desconocido podría cambiar un desempate, ese paso queda indeterminado (metodología §7.2) |
+| `prioridad_provisional` | booleano | derivado, sólo en fichas de `padre`: `true` si algún hijo es no evaluable; la posición mostrada es la del hijo evaluable mejor ubicado y no se afirma como definitiva (metodología §1.4.5) |
 | `i_efectivo_dimensiones` | texto | dimensión o dimensiones que dan el máximo (`econ;cont`) |
-| `v_aspectos_aplicables` | texto | derivado, nunca a mano: por dimensión, qué aspectos de V entraron en `V_d` (`econ:cont,rec;pers:cont;cont:cont,rec;legal:cont`); con `v_rec = no_aplica`, recuperación no figura (metodología §5.5) |
+| `v_aspectos_aplicables` | texto | derivado, nunca a mano: por dimensión, qué aspectos de V entraron en `V_d` (`econ:cont,rec(secuencial);pers:cont;cont:cont,rec(secuencial);legal:cont`); con `v_rec = no_aplica`, recuperación no figura (metodología §5.5, combinación secuencial) |
 | `c_dimension_determinante` | texto | derivado: dimensión o dimensiones cuyo `C_d = P × I_d × V_d` da `c_raw` (D14) |
 | `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3) **[PA 4]** |
 | `consecuencia_extrema_dimensiones` | texto | dimensiones que la disparan |
@@ -228,7 +230,7 @@ Entrada: `metodologia-v0.md` congelada y los casos de propiedad adjudicados en l
 
 "Visible" en la Fase 4 significa: el riesgo tiene `consecuencia_extrema = true` y aparece en el filtro de la bandera, o tiene `safety_critical = true` y aparece en la vista de seguridad, o figura en la lista "no evaluable" con motivo (D8, D20, D23) **[PA 7]**.
 
-**Propiedades.** Además de los órdenes adjudicados, el dry run intenta romper las propiedades de `metodologia-v0.md` §14 (monotonía, invariancia de granularidad, causalidad de V, unknowns, separación, historial, producto) y registra cada contraejemplo como anomalía. **Casos de origen:** el resultado de un caso sobre una regla que lo lista como caso de origen se reporta como circular y no cuenta como evidencia a favor.
+**Propiedades.** Además de los órdenes adjudicados, el dry run intenta romper las propiedades de `metodologia-v0.md` §14 (monotonía, padre como agrupador, causalidad de V, sensible a la mejora, unknowns, separación, historial, producto) y registra cada contraejemplo como anomalía. **Casos de origen:** el resultado de un caso sobre una regla que lo lista como caso de origen se reporta como circular y no cuenta como evidencia a favor.
 
 **Frecuencia de `consecuencia_extrema` (H4, contradicción abierta #3).** El reporte informa cuántos casos tienen la bandera sobre el total, y cuántos la tienen por cada dimensión de I; lo mismo para `safety_critical`. Como los casos de propiedad son extremos por diseño, ese número no estima la frecuencia en la población: se repite sobre las empresas sintéticas en las fases 7 y 8 y se reporta igual. No se fija un umbral **[PA 8]**.
 
@@ -282,15 +284,14 @@ Se calculan sobre los pares de fichas (Emiliano, agente) de la Fase 8. Se report
 | Por factor | % de acuerdo exacto | sin target (baseline) |
 | Por factor | kappa ponderado (pesos lineales) **[PA 13]** | sin target (baseline) |
 | Banda | % de coincidencia | **≥ 70%**, medible recién cuando existan umbrales (Fase 9) |
-| Ranking | correlación de rangos (tau-b de Kendall) por empresa | sin target (baseline) |
-| Ranking | solapamiento del top-3 por empresa **[PA 13]** | sin target (baseline) |
+| Ranking | concordancia de orden sobre los pares de fichas de una misma empresa que caigan en la muestra, con su `n` (CH-077) | sin target (baseline) |
 
 Reglas de cálculo:
 1. **Por qué acuerdo exacto y kappa (H11).** Dos evaluadores al azar en una escala 1–5 caen dentro de ±1 en 13 de 25 combinaciones (~52%). El 80% se lee contra ese piso.
 2. **Unknowns.** Un par donde alguno de los dos puso `unknown` (o `no_aplica` en recuperación) no entra en ±1, exacto ni kappa de ese factor; se reporta aparte como **acuerdo de evaluabilidad** (% de pares donde ambos pusieron valor o ambos `unknown`) **[PA 14]**.
 3. **Rangos.** Se compara `<f>_valor` (el plausible). La coincidencia de rangos se reporta aparte, sin target.
 4. **Banda.** Con los umbrales de la Fase 9, la banda de cada ficha de la Fase 8 se calcula desde sus factores; el informe declara que los umbrales se calibraron sobre parte de esas mismas empresas.
-5. **Ranking.** Se ordena cada empresa con la versión de D10 vigente; los riesgos no evaluables quedan fuera del ranking y se cuentan aparte.
+5. **Ranking.** Se ordenan las fichas de cada empresa que estén en la muestra con la versión de D10 vigente y los pares se forman sólo dentro de una empresa (metodología §7.1.4, CH-075); si en algún momento se evalúan empresas completas, vuelven la tau-b de Kendall y el solapamiento del top-3 por empresa (CH-077); los riesgos no evaluables quedan fuera del ranking y se cuentan aparte.
 6. **No alcanzar un target** no falsa nada por sí solo: los factores por debajo del target se analizan con sus anomalías A1 y van a Emiliano como insumo de "divergencias interpretables" (Fase 11).
 
 ---
@@ -323,7 +324,7 @@ Procedimiento del plan, en este orden. El agente propone; Emiliano aprueba los u
 
 `estado` = `sin_cambio` | `mejoró` (se acerca a lo adjudicado) | `regresionó` (un caso que pasaba ahora falla, o un cambio que el changelog no justifica, plan-pasos §2.4) | `cambió` (riesgo sin adjudicación: cambió, sin juicio).
 
-**Aceptación.** Una corrección local no se acepta sin la regresión completa. Una corrección que regresiona algún caso no se acepta salvo que Emiliano lo apruebe explícitamente, y queda registrado en el changelog.
+**Aceptación.** Una corrección local no se acepta sin la regresión completa. Una corrección que regresiona algún caso no se acepta salvo que Emiliano lo apruebe explícitamente, y queda registrado en el changelog. Si Emiliano revisa la adjudicación de un caso (como CP-14 en la Fase 5), la regresión juzga contra la adjudicación revisada, informa también el resultado contra la original y el caso pasa a ser caso de origen de la regla que motivó la revisión.
 
 ---
 
