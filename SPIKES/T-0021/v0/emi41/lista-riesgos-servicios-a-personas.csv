@@ -1,0 +1,28 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S14-R01,S14,Servicios a personas,riesgo,,,Intoxicación alimentaria de comensales en un evento
+S14-R02,S14,Servicios a personas,riesgo,,,Ahogamiento de un huésped en la piscina
+S14-R03,S14,Servicios a personas,riesgo,,,Incendio en el hotel con huéspedes alojados
+S14-R04,S14,Servicios a personas,riesgo,,,Contaminación bacteriana del agua del spa
+S14-R05,S14,Servicios a personas,riesgo,,,Ransomware sobre el sistema de reservas y gestión hotelera
+S14-R06,S14,Servicios a personas,riesgo,,,Caída de un huésped en el hotel
+S14-R07,S14,Servicios a personas,riesgo,,,Robo de datos de tarjetas de huéspedes guardados en el sistema de gestión hotelera
+S26-R01,S26,Servicios a personas,riesgo,,,Corte del suministro eléctrico externo
+S26-R02,S26,Servicios a personas,riesgo,,,Brote de infección por bacteria multirresistente en terapia intensiva
+S26-R03,S26,Servicios a personas,riesgo,,,Error de medicación con daño a un paciente internado
+S26-R04,S26,Servicios a personas,riesgo,,,Interrupción del suministro de oxígeno medicinal a la red
+S26-R05,S26,Servicios a personas,riesgo,,,Ransomware sobre la historia clínica electrónica y los sistemas de turnos
+S26-R06,S26,Servicios a personas,riesgo,,,Incendio en el área de quirófanos
+S26-R07,S26,Servicios a personas,riesgo,,,Suspensión de la habilitación de terapia intensiva tras una inspección
+S35-R01,S35,Servicios a personas,riesgo,,,Intoxicación alimentaria de invitados en un evento
+S35-R02,S35,Servicios a personas,riesgo,,,Colapso de una carpa o estructura por viento durante un evento
+S35-R03,S35,Servicios a personas,riesgo,,,Caída de un trabajador durante el montaje
+S35-R04,S35,Servicios a personas,riesgo,,,Incendio en una cocina móvil durante un evento
+S35-R05,S35,Servicios a personas,riesgo,,,Aglomeración de público en un festival coorganizado
+S35-R06,S35,Servicios a personas,riesgo,,,Cancelación de un evento por clima
+S36-R01,S36,Servicios a personas,riesgo,,,Accidente de tránsito del transporte escolar contratado
+S36-R02,S36,Servicios a personas,riesgo,,,Lesión de un alumno en el recreo o en educación física
+S36-R03,S36,Servicios a personas,riesgo,,,Incendio en el edificio con alumnos
+S36-R04,S36,Servicios a personas,riesgo,,,Maltrato de un alumno por parte de personal del colegio
+S36-R05,S36,Servicios a personas,riesgo,,,Filtración de datos personales de alumnos
+S36-R06,S36,Servicios a personas,riesgo,,,Intoxicación alimentaria de alumnos en el comedor
+S36-R07,S36,Servicios a personas,riesgo,,,Daño estructural del edificio por un sismo

@@ -1,0 +1,25 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S04-R01,S04,Tecnología y pagos,riesgo,,,Falla regional del proveedor de nube que deja sin servicio la plataforma
+S04-R02,S04,Tecnología y pagos,riesgo,,,Ransomware sobre la infraestructura de producción
+S04-R03,S04,Tecnología y pagos,riesgo,,,Exposición de datos de clientes por un error de configuración del almacenamiento
+S04-R04,S04,Tecnología y pagos,riesgo,,,Uso indebido de una credencial de soporte
+S04-R05,S04,Tecnología y pagos,riesgo,,,Salida simultánea de las dos personas que conocen el núcleo del sistema
+S04-R06,S04,Tecnología y pagos,riesgo,,,Explotación de una vulnerabilidad en una dependencia de software de terceros
+S04-R07,S04,Tecnología y pagos,riesgo,,,Incumplimiento del acuerdo de nivel de servicio con el cliente principal
+S29-P01,S29,Tecnología y pagos,padre,,,Indisponibilidad del servicio de autorización de pagos
+S29-P01-S01,S29,Tecnología y pagos,sub_riesgo,S29-P01,,Falla del proveedor de nube que alcanza las dos regiones
+S29-P01-S02,S29,Tecnología y pagos,sub_riesgo,S29-P01,,Ransomware sobre la infraestructura de producción
+S29-P01-S03,S29,Tecnología y pagos,sub_riesgo,S29-P01,,Error en un despliegue de software
+S29-R04,S29,Tecnología y pagos,riesgo,,,Uso indebido de una credencial privilegiada con acceso a datos de tarjetas
+S29-R05,S29,Tecnología y pagos,riesgo,,,Fraude interno en las liquidaciones a comercios
+S29-R06,S29,Tecnología y pagos,riesgo,,,Incumplimiento de un requisito regulatorio de reporte
+S29-R07,S29,Tecnología y pagos,riesgo,,,Filtración de datos de comercios en el proveedor tercerizado de verificación de identidad
+S30-P01,S30,Tecnología y pagos,padre,,,Pérdida de energía en las salas de datos
+S30-P01-S01,S30,Tecnología y pagos,sub_riesgo,S30-P01,,Corte de la red eléctrica con falla de arranque de los generadores
+S30-P01-S02,S30,Tecnología y pagos,sub_riesgo,S30-P01,,Falla de un sistema de alimentación ininterrumpida (UPS)
+S30-P01-S03,S30,Tecnología y pagos,sub_riesgo,S30-P01,,Error durante un mantenimiento eléctrico
+S30-R04,S30,Tecnología y pagos,riesgo,,,Falla de la refrigeración de una sala
+S30-R05,S30,Tecnología y pagos,riesgo,,,Incendio en una sala de datos
+S30-R06,S30,Tecnología y pagos,riesgo,,,Acceso físico no autorizado a las salas
+S30-R07,S30,Tecnología y pagos,riesgo,,,Corte simultáneo de los dos proveedores de fibra
+S30-R08,S30,Tecnología y pagos,riesgo,,,Inundación de una sala por rotura de una cañería

@@ -1,0 +1,25 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S31-R01,S31,Energía y agua,riesgo,,,Pérdida del control de un pozo durante la perforación o la fractura
+S31-R02,S31,Energía y agua,riesgo,,,Rotura de una línea de conducción con derrame de petróleo o agua de producción
+S31-R03,S31,Energía y agua,riesgo,,,"Rotura de una línea de alta presión durante una fractura, con personal de contratistas en la locación"
+S31-R04,S31,Energía y agua,riesgo,,,Ignición de vapores de hidrocarburo en el sector de tanques de una batería
+S31-R05,S31,Energía y agua,riesgo,,,Pérdida de integridad del entubamiento o la cementación de un pozo con migración de fluidos a un acuífero
+S31-R06,S31,Energía y agua,riesgo,,,Colisión o vuelco de un vehículo en los caminos del yacimiento
+S32-R01,S32,Energía y agua,riesgo,,,Caída del mástil de un equipo durante el armado o desarmado en una locación
+S32-R02,S32,Energía y agua,riesgo,,,Vuelco de un camión de mudanza con partes de un equipo
+S32-R03,S32,Energía y agua,riesgo,,,Rescisión del contrato por la operadora principal
+S32-R04,S32,Energía y agua,riesgo,,,Ignición en un equipo de reparación o de pulling en la locación
+S32-R05,S32,Energía y agua,riesgo,,,Golpe o atrapamiento de un operario en una maniobra con tubería
+S32-R06,S32,Energía y agua,riesgo,,,Sustracción de equipos o herramientas de una locación
+S33-R01,S33,Energía y agua,riesgo,,,Falla interna del transformador principal de la subestación
+S33-R02,S33,Energía y agua,riesgo,,,Granizada sobre el campo de módulos
+S33-R03,S33,Energía y agua,riesgo,,,Restricción de la inyección ordenada por el operador de la red
+S33-R04,S33,Energía y agua,riesgo,,,Ignición en una estación de inversión
+S33-R05,S33,Energía y agua,riesgo,,,Sustracción de cable de cobre del predio
+S33-R06,S33,Energía y agua,riesgo,,,Pérdida de potencia de los módulos del lote B por encima de la garantía del fabricante
+S34-R01,S34,Energía y agua,riesgo,,,Falla de la dosificación de cloro en la potabilizadora del campamento minero
+S34-R02,S34,Energía y agua,riesgo,,,Derrame de un químico de tratamiento durante la descarga o el trasvase
+S34-R03,S34,Energía y agua,riesgo,,,Falla de la bomba de alta presión de un tren de ósmosis inversa en la planta de la mina A
+S34-R04,S34,Energía y agua,riesgo,,,Vertido de efluente de la bodega C fuera de los límites del permiso
+S34-R05,S34,Energía y agua,riesgo,,,Rescisión del contrato por el cliente minero A
+S34-R06,S34,Energía y agua,riesgo,,,Escape de cloro gas en la sala de cloración de la potabilizadora del campamento

@@ -1,0 +1,44 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S07-E01,S07,Minería,escenario,,S07-R01;S07-R04,Sismo que produce a la vez la falla de un talud del rajo y la del muro de relaves
+S07-R01,S07,Minería,riesgo,,,Falla de un talud de la pared este del rajo
+S07-R02,S07,Minería,riesgo,,,Proyección de material fuera del radio de exclusión en una voladura del rajo
+S07-R03,S07,Minería,riesgo,,,Colisión entre un camión de extracción y un vehículo liviano en el rajo
+S07-R04,S07,Minería,riesgo,,,Falla del muro del depósito de relaves
+S07-R05,S07,Minería,riesgo,,,Interrupción del suministro de agua fresca a la planta concentradora
+S07-R06,S07,Minería,riesgo,,,Rotura de la corona dentada del molino SAG
+S07-R07,S07,Minería,riesgo,,,Incendio en un camión de extracción
+S07-R08,S07,Minería,riesgo,,,Sanción de la autoridad ambiental por el exceso en el balance de agua del permiso
+S08-R01,S08,Minería,riesgo,,,Derrumbe en una labor de interior mina
+S08-R02,S08,Minería,riesgo,,,Caída de una roca suelta sobre un trabajador
+S08-R03,S08,Minería,riesgo,,,Detención del ventilador principal de la mina
+S08-R04,S08,Minería,riesgo,,,Incendio de un equipo diésel en interior mina
+S08-R05,S08,Minería,riesgo,,,Irrupción súbita de agua en una labor de desarrollo
+S08-R06,S08,Minería,riesgo,,,Atropello de una persona por un equipo en la rampa
+S08-R07,S08,Minería,riesgo,,,Intoxicación de trabajadores con gases de voladura
+S09-R01,S09,Minería,riesgo,,,Rotura de la geomembrana de una pileta de evaporación
+S09-R02,S09,Minería,riesgo,,,Afectación del acuífero de agua dulce de la cuenca por el bombeo
+S09-R03,S09,Minería,riesgo,,,Colapso del entubado de un pozo de bombeo de salmuera
+S09-R04,S09,Minería,riesgo,,,Derrame de ácido clorhídrico en la planta de carbonato
+S09-R05,S09,Minería,riesgo,,,Suspensión o reducción del permiso de uso de agua dulce
+S09-R06,S09,Minería,riesgo,,,Accidente vial en el camino de acceso
+S09-R07,S09,Minería,riesgo,,,Lluvia o nevada intensa sobre el campo de piletas
+S10-R01,S10,Minería,riesgo,,,Contacto de un equipo móvil con una persona o un vehículo liviano en el frente
+S10-R02,S10,Minería,riesgo,,,Caída de un trabajador desde la cresta de un banco
+S10-R03,S10,Minería,riesgo,,,Proyección de roca fuera de la zona de exclusión de una voladura
+S10-R04,S10,Minería,riesgo,,,Rotura de la trituradora primaria
+S10-R05,S10,Minería,riesgo,,,Exposición de los operarios a polvo con sílice cristalina respirable
+S10-R06,S10,Minería,riesgo,,,Reclamo de vecinos por vibraciones y polvo
+S10-R07,S10,Minería,riesgo,,,Vuelco de un camión propio de despacho en el camino o la ruta
+S11-R01,S11,Minería,riesgo,,,Derrame de solución cianurada rica fuera del sistema de contención
+S11-R02,S11,Minería,riesgo,,,Falla de estabilidad de la pila de lixiviación
+S11-R03,S11,Minería,riesgo,,,Intoxicación de un operario con cianuro
+S11-R04,S11,Minería,riesgo,,,Colisión entre equipos de extracción o con un vehículo liviano en la mina
+S11-R05,S11,Minería,riesgo,,,Desborde de la pileta de eventos durante una tormenta
+S11-R06,S11,Minería,riesgo,,,Robo de oro en la planta de recuperación
+S11-R07,S11,Minería,riesgo,,,Sanción ambiental por un desvío del monitoreo de aguas
+S12-R01,S12,Minería,riesgo,,,Pérdida de capacidad del material de absorción al operar a escala industrial
+S12-R02,S12,Minería,riesgo,,,Derrame de ácido clorhídrico de proceso
+S12-R03,S12,Minería,riesgo,,,Incendio en la planta de proceso
+S12-R04,S12,Minería,riesgo,,,Pérdida del licenciante de la tecnología
+S12-R05,S12,Minería,riesgo,,,Reinyección de salmuera fuera de especificación al salar
+S12-R06,S12,Minería,riesgo,,,Rotura del compresor importado del evaporador

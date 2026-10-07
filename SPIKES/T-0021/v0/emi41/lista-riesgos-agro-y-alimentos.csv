@@ -1,0 +1,60 @@
+risk_id,empresa,familia,tipo_objeto,riesgo_padre_id,miembros,titulo
+S01-R01,S01,Agro y alimentos,riesgo,,,Incendio en la nave de barricas
+S01-R02,S01,Agro y alimentos,riesgo,,,Contaminación de un lote de vino durante la elaboración
+S01-R03,S01,Agro y alimentos,riesgo,,,Rotura de un tanque de acero con pérdida de vino
+S01-R04,S01,Agro y alimentos,riesgo,,,Falla de la línea de embotellado
+S01-R05,S01,Agro y alimentos,riesgo,,,Rechazo de un embarque de exportación por un residuo fuera de norma
+S01-R06,S01,Agro y alimentos,riesgo,,,Granizo sobre los viñedos propios
+S01-R07,S01,Agro y alimentos,riesgo,,,Accidente de un operario dentro de un tanque (espacio confinado)
+S06-R01,S06,Agro y alimentos,riesgo,,,Falla del compresor central
+S06-R02,S06,Agro y alimentos,riesgo,,,Corte del suministro eléctrico de la red
+S06-R03,S06,Agro y alimentos,riesgo,,,Fuga de refrigerante
+S06-R04,S06,Agro y alimentos,riesgo,,,Incendio en los paneles aislantes
+S06-R05,S06,Agro y alimentos,riesgo,,,Pérdida del principal cliente
+S06-R06,S06,Agro y alimentos,riesgo,,,Accidente con autoelevador dentro de una cámara
+S15-R01,S15,Agro y alimentos,riesgo,,,Granizo sobre las fincas
+S15-R02,S15,Agro y alimentos,riesgo,,,Helada tardía
+S15-R03,S15,Agro y alimentos,riesgo,,,Reducción del turno de riego
+S15-R04,S15,Agro y alimentos,riesgo,,,Vuelco de un tractor
+S15-R05,S15,Agro y alimentos,riesgo,,,Lesiones con herramientas en poda y cosecha
+S15-R06,S15,Agro y alimentos,riesgo,,,Ingreso de una plaga a las fincas
+S16-R01,S16,Agro y alimentos,riesgo,,,Entrega de uva de un socio con residuos fuera de norma
+S16-R02,S16,Agro y alimentos,riesgo,,,Incendio en la planta común
+S16-R03,S16,Agro y alimentos,riesgo,,,Falla de la planta durante la vendimia
+S16-R04,S16,Agro y alimentos,riesgo,,,Error en la liquidación a los socios
+S16-R05,S16,Agro y alimentos,riesgo,,,Accidente en la descarga de uva
+S16-R06,S16,Agro y alimentos,riesgo,,,Pérdida de un comprador a granel principal
+S17-R01,S17,Agro y alimentos,riesgo,,,Falla de una caldera con liberación de vapor
+S17-R02,S17,Agro y alimentos,riesgo,,,Corte del suministro de gas
+S17-R03,S17,Agro y alimentos,riesgo,,,Contaminación de un lote de mosto concentrado exportado
+S17-R04,S17,Agro y alimentos,riesgo,,,Vertido de efluentes fuera de norma
+S17-R05,S17,Agro y alimentos,riesgo,,,Quemadura de un operario con vapor
+S17-R06,S17,Agro y alimentos,riesgo,,,Rotura del evaporador principal
+S18-R01,S18,Agro y alimentos,riesgo,,,Contaminación de carne con un patógeno y retiro del producto
+S18-R02,S18,Agro y alimentos,riesgo,,,Lesión de un operario con cuchillo o sierra
+S18-R03,S18,Agro y alimentos,riesgo,,,Escape de amoníaco de la sala de máquinas
+S18-R04,S18,Agro y alimentos,riesgo,,,Suspensión de la habilitación sanitaria para exportar
+S18-R05,S18,Agro y alimentos,riesgo,,,Falla del sistema de frío
+S18-R06,S18,Agro y alimentos,riesgo,,,Brote de una enfermedad animal que cierra mercados de exportación
+S18-R07,S18,Agro y alimentos,riesgo,,,Vertido de efluentes fuera de norma
+S19-E01,S19,Agro y alimentos,escenario,,S19-R03;S19-R04,Corte eléctrico regional en la planta y en las cuencas lecheras
+S19-R01,S19,Agro y alimentos,riesgo,,,Contaminación de un lote y retiro del producto del mercado
+S19-R02,S19,Agro y alimentos,riesgo,,,Falla del pasteurizador
+S19-R03,S19,Agro y alimentos,riesgo,,,Corte del suministro eléctrico de la red en la planta
+S19-R04,S19,Agro y alimentos,riesgo,,,Interrupción de la recolección de leche en los tambos
+S19-R05,S19,Agro y alimentos,riesgo,,,Incendio en el depósito de producto terminado
+S19-R06,S19,Agro y alimentos,riesgo,,,Lesión de un operario con químicos de limpieza
+S20-R01,S20,Agro y alimentos,riesgo,,,Explosión de polvo en el elevador
+S20-R02,S20,Agro y alimentos,riesgo,,,Incendio por autocalentamiento del grano almacenado
+S20-R03,S20,Agro y alimentos,riesgo,,,Atrapamiento de un trabajador dentro de un silo
+S20-R04,S20,Agro y alimentos,riesgo,,,Deterioro del grano por humedad
+S20-R05,S20,Agro y alimentos,riesgo,,,Colapso estructural de un silo
+S20-R06,S20,Agro y alimentos,riesgo,,,Fraude en la balanza de recepción
+S21-R01,S21,Agro y alimentos,riesgo,,,Granizo sobre las fincas
+S21-R02,S21,Agro y alimentos,riesgo,,,Helada tardía en floración
+S21-R03,S21,Agro y alimentos,riesgo,,,Falla del sistema de frío del frigorífico
+S21-R04,S21,Agro y alimentos,riesgo,,,Rechazo de embarques en destino por detección de una plaga cuarentenaria
+S21-R05,S21,Agro y alimentos,riesgo,,,Accidente vial del transporte contratado de trabajadores de cosecha
+S21-R06,S21,Agro y alimentos,riesgo,,,Paro en el puerto de embarque
+S21-R07,S21,Agro y alimentos,riesgo,,,Incendio en la planta de empaque
+S21-R08,S21,Agro y alimentos,riesgo,,,Nueva exigencia fitosanitaria del mercado principal
