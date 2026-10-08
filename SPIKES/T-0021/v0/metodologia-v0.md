@@ -1,6 +1,10 @@
 # Metodología de criticidad · especificación ejecutable
 
-> Fecha: 2026-10-07 · Versión: **metodologia v0.2** (aprobada por Emiliano, 2026-10-07 02:02 UTC, Fase 5) · **congelada para la Fase 8**. Aplica las decisiones de la Fase 5 (`fase-5/log-adjudicacion.md`); las marcas **[F5-n]** señalan texto nuevo o cambiado por el grupo n. Changelog: CH-080 a CH-088.
+> Fecha: 2026-10-08 · Versión: **metodologia v0.3** (aprobada por Emiliano, 2026-10-08 21:52 UTC, Fase 9). Cambia sólo §6.5 (umbrales de banda, CH-093) y §8.2 (remoto y banda más alta, CH-094); las marcas **[F9]** señalan ese texto. El resto es la v0.2.
+>
+> **Qué prueba y qué no prueba la Fase 9.** Los umbrales salen de los casos de propiedad (ajuste dentro de la muestra) y se probaron sobre la población sintética de EMI-41, que tampoco es la población de aplicación (I15). La coincidencia de banda entre evaluadores quedó en 69,6% (16/23), debajo del target de 70%.
+>
+> Encabezado de v0.2, conservado: Fecha: 2026-10-07 · Versión: **metodologia v0.2** (aprobada por Emiliano, 2026-10-07 02:02 UTC, Fase 5) · **congelada para la Fase 8**. Aplica las decisiones de la Fase 5 (`fase-5/log-adjudicacion.md`); las marcas **[F5-n]** señalan texto nuevo o cambiado por el grupo n. Changelog: CH-080 a CH-088.
 >
 > **Qué prueba y qué no prueba la Fase 5.** La v0.2 hace pasar 16 de los 20 casos de propiedad, pero varios de esos casos se conocían cuando se diseñó la regla de V secuencial. Eso es **regresión de consistencia interna**, no evidencia de que las reglas generalicen. La primera evidencia ciega de reproducibilidad y generalización es la Fase 8 (EMI-41).
 >
@@ -309,7 +313,7 @@ Un aspecto de V sólo multiplica una dimensión de I si actúa causalmente sobre
 2. **Criticidad:** `C_raw = max_d C_d`. La **dimensión determinante** es la que da ese máximo (si empatan, todas); se guarda en `c_dimension_determinante` **[PA 13]**.
 3. `C_raw` es un **índice heurístico de prioridad calculado sobre categorías ordenadas** **[PA 12]**. No es una medición cardinal ni actuarial, y tampoco es una escala ordinal bien definida: el producto depende de haber codificado los niveles como 1 a 5, y otra codificación que respete el mismo orden podría cambiar el ranking. Toma 30 valores no equiespaciados. Se trata como una función candidata sometida a falsación (D14, protocolo §9).
 4. **Visible:** P, cada dimensión de I, I efectivo, contención, recuperación, dimensión determinante, banda, banderas, techo plausible (aparte). **Interno:** `C_raw` y los `C_d` (D12).
-5. **Banda:** Baja, Media, Alta, Crítica (D12). Los umbrales se fijan en la Fase 9; hasta entonces `banda` queda vacía y la Fase 4 juzga sólo orden y visibilidad (protocolo §8).
+5. **Banda [F9]:** Baja, Media, Alta, Crítica (D12), por cortes sobre `C_raw`: **Baja** < 20 ≤ **Media** < 50 ≤ **Alta** < 75 ≤ **Crítica**. Un riesgo no evaluable no recibe banda (§9.4). Un padre toma la banda de su hijo prioritario (§1.4). Los cortes Baja/Media y Alta/Crítica cayeron en huecos sin casos adjudicados y se revisan con evidencia nueva; la concentración en Media sobre la población sintética (62%) y el bloque de `C_raw` 45–48 quedan abiertos para la Fase 11 (`fase-9/reporte-fase-9.md`). Antes de la Fase 9 `banda` quedaba vacía y la Fase 4 juzgaba sólo orden y visibilidad (protocolo §8).
 6. **Techo plausible:** `max_d (P_max × I_d_max × V_d_max)`, usando `<f>_max` donde hay rango y `<f>_valor` donde no. No participa del ranking (D8).
 7. **Si la Fase 4 o la 5 falsan el producto**, la alternativa a estudiar no es agregar pesos o exponentes: es una tabla de decisión calibrada o un agregador basado en escenarios (dictamen). Esto orienta la Fase 5; no es una decisión.
 
@@ -362,7 +366,7 @@ Cada paso se aplica sólo si el anterior empata.
   1. **Visibilidad:** aparece siempre en una vista de seguridad propia, cualquiera sea su posición o su banda.
   2. **Tratamiento:** tiene que tener registrada en todo momento una acción en curso o una decisión explícita de la dirección sobre su tratamiento (tratar, aceptar con fundamento, transferir lo transferible), con fecha de revisión. Sin ninguna de las dos, alerta visible.
 - **Qué no hace:** no fuerza banda, no fija un piso, no mueve el ranking.
-- **Cierra la parte de regla de la contradicción abierta #2**: un riesgo remoto puede llegar a la banda más alta por el producto, pero no está obligado; su visibilidad y su tratamiento los garantiza la bandera. Si con los umbrales concretos puede llegar a Crítica lo muestra la Fase 9.
+- **[F9] Cierra la contradicción abierta #2**: Con la fórmula y los umbrales vigentes, P 1 llega como máximo a Media y P 2 como máximo a Alta. Alcanzar Crítica requiere P ≥ 3, aunque esa condición no es suficiente. Las banderas garantizan visibilidad y obligaciones de tratamiento, sin imponer un piso de banda.
 - **Riesgo no evaluable** [E]: las dos banderas aplican si la dimensión tiene valor plausible en el umbral, o si es `unknown` y su `<f>_max` registrado alcanza el umbral.
 - Campo nuevo: `safety_critical` (booleano).
 

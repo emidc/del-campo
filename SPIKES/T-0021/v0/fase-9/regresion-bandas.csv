@@ -1,0 +1,61 @@
+caso,juego,version_anterior,version_nueva,resultado_anterior,resultado_nuevo,estado,circular,regla_que_produjo_el_cambio,fila_changelog,nota
+CP-01,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,FAIL — combinación,FAIL — combinación (secundaria: FAIL — calibración),sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-01-R1 Media (esperada Alta)
+CP-01,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,FAIL — combinación,FAIL — combinación (secundaria: FAIL — calibración),sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-01-R1 Media (esperada Alta)
+CP-01,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,FAIL — combinación,FAIL — combinación (secundaria: FAIL — calibración),sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-01-R1 Baja (esperada Alta)
+CP-02,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-02,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-02,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-03,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-03,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-03-R2 Alta (esperada Media)
+CP-03,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-04,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-04,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-04,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-05,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),"banda fuera de lo adjudicado: CP-05-R1 Alta (esperada Media) | FAIL — calibración aceptado por Emiliano (decisión 3a, 2026-10-08 21:44 UTC): se conserva la adjudicación original como evidencia del límite de max()"
+CP-05,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),"banda fuera de lo adjudicado: CP-05-R1 Alta (esperada Media) | FAIL — calibración aceptado por Emiliano (decisión 3a, 2026-10-08 21:44 UTC): se conserva la adjudicación original como evidencia del límite de max()"
+CP-05,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),"banda fuera de lo adjudicado: CP-05-R1 Alta (esperada Media) | FAIL — calibración aceptado por Emiliano (decisión 3a, 2026-10-08 21:44 UTC): se conserva la adjudicación original como evidencia del límite de max()"
+CP-06,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-06,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-06,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-07,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,FAIL — ranking,FAIL — ranking,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-07,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,FAIL — ranking,FAIL — ranking,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-07,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,FAIL — ranking,FAIL — ranking,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-08,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-08,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-08,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-09,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-09-R1 Media (esperada Alta)
+CP-09,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-09-R1 Media (esperada Alta)
+CP-09,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-09-R1 Baja (esperada Alta)
+CP-10,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-10,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-10,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-11,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-11,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-11,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-12,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-12,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-12,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-13,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-13,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-13,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-14,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),contra la adjudicación original (revisada en la Fase 5): CP-14-R1 Baja (esperada Alta)
+CP-14,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),contra la adjudicación original (revisada en la Fase 5): CP-14-R1 Baja (esperada Alta)
+CP-14,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),contra la adjudicación original (revisada en la Fase 5): CP-14-R1 Baja (esperada Alta)
+CP-15,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-15-R1 Media (esperada Alta)
+CP-15,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-15-R1 Media (esperada Alta)
+CP-15,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),expectativa blanda no alcanzada: CP-15-R1 Baja (esperada Alta)
+CP-16,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-16,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-16,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,FAIL — combinación,FAIL — combinación,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-17,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),"banda fuera de lo adjudicado: CP-17-R1 Media (esperada Alta) | criterio de banda recién juzgable; Emiliano adoptó el juego sabiendo este FAIL (decisión 1A, 2026-10-08 21:44 UTC), protocolo §13 aceptación"
+CP-17,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-17-R1 Media (esperada Alta)
+CP-17,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,FAIL — calibración,regresionó,no,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-17-R1 Baja (esperada Alta)
+CP-18,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,FAIL — calibración,regresionó,sí,D12 (umbrales de banda),CH-093 (prov.),"banda fuera de lo adjudicado: CP-18-R1 antes Media (esperada Alta); CP-18-R1 después Media (esperada Alta) | criterio de banda recién juzgable; Emiliano adoptó el juego sabiendo este FAIL (decisión 1A, 2026-10-08 21:44 UTC), protocolo §13 aceptación"
+CP-18,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-18,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,FAIL — calibración,regresionó,sí,D12 (umbrales de banda),CH-093 (prov.),banda fuera de lo adjudicado: CP-18-R1 antes Media (esperada Alta); CP-18-R1 después Media (esperada Alta)
+CP-19,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-19,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-19,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,no,D12 (umbrales de banda),CH-093 (prov.),
+CP-20,"E (20, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes E,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-20,"B (20, 45, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes B,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
+CP-20,"D (36, 50, 75)",metodologia v0.2 sin umbrales (F5-REG-01),metodologia v0.2 + cortes D,PASS,PASS,sin_cambio,sí,D12 (umbrales de banda),CH-093 (prov.),
