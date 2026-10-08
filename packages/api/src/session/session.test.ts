@@ -44,9 +44,13 @@ describe('sealSession / readSession', () => {
   it('una cookie adulterada devuelve INVALID', async () => {
     const sealed = await sealSession(claims, SECRET)
     const parts = sealed.split('.')
-    // Se altera el ciphertext: A256GCM es autenticado, así que el tag no valida.
-    const ciphertext = parts[3] ?? ''
-    parts[3] = `${ciphertext.slice(0, -2)}${ciphertext.endsWith('aa') ? 'bb' : 'aa'}`
+    // Se altera un bit real del ciphertext: cambiar el sufijo base64url puede
+    // modificar sólo bits de relleno y dejar los mismos bytes autenticados.
+    const ciphertext = Buffer.from(parts[3] ?? '', 'base64url')
+    const firstByte = ciphertext[0]
+    assert.ok(firstByte !== undefined)
+    ciphertext[0] = firstByte ^ 1
+    parts[3] = ciphertext.toString('base64url')
     assert.equal((await readSession(parts.join('.'), SECRET)).kind, 'INVALID')
   })
 
