@@ -1,5 +1,7 @@
 # Broker OS — independent technical audit (2026-10)
 
+> Estado posterior a los merges: ver [conciliación del 2026-10-08](reconciliation-2026-10-08.md). Este informe conserva su base y conclusiones históricas.
+
 - **Date:** 2026-10-07 · **Base:** `main` at `4a33102` · **Workstream:** BOS
 - **Kind:** audit, not implementation. No code, migration, ADR or task was changed. This
   file is the only deliverable.

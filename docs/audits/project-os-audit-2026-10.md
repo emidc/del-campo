@@ -1,5 +1,7 @@
 # Auditoría de Project OS — arquitectura, efectividad y portabilidad
 
+> Estado posterior a los merges: ver [conciliación del 2026-10-08](reconciliation-2026-10-08.md). Este informe conserva su base y conclusiones históricas.
+
 **Fecha:** 2026-10-07 · **Workstream:** `POS` · **Tipo:** auditoría y diseño; no cambia
 nada del arnés · **Base auditada:** `main` en `4a33102` (historia completa: 173 commits,
 2026-09-07 → 2026-10-07)
