@@ -1,0 +1,14 @@
+anomalia_id,tipo,risk_id,factor,juego,valor_emiliano,valor_agente,c_raw_emiliano,c_raw_agente,causa,banderas,detalle,en_otros_juegos
+AN-9B-0001,A1,S04-R03,banda,E (20/50/75),no evaluable,Media,,48,evaluabilidad,consecuencia_extrema distinta,i_econ unknown→2,B: difiere; D: difiere
+AN-9B-0002,A1,S07-R01,banda,E (20/50/75),Alta,Media,60,45,factores distintos dentro de ±1 que cruzan un corte,iguales,p 4→3,B: coincide; D: difiere
+AN-9B-0003,A1,S08-R03,banda,E (20/50/75),Crítica,Media,75,48,factores distintos dentro de ±1 que cruzan un corte,consecuencia_extrema distinta,p 5→4; i_econ unknown→3; i_pers 5→4; i_cont unknown→4,B: difiere; D: difiere
+AN-9B-0004,A1,S12-R05,banda,E (20/50/75),no evaluable,Media,,48,evaluabilidad,consecuencia_extrema distinta,i_econ unknown→3; i_cont unknown→4; v_cont 4→3,B: difiere; D: difiere
+AN-9B-0005,A1,S13-R05,banda,E (20/50/75),no evaluable,Alta,,60,evaluabilidad,consecuencia_extrema distinta; safety_critical distinta,i_econ unknown→2; i_pers 4→3; i_legal 4→3,B: difiere; D: difiere
+AN-9B-0006,A1,S18-R03,banda,E (20/50/75),Alta,Media,60,48,factores distintos dentro de ±1 que cruzan un corte,consecuencia_extrema distinta,i_pers 5→4,B: coincide; D: difiere
+AN-9B-0007,A1,S19-R06,banda,E (20/50/75),no evaluable,Media,,45,evaluabilidad,safety_critical distinta,i_econ unknown→1; i_pers 4→3; i_legal 2→1,B: difiere; D: difiere
+AN-9B-0008,A1,S20-R06,banda,E (20/50/75),Media,Baja,36,12,factores distintos dentro de ±1 que cruzan un corte,iguales,p 4→3; i_econ 3→2; v_cont 3→2,B: difiere; D: difiere
+AN-9B-0009,A1,S22-R02,banda,E (20/50/75),Alta,Baja,60,16,factores con diferencia de más de un nivel,consecuencia_extrema distinta,p 4→2; i_econ 4→3; i_pers 5→4; v_cont 3→2,B: difiere; D: difiere
+AN-9B-0010,A1,S24-R03,banda,E (20/50/75),Alta,Media,60,48,factores distintos dentro de ±1 que cruzan un corte,consecuencia_extrema distinta,i_econ 4→3; i_cont 5→4,B: coincide; D: difiere
+AN-9B-0011,A1,S28-R07,banda,E (20/50/75),no evaluable,Media,,32,evaluabilidad,iguales,p 3→4; i_econ unknown→2; i_cont unknown→2; v_cont 3→4,B: difiere; D: difiere
+AN-9B-0012,A1,S31-R06,banda,E (20/50/75),Crítica,Media,80,45,factores distintos dentro de ±1 que cruzan un corte,safety_critical distinta,i_pers 4→3; v_cont 4→3,B: difiere; D: difiere
+AN-9B-0013,A1,S37-R03,banda,E (20/50/75),no evaluable,Media,,30,evaluabilidad,iguales,i_econ unknown→1; v_cont 4→3,B: difiere; D: difiere

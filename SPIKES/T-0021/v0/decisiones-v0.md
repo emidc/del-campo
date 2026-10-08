@@ -1,6 +1,7 @@
-# Decisiones de la metodología de criticidad · v0.2
+# Decisiones de la metodología de criticidad · v0.3
 
-> Fecha: 2026-10-07 · Versión: **v0.2** (aprobada por Emiliano, 2026-10-07 02:02 UTC, Fase 5; **congelada para la Fase 8**) · v0.1 aprobada el 2026-10-05 20:46 UTC (Fase 3) · v0.0 aprobada en la Fase 0 del plan EMI-15 + EMI-41.
+> Fecha: 2026-10-08 · Versión: **v0.3** (aprobada por Emiliano, 2026-10-08 21:52 UTC, Fase 9) · v0.2 aprobada el 2026-10-07 02:02 UTC (Fase 5; congelada para la Fase 8) · v0.1 aprobada el 2026-10-05 20:46 UTC (Fase 3) · v0.0 aprobada en la Fase 0 del plan EMI-15 + EMI-41.
+> v0.3 aplica la Fase 9 (`fase-9/reporte-fase-9.md`, CH-093 y CH-094): umbrales de banda en D12 y redacción de D23 sobre el remoto. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.3).
 > v0.2 aplica la Fase 5 (`fase-5/log-adjudicacion.md`, CH-080 a CH-088): cambia D4, D8, D10, D14, D15 y D21. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.2).
 > v0.1 aplica `anexo-cambios-fase-3.md`: cambia D4, D5, D8, D10, D13, D14, D15, D16, D17, D18, D19, D20 y D21, y agrega D23–D25. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.1).
 > Este documento **supera** a `plan-pasos-1-2.md` (§3.1, §3.2 y §6) y al conjunto de `fuentes/decisiones-pre-revision.md`. Ninguno de los dos se edita; donde difieren de lo que sigue, vale esto.
@@ -202,9 +203,9 @@
 - **Uso en v1:** priorizar; matriz.
 
 ### D12 · Bandas
-- **Texto vigente:** Cuatro bandas: Baja, Media, Alta, Crítica. Factores visibles, raw score interno, banda visible. Los umbrales no están definidos: se calibran en la Fase 9 con el procedimiento del plan, sin cortes arbitrarios ni equiespaciados y sin porcentajes obligatorios de riesgos por banda.
-- **Estado:** decidida (plan, Fase 3 "Criticidad" y Fase 9). Los umbrales: abiertos → Fase 9.
-- **Antes:** "El raw score se conserva para ordenar dentro de una banda" (pre-revisión D12); eso pasa a D10.
+- **Texto vigente:** Cuatro bandas: Baja, Media, Alta, Crítica. Factores visibles, raw score interno, banda visible. Umbrales sobre `C_raw` (Fase 9): Baja < 20 ≤ Media < 50 ≤ Alta < 75 ≤ Crítica. El corte Media/Alta sale de los casos de propiedad sin `consecuencia_extrema`; los cortes Baja/Media y Alta/Crítica caen en huecos sin casos adjudicados (20: el corte más alto que deja todo lo adjudicado fuera de Baja; 75: CP-02) y se revisan con evidencia nueva. Sin porcentajes obligatorios de riesgos por banda. Un riesgo no evaluable no recibe banda.
+- **Estado:** decidida (plan, Fase 3 "Criticidad" y Fase 9); umbrales fijados en v0.3 (Fase 9, aprobada por Emiliano 2026-10-08 21:52 UTC), CH-093.
+- **Antes:** v0.2: "Cuatro bandas: Baja, Media, Alta, Crítica. Factores visibles, raw score interno, banda visible. Los umbrales no están definidos: se calibran en la Fase 9 con el procedimiento del plan, sin cortes arbitrarios ni equiespaciados y sin porcentajes obligatorios de riesgos por banda." Antes aún: "El raw score se conserva para ordenar dentro de una banda" (pre-revisión D12); eso pasa a D10.
 - **Origen del cambio:** I15 (orden de calibración). La cuota de distribución que proponía C6 no se adoptó.
 - **Qué la pone a prueba:** Fase 9.
 - **Uso en v1:** matriz; ordenar la lista.
@@ -290,9 +291,9 @@
 - **Uso en v1:** historial; plan de acción.
 
 ### D23 · `safety_critical`
-- **Texto vigente:** Un riesgo con I-personas ≥ 4 (al menos una muerte plausible o daño irreversible grave) lleva `safety_critical = true`. Obliga a que aparezca siempre en una vista de seguridad y a que tenga registrada en todo momento una acción en curso o una decisión explícita de la dirección sobre su tratamiento, con fecha de revisión; sin ninguna de las dos, alerta visible. No fuerza banda, no fija piso y no mueve el ranking. Un riesgo remoto puede llegar a la banda más alta por el producto, pero no está obligado.
-- **Estado:** decidida (v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)).
-- **Antes:** no existía.
+- **Texto vigente:** Un riesgo con I-personas ≥ 4 (al menos una muerte plausible o daño irreversible grave) lleva `safety_critical = true`. Obliga a que aparezca siempre en una vista de seguridad y a que tenga registrada en todo momento una acción en curso o una decisión explícita de la dirección sobre su tratamiento, con fecha de revisión; sin ninguna de las dos, alerta visible. No fuerza banda, no fija piso y no mueve el ranking. Con la fórmula y los umbrales vigentes, P 1 llega como máximo a Media y P 2 como máximo a Alta. Alcanzar Crítica requiere P ≥ 3, aunque esa condición no es suficiente. Las banderas garantizan visibilidad y obligaciones de tratamiento, sin imponer un piso de banda.
+- **Estado:** decidida (v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)); texto modificado en v0.3 (Fase 9, aprobada por Emiliano 2026-10-08 21:52 UTC), CH-094.
+- **Antes:** v0.2: "… No fuerza banda, no fija piso y no mueve el ranking. Un riesgo remoto puede llegar a la banda más alta por el producto, pero no está obligado." Antes de v0.1: no existía.
 - **Origen del cambio:** F3-1 modificada por Emiliano: una muerte plausible no puede quedar fuera; CP-02, CP-15.. Número nuevo.
 - **Qué la pone a prueba:** Fase 2 #2, #15 (CP-02, CP-15; circulares).
 - **Uso en v1:** vista de seguridad; plan de acción.
@@ -350,7 +351,7 @@ La Fase 1 las ajusta (en particular A9: evaluación del plan y revisión I12).
 **Pares que todavía chocan después de consolidar**
 
 1. **D19 ↔ D15 en continuidad.** "Tiempo sin operar" es I-continuidad (bruto, de esta organización) y "recuperación" es V; un mismo hecho (no hay plan de continuidad) puede cargarse en cualquiera de los dos. → **Resuelta en v0.1** por D19 (CP-16: la falta de continuidad va a V-recuperación).
-2. **P6 ↔ D20 + D12.** Sin pisos, un extremo remoto queda en la banda que le da el producto; P6 se cumple sólo por la bandera y el filtro (evaluación H6). Si un riesgo remoto puede llegar a Crítica sigue sin decidir. → **Resuelta en la regla en v0.1** por D20 y D23 (`safety_critical`); el número queda para la Fase 9.
+2. **P6 ↔ D20 + D12.** Sin pisos, un extremo remoto queda en la banda que le da el producto; P6 se cumple sólo por la bandera y el filtro (evaluación H6). Si un riesgo remoto puede llegar a Crítica sigue sin decidir. → **Resuelta en la regla en v0.1** por D20 y D23 (`safety_critical`); el número queda para la Fase 9. → **Número fijado en v0.3** (Fase 9, CH-093 y CH-094): P 1 llega como máximo a Media y P 2 a Alta; Crítica requiere P ≥ 3, sin ser suficiente.
 3. **D20 (disparo con cualquier I = 5) ↔ C6.** Con `max()` sobre cuatro dimensiones la bandera puede marcar buena parte de la lista y dejar de distinguir. → medir la frecuencia en el dry run, Fase 4 (evaluación H4).
 4. **D15 (perfil mixto: "documentar qué aspecto domina") ↔ P4.** No hay regla que fije V ante un perfil mixto, así que dos evaluadores pueden divergir sin error. → **Resuelta en v0.1** por D15 (contención y recuperación separadas, V por dimensión).
 5. **D16 + D18 ↔ P10 cuando la reevaluación no confirma el cambio esperado.** No está escrito qué estado toma la acción ni qué se registra (I16). → **Resuelta en v0.1** por D25 y protocolo §6.3 (CP-10).
@@ -385,7 +386,7 @@ La Fase 1 las ajusta (en particular A9: evaluación del plan y revisión I12).
 | 8 | Procedencia por factor y `review_status` por evento | Abierta → Fase 1 (ficha) y Fase 15 (EMI-16). |
 | 9 | Granularidad | Resuelta por D21. |
 | 10 | Procedimiento de calibración | Resuelta por D12 (procedimiento de la Fase 9, sin cuota de distribución). |
-| 11 | ¿Un riesgo remoto puede llegar a Crítica? | Abierta → Fase 9 (par abierto 2). |
+| 11 | ¿Un riesgo remoto puede llegar a Crítica? | Resuelta en v0.3 (Fase 9, CH-094): con los umbrales de D12, P 1 llega como máximo a Media y P 2 a Alta; sin piso de banda (D23). |
 | 12 | Evaluaciones vivas al cambiar la versión | Parcial: D22 da el valor de `motivo`; la regla de qué se hace con ellas → Fase 1 (sección de historial). |
 
 ---

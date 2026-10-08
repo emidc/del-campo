@@ -1,0 +1,52 @@
+caso,riesgo,evaluacion_id,tipo_objeto,momento,p,i_econ,i_pers,i_cont,i_legal,v_cont,v_rec,c_raw_v02,dimension_determinante,consecuencia_extrema,safety_critical,evaluable,banda_esperada,tipo_expectativa,texto_adjudicado,adjudicacion_revisada_f5,caso_de_origen_de,circular_c_raw,categoria_f5,banda_juego_A,banda_juego_B,banda_juego_C
+CP-01,CP-01-R1,EV-0052,riesgo,,1,5,5,5,4,4,5,20,econ;pers;cont,true,true,true,Alta,dura,R1 Alta,no,,no,FAIL — combinación,Media,Media,Media
+CP-01,CP-01-R2,EV-0053,riesgo,,4,5,3,5,2,1,3,20,econ;cont,true,false,true,,sin_banda,,no,,no,FAIL — combinación,Media,Media,Media
+CP-01,CP-01-R3,EV-0054,riesgo,,5,3,1,3,1,1,5,15,econ;cont,false,false,true,,sin_banda,,no,,no,FAIL — combinación,Baja,Baja,Baja
+CP-01,CP-01-R4,EV-0055,riesgo,,5,2,1,1,1,2,2,20,econ,false,false,true,,sin_banda,,no,,no,FAIL — combinación,Media,Media,Media
+CP-01,CP-01-R5,EV-0056,riesgo,,3,2,1,1,1,5,5,30,econ,false,false,true,,sin_banda,,no,,no,FAIL — combinación,Media,Media,Media
+CP-02,CP-02-R1,EV-0057,riesgo,,5,2,1,2,1,5,3,40,econ,false,false,true,,sin_banda,,no,§4.6;§8.2,sí,PASS,Media,Media,Media
+CP-02,CP-02-R2,EV-0058,riesgo,,3,4,5,4,4,4,5,60,pers,true,true,true,Alta,dura,R2 Alta; además safety-critical,no,§4.6;§8.2,sí,PASS,Alta,Alta,Alta
+CP-03,CP-03-R1,EV-0059,riesgo,,5,4,5,4,4,1,5,25,pers,true,true,true,Baja/Media,dura,R1 Baja/Media,no,,no,PASS,Media,Media,Media
+CP-03,CP-03-R2,EV-0060,riesgo,,4,3,3,1,1,4,5,48,econ;pers,false,false,true,Media,dura,R2 Media,no,,no,PASS,Media,Alta,Media
+CP-04,CP-04-R1,EV-0061,riesgo,antes,2,5,1,5,2,5,4,50,econ,true,false,true,Alta,dura,R1 pasa de Alta a Media/Baja (antes),no,§13,no,PASS,Alta,Alta,Alta
+CP-04,CP-04-R1,EV-0062,riesgo,después,2,5,1,5,2,5,1,30,econ,true,false,true,Media/Baja,dura,R1 pasa de Alta a Media/Baja (después),no,§13,no,PASS,Media,Media,Media
+CP-04,CP-04-R2,EV-0063,riesgo,,4,3,1,1,2,3,5,36,econ,false,false,true,,sin_banda,,no,§13,no,PASS,Media,Media,Media
+CP-05,CP-05-R1,EV-0064,riesgo,,4,4,1,1,1,4,5,64,econ,false,false,true,Media,dura,R1 Media,no,,no,PASS,Alta,Alta,Alta
+CP-05,CP-05-R2,EV-0065,riesgo,,4,4,4,4,4,4,5,64,econ;pers;cont;legal,false,true,true,Alta,dura,R2 Alta,no,,no,PASS,Alta,Alta,Alta
+CP-06,CP-06-R1,EV-0066,riesgo,,3,5,4,5,2,4,3,60,econ,true,true,true,Alta,dura,R1 Alta,no,§2;§3.4;§5.5,sí,PASS,Alta,Alta,Alta
+CP-06,CP-06-R2,EV-0067,riesgo,,3,5,4,5,2,2,3,30,econ;cont,true,true,true,Baja/Media,dura,R2 Baja/Media,no,§2;§3.4;§5.5,sí,PASS,Media,Media,Media
+CP-07,CP-07-R1,EV-0068,riesgo,,4,3,2,4,3,3,2,36,econ;legal,false,false,true,Media,dura,R1 Media,no,§2;§3.4;§5.5;§7,sí,FAIL — ranking,Media,Media,Media
+CP-07,CP-07-R2,EV-0069,riesgo,,4,3,1,1,3,3,no_aplica,36,econ;legal,false,false,true,Media/Alta,dura,R2 Media/Alta,no,§2;§3.4;§5.5;§7,sí,FAIL — ranking,Media,Media,Media
+CP-08,CP-08-R1,EV-0070,riesgo,,3,3,4,5,4,4,5,60,cont,true,true,true,,sin_banda,,no,§9;§13,sí,PASS,Alta,Alta,Alta
+CP-08,CP-08-R2,EV-0071,riesgo,,unknown,2,5,1,4,unknown,unknown,,,true,true,false,—,no_evaluable,"""—""; no debe recibir banda crítica por falta de datos",no,§9;§13,sí,PASS,no evaluable,no evaluable,no evaluable
+CP-08,CP-08-R3,EV-0072,riesgo,,4,1,3,1,1,3,5,36,pers,false,false,true,,sin_banda,,no,§9;§13,sí,PASS,Media,Media,Media
+CP-09,CP-09-R1,EV-0073,riesgo,,2,5,5,4,4,3,3,30,econ;pers,true,true,true,Alta,blanda,Global posiblemente Alta,no,§13,no,PASS,Media,Media,Media
+CP-10,CP-10-R1,EV-0074,riesgo,antes,3,4,4,3,4,4,5,48,econ;pers;legal,false,true,true,,sin_banda,,no,§5.5;§11.2,sí,PASS,Media,Alta,Media
+CP-10,CP-10-R1,EV-0075,riesgo,después,3,4,4,3,4,3,5,36,econ;pers;legal,false,true,true,Media/Alta,dura,Media/Alta (leída como el riesgo después de la acción),no,§5.5;§11.2,sí,PASS,Media,Media,Media
+CP-11-A,CP-11-A-R1,EV-0076,riesgo,,3,2,1,1,1,4,5,24,econ,false,false,true,Baja/Media,dura,R1 Baja/Media,no,,no,PASS,Media,Media,Media
+CP-11-B,CP-11-B-R2,EV-0077,riesgo,,3,5,1,1,1,4,5,60,econ,true,false,true,Alta,dura,R2 Alta,no,,no,PASS,Alta,Alta,Alta
+CP-12,CP-12-R1-A,EV-0078,riesgo,,5,2,1,2,1,5,4,50,econ,false,false,true,Alta,dura,R1 Alta (forma A),no,§1.4;§7,sí,FAIL — combinación,Alta,Alta,Alta
+CP-12,CP-12-R1-B,EV-0079,padre,,5,2,1,2,1,5,5,50,econ;cont,false,false,true,Alta,dura,"R1 Alta (padre, forma B)",no,§1.4;§7,sí,FAIL — combinación,Alta,Alta,Alta
+CP-12,CP-12-R1a,EV-0080,sub_riesgo,,5,2,1,1,1,1,5,10,econ,false,false,true,,sin_banda,,no,§1.4;§7,sí,FAIL — combinación,Baja,Baja,Baja
+CP-12,CP-12-R1b,EV-0081,sub_riesgo,,4,2,1,2,1,5,5,40,econ;cont,false,false,true,,sin_banda,,no,§1.4;§7,sí,FAIL — combinación,Media,Media,Media
+CP-12,CP-12-R1c,EV-0082,sub_riesgo,,5,2,1,2,1,5,5,50,econ;cont,false,false,true,,sin_banda,,no,§1.4;§7,sí,FAIL — combinación,Alta,Alta,Alta
+CP-12,CP-12-R2,EV-0083,riesgo,,4,3,1,1,2,5,no_aplica,60,econ,false,false,true,,sin_banda,,no,§1.4;§7,sí,FAIL — combinación,Alta,Alta,Alta
+CP-13,CP-13-R1,EV-0084,riesgo,,4,4,2,4,4,4,5,64,econ;cont;legal,false,false,true,Alta,dura,R1 Alta,no,§4.6;§7,sí,PASS,Alta,Alta,Alta
+CP-13,CP-13-R2,EV-0085,riesgo,,4,4,1,1,1,4,5,64,econ,false,false,true,,sin_banda,,no,§4.6;§7,sí,PASS,Alta,Alta,Alta
+CP-14,CP-14-R1,EV-0086,riesgo,,3,5,3,5,2,1,5,15,econ;cont,true,false,true,Alta,revisada,R1 Alta (adjudicación de orden revisada en la Fase 5: prevalece PV-1),sí (CP-14: prevalece PV-1),§5.5 (revisada),sí,PASS,Baja,Baja,Baja
+CP-14,CP-14-R2,EV-0087,riesgo,,3,3,1,4,1,5,3,36,econ;cont,false,false,true,Media/Alta,dura,R2 Media/Alta,sí (CP-14: prevalece PV-1),§5.5 (revisada),sí,PASS,Media,Media,Media
+CP-15,CP-15-R1,EV-0088,riesgo,,1,5,5,5,5,5,5,25,econ;pers;cont;legal,true,true,true,Alta,blanda,R1 puede ser Alta; safety-critical obligatorio,no,§4.6;§8.2,sí,PASS,Media,Media,Media
+CP-15,CP-15-R2,EV-0089,riesgo,,4,4,1,4,1,5,5,80,econ;cont,false,false,true,,sin_banda,,no,§4.6;§8.2,sí,PASS,Crítica,Crítica,Alta
+CP-16,CP-16-R1,EV-0090,riesgo,,4,3,1,3,1,5,4,60,econ,false,false,true,Alta/Media,dura,Alta/Media (leída como R1),no,§2.4;§4.6;§5.5,sí,FAIL — combinación,Alta,Alta,Alta
+CP-16,CP-16-R2,EV-0091,riesgo,,4,1,4,1,2,4,no_aplica,64,pers,false,true,true,,sin_banda,,no,§2.4;§4.6;§5.5,sí,FAIL — combinación,Alta,Alta,Alta
+CP-17,CP-17-R1,EV-0092,riesgo,,2,5,5,4,4,3,3,30,econ;pers,true,true,true,Alta,dura,Global Alta,no,§11.3;§13,no,PASS,Media,Media,Media
+CP-18,CP-18-R1,EV-0093,riesgo,antes,3,5,5,5,4,3,5,45,econ;pers;cont,true,true,true,Alta,dura,Alta patrimonial/operativa (la criticidad global puede permanecer Alta),no,§2.4;§13,sí,PASS,Media,Alta,Media
+CP-18,CP-18-R1,EV-0094,riesgo,después,3,5,1,5,3,3,5,45,econ;cont,true,false,true,Alta,dura,Alta patrimonial/operativa,no,§2.4;§13,sí,PASS,Media,Alta,Media
+CP-19,CP-19-R1,EV-0095,riesgo,enero (base),2,5,5,4,4,3,5,30,econ;pers,true,true,true,Fluctuante,sin_banda,Fluctuante,no,§11.1,no,PASS,Media,Media,Media
+CP-19,CP-19-R1,EV-0096,riesgo,marzo,3,5,5,4,4,3,5,45,econ;pers,true,true,true,Fluctuante,sin_banda,Fluctuante,no,§11.1,no,PASS,Media,Alta,Media
+CP-19,CP-19-R1,EV-0097,riesgo,mayo,3,5,5,4,4,4,5,60,econ;pers,true,true,true,Fluctuante,sin_banda,Fluctuante,no,§11.1,no,PASS,Alta,Alta,Alta
+CP-19,CP-19-R1,EV-0098,riesgo,julio,3,5,5,4,4,3,5,45,econ;pers,true,true,true,Fluctuante,sin_banda,Fluctuante,no,§11.1,no,PASS,Media,Alta,Media
+CP-20,CP-20-R1,EV-0099,riesgo,,3,3,1,3,1,5,5,45,econ;cont,false,false,true,,sin_banda,,no,§1.2;§10;§13,sí,PASS,Media,Alta,Media
+CP-20,CP-20-R2,EV-0100,riesgo,,3,3,1,3,1,5,5,45,econ;cont,false,false,true,,sin_banda,,no,§1.2;§10;§13,sí,PASS,Media,Alta,Media
+CP-20,CP-20-R3,EV-0101,riesgo,,3,3,1,2,1,4,5,36,econ,false,false,true,,sin_banda,,no,§1.2;§10;§13,sí,PASS,Media,Media,Media
+CP-20,CP-20-E1,EV-0102,escenario,,3,4,1,3,1,5,5,60,econ,false,false,true,Alta,dura,Escenario agregado Alto,no,§1.2;§10;§13,sí,PASS,Alta,Alta,Alta

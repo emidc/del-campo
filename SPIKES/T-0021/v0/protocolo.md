@@ -1,6 +1,8 @@
 # Protocolo experimental · metodología de criticidad
 
-> Fecha: 2026-10-07 · Versión: **protocolo v0.2** (aprobado por Emiliano el 2026-10-07 02:02 UTC, Fase 5; **congelado para la Fase 8**). Historia: v0.0 aprobado en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado.
+> Fecha: 2026-10-08 · Versión: **protocolo v0.3** (aprobado por Emiliano el 2026-10-08 21:52 UTC, Fase 9). **Cambios de v0.3:** §2.3 `consecuencia_extrema` en no evaluables (CH-092, aprobado el 2026-10-07 20:46 UTC) y `banda` calculada con los umbrales de metodología §6.5 (CH-093). Se apoya en `decisiones-v0.md` v0.3 y `metodologia-v0.md` metodologia v0.3.
+>
+> Encabezado de v0.2, conservado: Fecha: 2026-10-07 · Versión: **protocolo v0.2** (aprobado por Emiliano el 2026-10-07 02:02 UTC, Fase 5; **congelado para la Fase 8**). Historia: v0.0 aprobado en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado.
 > **Cambios de v0.2** (fila CH-087 del changelog; detalle en `fase-5/cambios-protocolo-v0.2.md`): `unknown` sólo sin valor más plausible defendible; padre sin score propio y `prioridad_provisional`; V secuencial en `v_aspectos_aplicables`; `i_efectivo ≥ n`; §11 por CH-077; §13 con adjudicación revisada. Son cambios después de ver los resultados de la Fase 4: **desviación del preregistro** respecto de v0.1, aprobada por Emiliano.
 > Se apoya en `decisiones-v0.md` **v0.2** y en `metodologia-v0.md` **metodologia v0.2** (Fase 5). Cita sus números: D8 unknowns y techo, D10 ranking, D14 fórmula por dimensión y falsación, D15 V (contención y recuperación) y corte P/V, D17 seguro bruto, D20 `consecuencia_extrema`, D21 granularidad y riesgo padre, D22 `motivo`, D23 `safety_critical`, D24 escenario por causa común, D25 estado y eficacia de una acción.
 > **Cambios de v0.1** (fila CH-074 del changelog): campos de la ficha para contención y recuperación por separado, V por dimensión, dimensión determinante, `safety_critical`, tipo de objeto (riesgo, padre, sub-riesgo, escenario); "visible" en la Fase 4 incluye la vista de seguridad; métricas por aspecto de V. Lo marcado **[PA n]** remite al "Para aprobar" de v0.0, ya aprobado.
@@ -79,7 +81,7 @@ Reglas de llenado:
 | `i_efectivo_dimensiones` | texto | dimensión o dimensiones que dan el máximo (`econ;cont`) |
 | `v_aspectos_aplicables` | texto | derivado, nunca a mano: por dimensión, qué aspectos de V entraron en `V_d` (`econ:cont,rec(secuencial);pers:cont;cont:cont,rec(secuencial);legal:cont`); con `v_rec = no_aplica`, recuperación no figura (metodología §5.5, combinación secuencial) |
 | `c_dimension_determinante` | texto | derivado: dimensión o dimensiones cuyo `C_d = P × I_d × V_d` da `c_raw` (D14) |
-| `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3) **[PA 4]** |
+| `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3); en un riesgo no evaluable, también si una dimensión es `unknown` y su `<f>_max` registrado es 5 (metodología §8.2) **[CH-092]** |
 | `consecuencia_extrema_dimensiones` | texto | dimensiones que la disparan |
 | `safety_critical` | booleano | `true` si `i_pers_valor ≥ 4`; en un riesgo no evaluable, también si `i_pers` es `unknown` y `i_pers_max ≥ 4` (D23) |
 | `evaluable` | booleano | `false` si `p` es `unknown`, o si la cota de alguna dimensión con partes `unknown` supera el `c_raw` de las conocidas (D8, metodología §9.3) |
@@ -88,7 +90,7 @@ Reglas de llenado:
 | `uncertainty` | enum | `low` \| `medium` \| `high` (EMI-17, a nivel de riesgo, D9) |
 | `uncertainty_nota` | texto | obligatorio si `medium` o `high`: qué falta confirmar |
 | `c_raw` | entero | `max_d (P × I_d × V_d)` (D14), vacío si `evaluable = false`. Índice heurístico interno: no se muestra como escala (D12) |
-| `banda` | enum | `Baja` \| `Media` \| `Alta` \| `Crítica`; **vacío hasta que la Fase 9 fije umbrales** |
+| `banda` | enum | `Baja` \| `Media` \| `Alta` \| `Crítica`, calculada desde `c_raw` con los umbrales de metodología §6.5 **[CH-093]**; vacío si el riesgo es no evaluable |
 | `techo_plausible` | entero | `max_d (P_max × I_d_max × V_d_max)`, con `<f>_max` donde hay rango y `<f>_valor` donde no; no participa del ranking (D8) |
 | `reglas_aplicadas` | texto | números de regla separados por `;` (`D8;D15;D20`) |
 | `justificacion` | texto | 1–3 frases que expliquen el resultado citando reglas (P3) |

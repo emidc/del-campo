@@ -1,0 +1,31 @@
+risk_id,empresa,familia,evaluable_emiliano,c_raw_emiliano,evaluable_agente,c_raw_agente,ext_emiliano,ext_agente,sc_emiliano,sc_agente,factores_distintos (Emiliano→agente),banda_emiliano_E,banda_agente_E,coincide_E,banda_emiliano_B,banda_agente_B,coincide_B,banda_emiliano_D,banda_agente_D,coincide_D
+S01-R01,S01,Agro y alimentos,True,60,True,60,true,true,true,true,i_pers 5→4; v_rec 4→3,Alta,Alta,True,Alta,Alta,True,Alta,Alta,True
+S01-R02,S01,Agro y alimentos,True,30,True,30,false,false,false,false,,Media,Media,True,Media,Media,True,Baja,Baja,True
+S02-R07,S02,Industria y construcción,False,,False,,true,true,false,false,i_cont unknown→1; i_legal 2→1; v_cont 4→3,no evaluable,no evaluable,True,no evaluable,no evaluable,True,no evaluable,no evaluable,True
+S04-R03,S04,Tecnología y pagos,False,,True,48,true,false,false,false,i_econ unknown→2,no evaluable,Media,False,no evaluable,Alta,False,no evaluable,Media,False
+S04-R05,S04,Tecnología y pagos,True,36,True,36,false,false,false,false,i_econ 4→3; v_rec 3→4,Media,Media,True,Media,Media,True,Media,Media,True
+S05-R08,S05,Industria y construcción,True,24,True,30,false,false,false,false,p 4→5,Media,Media,True,Media,Media,True,Baja,Baja,True
+S07-R01,S07,Minería,True,60,True,45,true,true,true,true,p 4→3,Alta,Media,False,Alta,Alta,True,Alta,Media,False
+S08-R03,S08,Minería,True,75,True,48,true,false,true,true,p 5→4; i_econ unknown→3; i_pers 5→4; i_cont unknown→4,Crítica,Media,False,Crítica,Alta,False,Crítica,Media,False
+S10-R03,S10,Minería,True,64,True,64,false,false,true,true,v_rec 4→3,Alta,Alta,True,Alta,Alta,True,Alta,Alta,True
+S12-R01,S12,Minería,True,36,True,36,false,false,false,false,i_legal 2→1,Media,Media,True,Media,Media,True,Media,Media,True
+S12-R05,S12,Minería,False,,True,48,true,false,false,false,i_econ unknown→3; i_cont unknown→4; v_cont 4→3,no evaluable,Media,False,no evaluable,Alta,False,no evaluable,Media,False
+S13-R04,S13,Comercio y logística,True,36,True,48,false,false,false,false,p 3→4,Media,Media,True,Media,Alta,False,Media,Media,True
+S13-R05,S13,Comercio y logística,False,,True,60,true,false,true,false,i_econ unknown→2; i_pers 4→3; i_legal 4→3,no evaluable,Alta,False,no evaluable,Alta,False,no evaluable,Alta,False
+S14-R01,S14,Servicios a personas,True,36,True,48,false,false,false,false,v_cont 3→4; v_rec 3→2,Media,Media,True,Media,Alta,False,Media,Media,True
+S15-R04,S15,Agro y alimentos,True,64,True,64,false,false,true,true,i_cont 2→1,Alta,Alta,True,Alta,Alta,True,Alta,Alta,True
+S18-R03,S18,Agro y alimentos,True,60,True,48,true,false,true,true,i_pers 5→4,Alta,Media,False,Alta,Alta,True,Alta,Media,False
+S19-R06,S19,Agro y alimentos,False,,True,45,false,false,true,false,i_econ unknown→1; i_pers 4→3; i_legal 2→1,no evaluable,Media,False,no evaluable,Alta,False,no evaluable,Media,False
+S20-R06,S20,Agro y alimentos,True,36,True,12,false,false,false,false,p 4→3; i_econ 3→2; v_cont 3→2,Media,Baja,False,Media,Baja,False,Media,Baja,False
+S21-R01,S21,Agro y alimentos,True,48,True,48,false,false,false,false,p 3→4; i_econ 4→3; i_cont 2→1; v_rec 3→4,Media,Media,True,Alta,Alta,True,Media,Media,True
+S22-R02,S22,Industria y construcción,True,60,True,16,true,false,true,true,p 4→2; i_econ 4→3; i_pers 5→4; v_cont 3→2,Alta,Baja,False,Alta,Baja,False,Alta,Baja,False
+S22-R03,S22,Industria y construcción,True,45,True,48,false,false,false,false,p 5→4; i_pers 2→1; v_cont 3→4; v_rec 3→2,Media,Media,True,Alta,Alta,True,Media,Media,True
+S24-R03,S24,Industria y construcción,True,60,True,48,true,false,false,false,i_econ 4→3; i_cont 5→4,Alta,Media,False,Alta,Alta,True,Alta,Media,False
+S28-R07,S28,Comercio y logística,False,,True,32,false,false,false,false,p 3→4; i_econ unknown→2; i_cont unknown→2; v_cont 3→4,no evaluable,Media,False,no evaluable,Media,False,no evaluable,Baja,False
+S29-R06,S29,Tecnología y pagos,True,45,True,45,false,false,false,false,,Media,Media,True,Alta,Alta,True,Media,Media,True
+S31-R06,S31,Energía y agua,True,80,True,45,false,false,true,false,i_pers 4→3; v_cont 4→3,Crítica,Media,False,Crítica,Alta,False,Crítica,Media,False
+S32-R03,S32,Energía y agua,True,60,True,60,true,true,false,false,,Alta,Alta,True,Alta,Alta,True,Alta,Alta,True
+S33-R05,S33,Energía y agua,True,45,True,20,false,false,false,false,i_pers 2→1; i_cont 3→2; v_cont 3→4; v_rec 3→2,Media,Media,True,Alta,Media,False,Media,Baja,False
+S36-R03,S36,Servicios a personas,True,60,True,60,true,true,true,true,i_econ unknown→5; i_cont 5→4,Alta,Alta,True,Alta,Alta,True,Alta,Alta,True
+S36-R04,S36,Servicios a personas,True,48,True,36,false,false,true,false,i_econ 2→3; i_pers 4→3; i_legal 4→3,Media,Media,True,Alta,Media,False,Media,Media,True
+S37-R03,S37,Industria y construcción,False,,True,30,false,false,false,false,i_econ unknown→1; v_cont 4→3,no evaluable,Media,False,no evaluable,Media,False,no evaluable,Baja,False
