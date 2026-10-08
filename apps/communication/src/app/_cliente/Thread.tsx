@@ -2,7 +2,7 @@
 
 import { useState, type SyntheticEvent } from 'react'
 
-import { Freshness, formatTime, LogoutButton, participantLabel, usePolling, type Label } from './polling.tsx'
+import { Freshness, formatTime, LogoutButton, participantLabel, usePolling, type Deliveries, type Label } from './polling.tsx'
 
 type Item =
   | {
@@ -28,7 +28,7 @@ type Item =
 interface ThreadData {
   readonly id: number
   readonly label: Label
-  readonly lastDeliveryAt: string | null
+  readonly deliveries: Deliveries
   readonly window: { readonly open: boolean; readonly closesAt: string | null }
   readonly canReply: boolean
   readonly replyBlockedReason: string | null
@@ -137,7 +137,7 @@ export function Thread({ id }: { readonly id: number }) {
         </span>
         <LogoutButton />
       </header>
-      <Freshness lastDeliveryAt={data?.lastDeliveryAt ?? null} poll={poll} />
+      <Freshness deliveries={data?.deliveries ?? null} poll={poll} />
       {data === null ? (
         <p className="muted">Cargando…</p>
       ) : (

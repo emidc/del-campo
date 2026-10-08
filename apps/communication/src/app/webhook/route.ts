@@ -1,4 +1,4 @@
-import { createWebhookHandler, deliveryStore } from '@del-campo/communication'
+import { createWebhookHandler, deliveryStore, normalizePhoneNumberId } from '@del-campo/communication'
 import { after } from 'next/server'
 
 import { database, log } from '../../lib/server.ts'
@@ -13,9 +13,12 @@ export const dynamic = 'force-dynamic'
 const handle = async (request: Request): Promise<Response> => {
   const appSecret = process.env.WHATSAPP_APP_SECRET ?? ''
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN ?? ''
+  // Solo se persiste lo del número que opera el contexto (CO01 §3): sin un número con
+  // forma de phone_number_id, tampoco se recibe.
+  const phoneNumberId = normalizePhoneNumberId(process.env.WHATSAPP_PHONE_NUMBER_ID)
   // Sin configuración, 503: Meta reintenta, y no hay modo sin firma.
-  if (appSecret === '' || verifyToken === '') return new Response(null, { status: 503 })
-  const receive = createWebhookHandler({ appSecret, verifyToken, store: deliveryStore(database()), log })
+  if (appSecret === '' || verifyToken === '' || phoneNumberId === null) return new Response(null, { status: 503 })
+  const receive = createWebhookHandler({ appSecret, verifyToken, phoneNumberId, store: deliveryStore(database()), log })
   const { response, process: processDelivery } = await receive(request)
   if (processDelivery !== null) after(processDelivery)
   return response

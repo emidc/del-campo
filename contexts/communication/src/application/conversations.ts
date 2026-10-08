@@ -3,17 +3,17 @@
 
 import { visibleAttemptState } from '../domain/reply.ts'
 import { redactErrorTitle } from '../integration/cloud-api.ts'
+import { ignoredSince, stalledBefore } from '../domain/reprocessing.ts'
 import { serviceWindow, type ServiceWindow } from '../domain/window.ts'
 import { listOpenAttempts } from '../persistence/attempts.ts'
 import {
   conversationParticipant,
-  lastDeliveryReceivedAt,
   lastInboundAt,
   listConversations,
   listUnsupported,
 } from '../persistence/conversations.ts'
 import type { Sql } from '../persistence/database.ts'
-import { listThread } from '../persistence/store.ts'
+import { deliveryBacklog, listThread, type DeliveryBacklog } from '../persistence/store.ts'
 import type { OutboundStatus } from '../domain/status.ts'
 
 export interface ParticipantLabel {
@@ -29,14 +29,46 @@ export interface ConversationSummary extends ParticipantLabel {
   readonly window: ServiceWindow
 }
 
+/**
+ * Para que la UI no aparente estar al día. La última entrega recibida dice si el receptor
+ * recibe; el atraso dice si lo recibido se procesó. Una entrega recibida y no procesada no
+ * aparece en el hilo, así que una hora reciente sola no alcanza (T-0026).
+ */
+export interface DeliveryHealth {
+  readonly lastDeliveryAt: Date | null
+  readonly lastProcessedAt: Date | null
+  /** Entregas `failed`. */
+  readonly failed: number
+  /** Entregas `pending` que nadie está procesando. */
+  readonly stalled: number
+  readonly oldestUnprocessedAt: Date | null
+  /**
+   * Entregas de las últimas 24 h que traían solo contenido de otro número y no se
+   * guardaron. Es lo único que produce un `WHATSAPP_PHONE_NUMBER_ID` equivocado: sin esto,
+   * la UI se vería al día sin mensajes nuevos.
+   */
+  readonly ignored: number
+}
+
+const toHealth = (b: DeliveryBacklog): DeliveryHealth => ({
+  lastDeliveryAt: b.lastReceivedAt,
+  lastProcessedAt: b.lastProcessedAt,
+  failed: b.failed,
+  stalled: b.stalled,
+  oldestUnprocessedAt: b.oldestUnprocessedAt,
+  ignored: b.ignored,
+})
+
+export const deliveryHealth = async (sql: Sql, now: Date = new Date()): Promise<DeliveryHealth> =>
+  toHealth(await deliveryBacklog(sql, stalledBefore(now), ignoredSince(now)))
+
 export interface ConversationList {
   readonly conversations: ConversationSummary[]
-  /** Para que la UI no aparente estar al día si el receptor dejó de recibir. */
-  readonly lastDeliveryAt: Date | null
+  readonly deliveries: DeliveryHealth
 }
 
 export const conversationList = async (sql: Sql, now: Date = new Date()): Promise<ConversationList> => {
-  const [rows, lastDeliveryAt] = await Promise.all([listConversations(sql), lastDeliveryReceivedAt(sql)])
+  const [rows, deliveries] = await Promise.all([listConversations(sql), deliveryHealth(sql, now)])
   return {
     conversations: rows.map((r) => ({
       id: r.id,
@@ -46,7 +78,7 @@ export const conversationList = async (sql: Sql, now: Date = new Date()): Promis
       lastMessageAt: r.lastMessageAt,
       window: serviceWindow(r.lastInboundAt, now),
     })),
-    lastDeliveryAt,
+    deliveries,
   }
 }
 
@@ -80,7 +112,7 @@ export interface ConversationThread {
   readonly window: ServiceWindow
   /** Cloud API envía a un `wa_id`: sin teléfono no se puede responder desde acá. */
   readonly canReply: boolean
-  readonly lastDeliveryAt: Date | null
+  readonly deliveries: DeliveryHealth
 }
 
 /**
@@ -96,12 +128,12 @@ export const conversationThread = async (
   const found = await conversationParticipant(sql, id)
   if (found === null) return null
   const { participant } = found
-  const [messages, unsupported, attempts, lastInbound, lastDeliveryAt] = await Promise.all([
+  const [messages, unsupported, attempts, lastInbound, deliveries] = await Promise.all([
     listThread(sql, participant),
     listUnsupported(sql, participant),
     participant.waId === null ? Promise.resolve([]) : listOpenAttempts(sql, participant.waId),
     lastInboundAt(sql, participant),
-    lastDeliveryReceivedAt(sql),
+    deliveryHealth(sql, now),
   ])
 
   const items: ThreadItem[] = [
@@ -138,6 +170,6 @@ export const conversationThread = async (
     items,
     window: serviceWindow(lastInbound, now),
     canReply: participant.waId !== null,
-    lastDeliveryAt,
+    deliveries,
   }
 }

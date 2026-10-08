@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { deliveryAlerts, type DeliveryCounts } from '../../lib/delivery-alerts.ts'
+
 /** Cada cuánto se consulta mientras la pestaña está visible (T-0025: polling, no push). */
 export const POLL_INTERVAL_MS = 3000
 
@@ -87,12 +89,42 @@ export const participantLabel = (l: Label): string => {
   return `${name} · ${l.bsuid ?? 'sin identificador'}`
 }
 
-export function Freshness({ lastDeliveryAt, poll }: { readonly lastDeliveryAt: string | null; readonly poll: Poll<unknown> }) {
+/** El estado de las entregas de webhook, como lo devuelven la lista y el hilo. */
+export interface Deliveries extends DeliveryCounts {
+  readonly lastDeliveryAt: string | null
+  readonly lastProcessedAt: string | null
+  readonly oldestUnprocessedAt: string | null
+}
+
+/**
+ * Recibir no es procesar: una entrega recibida y no procesada no aparece en el hilo. Si
+ * hay `failed` o atascadas, o entregas recientes con todo de otro número, se dice, para
+ * que la hora de la última entrega no aparente que todo está al día (T-0026).
+ */
+export function Freshness({ deliveries, poll }: { readonly deliveries: Deliveries | null; readonly poll: Poll<unknown> }) {
+  const alerts = deliveries === null ? [] : deliveryAlerts(deliveries)
   return (
-    <p className="muted">
-      Última entrega de webhook recibida: <strong>{formatTime(lastDeliveryAt)}</strong>
-      {poll.state === 'error' ? <span className="error"> · {poll.message}</span> : null}
-    </p>
+    <>
+      <p className="muted">
+        Última entrega de webhook recibida: <strong>{formatTime(deliveries?.lastDeliveryAt ?? null)}</strong>
+        {' · '}último procesamiento: <strong>{formatTime(deliveries?.lastProcessedAt ?? null)}</strong>
+        {poll.state === 'error' ? <span className="error"> · {poll.message}</span> : null}
+      </p>
+      {deliveries !== null && alerts.includes('backlog') ? (
+        <p className="notice error" role="alert">
+          Hay entregas de webhook sin procesar: {String(deliveries.failed)} con error y {String(deliveries.stalled)}{' '}
+          atascadas, la más vieja de {formatTime(deliveries.oldestUnprocessedAt)}. Sus mensajes pueden faltar en
+          los hilos hasta que se reprocesen.
+        </p>
+      ) : null}
+      {deliveries !== null && alerts.includes('ignored') ? (
+        <p className="notice error" role="alert">
+          {String(deliveries.ignored)} entrega(s) de las últimas 24 h traían solo mensajes de otro número y no se
+          guardaron. Si WHATSAPP_PHONE_NUMBER_ID no es el phone_number_id del número de la prueba, corregilo: el
+          reproceso las recupera.
+        </p>
+      ) : null}
+    </>
   )
 }
 

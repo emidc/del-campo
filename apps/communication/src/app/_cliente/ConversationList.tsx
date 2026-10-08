@@ -1,9 +1,9 @@
 'use client'
 
-import { Freshness, formatTime, LogoutButton, participantLabel, usePolling, type Label } from './polling.tsx'
+import { Freshness, formatTime, LogoutButton, participantLabel, usePolling, type Deliveries, type Label } from './polling.tsx'
 
 interface ListData {
-  readonly lastDeliveryAt: string | null
+  readonly deliveries: Deliveries
   readonly conversations: (Label & { readonly id: number; readonly lastMessageAt: string; readonly windowOpen: boolean })[]
 }
 
@@ -17,7 +17,7 @@ export function ConversationList() {
         <h1>Conversaciones</h1>
         <LogoutButton />
       </header>
-      <Freshness lastDeliveryAt={data?.lastDeliveryAt ?? null} poll={poll} />
+      <Freshness deliveries={data?.deliveries ?? null} poll={poll} />
       {data === null ? (
         <p className="muted">Cargando…</p>
       ) : data.conversations.length === 0 ? (

@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs'
 export const TEST_APP_SECRET = 'secreto-de-prueba-no-es-de-meta'
 export const TEST_VERIFY_TOKEN = 'token-de-prueba'
 export const WEBHOOK_URL = 'https://receptor.example.test/webhook'
+/** El `phone_number_id` de los fixtures sintéticos. Los `real-*` traen otro. */
+export const TEST_PHONE_NUMBER_ID = '800000000000001'
 
 export const readFixture = (name: string): string =>
   readFileSync(new URL(`../../fixtures/${name}`, import.meta.url), 'utf8')

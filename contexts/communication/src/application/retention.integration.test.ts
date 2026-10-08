@@ -3,8 +3,10 @@ import { after, before, beforeEach, describe, it } from 'node:test'
 
 import type { Sql } from '../persistence/database.ts'
 import { openTestDatabase, truncateAll } from '../persistence/testing.ts'
-import { purgeExpiredDeliveries } from './operations.ts'
-import { readFixture, sign, statusPayload, TEST_APP_SECRET, TEST_VERIFY_TOKEN, textPayload, webhookPost } from './testing.ts'
+import { recordDelivery } from '../persistence/store.ts'
+import { applyRetention, purgeExpiredDeliveries } from './operations.ts'
+import { reprocessDeliveries } from './reprocess.ts'
+import { readFixture, sign, statusPayload, TEST_APP_SECRET, TEST_PHONE_NUMBER_ID, TEST_VERIFY_TOKEN, textPayload, webhookPost } from './testing.ts'
 import { createWebhookHandler, deliveryStore } from './webhook.ts'
 
 let sql: Sql
@@ -12,7 +14,12 @@ let deliver: (body: string) => Promise<void>
 
 before(async () => {
   sql = await openTestDatabase()
-  const handle = createWebhookHandler({ verifyToken: TEST_VERIFY_TOKEN, appSecret: TEST_APP_SECRET, store: deliveryStore(sql) })
+  const handle = createWebhookHandler({
+    verifyToken: TEST_VERIFY_TOKEN,
+    appSecret: TEST_APP_SECRET,
+    phoneNumberId: TEST_PHONE_NUMBER_ID,
+    store: deliveryStore(sql),
+  })
   deliver = async (body) => {
     const { process } = await handle(webhookPost(body, sign(body)))
     await process?.()
@@ -52,9 +59,27 @@ describe('retención de entregas crudas (D-0065)', () => {
     assert.equal(await purgeExpiredDeliveries(sql, now), 1)
   })
 
-  it('también borra las fallidas: la retención es de 30 días para todo el crudo', async () => {
+  it('no borra las failed ni las pending vencidas: son la única copia de lo no recuperado (T-0026)', async () => {
     await deliver('no es json')
+    await recordDelivery(sql, textPayload({ wamid: 'wamid.SYNTH-R-PEND', timestamp: 1790000000 }))
+    await deliver(textPayload({ wamid: 'wamid.SYNTH-R-OK', timestamp: 1790000000 }))
     await sql`update communication.webhook_delivery set received_at = now() - interval '31 days'`
+
     assert.equal(await purgeExpiredDeliveries(sql), 1)
+    const left = await sql<{ processing: string }[]>`select processing from communication.webhook_delivery order by id`
+    assert.deepEqual(left.map((r) => r.processing), ['failed', 'pending'])
+    const result = await applyRetention(sql)
+    assert.deepEqual([result.deliveries, result.unprocessedKept], [0, 2])
+  })
+
+  it('una vez reprocesada, la vencida entra en la retención y su mensaje queda', async () => {
+    await recordDelivery(sql, textPayload({ wamid: 'wamid.SYNTH-R-TARDE', timestamp: 1790000000 }))
+    await sql`update communication.webhook_delivery set received_at = now() - interval '31 days'`
+    assert.equal(await purgeExpiredDeliveries(sql), 0)
+
+    assert.equal((await reprocessDeliveries(sql, { phoneNumberId: TEST_PHONE_NUMBER_ID })).processed, 1)
+    assert.equal(await purgeExpiredDeliveries(sql), 1)
+    assert.equal(await count('webhook_delivery'), 0)
+    assert.equal(await count('message'), 1)
   })
 })

@@ -11,7 +11,7 @@
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
-import { parseDelivery, type ParsedDelivery } from '../domain/payload.ts'
+import { normalizePhoneNumberId, parseDelivery, type ParsedDelivery } from '../domain/payload.ts'
 import type { Sql } from '../persistence/database.ts'
 import { markDeliveryFailed, processDelivery, recordDelivery, type Delivery } from '../persistence/store.ts'
 
@@ -20,13 +20,14 @@ export const MAX_BODY_BYTES = 1024 * 1024
 
 export interface DeliveryStore {
   record(bodyRaw: string): Promise<Delivery>
-  process(delivery: Delivery, parsed: ParsedDelivery): Promise<void>
+  /** `phoneNumberFilter`: el número contra el que se filtró `parsed`. */
+  process(delivery: Delivery, parsed: ParsedDelivery, phoneNumberFilter: string): Promise<void>
   fail(deliveryId: number, error: unknown): Promise<void>
 }
 
 export const deliveryStore = (sql: Sql): DeliveryStore => ({
   record: (bodyRaw) => recordDelivery(sql, bodyRaw),
-  process: (delivery, parsed) => processDelivery(sql, delivery, parsed),
+  process: (delivery, parsed, phoneNumberFilter) => processDelivery(sql, delivery, parsed, phoneNumberFilter),
   fail: (deliveryId, error) => markDeliveryFailed(sql, deliveryId, error),
 })
 
@@ -36,6 +37,11 @@ export interface WebhookConfig {
   /** El App Secret de la app de Meta. Obligatorio: no hay modo sin firma. */
   readonly appSecret: string
   readonly store: DeliveryStore
+  /**
+   * El número de Del Campo que opera el contexto. Lo de otro número de la WABA no se
+   * persiste (CO01 §3); una entrega que solo trae eso queda `ignored`, no `processed`.
+   */
+  readonly phoneNumberId: string
   /** Solo conteos e ids técnicos: nada de contenido, teléfonos ni `wamid` (R-19). */
   readonly log?: (line: string) => void
 }
@@ -67,6 +73,8 @@ export const createWebhookHandler = (config: WebhookConfig): ((request: Request)
   if (config.appSecret === '') throw new Error('falta el App Secret: el receptor no acepta entregas sin firma')
   if (config.verifyToken === '') throw new Error('falta el token de verificación del webhook')
   const log = config.log ?? (() => undefined)
+  const phoneNumberId = normalizePhoneNumberId(config.phoneNumberId)
+  if (phoneNumberId === null) throw new Error('el phone_number_id del receptor no es numérico')
 
   const verify = (url: URL): WebhookResult => {
     const q = url.searchParams
@@ -105,12 +113,12 @@ export const createWebhookHandler = (config: WebhookConfig): ((request: Request)
         return
       }
       try {
-        const parsed = parseDelivery(payload)
-        await config.store.process(delivery, parsed)
+        const parsed = parseDelivery(payload, { phoneNumberId })
+        await config.store.process(delivery, parsed, phoneNumberId)
         log(
           `entrega ${String(delivery.id)}: ${String(parsed.texts.length)} textos, ` +
             `${String(parsed.statuses.length)} estados, ${String(parsed.unsupported.length)} fuera de alcance, ` +
-            `${String(parsed.discarded.length)} descartados`,
+            `${String(parsed.discarded.length)} descartados, ${String(parsed.ignored)} de otro número`,
         )
       } catch (error) {
         await config.store.fail(delivery.id, error)
