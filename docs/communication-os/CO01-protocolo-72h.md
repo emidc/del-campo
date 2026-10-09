@@ -21,11 +21,12 @@ Estado: **PREPARACIÓN; inicio formal no fijado**. No modifica umbrales ni decis
 - [ ] Decidir cadencia del reproceso: el cron versionado es diario; para el ensayo se
   propone además ejecución manual supervisada al revisar cada bloque, sin sustituir
   la comprobación de la ejecución automática.
-- [ ] Preparar y verificar el script de aceptación que compare el registro externo
-  con la base; todavía no existe en esta base del repositorio. El owner lo ejecutará
-  contra la base alojada. No usar el conteo de filas de la UI como sustituto.
-- [ ] Completar el plan concreto de caída y restauración, su verificación local y la
-  revisión independiente; coordinar el horario con los participantes antes de aplicarlo.
+- [x] Script de aceptación implementado y probado localmente; ver
+  `CO01-medicion-y-recuperacion.md`. El owner lo ejecutará contra la base alojada.
+  No usar el conteo de filas de la UI como sustituto.
+- [ ] Coordinar el horario del plan en `CO01-medicion-y-recuperacion.md`. El SQL de
+  fallo/restauración se prueba localmente; la pausa de Vercel y reintentos de Meta
+  requieren ejecución y evidencia real del owner.
 
 No tocar producción desde una sesión de agente. Estas comprobaciones las ejecuta el
 owner. No se necesita pegar aquí contraseñas, tokens, teléfonos ni payloads reales.
@@ -120,5 +121,5 @@ identificadores personales ni cuerpos completos. Una fila sin evidencia queda PE
 una que incumple queda NO CUMPLE. No declarar aceptación por transcurrir 72 horas.
 
 Pendientes de T-0026 que siguen fuera de esta preparación: guía de despliegue completa,
-fixtures reales redactados, script de medición, revisión final, postura Data API/login,
+fixtures reales redactados, medición real, revisión final, postura Data API/login,
 dominio y decisión de retención. Esta guía no los cierra.
