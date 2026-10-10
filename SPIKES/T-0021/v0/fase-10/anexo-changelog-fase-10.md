@@ -1,5 +1,7 @@
 # Anexo · fila propuesta para el changelog · Fase 10
 
+> **Aplicada** el 2026-10-10 tras la aprobación de Emiliano (01:33 UTC) como CH-097 (el último id seguía siendo CH-096). Esta tabla queda como borrador.
+
 > 2026-10-10 · metodologia v0.3 y protocolo v0.3, **sin cambio**. Es la fila de una corrida y no cambia ninguna regla.
 > Releído hoy: el último id de `changelog-metodologia.md` es **CH-096** (PR #67). La fila no se agrega hasta que Emiliano apruebe el "Para decidir" de `reporte-fase-10.md`, y el id se vuelve a leer al aplicarla.
 

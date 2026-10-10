@@ -80,4 +80,4 @@ Son los tres que el reporte de la Fase 8 (§5) señaló como inconsistentes con 
 
 ## Para decidir
 
-**1. Registrar la corrida.** Con tu aprobación agrego a `changelog-metodologia.md` la fila de `anexo-changelog-fase-10.md`: CH-097, corrida F10-REG-01, v0.3 sin cambio. No hay ninguna regresión nueva que aprobar.
+**1. Registrar la corrida.** Aprobado por Emiliano el 2026-10-10 01:33 UTC y aplicado en `changelog-metodologia.md` como CH-097 (corrida F10-REG-01, v0.3 sin cambio). No hay ninguna regresión nueva que aprobar.
