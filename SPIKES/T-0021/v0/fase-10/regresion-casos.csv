@@ -1,0 +1,21 @@
+caso,version_anterior,version_nueva,resultado_anterior,resultado_nuevo,estado,circular,regla_que_produjo_el_cambio,fila_changelog,nota
+CP-01,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,FAIL — combinación,FAIL — combinación (secundaria: FAIL — calibración),sin_cambio,no,D12 / metodología §6.5 (umbrales 20/50/75),CH-093,banda fuera de lo adjudicado: CP-01-R1 Media (C 20; esperada Alta) | igual que F9B-CAL-01 juego E
+CP-02,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-03,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,no,,,igual que F9B-CAL-01 juego E
+CP-04,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,no,,,igual que F9B-CAL-01 juego E
+CP-05,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,FAIL — calibración,regresionó,no,D12 / metodología §6.5 (umbrales 20/50/75),CH-093,"banda fuera de lo adjudicado: CP-05-R1 Alta (C 64; esperada Media) | aprobado por Emiliano: 3a (2026-10-08 21:44 UTC), adjudicación original conservada como evidencia del límite de max(); registrado en CH-093 | igual que F9B-CAL-01 juego E"
+CP-06,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-07,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,FAIL — ranking,FAIL — ranking,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-08,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-09,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,no,,,expectativa blanda no alcanzada: CP-09-R1 Media (C 30; esperada Alta) | igual que F9B-CAL-01 juego E
+CP-10,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-11,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,no,,,igual que F9B-CAL-01 juego E
+CP-12,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,FAIL — combinación,FAIL — combinación,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-13,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-14,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,contra la adjudicación original (revisada en la Fase 5): CP-14-R1 Baja (C 15; esperada Alta) | igual que F9B-CAL-01 juego E
+CP-15,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,expectativa blanda no alcanzada: CP-15-R1 Media (C 25; esperada Alta) | igual que F9B-CAL-01 juego E
+CP-16,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,FAIL — combinación,FAIL — combinación,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
+CP-17,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,FAIL — calibración,regresionó,no,D12 / metodología §6.5 (umbrales 20/50/75),CH-093,"banda fuera de lo adjudicado: CP-17-R1 Media (C 30; esperada Alta) | aprobado por Emiliano: 1A y 1a (2026-10-08 21:44 y 21:52 UTC), adoptó 20/50/75 sabiendo este FAIL; registrado en CH-093 | igual que F9B-CAL-01 juego E"
+CP-18,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,FAIL — calibración,regresionó,sí,D12 / metodología §6.5 (umbrales 20/50/75),CH-093,"banda fuera de lo adjudicado: CP-18-R1 antes Media (C 45; esperada Alta); CP-18-R1 después Media (C 45; esperada Alta) | aprobado por Emiliano: 1A y 1a (2026-10-08 21:44 y 21:52 UTC), adoptó 20/50/75 sabiendo este FAIL; registrado en CH-093 | igual que F9B-CAL-01 juego E"
+CP-19,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,no,,,igual que F9B-CAL-01 juego E
+CP-20,"metodologia v0.2 (F5-REG-01, sin umbrales)",metodologia v0.3 / protocolo v0.3,PASS,PASS,sin_cambio,sí,,,igual que F9B-CAL-01 juego E
