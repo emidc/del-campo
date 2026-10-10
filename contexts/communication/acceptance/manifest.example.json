@@ -1,0 +1,12 @@
+{
+  "start": "2026-10-10T10:00:00-03:00",
+  "end": "2026-10-13T10:00:00-03:00",
+  "phoneNumberId": "800000000000001",
+  "participants": {"P1": 1, "P2": 2},
+  "deployedAndSubscribed": false,
+  "outage": null,
+  "messages": [
+    {"marker":"CO01-P1-101","direction":"inbound","sentAt":"2026-10-10T10:01:00-03:00","phoneOrder":1,"seenInUi":false,"seenOnPhone":false,"fromUi":false,"observedStatus":null},
+    {"marker":"CO01-P2-101","direction":"inbound","sentAt":"2026-10-10T10:02:00-03:00","phoneOrder":1,"seenInUi":false,"seenOnPhone":false,"fromUi":false,"observedStatus":null}
+  ]
+}
