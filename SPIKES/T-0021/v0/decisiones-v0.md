@@ -1,6 +1,7 @@
-# Decisiones de la metodología de criticidad · v0.3
+# Decisiones de la metodología de criticidad · v1 candidate
 
-> Fecha: 2026-10-08 · Versión: **v0.3** (aprobada por Emiliano, 2026-10-08 21:52 UTC, Fase 9) · v0.2 aprobada el 2026-10-07 02:02 UTC (Fase 5; congelada para la Fase 8) · v0.1 aprobada el 2026-10-05 20:46 UTC (Fase 3) · v0.0 aprobada en la Fase 0 del plan EMI-15 + EMI-41.
+> Fecha: 2026-10-11 · Versión: **v1 candidate** (aprobada por Emiliano, 2026-10-11 13:21 UTC, Fase 11; congelada para la Fase 12) · v0.3 aprobada el 2026-10-08 21:52 UTC (Fase 9) · v0.2 aprobada el 2026-10-07 02:02 UTC (Fase 5; congelada para la Fase 8) · v0.1 aprobada el 2026-10-05 20:46 UTC (Fase 3) · v0.0 aprobada en la Fase 0 del plan EMI-15 + EMI-41.
+> v1 candidate aplica la Fase 11 (`fase-11/reporte-fase-11.md`, `fase-11/cambios-decisiones-v1.md`, CH-099 y CH-104): D17 cubre los seguros obligatorios y se cierran las decisiones faltantes #3 y #12. La especificación ejecutable es `v1/metodologia-v1-candidate.md`; `metodologia-v0.md` queda como registro de la v0.3.
 > v0.3 aplica la Fase 9 (`fase-9/reporte-fase-9.md`, CH-093 y CH-094): umbrales de banda en D12 y redacción de D23 sobre el remoto. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.3).
 > v0.2 aplica la Fase 5 (`fase-5/log-adjudicacion.md`, CH-080 a CH-088): cambia D4, D8, D10, D14, D15 y D21. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.2).
 > v0.1 aplica `anexo-cambios-fase-3.md`: cambia D4, D5, D8, D10, D13, D14, D15, D16, D17, D18, D19, D20 y D21, y agrega D23–D25. La especificación ejecutable es `metodologia-v0.md` (metodologia v0.1).
@@ -243,8 +244,8 @@
 - **Uso en v1:** plan de acción.
 
 ### D17 · Seguro y transferencia
-- **Texto vigente:** La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto. La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`. Los eventos de una póliza (firma, consumo del límite, renovación) tienen su propio historial en `risk-transfer`, enlazado desde el riesgo; no generan una reevaluación del riesgo ni usan `motivo`.
-- **Estado:** decidida (plan, Fase 0 "Seguro y transferencia" y Fase 15); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC)
+- **Texto vigente:** La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto, también cuando la consecuencia la paga un seguro obligatorio (ART u otros) (metodología §4.1.7). La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`. Los eventos de una póliza (firma, consumo del límite, renovación) tienen su propio historial en `risk-transfer`, enlazado desde el riesgo; no generan una reevaluación del riesgo ni usan `motivo`.
+- **Estado:** decidida (plan, Fase 0 "Seguro y transferencia" y Fase 15); texto modificado en v0.1 (Fase 3, aprobada por Emiliano 2026-10-05 20:46 UTC) y en v1 candidate (Fase 11, CH-099: seguros obligatorios, aprobada por Emiliano 2026-10-11)
 - **Antes:** v0.0: "La transferencia aseguradora no modifica la criticidad. La criticidad utiliza siempre impacto económico bruto. La exposición económica retenida se registra y visualiza separadamente en `risk-transfer`." Antes de v0.0: "Se propone conservar impacto económico bruto e impacto económico retenido. La cobertura puede reducir el retenido y modificar I efectivo si esa dimensión era dominante" (pre-revisión D17): **superada**. Antes aún: "baja el impacto económico para la empresa" (plan-pasos §6).
 - **Origen del cambio:** Emiliano: un evento de póliza no cambia el riesgo, así que no usa `cambio_contexto`. (metodologia v0.1, Fase 3).
 - **Qué la pone a prueba:** Fase 2 #9, #LC.
@@ -378,7 +379,7 @@ La Fase 1 las ajusta (en particular A9: evaluación del plan y revisión I12).
 |---|---|---|
 | 1 | A qué está condicionado I | Resuelta por D19. |
 | 2 | Corte P/V | Resuelta por D15. |
-| 3 | Anclas de I y magnitud económica | Magnitud resuelta por D5 (respuestas, pregunta 2); anclas por nivel abiertas → Fase 3. |
+| 3 | Anclas de I y magnitud económica | Magnitud resuelta por D5 (respuestas, pregunta 2); anclas por nivel resueltas en metodología §3–§5 (v0.1, Fase 3). (CH-104) |
 | 4 | Valor plausible o extremo superior | Resuelta por D8. |
 | 5 | Bruto o retenido | Resuelta por D17. |
 | 6 | Campo `motivo` | Resuelta por D22. |
@@ -387,7 +388,7 @@ La Fase 1 las ajusta (en particular A9: evaluación del plan y revisión I12).
 | 9 | Granularidad | Resuelta por D21. |
 | 10 | Procedimiento de calibración | Resuelta por D12 (procedimiento de la Fase 9, sin cuota de distribución). |
 | 11 | ¿Un riesgo remoto puede llegar a Crítica? | Resuelta en v0.3 (Fase 9, CH-094): con los umbrales de D12, P 1 llega como máximo a Media y P 2 a Alta; sin piso de banda (D23). |
-| 12 | Evaluaciones vivas al cambiar la versión | Parcial: D22 da el valor de `motivo`; la regla de qué se hace con ellas → Fase 1 (sección de historial). |
+| 12 | Evaluaciones vivas al cambiar la versión | Resuelta: D22 da el valor de `motivo` y protocolo §6.4 la regla de qué se hace con las evaluaciones vivas al cambiar la versión. (CH-104) |
 
 ---
 

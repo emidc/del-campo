@@ -3,8 +3,10 @@
 
 Combinación (se recalcula desde factores guardados): F11-5 banderas con una dimensión `unknown` en
 evaluables, F11-6 I efectivo `n` cuando el máximo de la `unknown` no supera `n` (B01 y U07 no cambian
-ningún cálculo). Asignación: las fichas nuevas de `reevaluacion/fichas-reevaluadas-factores.csv`
-(`reevaluar.py`) reemplazan a la anterior de su riesgo; ninguna ficha anterior se toca. Reusa las
+ningún cálculo), F11-7 opción c (el peor creíble fuera del rango de tres niveles dispara bandera).
+Asignación: las fichas nuevas de `reevaluacion/fichas-reevaluadas-factores.csv` (`reevaluar.py`) y
+de `reevaluacion/fichas-ronda-2-factores.csv` (`reevaluar-ronda-2.py`) se encadenan por
+`evaluacion_anterior_id`; la última de cada cadena es la vigente. Ninguna ficha anterior se toca. Reusa las
 funciones de `fase-10/regresion.py` y `fase-9/calibrar.py`. Escribe en RAIZ/v0/fase-11/.
 Uso: python3 regresion.py RAIZ
 """
@@ -45,17 +47,31 @@ def unk(f, d):
     return f[f"i_{d}_valor"].strip() == "unknown"
 
 
+def nivel_bandera(f, d):
+    """Nivel con el que una dimensión entra a las banderas (protocolo §2.3, metodología §8.2).
+
+    [F11-5] `unknown`: su `_max` registrado (sin `_max`, no dispara). [F11-7, opción c de Emiliano]
+    con valor: el valor, salvo que el peor creíble quede fuera del rango de tres niveles
+    (`_max − (_min o valor) > 2`); entonces su `_max`, como un `unknown`.
+    """
+    if unk(f, d):
+        return num(f[f"i_{d}_max"])
+    v, mn, mx = num(f[f"i_{d}_valor"]), num(f[f"i_{d}_min"]), num(f[f"i_{d}_max"])
+    if v is None:
+        return None
+    base = mn if mn is not None else v
+    return mx if mx is not None and mx - base > 2 else v
+
+
 def extrema_v1(f):
-    """Protocolo §2.3 [F11-5]: valor 5, o `unknown` con `_max` 5, evaluable o no."""
-    dims = [d for d in DIMS if num(f[f"i_{d}_valor"]) == 5 or (unk(f, d) and num(f[f"i_{d}_max"]) == 5)]
+    """Protocolo §2.3 [F11-5] [F11-7 c]: alguna dimensión llega a 5 por `nivel_bandera`, evaluable o no."""
+    dims = [d for d in DIMS if nivel_bandera(f, d) == 5]
     return bool(dims), ";".join(dims)
 
 
 def safety_v1(f):
-    p = num(f["i_pers_valor"])
-    if p is not None:
-        return p >= 4
-    return unk(f, "pers") and (num(f["i_pers_max"]) or 0) >= 4
+    n = nivel_bandera(f, "pers")
+    return n is not None and n >= 4
 
 
 def i_efectivo_v1(f):
@@ -117,8 +133,17 @@ def completar(f):
 
 
 def regresion_emi41(say):
-    nuevas = {f["risk_id"]: completar(dict(f)) for f in leer(os.path.join(OUT, "reevaluacion", "fichas-reevaluadas-factores.csv"))}
-    escribir(os.path.join("reevaluacion", "fichas-reevaluadas.csv"), list(nuevas.values()))
+    ronda1 = [completar(dict(f)) for f in leer(os.path.join(OUT, "reevaluacion", "fichas-reevaluadas-factores.csv"))]
+    ronda2 = [completar(dict(f)) for f in leer(os.path.join(OUT, "reevaluacion", "fichas-ronda-2-factores.csv"))]
+    escribir(os.path.join("reevaluacion", "fichas-reevaluadas.csv"), ronda1)
+    escribir(os.path.join("reevaluacion", "fichas-ronda-2.csv"), ronda2)
+    # La ficha vigente de cada riesgo es la última de la cadena `evaluacion_anterior_id` (ninguna se sobrescribe).
+    siguiente = {(f["evaluacion_anterior_id"], f["risk_id"]): f for f in ronda1 + ronda2}
+
+    def vigente(f):
+        while (f["evaluacion_id"], f["risk_id"]) in siguiente:
+            f = siguiente[(f["evaluacion_id"], f["risk_id"])]
+        return f
     filas, difs_sin_cambio = [], []
     fuentes = [("agente", sorted(glob.glob(os.path.join(F8, "agente", "*", "fichas.csv")))),
                ("emiliano", [os.path.join(F8, "emiliano", "fichas-emiliano.csv")])]
@@ -127,9 +152,10 @@ def regresion_emi41(say):
         for p in paths:
             for f in leer(p):
                 ant[f["risk_id"]] = {"id": f["risk_id"], "f": f}
-                fn = dict(nuevas[f["risk_id"]]) if evaluador == "agente" and f["risk_id"] in nuevas else dict(f)
+                fn = dict(vigente(f))
+                reev = fn["evaluacion_id"] != f["evaluacion_id"]
                 fn["i_efectivo"] = i_efectivo_v1(fn) if fn["tipo_objeto"] != "padre" else fn["i_efectivo"]
-                nue[f["risk_id"]] = {"id": f["risk_id"], "f": fn, "reev": evaluador == "agente" and f["risk_id"] in nuevas}
+                nue[f["risk_id"]] = {"id": f["risk_id"], "f": fn, "reev": reev}
         for objs in (ant, nue):
             for o in objs.values():
                 if o["f"]["tipo_objeto"] != "padre":
@@ -172,10 +198,10 @@ def regresion_emi41(say):
             r_ant = f10.resultado(a["ev"], a["c"], pos["ant"].get(rid, "—"), ba, ea, sa, True) + f" · I {ia}"
             r_nue = f10.resultado(n["ev"], n["c"], pos["nue"].get(rid, "—"), bn, en, sn, True) + f" · I {in_}"
             marcas, cambios = [], []
-            if n["reev"]:
+            fac = [k for k in FACT if (fa[k + "_valor"], fa[k + "_min"], fa[k + "_max"]) != (fn[k + "_valor"], fn[k + "_min"], fn[k + "_max"])]
+            if n["reev"] and fac:
                 ms = [m for m in fn["reglas_aplicadas"].split(";") if m.startswith("F11-")]
                 marcas += ms
-                fac = [k for k in FACT if (fa[k + "_valor"], fa[k + "_min"], fa[k + "_max"]) != (fn[k + "_valor"], fn[k + "_min"], fn[k + "_max"])]
                 cambios.append("factores " + ", ".join(f"{k} {fa[k+'_valor']}→{fn[k+'_valor']}" + (f" (máx {fa[k+'_max'] or '—'}→{fn[k+'_max'] or '—'})" if fa[k+'_max'] != fn[k+'_max'] else "") for k in fac))
             if (a["ev"], a["c"]) != (n["ev"], n["c"]):
                 cambios.append(f"C {a['c'] if a['ev'] else 'no evaluable'}→{n['c'] if n['ev'] else 'no evaluable'}")
@@ -191,7 +217,7 @@ def regresion_emi41(say):
                     marcas.append("F11-6")
             if pos["ant"].get(rid) != pos["nue"].get(rid):
                 cambios.append(f"posición {pos['ant'].get(rid, '—')}→{pos['nue'].get(rid, '—')}")
-                if not n["reev"] and not marcas:
+                if not marcas:
                     marcas.append("otros riesgos de la empresa")
             if padre and (a.get("pri") or {}).get("id") != (n.get("pri") or {}).get("id"):
                 cambios.append(f"hijo prioritario {(a.get('pri') or {}).get('id')}→{(n.get('pri') or {}).get('id')}")
@@ -204,7 +230,9 @@ def regresion_emi41(say):
                 "que_cambio": "; ".join(cambios),
                 "regla_que_produjo_el_cambio": "; ".join(f"{m} {REGLA[m]}" if m in REGLA else m for m in marcas),
                 "fila_changelog": "; ".join(CH[m] + " (prov.)" for m in marcas if m in CH),
-                "nota": "ficha nueva pending; no es una ficha de Emiliano" if n["reev"] else "",
+                "nota": ("" if not n["reev"] else
+                         "propuesta pending del agente sobre la ficha de Emiliano" if evaluador == "emiliano" else
+                         "ficha nueva pending; no es una ficha de Emiliano"),
             })
     escribir("regresion-emi41.csv", filas)
     say(f"VERIF fichas sin reevaluar con C_raw o evaluabilidad distinta: {len(difs_sin_cambio)} {difs_sin_cambio}")

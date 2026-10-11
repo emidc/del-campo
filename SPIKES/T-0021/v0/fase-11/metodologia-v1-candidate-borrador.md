@@ -1,4 +1,6 @@
 > **Borrador de la v1 candidate (Fase 11b).** Copia de `metodologia-v0.md` (metodologia v0.3) con las correcciones que Emiliano aprobó el 2026-10-11 12:18 UTC (`fase-11/decisiones-11a.md`), marcadas **[F11-n]**. F11-1 EV-01, F11-2 EV-03, F11-3 EV-04, F11-4 EV-05, F11-5 EV-16, F11-6 EV-18, F11-7 EV-29, F11-8 EV-30, F11-9 EV-32, F11-10 uso del techo plausible. Las correcciones se ajustaron dentro de la muestra (casos de propiedad y EMI-41): la primera evidencia independiente sobre esta versión es la Fase 12. No reemplaza a `metodologia-v0.md`.
+>
+> **Segunda ronda (2026-10-11, respuesta de Emiliano de las 13:21 UTC al "Para aprobar").** Opción c para el peor creíble y las banderas (§8.1, §8.2, §9.1, §9.2); F11-4 por sustituibilidad real, sin umbral (§4.4).
 
 # Metodología de criticidad · especificación ejecutable
 
@@ -208,7 +210,7 @@ Consecuencias humanas para trabajadores, clientes, consumidores y público. No s
 ### 4.4 Continuidad [H]
 Consecuencia operativa no monetaria. La pérdida económica de esa interrupción va a Económico (CP-13).
 
-"Función crítica" = actividad sin la cual la organización no entrega su producto o servicio principal. "Interrupción" = pérdida de al menos la mitad de la capacidad de una función crítica. Una degradación menor a la mitad se evalúa un nivel por debajo del que le correspondería a la misma duración como interrupción. **[F11-4]** Si la función pierde una unidad entre muchas equivalentes y sigue funcionando sin degradación material de capacidad, throughput o nivel de servicio, no es degradación de una función crítica: es nivel 1.
+"Función crítica" = actividad sin la cual la organización no entrega su producto o servicio principal. "Interrupción" = pérdida de al menos la mitad de la capacidad de una función crítica. Una degradación menor a la mitad se evalúa un nivel por debajo del que le correspondería a la misma duración como interrupción. **[F11-4]** Si la función pierde una unidad entre muchas equivalentes y sigue funcionando sin degradación material de capacidad, throughput o nivel de servicio, no es degradación de una función crítica: es nivel 1. Se juzga por sustituibilidad real: las demás unidades tienen que tomar el trabajo de la que se pierde. No hay un umbral fijo de unidades ni de porcentaje (Emiliano, 2026-10-11 13:21 UTC).
 
 | Nivel | Duración de la interrupción bruta de funciones críticas |
 |---|---|
@@ -242,7 +244,7 @@ Hipótesis de calibración: qué quiere decir cada nivel en las cuatro dimension
 | **4** | **Daño grave y duradero que compromete el año, sin amenazar la existencia** | **30–100% RO** | **Una muerte o daño irreversible grave** | **2 semanas – 3 meses** | **Suspensión o clausura temporal** |
 | 5 | Amenaza la existencia de la organización o produce muertes múltiples | ≥ 100% RO | Más de una muerte | > 3 meses o cese | Pérdida definitiva de habilitación |
 
-**Casos de origen:** CP-11 (ancla económica relativa al RO), CP-13 (la pérdida económica de una interrupción va a Económico y la parte operativa a Continuidad), CP-16 (I-continuidad bruta), CP-02 y CP-15 (umbral de Personas para `safety_critical`). **[F11-2]** S19-R06 y S37-R03 (ART). **[F11-4]** Las A8 de continuidad del agente (S03-R01, S20-R02, S33-R04, S33-R06, entre otras; contraste C33). **[F11-8]** Las A12 de Personas del agente (comercio-0002) y las cuatro diferencias de `safety_critical` de la muestra.
+**Casos de origen:** CP-11 (ancla económica relativa al RO), CP-13 (la pérdida económica de una interrupción va a Económico y la parte operativa a Continuidad), CP-16 (I-continuidad bruta), CP-02 y CP-15 (umbral de Personas para `safety_critical`). **[F11-2]** S19-R06 y S37-R03 (ART). **[F11-4]** Las A8 de continuidad del agente: aplica donde las demás unidades toman el trabajo de la que se pierde (S03-R01, S07-R07, S11-R04, S27-R02); no aplica donde la unidad no es sustituible (S28-R02, S32-R01, S33-R04; contraste C33). **[F11-8]** Las A12 de Personas del agente (comercio-0002) y las cuatro diferencias de `safety_critical` de la muestra.
 
 ---
 
@@ -358,7 +360,7 @@ Cada paso se aplica sólo si el anterior empata.
 ## 8. Banderas
 
 ### 8.1 `consecuencia_extrema` (D20, sin cambio de disparo)
-- **Disparo:** alguna dimensión de I con `<f>_valor = 5` (respuesta 3).
+- **Disparo:** alguna dimensión de I con `<f>_valor = 5` (respuesta 3). **[F11-5] [F11-7]** También una dimensión `unknown` o con el peor creíble fuera del rango de tres niveles: ver el final de §8.2.
 - **Efecto:** visible y filtrable; no altera la banda ni el ranking.
 - Convive con `safety_critical`. Su frecuencia la mide la Fase 4 (contradicción abierta #3).
 
@@ -370,9 +372,10 @@ Cada paso se aplica sólo si el anterior empata.
 - **Qué no hace:** no fuerza banda, no fija un piso, no mueve el ranking.
 - **[F9] Cierra la contradicción abierta #2**: Con la fórmula y los umbrales vigentes, P 1 llega como máximo a Media y P 2 como máximo a Alta. Alcanzar Crítica requiere P ≥ 3, aunque esa condición no es suficiente. Las banderas garantizan visibilidad y obligaciones de tratamiento, sin imponer un piso de banda.
 - **[F11-5] Riesgo con una dimensión `unknown`** [E]: las dos banderas aplican si la dimensión tiene valor plausible en el umbral, o si es `unknown` y su `<f>_max` registrado alcanza el umbral, sea el riesgo evaluable o no. Un `unknown` sin `<f>_max` registrado no dispara bandera (lo prioriza la cola, §9.5).
+- **[F11-7] Peor creíble fuera del rango de tres niveles** [E]: si un factor con valor registra en `<f>_max` un peor creíble a más de tres niveles del piso de la duda plausible (`<f>_max − <f>_min > 2`; sin `<f>_min`, desde `<f>_valor`; §9.2), las dos banderas lo toman como un `unknown`: aplican si ese `<f>_max` alcanza el umbral. Un rango de hasta tres niveles no dispara por su máximo: vale el valor (D20). No cambia `C_raw`, la banda ni el ranking.
 - Campo nuevo: `safety_critical` (booleano).
 
-**Casos de origen:** CP-02 y CP-15 (bandera de seguridad separada del score, sin forzar banda). **[F11-5]** S31-R05 y S36-R07 (evaluables con Personas `unknown`; Fase 10).
+**Casos de origen:** CP-02 y CP-15 (bandera de seguridad separada del score, sin forzar banda). **[F11-5]** S31-R05 y S36-R07 (evaluables con Personas `unknown`; Fase 10). **[F11-7]** S02-R07 y S22-R06 del agente (con la v0.3 eran no evaluables con la bandera; con F11-7 vuelven al ranking y la conservan).
 
 ---
 
@@ -380,11 +383,11 @@ Cada paso se aplica sólo si el anterior empata.
 
 ### 9.1 Valor plausible, rango y techo
 1. Si hay un valor defendible más plausible, entra en la criticidad (`<f>_valor`). Es la mejor estimación profesional con la información disponible, no el peor valor que no se puede descartar ni el mejor.
-2. Si el evaluador duda entre niveles, registra el rango. El rango no mueve la criticidad; `<f>_max` sólo alimenta el techo (§6.6).
+2. Si el evaluador duda entre niveles, registra el rango. El rango no mueve la criticidad; `<f>_max` sólo alimenta el techo (§6.6). **[F11-7]** Si el peor creíble queda fuera del rango de tres niveles, alimenta también las banderas (§8.2).
 3. La incertidumbre no baja ni sube la criticidad (D9). Va en `uncertainty` con nota de qué falta conocer.
 
 ### 9.2 Cuándo un factor es `unknown` **[PA 8]**
-Hay valor defendible cuando la evidencia disponible permite fijar el nivel, o acotarlo a un rango de como máximo tres niveles contiguos (`<f>_max − <f>_min ≤ 2`) con un valor más plausible dentro. **[F11-7]** El límite de tres niveles se aplica a la duda sobre el valor plausible. Si el valor plausible está fijado o acotado así y el peor creíble (§4.1.4) está más lejos, el factor es evaluable: el peor creíble va a `<f>_max` aunque el rango supere tres niveles, y sólo alimenta el techo y las banderas. Conocer un solo dato suelto no alcanza si no discrimina el nivel (dictamen). Si la evidencia no acota el factor a ese rango, el factor es `unknown`: no se inventa un valor. `<f>_observacion` dice qué falta y `necesidad_validacion` qué hay que averiguar.
+Hay valor defendible cuando la evidencia disponible permite fijar el nivel, o acotarlo a un rango de como máximo tres niveles contiguos (`<f>_max − <f>_min ≤ 2`) con un valor más plausible dentro. **[F11-7]** El límite de tres niveles se aplica a la duda sobre el valor plausible. Si el valor plausible está fijado o acotado así y el peor creíble (§4.1.4) está más lejos, el factor es evaluable: el peor creíble va a `<f>_max` aunque el rango supere tres niveles, y sólo alimenta el techo y las banderas (§8.2), nunca la criticidad ni el ranking. Conocer un solo dato suelto no alcanza si no discrimina el nivel (dictamen). Si la evidencia no acota el factor a ese rango, el factor es `unknown`: no se inventa un valor. `<f>_observacion` dice qué falta y `necesidad_validacion` qué hay que averiguar.
 
 **[F5-1] Datos auxiliares desconocidos.** Un dato auxiliar desconocido (el margen de contribución, la duración exacta, el número exacto de personas) no vuelve `unknown` al factor si la evidencia permite acotarlo a un rango de como máximo tres niveles contiguos **y elegir dentro de él un valor más plausible defendible**. El supuesto y su fundamento quedan escritos en `<f>_observacion`. El tamaño del rango es condición necesaria, no suficiente:
 

@@ -25,9 +25,18 @@ function cargar(fila: Record<string, string>): Ficha {
 const clave = (f: Ficha): string => `${f.evaluacionId}/${f.riskId}`
 const agente = readdirSync(new URL('fase-8/agente/', V0)).flatMap((d) => leerCsv(new URL(`fase-8/agente/${d}/fichas.csv`, V0)).map(cargar))
 const emiliano = leerCsv(new URL('fase-8/emiliano/fichas-emiliano.csv', V0)).map(cargar)
-const nuevas = leerCsv(new URL('fase-11/reevaluacion/fichas-reevaluadas.csv', V0)).map(cargar)
-const reemplazo = new Map(nuevas.map((f) => [`${f.evaluacionAnteriorId}/${f.riskId}`, f]))
-const agenteV1 = agente.map((f) => reemplazo.get(clave(f)) ?? f)
+const ronda1 = leerCsv(new URL('fase-11/reevaluacion/fichas-reevaluadas.csv', V0)).map(cargar)
+const ronda2 = leerCsv(new URL('fase-11/reevaluacion/fichas-ronda-2.csv', V0)).map(cargar)
+const nuevas = [...ronda1, ...ronda2]
+/** La ficha vigente es la última de la cadena `evaluacion_anterior_id` (ninguna se sobrescribe). */
+const siguiente = new Map(nuevas.map((f) => [`${f.evaluacionAnteriorId}/${f.riskId}`, f]))
+function vigente(f: Ficha): Ficha {
+  let x = f
+  for (let n = siguiente.get(clave(x)); n !== undefined; n = siguiente.get(clave(x))) x = n
+  return x
+}
+const agenteV1 = agente.map(vigente)
+const emilianoV1 = emiliano.map(vigente)
 const regresion = leerCsv(new URL('fase-11/regresion-emi41.csv', V0))
 
 /** El `resultado_nuevo` de `regresion-emi41.csv`, recalculado acá. La posición cuenta los riesgos por delante. */
@@ -49,18 +58,24 @@ function resultado(f: Ficha, fichas: readonly Ficha[]): string {
 }
 
 describe('F11-REG-01: fichas reevaluadas y regresión de EMI-41 contra la capa de referencia', () => {
-  it('45 fichas nuevas, una por ficha anterior del agente, sin sobrescribir ninguna', () => {
-    assert.equal(nuevas.length, 45)
-    assert.equal(agente.filter((f) => reemplazo.has(clave(f))).length, 45)
+  it('64 fichas nuevas en dos rondas, encadenadas a la anterior de su riesgo, sin sobrescribir ninguna', () => {
+    assert.equal(ronda1.length, 45)
+    assert.equal(ronda2.length, 19)
+    // Ronda 1: una por ficha del agente. Ronda 2: 17 correcciones de F11-4 sobre la ronda 1 y 2 sobre fichas de Emiliano.
+    assert.equal(agente.filter((f) => siguiente.has(clave(f))).length, 45)
+    assert.equal(ronda1.filter((f) => siguiente.has(clave(f))).length, 17)
+    assert.equal(emiliano.filter((f) => siguiente.has(clave(f))).length, 2)
+    assert.equal(new Set(nuevas.map((f) => f.evaluacionId)).size, 64)
+    for (const f of ronda2.slice(0, 17)) assert.equal(f.motivo, 'correccion_evaluacion', f.evaluacionId)
     for (const f of nuevas) {
-      assert.equal(f.motivo, 'cambio_version_metodologia', f.evaluacionId)
+      assert.ok(['cambio_version_metodologia', 'correccion_evaluacion'].includes(f.motivo), f.evaluacionId)
       assert.equal(f.versionMetodologia, 'metodologia v1 candidate', f.evaluacionId)
       assert.equal(f.crudo.review_status, 'pending', f.evaluacionId)
-      assert.ok(!agente.some((a) => a.evaluacionId === f.evaluacionId), `${f.evaluacionId} pisa un id anterior`)
+      assert.ok(![...agente, ...emiliano].some((a) => a.evaluacionId === f.evaluacionId), `${f.evaluacionId} pisa un id anterior`)
     }
   })
 
-  it('los derivados registrados de las 45 coinciden con las reglas v1 candidate', () => {
+  it('los derivados registrados de las 64 coinciden con las reglas v1 candidate', () => {
     // Única diferencia: el texto de `v_aspectos_aplicables` que las fichas de tecnología y pagos
     // traen de la Fase 8 ("rec(min)"); es el mismo `V_d`, escrito distinto, y no lo cambió la 11b.
     const halladas = nuevas.flatMap((f) => discrepancias(f))
@@ -72,7 +87,7 @@ describe('F11-REG-01: fichas reevaluadas y regresión de EMI-41 contra la capa d
     assert.equal(regresion.length, 285)
     const distintas: string[] = []
     for (const fila of regresion) {
-      const fichas = fila.evaluador === 'agente' ? agenteV1 : emiliano
+      const fichas = fila.evaluador === 'agente' ? agenteV1 : emilianoV1
       const id = fila.evaluacion_nueva !== '' ? fila.evaluacion_nueva : fila.evaluacion_anterior
       const f = fichas.find((x) => x.evaluacionId === id && x.riskId === fila.risk_id)
       if (f === undefined) { distintas.push(`${String(fila.risk_id)}: no está la ficha ${String(id)}`); continue }

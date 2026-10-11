@@ -191,39 +191,44 @@ export function iEfectivo(i: Readonly<Record<Dimension, Factor<Nivel>>>, reglas:
 // ── §8 · Banderas ────────────────────────────────────────────────────────────
 
 /**
- * Una dimensión alcanza un umbral si su **valor** lo alcanza (D20: el `<f>_max` de un factor con
- * valor no dispara), o si es `unknown` y su `<f>_max` registrado lo alcanza. Un `unknown` sin
- * `<f>_max` no dispara (lo prioriza la cola, §9.5).
- * - v1 candidate [F11-5] y v0.2 (lectura del arnés): la regla del `unknown` vale sea el riesgo
- *   evaluable o no.
- * - v0.3 (CH-092): sólo en un riesgo no evaluable.
+ * Una dimensión alcanza un umbral si su **valor** lo alcanza (D20), o si es `unknown` y su
+ * `<f>_max` registrado lo alcanza. Un `unknown` sin `<f>_max` no dispara (lo prioriza la cola, §9.5).
+ * - v1 candidate [F11-5]: la regla del `unknown` vale sea el riesgo evaluable o no. [F11-7, opción c]
+ *   Si el peor creíble de un factor con valor queda fuera del rango de tres niveles
+ *   (`<f>_max − (<f>_min o valor) > 2`), dispara con su `<f>_max`, como un `unknown`. Un rango de
+ *   hasta tres niveles no dispara por su máx.
+ * - v0.2 (lectura del arnés): la regla del `unknown`, evaluable o no; sin la opción c.
+ * - v0.3 (CH-092): la regla del `unknown` sólo en un riesgo no evaluable.
  */
-function alcanza(f: Factor<Nivel>, umbral: Nivel, unknownCuenta: boolean): boolean {
-  return f.valor === 'unknown' ? unknownCuenta && f.max !== undefined && f.max >= umbral : f.valor >= umbral
+function alcanza(f: Factor<Nivel>, umbral: Nivel, reglas: Reglas, evaluable: boolean): boolean {
+  if (f.valor === 'unknown') return (reglas !== 'v0.3' || !evaluable) && f.max !== undefined && f.max >= umbral
+  if (reglas === 'v1 candidate' && peorCreibleFueraDeRango(f)) return (f.max ?? f.valor) >= umbral
+  return f.valor >= umbral
 }
 
-function unknownCuenta(reglas: Reglas, evaluable: boolean): boolean {
-  return reglas !== 'v0.3' || !evaluable
+/** [F11-7] El `<f>_max` de un factor con valor está a más de tres niveles del piso de la duda plausible. */
+export function peorCreibleFueraDeRango(f: Factor<Nivel>): boolean {
+  if (f.valor === 'unknown' || f.max === undefined) return false
+  return f.max - (f.min ?? f.valor) > 2
 }
 
 /**
- * `consecuencia_extrema` (§8.1, §8.2 [F11-5]): alguna dimensión de I en 5. Devuelve las que la
+ * `consecuencia_extrema` (§8.1, §8.2 [F11-5], [F11-7] opción c): alguna dimensión de I en 5. Devuelve las que la
  * disparan. `evaluable` sólo importa con las reglas v0.3.
  */
 export function consecuenciaExtrema(
   i: Readonly<Record<Dimension, Factor<Nivel>>>,
   opciones: { reglas?: Reglas; evaluable?: boolean } = {},
 ): Dimension[] {
-  const cuenta = unknownCuenta(opciones.reglas ?? 'v1 candidate', opciones.evaluable ?? false)
-  return DIMENSIONES.filter((d) => alcanza(i[d], 5, cuenta))
+  return DIMENSIONES.filter((d) => alcanza(i[d], 5, opciones.reglas ?? 'v1 candidate', opciones.evaluable ?? false))
 }
 
-/** `safety_critical` (§8.2 [F11-5]): `i_pers ≥ 4`. `evaluable` sólo importa con las reglas v0.3. */
+/** `safety_critical` (§8.2 [F11-5], [F11-7] opción c): `i_pers ≥ 4`. `evaluable` sólo importa con las reglas v0.3. */
 export function safetyCritical(
   i: Readonly<Record<Dimension, Factor<Nivel>>>,
   opciones: { reglas?: Reglas; evaluable?: boolean } = {},
 ): boolean {
-  return alcanza(i.pers, 4, unknownCuenta(opciones.reglas ?? 'v1 candidate', opciones.evaluable ?? false))
+  return alcanza(i.pers, 4, opciones.reglas ?? 'v1 candidate', opciones.evaluable ?? false)
 }
 
 // ── §9.2 · Cuándo un factor es `unknown` [F5-1] ──────────────────────────────
@@ -232,7 +237,7 @@ export function safetyCritical(
  * Tabla de §9.2: el tamaño del rango es condición necesaria, no suficiente. `rango` es la duda
  * sobre el **valor plausible**. [F11-7] El peor creíble (§4.1.4) no cuenta para el límite de tres
  * niveles: si está más lejos, el factor sigue evaluable y el peor creíble va a `<f>_max`
- * (`rangoRegistrado`), que sólo alimenta el techo.
+ * (`rangoRegistrado`), que alimenta el techo y las banderas (opción c, `alcanza`), no el ranking.
  */
 export function valorDefendible(rango: { min: Nivel; max: Nivel } | null, hayValorMasPlausible: boolean): 'evaluable' | 'unknown' {
   if (rango === null || rango.max - rango.min > 2) return 'unknown'

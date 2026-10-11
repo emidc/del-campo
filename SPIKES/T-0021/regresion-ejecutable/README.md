@@ -324,15 +324,21 @@ Corrida F11-REG-01. El reporte es `v0/fase-11/reporte-fase-11.md`.
 | I efectivo acotado por el máx | §7.2 [F11-6] | Se muestra `n` si todo `unknown` tiene máx ≤ `n` | v0.3 mostraba `≥ n` |
 | Ancla 5 de P y determinante | §3.3, §6.2 [F11-6] | 36 meses incluidos; la dimensión `unknown` con cota igual a `C_raw` no es determinante | eran `todo` (B01, U07) |
 | Redundancia natural | §4.4 [F11-4] | `nivelContinuidad(d, { redundanciaNatural: true })` → 1 | v0.3 daba el nivel por duración |
+| Peor creíble fuera del rango y banderas (opción c) | §8.1, §8.2, §9.1.2 [F11-7] | `peorCreibleFueraDeRango(f)`: si `max − (min ?? valor) > 2`, la bandera se juzga por el máx; nunca cambia `C_raw`, banda ni ranking | v0.3 y v0.2: un factor con valor sólo disparaba por su valor |
 | Peor creíble más allá de tres niveles | §9.2 [F11-7] | `rangoRegistrado(rangoPlausible, peorCreible)`; el factor con valor y máx lejano es evaluable y su máx sólo sube el techo | v0.3: rango de cuatro niveles → `unknown` → no evaluable |
 | Hijo no evaluable de un padre con posición | §1.4.5 | Entra en `noEvaluables` con su motivo | no aparecía (hueco de la Fase 10) |
 | Cola de validación | §9.5, §6.6 [F11-10] | `colaValidacion`: entran no evaluables, con `unknown` o `uncertainty = high`; orden safety posible → techo → I-personas máximo | no existía |
 
 F11-1, F11-2, F11-3, F11-8 y F11-9 son reglas de asignación (juicio del evaluador): no tienen
-función acá. Entran por las 45 fichas nuevas de `v0/fase-11/reevaluacion/`.
+función acá. F11-4 tampoco decide sola: si hay redundancia natural lo juzga el evaluador por
+sustituibilidad real, sin umbral de unidades ni de porcentaje (Emiliano, 2026-10-11 13:21 UTC);
+la función sólo aplica la consecuencia. Entran por las 64 fichas nuevas de
+`v0/fase-11/reevaluacion/`: 45 de la primera ronda, 17 correcciones de F11-4 (segunda ronda,
+`correccion_evaluacion`) y 2 propuestas sobre fichas de Emiliano. La ficha vigente de cada
+riesgo es la última de la cadena `evaluacion_anterior_id`.
 
 **`fase11.test.ts`** cruza esta capa con `v0/fase-11/regresion.py`, que es una implementación
-independiente en Python: las 45 fichas nuevas tienen los derivados que da la v1 candidate (salvo
+independiente en Python: las 64 fichas nuevas tienen los derivados que da la v1 candidate (salvo
 el texto de `v_aspectos_aplicables` que tres fichas traen de la Fase 8, `rec(min)`, mismo `V_d`),
 y las 285 filas de `regresion-emi41.csv` tienen el `C_raw`, la banda, las banderas, el I efectivo
 y la posición que calcula esta capa. Para un padre se compara `C_raw` y posición.
@@ -351,3 +357,6 @@ dos criterios de protocolo §8.
 | `eslint --no-ignore` sobre esta carpeta | sin errores |
 
 La campaña de mutación de `REMEDIATION.md` no se volvió a correr.
+
+La v1 candidate quedó congelada el 2026-10-11 13:37 UTC (`v1/congelamiento.md`). Un cambio de
+regla en esta capa es una versión nueva de la metodología, con su fila de changelog y su regresión.

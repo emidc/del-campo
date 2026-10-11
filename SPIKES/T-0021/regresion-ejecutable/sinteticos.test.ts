@@ -601,15 +601,24 @@ describe('lecturas de v0.2 que la v1 candidate decide (EV-16, EV-18)', () => {
     assert.equal(derivadosCalculados(S, 'v0.3').safetyCritical, 'false')
   })
 
-  it('D20 · el máx de un factor con valor no dispara bandera: sólo el valor (o el máx de un unknown)', () => {
-    // [F11-7] econ 2 con peor creíble 5 registrado en el máx: evaluable, techo 5, sin bandera.
-    // Lectura aplicada mientras Emiliano decide el alcance de "y las banderas" de §9.2 (reporte-fase-11).
+  it('[F11-7] opción c: el peor creíble fuera del rango de tres niveles dispara bandera; un rango de hasta tres no', () => {
+    // Decidido por Emiliano el 2026-10-11 13:21 UTC (punto 2 del "Para aprobar").
+    // econ 2 con peor creíble 5 (rango 2–5, cuatro niveles): dispara consecuencia_extrema.
+    // pers 3 con máx 4 (rango 3–4): no dispara safety_critical (D20: vale el valor).
     const W = ficha('W', fx(3, [{ valor: 2, min: 2, max: 5 }, { valor: 3, min: 3, max: 4 }, 1, 1], 3, 3))
     const d = derivadosCalculados(W)
     assert.equal(d.evaluable, 'true')
-    assert.equal(d.consecuenciaExtrema, 'false')
+    assert.deepEqual([d.consecuenciaExtrema, d.consecuenciaExtremaDimensiones], ['true', 'econ'])
     assert.equal(d.safetyCritical, 'false')
     assert.equal(d.techoPlausible, String(3 * 5 * 3))
+    // Sin min registrado, el rango se mide desde el valor: pers 1 con máx 4 → dispara safety_critical.
+    const X = ficha('X', fx(3, [3, { valor: 1, max: 4 }, 1, 1], 3, 3))
+    assert.equal(derivadosCalculados(X).safetyCritical, 'true')
+    // La opción c no cambia C_raw, banda ni posición: sólo las banderas. C_raw = pers 3×3×3 = 27.
+    assert.equal(d.cRaw, String(3 * 3 * 3))
+    // Con las reglas anteriores (v0.3 y la lectura v0.2 del arnés), el máx de un factor con valor no disparaba.
+    assert.equal(derivadosCalculados(W, 'v0.3').consecuenciaExtrema, 'false')
+    assert.equal(derivadosCalculados(X, 'v0.2').safetyCritical, 'false')
   })
 
   it('b · §6.2 [F11-6] (U07): con una cota igual a C_raw, la dimensión unknown no se lista como determinante', () => {
