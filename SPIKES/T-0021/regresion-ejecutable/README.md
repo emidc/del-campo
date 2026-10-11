@@ -1,5 +1,13 @@
 # Arnés de regresión de la metodología de criticidad · T-0021
 
+> **Fase 11b (2026-10-11): portado a la metodologia v1 candidate.** La capa de referencia
+> aplica ahora la v0.3 (bandas 20/50/75 y banda como paso 1 de D10, CH-093; CH-092) y las
+> correcciones que Emiliano aprobó en la 11a (`v0/fase-11/decisiones-11a.md`), marcadas
+> [F11-n] en el código. Las funciones que cambiaron entre versiones toman `reglas`
+> (`'v0.2' | 'v0.3' | 'v1 candidate'`): las fichas de la Fase 5 se siguen comparando contra
+> v0.2, con la que se registraron. Lo nuevo y lo que cambió está en "Fase 11b", al final. Lo
+> que sigue describe el arnés de la Fase 5 y sigue valiendo salvo donde esa sección dice otra cosa.
+
 Convierte las reglas mecánicas de **metodologia v0.2** (`v0/metodologia-v0.md`, aprobada el
 2026-10-07 02:02 UTC y congelada para la Fase 8) y los casos adjudicados de la Fase 5 en tests
 que se pueden ejecutar. No rediseña la metodología ni cambia ninguna adjudicación. Las
@@ -18,7 +26,7 @@ funciones puras y versionadas, que es lo que pide §14 "Insumos para EMI-16". Cu
 ```bash
 pnpm install --frozen-lockfile                      # desde la raíz, una vez
 cd SPIKES/T-0021/regresion-ejecutable
-node --run test                                     # 195 tests (188 + 7 todo), ~6 s
+node --run test                                     # 213 tests (211 + 2 todo), ~6 s
 node --run typecheck                                # tsc estricto con el tsconfig raíz
 cd ../../.. && ./node_modules/.bin/eslint --no-ignore SPIKES/T-0021/regresion-ejecutable/*.ts
 ```
@@ -301,3 +309,45 @@ Todos en `SPIKES/T-0021/regresion-ejecutable/`: `README.md`, `package.json`,
 `tsconfig.json`, `metodologia.ts`, `fichas.ts`, `casos.ts`, `verificacion.ts`,
 `metodologia.test.ts`, `fichas.test.ts`, `casos.test.ts`, `sinteticos.test.ts`,
 `COLD-REVIEW.md` y `REMEDIATION.md`. Ninguno modifica archivos fuera de la carpeta.
+
+## Fase 11b · v1 candidate
+
+Corrida F11-REG-01. El reporte es `v0/fase-11/reporte-fase-11.md`.
+
+**Qué cambió en la capa de referencia**
+
+| Regla | Sección | Qué hace ahora | Test que falla con la regla anterior |
+|---|---|---|---|
+| Bandas 20/50/75; el corte va arriba | §6.5 [F9] (CH-093) | `banda(cRaw)`; derivado `banda` en todo evaluable | v0.2 dejaba `banda` vacía |
+| Banda como paso 1 de D10 | §7.2 (CH-086) | `compararD10` compara banda antes que `C_raw`; un test recorre todos los productos P × I × V posibles y muestra que el paso 1 nunca contradice al 2 | — (no cambia ningún orden: la banda es monótona en `C_raw`) |
+| Banderas con `unknown` en evaluables | §8.2 [F11-5] (CH-092 en v0.3) | `unknown` con máx en el umbral dispara, sea el riesgo evaluable o no; sin máx no dispara; el máx de un factor con valor no dispara (D20) | v0.3 sólo disparaba en no evaluables |
+| I efectivo acotado por el máx | §7.2 [F11-6] | Se muestra `n` si todo `unknown` tiene máx ≤ `n` | v0.3 mostraba `≥ n` |
+| Ancla 5 de P y determinante | §3.3, §6.2 [F11-6] | 36 meses incluidos; la dimensión `unknown` con cota igual a `C_raw` no es determinante | eran `todo` (B01, U07) |
+| Redundancia natural | §4.4 [F11-4] | `nivelContinuidad(d, { redundanciaNatural: true })` → 1 | v0.3 daba el nivel por duración |
+| Peor creíble más allá de tres niveles | §9.2 [F11-7] | `rangoRegistrado(rangoPlausible, peorCreible)`; el factor con valor y máx lejano es evaluable y su máx sólo sube el techo | v0.3: rango de cuatro niveles → `unknown` → no evaluable |
+| Hijo no evaluable de un padre con posición | §1.4.5 | Entra en `noEvaluables` con su motivo | no aparecía (hueco de la Fase 10) |
+| Cola de validación | §9.5, §6.6 [F11-10] | `colaValidacion`: entran no evaluables, con `unknown` o `uncertainty = high`; orden safety posible → techo → I-personas máximo | no existía |
+
+F11-1, F11-2, F11-3, F11-8 y F11-9 son reglas de asignación (juicio del evaluador): no tienen
+función acá. Entran por las 45 fichas nuevas de `v0/fase-11/reevaluacion/`.
+
+**`fase11.test.ts`** cruza esta capa con `v0/fase-11/regresion.py`, que es una implementación
+independiente en Python: las 45 fichas nuevas tienen los derivados que da la v1 candidate (salvo
+el texto de `v_aspectos_aplicables` que tres fichas traen de la Fase 8, `rec(min)`, mismo `V_d`),
+y las 285 filas de `regresion-emi41.csv` tienen el `C_raw`, la banda, las banderas, el I efectivo
+y la posición que calcula esta capa. Para un padre se compara `C_raw` y posición.
+
+**`todo`.** Cinco de los siete se resolvieron con la regla que Emiliano decidió (B01, a, a′, b y
+c; EV-16 y EV-18). Quedan dos, J01 y e: son criterios del juez de casos (protocolo §8), no reglas
+de la metodología, y Emiliano los dejó fuera de v1 (EV-44, salida d). Esperan que decida esos
+dos criterios de protocolo §8.
+
+**Verificación ejecutada**
+
+| Comando | Resultado |
+|---|---|
+| `node --run test` (en esta carpeta) | 213 tests: 211 pass, 0 fail, 2 todo |
+| `tsc --noEmit -p .` | sin errores |
+| `eslint --no-ignore` sobre esta carpeta | sin errores |
+
+La campaña de mutación de `REMEDIATION.md` no se volvió a correr.

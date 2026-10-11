@@ -5,15 +5,16 @@
 // está escrita en el comentario de cada caso.
 //
 // Lo que la metodología deja ambiguo no se afirma: va en el bloque final con `todo`, que corre
-// y muestra la lectura actual del arnés sin decidir el veredicto de la suite.
+// y muestra la lectura actual del arnés sin decidir el veredicto de la suite. Desde la Fase 11b
+// sólo quedan ahí los criterios del juez que Emiliano dejó fuera de v1 (EV-44).
 
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import type { Ficha, TipoObjeto } from './fichas.ts'
 import {
-  compararD10, evaluar, iEfectivo, nivelPorAntecedentes, rangoEconomicoSinMargen,
-  type Factor, type Factores, type Nivel, type Recuperacion,
+  banda, BANDAS, colaValidacion, compararD10, evaluar, iEfectivo, nivelContinuidad, nivelPorAntecedentes,
+  rangoEconomicoSinMargen, rangoRegistrado, valorDefendible, type EntradaCola, type Factor, type Factores, type Nivel, type Recuperacion,
 } from './metodologia.ts'
 import { derivadosCalculados, juzgar, rankingPrincipal, type Expectativa, type RankingPrincipal } from './verificacion.ts'
 
@@ -34,7 +35,11 @@ function fx(p: F, i: readonly [F, F, F, F], vCont: F, vRec: Recuperacion | Facto
 }
 
 /** Una ficha mínima. `registrado` no se usa en estos tests (no hay corrida registrada que comparar). */
-function ficha(riskId: string, factores: Factores, o: { tipo?: TipoObjeto; padre?: string; empresa?: string; motivo?: string } = {}): Ficha {
+function ficha(
+  riskId: string,
+  factores: Factores,
+  o: { tipo?: TipoObjeto; padre?: string; empresa?: string; motivo?: string; uncertainty?: Ficha['uncertainty'] } = {},
+): Ficha {
   return {
     evaluacionId: `SX-${riskId}`,
     riskId,
@@ -44,10 +49,10 @@ function ficha(riskId: string, factores: Factores, o: { tipo?: TipoObjeto; padre
     miembros: [],
     evaluacionAnteriorId: '',
     motivo: '',
-    versionMetodologia: 'v0.2',
+    versionMetodologia: 'metodologia v1 candidate',
     factores,
     bases: { p: '', econ: '', pers: '', cont: '', legal: '', vCont: '', vRec: '' },
-    uncertainty: 'low',
+    uncertainty: o.uncertainty ?? 'low',
     registrado: {
       evaluable: false, cRaw: null, cDimensionDeterminante: '', iEfectivo: '', iEfectivoDimensiones: '', vAspectosAplicables: '',
       consecuenciaExtrema: false, consecuenciaExtremaDimensiones: '', safetyCritical: false, techoPlausible: 0, banda: '',
@@ -55,6 +60,9 @@ function ficha(riskId: string, factores: Factores, o: { tipo?: TipoObjeto; padre
     crudo: { motivo_no_evaluable: o.motivo ?? '' },
   }
 }
+
+/** La ficha como entrada de la cola de validación (§9.5). */
+const entrada = (f: Ficha): EntradaCola => ({ id: f.riskId, factores: f.factores, uncertainty: f.uncertainty })
 
 /** Posiciones con los ids de cada una ordenados (el orden dentro de un empate no representa prioridad, §7.2). */
 const posiciones = (r: RankingPrincipal) => r.posiciones.map((p) => ({ ids: [...p.ids].sort(), provisional: p.provisional }))
@@ -132,8 +140,10 @@ describe('§9.3 y §7.2 [F5-6]: unknown desde los Factores hasta el ranking', ()
     assert.equal(d.iEfectivo, '≥ 4')
     assert.equal(d.iEfectivoDimensiones, 'econ')
     // Con otro máx registrado, ni C_raw ni n cambian: el techo sólo entra en la cota de §9.3.
+    // [F11-6] Con máx 2 ≤ 4, lo desconocido no puede superar n: se muestra `4` (en v0.3, `≥ 4`).
     const U2 = ficha('U2', fx(3, [4, 1, u(2), 1], 5, 1))
-    assert.equal(derivadosCalculados(U2).iEfectivo, '≥ 4')
+    assert.equal(derivadosCalculados(U2).iEfectivo, '4')
+    assert.equal(derivadosCalculados(U2, 'v0.3').iEfectivo, '≥ 4')
     assert.equal(derivadosCalculados(U2).cRaw, '36')
   })
 
@@ -168,7 +178,9 @@ describe('§9.3 y §7.2 [F5-6]: unknown desde los Factores hasta el ranking', ()
     const r = rankingPrincipal([E], [E])
     assert.deepEqual(r.noEvaluables, [])
     assert.equal(r.items.get('E')?.cRaw, 27)
-    assert.equal(derivadosCalculados(E).iEfectivo, '≥ 3')
+    // [F11-6] máx 3 = n: se muestra `3` (en v0.3, `≥ 3`).
+    assert.equal(derivadosCalculados(E).iEfectivo, '3')
+    assert.equal(derivadosCalculados(E, 'v0.3').iEfectivo, '≥ 3')
   })
 
   it('un nivel más de máx: la cota supera C_raw → lista no evaluable con motivo', () => {
@@ -200,7 +212,9 @@ describe('§9.3 y §7.2 [F5-6]: unknown desde los Factores hasta el ranking', ()
     const e = evaluar(T.factores)
     assert.ok(e.evaluable)
     assert.equal(e.cRaw, 16)
-    assert.deepEqual(iEfectivo(T.factores.i), { n: 4, completo: false, dimensiones: ['pers'] })
+    // [F11-6] los dos máx (2 y 4) son ≤ 4: completo (en v0.3, `≥ 4`).
+    assert.deepEqual(iEfectivo(T.factores.i), { n: 4, completo: true, dimensiones: ['pers'] })
+    assert.deepEqual(iEfectivo(T.factores.i, 'v0.3'), { n: 4, completo: false, dimensiones: ['pers'] })
   })
 })
 
@@ -433,51 +447,199 @@ describe('protocolo §8: ramas de juzgar con fichas sintéticas', () => {
   })
 })
 
-// ── Lecturas pendientes del owner: corren, pero no deciden el veredicto de la suite ──
+// ── Reglas nuevas de v0.3 y de la v1 candidate [F9] [F11-n] ──────────────────
+// Cada test falla con la regla anterior (lo dice el comentario).
 
-describe('lecturas ambiguas de v0.2: pendientes del owner (REMEDIATION §8)', () => {
-  it('B01 · §3.3 ancla 5: ¿la ocurrencia de hace exactamente 36 meses cuenta para la frecuencia?', {
-    todo: 'Pendiente del owner. Alternativas: sí (ancla 4 lo dice explícito para "ocurrió"; el arnés hoy cuenta) / no ("últimos tres años" excluyente).',
-  }, () => {
-    // Lectura actual del arnés: cuenta. Con la otra lectura sería 4.
+describe('§6.5 [F9] bandas 20/50/75 y banda como paso 1 de D10 (CH-093)', () => {
+  it('cortes: un C_raw justo en el corte va a la banda superior', () => {
+    const casos: [number, string][] = [[1, 'Baja'], [19, 'Baja'], [20, 'Media'], [48, 'Media'], [50, 'Alta'], [64, 'Alta'], [75, 'Crítica'], [125, 'Crítica']]
+    for (const [c, b] of casos) assert.equal(banda(c), b, `C_raw ${String(c)}`)
+  })
+
+  it('la ficha recibe banda si es evaluable y queda vacía si no (en v0.2 quedaba vacía siempre)', () => {
+    // P 2 × econ 5 × V 5 = 50 → Alta.
+    const A = ficha('A', fx(2, [5, 1, 1, 1], 5, 'no_aplica'))
+    assert.equal(derivadosCalculados(A).banda, 'Alta')
+    assert.equal(derivadosCalculados(A, 'v0.2').banda, '')
+    const N = ficha('N', fx(u(), [5, 1, 1, 1], 5, 'no_aplica'))
+    assert.equal(derivadosCalculados(N).banda, '')
+  })
+
+  it('el paso 1 nunca contradice al paso 2: en todos los productos posibles, mayor C_raw ⇒ banda no menor', () => {
+    const productos = [...new Set([1, 2, 3, 4, 5].flatMap((p) => [1, 2, 3, 4, 5].flatMap((i) => [1, 2, 3, 4, 5].map((v) => p * i * v))))]
+    const it = (cRaw: number) => ({ id: String(cRaw), cRaw, iEfectivo: { n: 1 as Nivel, completo: true, dimensiones: [] }, iPers: 1 as Nivel })
+    for (const a of productos) for (const b of productos) {
+      if (a > b) assert.ok(BANDAS.indexOf(banda(a)) >= BANDAS.indexOf(banda(b)), `${String(a)} > ${String(b)}`)
+      if (a !== b) assert.equal(compararD10(it(a), it(b)), a > b ? 'antes' : 'despues')
+    }
+  })
+})
+
+describe('§4.4 [F11-4] redundancia natural: nivel 1 de continuidad', () => {
+  it('una unidad entre muchas equivalentes, sin degradación material: 1, cualquiera sea la duración', () => {
+    for (const d of [{ cantidad: 2, unidad: 'dias' }, { cantidad: 3, unidad: 'semanas' }, { cantidad: 6, unidad: 'meses' }] as const) {
+      assert.equal(nivelContinuidad(d, { redundanciaNatural: true }), 1, JSON.stringify(d))
+    }
+    // Con la regla anterior, 3 semanas como degradación menor a la mitad: 4 − 1 = 3.
+    assert.equal(nivelContinuidad({ cantidad: 3, unidad: 'semanas' }, { degradacionMenorALaMitad: true }), 3)
+  })
+
+  it('sin redundancia natural, la degradación sigue la regla de v0.3', () => {
+    assert.equal(nivelContinuidad({ cantidad: 3, unidad: 'semanas' }, { redundanciaNatural: false, degradacionMenorALaMitad: true }), 3)
+    assert.equal(nivelContinuidad({ cantidad: 3, unidad: 'semanas' }), 4)
+  })
+})
+
+describe('§9.2 [F11-7] peor creíble más allá de tres niveles', () => {
+  it('la duda plausible decide si es evaluable; el peor creíble va al máx aunque el rango supere tres niveles', () => {
+    // Plausible 2–3 con valor más plausible; peor creíble 5.
+    assert.equal(valorDefendible({ min: 2, max: 3 }, true), 'evaluable')
+    assert.deepEqual(rangoRegistrado({ min: 2, max: 3 }, 5), { min: 2, max: 5 })
+    // Con la regla anterior, el rango registrado 2–5 (cuatro niveles) dejaba el factor unknown.
+    assert.equal(valorDefendible({ min: 2, max: 5 }, true), 'unknown')
+  })
+
+  it('si la duda plausible misma supera tres niveles, sigue unknown', () => {
+    assert.equal(valorDefendible({ min: 1, max: 4 }, true), 'unknown')
+    assert.deepEqual(rangoRegistrado({ min: 2, max: 4 }), { min: 2, max: 4 })
+  })
+
+  it('el factor con valor y máx lejano entra al ranking con su valor; el máx sólo sube el techo', () => {
+    // P 3, econ 2 [2–5], V 3: C_raw 3×2×3 = 18 (Baja); techo 3×5×3 = 45.
+    const W = ficha('W', fx(3, [{ valor: 2, min: 2, max: 5 }, 1, 1, 1], 3, 3))
+    const d = derivadosCalculados(W)
+    assert.deepEqual([d.evaluable, d.cRaw, d.banda, d.techoPlausible], ['true', '18', 'Baja', '45'])
+    // Registrado como unknown [2–5] (regla anterior), el mismo riesgo no es evaluable: cota 45 > C_raw 9.
+    const W03 = ficha('W03', fx(3, [{ valor: 'unknown', min: 2, max: 5 }, 1, 1, 1], 3, 3))
+    assert.equal(derivadosCalculados(W03).evaluable, 'false')
+  })
+})
+
+describe('§1.4.5 hijo no evaluable de un padre con posición', () => {
+  it('el hijo no evaluable entra en la lista "no evaluable" con su motivo, y el padre queda provisional', () => {
+    const PADRE = 'PZ'
+    const padre = ficha(PADRE, fx(u(), [u(), u(), u(), u()], u(), 'no_aplica'), { tipo: 'padre' })
+    const h1 = ficha('PZ-a', fx(3, [4, 1, 1, 1], 3, 3), { tipo: 'sub_riesgo', padre: PADRE })
+    const h2 = ficha('PZ-b', fx(u(), [5, 1, 1, 1], 3, 3), { tipo: 'sub_riesgo', padre: PADRE })
+    const r = rankingPrincipal([padre], [padre, h1, h2])
+    assert.deepEqual(r.noEvaluables, [{ riskId: 'PZ-b', motivo: 'p_unknown' }])
+    assert.deepEqual(r.padres.get(PADRE), { hijosPrioritarios: ['PZ-a'], prioridadProvisional: true })
+    assert.equal(r.items.get(PADRE)?.cRaw, 36)
+  })
+
+  it('si ningún hijo es evaluable, entran los hijos y el padre, sin posición', () => {
+    const PADRE = 'PW'
+    const padre = ficha(PADRE, fx(u(), [u(), u(), u(), u()], u(), 'no_aplica'), { tipo: 'padre' })
+    const h = ficha('PW-a', fx(u(), [5, 1, 1, 1], 3, 3), { tipo: 'sub_riesgo', padre: PADRE })
+    const r = rankingPrincipal([padre], [padre, h])
+    assert.deepEqual(r.noEvaluables.map((x) => x.riskId), ['PW-a', PADRE])
+    assert.equal(r.posiciones.length, 0)
+  })
+})
+
+describe('§9.5 cola de validación (orden 1 safety posible → 2 cota de validación → 3 I-personas máximo)', () => {
+  // Q1: no evaluable (P unknown), pers 2, econ 5 → no safety; cota 5×5×3 = 75.
+  const Q1 = ficha('Q1', fx(u(), [5, 2, 1, 1], 3, 3))
+  // Q2: evaluable con pers unknown máx 4 → safety posible; cota baja (1×4×1 = 4).
+  const Q2 = ficha('Q2', fx(1, [4, u(4), 1, 1], 1, 1))
+  // Q3: evaluable, todo conocido, uncertainty high, pers 1; cota 4×4×4 = 64.
+  const Q3 = ficha('Q3', fx(4, [4, 1, 1, 1], 4, 4), { uncertainty: 'high' })
+  // Q4: evaluable, todo conocido, uncertainty low → no entra.
+  const Q4 = ficha('Q4', fx(5, [5, 5, 5, 5], 5, 5))
+  // Q5: igual cota que Q3 (64) por legal, con pers máx 3 > 1 → va antes que Q3 en el paso 3.
+  const Q5 = ficha('Q5', fx(4, [1, { valor: 2, min: 2, max: 3 }, 1, 4], 4, u(4)))
+
+  it('entran los no evaluables y los evaluables con unknown o uncertainty high; se ordenan por los tres pasos', () => {
+    assert.deepEqual(colaValidacion([Q4, Q3, Q1, Q5, Q2].map(entrada)), ['Q2', 'Q1', 'Q5', 'Q3'])
+  })
+
+  it('la cota de validación es el techo plausible (§6.6 [F11-10]) y no cambia el ranking', () => {
+    const r = rankingPrincipal([Q3, Q5], [Q3, Q5])
+    // Mismo C_raw (64) y misma banda: el orden del ranking no lo decide la cola.
+    assert.equal(r.items.get('Q3')?.cRaw, 64)
+    assert.equal(r.items.get('Q5')?.cRaw, 64)
+  })
+})
+
+// ── [F11-6] [F11-5] Lecturas que Emiliano decidió en la 11a (2026-10-11 12:18 UTC) ──
+// Eran `todo` del arnés v0.2 (REMEDIATION §8). Cada test afirma la regla decidida y, donde la
+// regla anterior daba otro resultado, que la anterior lo daba: si se revierte, falla.
+
+describe('lecturas de v0.2 que la v1 candidate decide (EV-16, EV-18)', () => {
+  it('B01 · §3.3 ancla 5 [F11-6]: la ocurrencia de hace exactamente 36 meses cuenta para la frecuencia', () => {
+    // Tres ocurrencias en 36 meses, incluida la de hace 36 → una por año → 5.
     assert.equal(nivelPorAntecedentes([3, 15, 36], 120), 5)
+    // La de hace 37 ya no cuenta para la frecuencia: dos en la ventana → 4.
+    assert.equal(nivelPorAntecedentes([3, 15, 37], 120), 4)
   })
 
-  it('a · §8.2: ¿un unknown sin máx registrado dispara las banderas?', {
-    todo: 'Pendiente del owner. §8.2 sólo nombra "unknown y su max registrado alcanza el umbral"; P2 ("unknown no es bajo") y §9.5.1 empujan a que sí.',
-  }, () => {
-    // Lectura actual del arnés: no dispara.
-    const d = derivadosCalculados(ficha('Y', fx(u(), [u(), u(), 1, 1], 3, 3)))
+  it('a · §8.2 [F11-5]: un unknown sin máx registrado no dispara banderas (lo prioriza la cola)', () => {
+    const Y = ficha('Y', fx(u(), [u(), u(), 1, 1], 3, 3))
+    const d = derivadosCalculados(Y)
     assert.deepEqual([d.consecuenciaExtrema, d.safetyCritical], ['false', 'false'])
+    // Y no es evaluable (P unknown) y podría ser safety_critical: entra primero a la cola (§9.5).
+    const Z = ficha('Z', fx(1, [4, 1, u(5), 1], 5, 1))
+    assert.deepEqual(colaValidacion([Z, Y].map(entrada)), ['Y', 'Z'])
   })
 
-  it('a′ · §8.2: en un riesgo evaluable, ¿un unknown con máx 5 dispara consecuencia_extrema?', {
-    todo: 'Pendiente del owner. La regla de unknown está bajo "Riesgo no evaluable"; para un evaluable con una dimensión unknown, §8.1 sólo dice <f>_valor = 5.',
-  }, () => {
-    // Evaluable: econ 1×4×3 = 12 (c 5, r 1); cota de cont 1×5×1 = 5. Lectura actual: dispara.
-    const d = derivadosCalculados(ficha('Z', fx(1, [4, 1, u(5), 1], 5, 1)))
+  it('a′ · §8.2 [F11-5]: en un riesgo evaluable, un unknown con máx 5 dispara consecuencia_extrema', () => {
+    // Evaluable: econ 1×4×3 = 12 (c 5, r 1); cota de cont 1×5×1 = 5.
+    const Z = ficha('Z', fx(1, [4, 1, u(5), 1], 5, 1))
+    const d = derivadosCalculados(Z)
     assert.equal(d.evaluable, 'true')
     assert.equal(d.consecuenciaExtrema, 'true')
+    assert.equal(d.consecuenciaExtremaDimensiones, 'cont')
+    // Con la regla v0.3 (CH-092: sólo en no evaluables) no disparaba.
+    assert.equal(derivadosCalculados(Z, 'v0.3').consecuenciaExtrema, 'false')
   })
 
-  it('b · §9.3 (U07): con una cota igual a C_raw, ¿la dimensión unknown es también determinante?', {
-    todo: 'Pendiente del owner. §6.2 dice "si empatan, todas"; §9.3 calcula C_raw sólo con las conocidas.',
-  }, () => {
+  it('a′ · §8.2 [F11-5]: en un riesgo evaluable, i_pers unknown con máx 4 dispara safety_critical', () => {
+    // Evaluable: econ 2×4×3 = 24; cota de pers 2×4×3 = 24 ≤ 24.
+    const S = ficha('S', fx(2, [4, u(4), 1, 1], 3, 3))
+    assert.equal(derivadosCalculados(S).evaluable, 'true')
+    assert.equal(derivadosCalculados(S).safetyCritical, 'true')
+    assert.equal(derivadosCalculados(S, 'v0.3').safetyCritical, 'false')
+  })
+
+  it('D20 · el máx de un factor con valor no dispara bandera: sólo el valor (o el máx de un unknown)', () => {
+    // [F11-7] econ 2 con peor creíble 5 registrado en el máx: evaluable, techo 5, sin bandera.
+    // Lectura aplicada mientras Emiliano decide el alcance de "y las banderas" de §9.2 (reporte-fase-11).
+    const W = ficha('W', fx(3, [{ valor: 2, min: 2, max: 5 }, { valor: 3, min: 3, max: 4 }, 1, 1], 3, 3))
+    const d = derivadosCalculados(W)
+    assert.equal(d.evaluable, 'true')
+    assert.equal(d.consecuenciaExtrema, 'false')
+    assert.equal(d.safetyCritical, 'false')
+    assert.equal(d.techoPlausible, String(3 * 5 * 3))
+  })
+
+  it('b · §6.2 [F11-6] (U07): con una cota igual a C_raw, la dimensión unknown no se lista como determinante', () => {
+    // econ 3×3×3 = 27 = cota de legal 3×3×3.
     const e = evaluar(fx(3, [3, 2, 2, u(3)], 3, 3))
     assert.ok(e.evaluable)
+    assert.equal(e.cPorDimension.legal, e.cRaw)
     assert.deepEqual(e.determinantes, ['econ'])
   })
 
-  it('c · §7.2 [F5-6]: ¿≥ n se acota con el máx registrado del unknown?', {
-    todo: 'Pendiente del owner. Hoy ≥ n vale de n a 5 aunque el unknown tenga máx < n o = n; con la otra lectura, ≥ 4 con máx 3 contra 4 sería empate legítimo.',
-  }, () => {
+  it('c · §7.2 [F11-6]: ≥ n se acota con el máx registrado del unknown; ≥ 4 con máx 3 contra 4 es empate legítimo', () => {
     const a = { id: 'a', cRaw: 36, iEfectivo: iEfectivo(fx(3, [4, 1, u(3), 1], 5, 1).i), iPers: 1 as Nivel }
     const b = { id: 'b', cRaw: 36, iEfectivo: { n: 4 as Nivel, completo: true, dimensiones: ['econ' as const] }, iPers: 1 as Nivel }
-    assert.equal(compararD10(a, b), 'indeterminado')
+    assert.equal(compararD10(a, b), 'empate')
+    // Con la regla v0.3, el mismo par era indeterminado (posición provisional).
+    const a03 = { ...a, iEfectivo: iEfectivo(fx(3, [4, 1, u(3), 1], 5, 1).i, 'v0.3') }
+    assert.equal(compararD10(a03, b), 'indeterminado')
+    // Con máx mayor que n, sigue `≥ n` e indeterminado: [F11-6] sólo acota el máx ≤ n.
+    const a5 = { ...a, iEfectivo: iEfectivo(fx(3, [4, 1, u(5), 1], 5, 1).i) }
+    assert.equal(compararD10(a5, b), 'indeterminado')
   })
+})
 
+// ── Fuera de v1 (EV-44, salida d aprobada en bloque el 2026-10-11) ───────────
+// Son criterios para juzgar casos de propiedad (protocolo §8), no reglas de la metodología.
+// Quedan `todo`: corren y muestran la lectura actual del arnés sin decidir el veredicto.
+
+describe('criterios del juez de casos fuera de v1 (EV-44): esperan una decisión de Emiliano sobre protocolo §8', () => {
   it('J01 · protocolo §8: con 5 riesgos, ¿el tercero está en la mitad inferior?', {
-    todo: 'Pendiente del owner. El arnés lee "las dos últimas" (README #10); con floor serían las tres últimas. Con n par las dos lecturas coinciden y sí se afirma.',
+    todo: 'Fuera de v1 (EV-44). Espera que Emiliano decida protocolo §8, mitad inferior con n impar. El arnés lee "las dos últimas" (README #10); con floor serían las tres últimas. Con n par las dos lecturas coinciden y sí se afirma.',
   }, () => {
     const cinco = [5, 4, 3, 2, 1].map((n, j) => ficha(`C${String(j + 1)}`, fx(1, [n as Nivel, 1, 1, 1], 1, 'no_aplica')))
     const v = juzgar([{ tipo: 'no_en_mitad_inferior', momento: 'c', riesgo: 'C3' }], { c: cinco.map((f) => f.evaluacionId) }, cinco)
@@ -485,7 +647,7 @@ describe('lecturas ambiguas de v0.2: pendientes del owner (REMEDIATION §8)', ()
   })
 
   it('e · protocolo §8: ¿qué categoría lleva una falla de "mitad inferior" o de "movimiento"?', {
-    todo: 'Pendiente del owner. §8 define combinación/ranking por c_raw entre dos riesgos ordenados; para estos criterios el arnés elige combinación (mitad) y c_raw igual/distinto (movimiento).',
+    todo: 'Fuera de v1 (EV-44). Espera que Emiliano decida protocolo §8, categoría de estas fallas. §8 define combinación/ranking por c_raw entre dos riesgos ordenados; para estos criterios el arnés elige combinación (mitad) y c_raw igual/distinto (movimiento).',
   }, () => {
     const cuatro = [5, 4, 3, 2].map((n, j) => ficha(`D${String(j + 1)}`, fx(1, [n as Nivel, 1, 1, 1], 1, 'no_aplica')))
     const v = juzgar([{ tipo: 'no_en_mitad_inferior', momento: 'd', riesgo: 'D4' }], { d: cuatro.map((f) => f.evaluacionId) }, cuatro)
