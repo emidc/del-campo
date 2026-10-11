@@ -1,0 +1,21 @@
+caso,version_anterior,version_nueva,resultado_anterior,resultado_nuevo,estado,circular,regla_que_produjo_el_cambio,fila_changelog,nota
+CP-01,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — combinación (secundaria: FAIL — calibración),FAIL — combinación (secundaria: FAIL — calibración),sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-02,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-03,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-04,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-05,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — calibración,FAIL — calibración,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-06,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-07,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — ranking,FAIL — ranking,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-08,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-09,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-10,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-11,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-12,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — combinación,FAIL — combinación,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-13,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-14,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-15,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-16,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — combinación,FAIL — combinación,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-17,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — calibración,FAIL — calibración,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-18,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,FAIL — calibración,FAIL — calibración,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-19,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,no,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
+CP-20,metodologia v0.3 / protocolo v0.3,metodologia v1 candidate / protocolo v1 candidate,PASS,PASS,sin_cambio,sí,,,sin factores reevaluados: ninguna corrección de asignación alcanza a los casos
