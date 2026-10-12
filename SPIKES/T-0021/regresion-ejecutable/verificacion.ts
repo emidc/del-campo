@@ -4,8 +4,8 @@
 
 import type { Ficha } from './fichas.ts'
 import {
-  aspectosAplicables, consecuenciaExtrema, DIMENSIONES, evaluar, iEfectivo, posicionPadre, rankingD10,
-  safetyCritical, techoPlausible, type Evaluacion, type ItemRanking, type Posicion,
+  aspectosAplicables, banda, consecuenciaExtrema, DIMENSIONES, evaluar, iEfectivo, posicionPadre, rankingD10,
+  safetyCritical, techoPlausible, type Evaluacion, type ItemRanking, type Posicion, type Reglas,
 } from './metodologia.ts'
 
 // ── Derivados de una ficha ───────────────────────────────────────────────────
@@ -17,11 +17,15 @@ export interface Discrepancia {
   readonly calculado: string
 }
 
-/** Los derivados de protocolo §2.3 en el formato del CSV, recalculados desde los factores. */
-export function derivadosCalculados(f: Ficha): Record<keyof Ficha['registrado'], string> {
+/**
+ * Los derivados de protocolo §2.3 en el formato del CSV, recalculados desde los factores con
+ * las reglas de una versión. Una ficha se compara contra la versión con la que se registró.
+ */
+export function derivadosCalculados(f: Ficha, reglas: Reglas = 'v1 candidate'): Record<keyof Ficha['registrado'], string> {
   const e = evaluar(f.factores)
-  const ie = iEfectivo(f.factores.i)
-  const extremas = consecuenciaExtrema(f.factores.i)
+  const ie = iEfectivo(f.factores.i, reglas)
+  const banderas = { reglas, evaluable: e.evaluable }
+  const extremas = consecuenciaExtrema(f.factores.i, banderas)
   return {
     evaluable: String(e.evaluable),
     cRaw: e.evaluable ? String(e.cRaw) : '',
@@ -31,10 +35,10 @@ export function derivadosCalculados(f: Ficha): Record<keyof Ficha['registrado'],
     vAspectosAplicables: aspectosAplicables(f.factores.vRec.valor),
     consecuenciaExtrema: String(extremas.length > 0),
     consecuenciaExtremaDimensiones: extremas.join(';'),
-    safetyCritical: String(safetyCritical(f.factores.i)),
+    safetyCritical: String(safetyCritical(f.factores.i, banderas)),
     techoPlausible: String(techoPlausible(f.factores)),
-    // §6.5: los umbrales se fijan en la Fase 9; hasta entonces `banda` queda vacía.
-    banda: '',
+    // §6.5: en v0.2 los umbrales no existían y `banda` quedaba vacía; desde v0.3, cortes 20/50/75.
+    banda: reglas === 'v0.2' || !e.evaluable ? '' : banda(e.cRaw),
   }
 }
 
@@ -42,8 +46,8 @@ function comoTexto(v: string | number | boolean | null): string {
   return v === null ? '' : String(v)
 }
 
-export function discrepancias(f: Ficha): Discrepancia[] {
-  const calculado = derivadosCalculados(f)
+export function discrepancias(f: Ficha, reglas: Reglas = 'v1 candidate'): Discrepancia[] {
+  const calculado = derivadosCalculados(f, reglas)
   return (Object.keys(calculado) as (keyof Ficha['registrado'])[]).flatMap((campo) => {
     const registrado = comoTexto(f.registrado[campo])
     return registrado === calculado[campo] ? [] : [{ evaluacionId: f.evaluacionId, campo, registrado, calculado: calculado[campo] }]
@@ -90,6 +94,11 @@ export function rankingPrincipal(fichas: readonly Ficha[], todas: readonly Ficha
       const hijos = todas.filter((h) => h.tipoObjeto === 'sub_riesgo' && h.riesgoPadreId === f.riskId)
       if (hijos.length === 0) throw new Error(`${f.riskId}: padre sin hijos`)
       const pos = posicionPadre(hijos.map((h) => ({ id: h.riskId, item: itemDe(h) })))
+      // §1.4.5: el hijo no evaluable entra además en la lista "no evaluable", con su motivo.
+      for (const h of hijos) {
+        const eh = evaluar(h.factores)
+        if (!eh.evaluable) noEvaluables.push({ riskId: h.riskId, motivo: eh.motivo })
+      }
       if (!pos.conPosicion) { noEvaluables.push({ riskId: f.riskId, motivo: 'todos los hijos no evaluables' }); continue }
       padres.set(f.riskId, { hijosPrioritarios: pos.hijosPrioritarios, prioridadProvisional: pos.prioridadProvisional })
       const prioritario = hijos.find((h) => h.riskId === pos.hijosPrioritarios[0])
@@ -163,7 +172,8 @@ function cRawDe(r: RankingPrincipal, riskId: string): number {
 function visible(f: Ficha): boolean {
   // Protocolo §8: bandera visible o lista "no evaluable" con motivo.
   const e = evaluar(f.factores)
-  return consecuenciaExtrema(f.factores.i).length > 0 || safetyCritical(f.factores.i) || (!e.evaluable && f.crudo.motivo_no_evaluable !== '')
+  const banderas = { evaluable: e.evaluable }
+  return consecuenciaExtrema(f.factores.i, banderas).length > 0 || safetyCritical(f.factores.i, banderas) || (!e.evaluable && f.crudo.motivo_no_evaluable !== '')
 }
 
 export function juzgar(
@@ -227,7 +237,7 @@ export function juzgar(
       }
       case 'safety_critical': {
         const f = fichaDe(x.momento, x.riesgo)
-        return safetyCritical(f.factores.i)
+        return safetyCritical(f.factores.i, { evaluable: evaluar(f.factores).evaluable })
           ? { expectativa: x, estado: 'cumple', detalle: `${x.riesgo} safety_critical` }
           : { expectativa: x, estado: 'falla', categoria: 'ranking', detalle: `${x.riesgo} sin safety_critical` }
       }

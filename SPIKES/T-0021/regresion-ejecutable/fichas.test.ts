@@ -71,9 +71,18 @@ describe('F5-REG-01: forma de la corrida', () => {
 })
 
 describe('derivados registrados = derivados recalculados (§5.5, §6, §8, §9.3, protocolo §2.3)', () => {
-  it('sólo quedan las discrepancias conocidas', () => {
-    const halladas = fichas.flatMap(discrepancias)
+  it('sólo quedan las discrepancias conocidas (contra las reglas v0.2, con las que se registraron)', () => {
+    const halladas = fichas.flatMap((f) => discrepancias(f, 'v0.2'))
     assert.deepEqual(halladas, DISCREPANCIAS_CONOCIDAS.map(({ porque: _porque, ...d }) => d))
+  })
+
+  it('con las reglas v1 candidate, además de las conocidas sólo cambia la banda (§6.5), y nunca C_raw ni evaluable', () => {
+    const conocidas = new Set(DISCREPANCIAS_CONOCIDAS.map((d) => `${d.evaluacionId}/${d.campo}`))
+    const nuevas = fichas.flatMap((f) => discrepancias(f)).filter((d) => !conocidas.has(`${d.evaluacionId}/${d.campo}`))
+    assert.deepEqual([...new Set(nuevas.map((d) => d.campo))], ['banda'])
+    // Las 50 evaluables reciben banda; el no evaluable (CP-08 R2) no.
+    assert.equal(nuevas.length, 50)
+    assert.ok(nuevas.every((d) => d.registrado === '' && d.calculado !== ''))
   })
 
   it('C_raw: los 50 evaluables coinciden exactamente', () => {

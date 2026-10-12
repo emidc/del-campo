@@ -105,7 +105,9 @@ function completaciones(k: FactoresConocidos, partes: readonly Desconocida[]): F
  *     conocidas (solidez: no se informa un C_raw que lo desconocido podría cambiar; completitud:
  *     no se saca del ranking a quien lo desconocido no puede mover). La igualdad entra (§9.3, "≤").
  *   - I efectivo con una dimensión unknown: `≥ n`, n = máximo de las conocidas, y nunca más que
- *     el I efectivo real de ningún valor posible (§7.2 [F5-6]: el techo no es el valor).
+ *     el I efectivo real de ningún valor posible (§7.2 [F5-6]: el techo no es el valor). Se
+ *     muestra `n` sólo si todo máx registrado de lo desconocido es ≤ n [F11-6], y entonces es
+ *     el I efectivo de todos los valores posibles.
  */
 function comprobarUnknown(k: FactoresConocidos, partes: readonly Desconocida[]): void {
   if (partes.some((x) => x.parte === 'vRec') && k.vRec === 'no_aplica') return
@@ -130,10 +132,17 @@ function comprobarUnknown(k: FactoresConocidos, partes: readonly Desconocida[]):
   const iDesconocida = DIMENSIONES.some((d) => desconocidas.has(d))
   const ie = iEfectivo(f.i)
   const nConocidas = Math.max(...DIMENSIONES.filter((d) => !desconocidas.has(d)).map((d) => k.i[d]))
-  if (ie.completo === iDesconocida) falla(`I efectivo completo = ${String(ie.completo)}`)
+  // [F11-6] Completo ⇔ toda dimensión unknown tiene máx registrado ≤ n (sin máx registrado, no).
+  const acotado = partes.filter((x) => (DIMENSIONES as readonly string[]).includes(x.parte)).every((x) => x.max !== undefined && x.max <= nConocidas)
+  if (ie.completo !== acotado) falla(`I efectivo completo = ${String(ie.completo)}`)
+  // v0.3: completo ⇔ ninguna dimensión de I es unknown.
+  if (iEfectivo(f.i, 'v0.3').completo === iDesconocida) falla('I efectivo v0.3')
   if (ie.n !== nConocidas) falla(`I efectivo ${String(ie.n)}, máximo de las conocidas ${String(nConocidas)}`)
   for (const x of reales) {
-    if (ie.n > Math.max(x.i.econ, x.i.pers, x.i.cont, x.i.legal)) falla(`≥ ${String(ie.n)} supera el I efectivo de ${JSON.stringify(x.i)}`)
+    const real = Math.max(x.i.econ, x.i.pers, x.i.cont, x.i.legal)
+    if (ie.n > real) falla(`≥ ${String(ie.n)} supera el I efectivo de ${JSON.stringify(x.i)}`)
+    // Solidez de [F11-6]: si se muestra `n`, ningún valor posible de lo desconocido da otro I efectivo.
+    if (ie.completo && ie.n !== real) falla(`I efectivo ${String(ie.n)} completo, pero ${JSON.stringify(x.i)} da ${String(real)}`)
   }
 }
 

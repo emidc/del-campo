@@ -1,6 +1,8 @@
 # Protocolo experimental · metodología de criticidad
 
-> Fecha: 2026-10-08 · Versión: **protocolo v0.3** (aprobado por Emiliano el 2026-10-08 21:52 UTC, Fase 9). **Cambios de v0.3:** §2.3 `consecuencia_extrema` en no evaluables (CH-092, aprobado el 2026-10-07 20:46 UTC) y `banda` calculada con los umbrales de metodología §6.5 (CH-093). Se apoya en `decisiones-v0.md` v0.3 y `metodologia-v0.md` metodologia v0.3.
+> Fecha: 2026-10-11 · Versión: **protocolo v1 candidate** (aprobado por Emiliano el 2026-10-11 13:21 UTC, Fase 11; congelado para la Fase 12). **Cambios de v1 candidate** (CH-102, CH-103, CH-105 y CH-108; detalle en `fase-11/cambios-protocolo-v1.md`): §2.3 `consecuencia_extrema` y `safety_critical` con una dimensión `unknown` en evaluables y con el peor creíble fuera del rango de tres niveles; `i_efectivo` = `n` cuando el máximo de la `unknown` no supera `n`; columna `prioridad_provisional` en la plantilla. Se apoya en `decisiones-v0.md` v1 candidate y `v1/metodologia-v1-candidate.md`.
+>
+> Encabezado de v0.3, conservado: Fecha: 2026-10-08 · Versión: **protocolo v0.3** (aprobado por Emiliano el 2026-10-08 21:52 UTC, Fase 9). **Cambios de v0.3:** §2.3 `consecuencia_extrema` en no evaluables (CH-092, aprobado el 2026-10-07 20:46 UTC) y `banda` calculada con los umbrales de metodología §6.5 (CH-093). Se apoya en `decisiones-v0.md` v0.3 y `metodologia-v0.md` metodologia v0.3.
 >
 > Encabezado de v0.2, conservado: Fecha: 2026-10-07 · Versión: **protocolo v0.2** (aprobado por Emiliano el 2026-10-07 02:02 UTC, Fase 5; **congelado para la Fase 8**). Historia: v0.0 aprobado en la Fase 1; v0.1 pedido por Emiliano el 2026-10-05 20:50 UTC para alinear la ficha con la metodología v0.1, antes de ver ningún resultado.
 > **Cambios de v0.2** (fila CH-087 del changelog; detalle en `fase-5/cambios-protocolo-v0.2.md`): `unknown` sólo sin valor más plausible defendible; padre sin score propio y `prioridad_provisional`; V secuencial en `v_aspectos_aplicables`; `i_efectivo ≥ n`; §11 por CH-077; §13 con adjudicación revisada. Son cambios después de ver los resultados de la Fase 4: **desviación del preregistro** respecto de v0.1, aprobada por Emiliano.
@@ -76,14 +78,14 @@ Reglas de llenado:
 
 | Campo | Tipo | Valores permitidos |
 |---|---|---|
-| `i_efectivo` | enum | `1`–`5` \| `≥ n`. `max(dimensiones)` (D5); se muestra y desempata (D10). Con una dimensión `unknown`, se registra `≥ n` con `n` = máximo de las dimensiones conocidas; el `<f>_max` de la `unknown` nunca se usa. Si lo desconocido podría cambiar un desempate, ese paso queda indeterminado (metodología §7.2) |
+| `i_efectivo` | enum | `1`–`5` \| `≥ n`. `max(dimensiones)` (D5); se muestra y desempata (D10). Con una dimensión `unknown`, se registra `≥ n` con `n` = máximo de las dimensiones conocidas, salvo que el `<f>_max` registrado de la `unknown` sea ≤ `n`: entonces se registra `n` (metodología §7.2) **[CH-103]**. El `<f>_max` nunca se usa como valor. Si lo desconocido podría cambiar un desempate, ese paso queda indeterminado (metodología §7.2) |
 | `prioridad_provisional` | booleano | derivado, sólo en fichas de `padre`: `true` si algún hijo es no evaluable; la posición mostrada es la del hijo evaluable mejor ubicado y no se afirma como definitiva (metodología §1.4.5) |
 | `i_efectivo_dimensiones` | texto | dimensión o dimensiones que dan el máximo (`econ;cont`) |
 | `v_aspectos_aplicables` | texto | derivado, nunca a mano: por dimensión, qué aspectos de V entraron en `V_d` (`econ:cont,rec(secuencial);pers:cont;cont:cont,rec(secuencial);legal:cont`); con `v_rec = no_aplica`, recuperación no figura (metodología §5.5, combinación secuencial) |
 | `c_dimension_determinante` | texto | derivado: dimensión o dimensiones cuyo `C_d = P × I_d × V_d` da `c_raw` (D14) |
-| `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3); en un riesgo no evaluable, también si una dimensión es `unknown` y su `<f>_max` registrado es 5 (metodología §8.2) **[CH-092]** |
+| `consecuencia_extrema` | booleano | `true` si alguna dimensión de I tiene `<f>_valor = 5` (D20, respuesta 3); si una dimensión es `unknown`, también si su `<f>_max` registrado es 5, sea el riesgo evaluable o no; y si una dimensión con valor tiene su `<f>_max` a más de tres niveles de `<f>_min` (o de `<f>_valor`, sin mínimo), también si ese `<f>_max` es 5 (metodología §8.2) **[CH-092] [CH-102] [CH-105]** |
 | `consecuencia_extrema_dimensiones` | texto | dimensiones que la disparan |
-| `safety_critical` | booleano | `true` si `i_pers_valor ≥ 4`; en un riesgo no evaluable, también si `i_pers` es `unknown` y `i_pers_max ≥ 4` (D23) |
+| `safety_critical` | booleano | `true` si `i_pers_valor ≥ 4`; si `i_pers` es `unknown`, también si `i_pers_max ≥ 4`, sea el riesgo evaluable o no; si `i_pers` tiene valor y su `i_pers_max` está a más de tres niveles de `i_pers_min` (o de `i_pers_valor`), también si `i_pers_max ≥ 4` (D23, metodología §8.2) **[CH-102] [CH-105]** |
 | `evaluable` | booleano | `false` si `p` es `unknown`, o si la cota de alguna dimensión con partes `unknown` supera el `c_raw` de las conocidas (D8, metodología §9.3) |
 | `motivo_no_evaluable` | texto | obligatorio si `evaluable = false`: qué factor y por qué |
 | `necesidad_validacion` | texto | obligatorio si `evaluable = false` o hay algún `unknown`: qué hay que averiguar |
