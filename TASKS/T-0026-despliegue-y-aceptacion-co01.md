@@ -76,9 +76,7 @@ alimenta la decisión de cierre de Q4 sobre Communication OS (D-0063).
 - Contratar planes pagos o aceptar condiciones comerciales en nombre de Del Campo.
 - Adjuntos, audio, reacciones, grupos, búsqueda e IA.
 
-## Verification
-
-### Alcance de cierre autorizado el 2026-10-13
+## Alcance de cierre autorizado el 2026-10-13
 
 El owner autorizó DONE tras aprobar la guía y las copias saneadas, e informó el SHA
 productivo `6d432c2ae165196f883519f930372ec80035ecec`. El cierre corresponde al alcance
@@ -87,11 +85,12 @@ aplazado. Los cambios de retención y fixtures están verificados localmente y r
 su publicación requiere el PR y merge que el owner revisará. DONE no afirma que esa
 corrección ya esté desplegada. Fecha del deployment informado no aportada.
 
-Evidencia consolidada: `ops/evidence/T-0026.md`. Se conserva debajo la verificación
+Evidencia consolidada: `ops/evidence/T-0026.md`. Se conserva sin cambios la verificación
 original como historia: las casillas no marcadas no pasan a significar pruebas
 aprobadas. Las excepciones y resultados vigentes están en el expediente de cierre.
 
-### Verificación original conservada
+
+## Verification
 
 ```bash
 pnpm check
