@@ -159,31 +159,22 @@ export const insertOutboundMessage = async (sql: Sql, m: OutboundMessage): Promi
 
 export interface DeletedDeliveries {
   readonly processed: number
-  /** Las `ignored` borradas: se informan aparte, porque pueden ser lo de un número mal configurado. */
   readonly ignored: number
+  /** Vencidas sin recuperar: el owner aprobó su borrado a los 30 días. */
+  readonly unprocessed: number
 }
 
-/**
- * Borra las entregas crudas `processed` e `ignored` recibidas antes de `cutoff`: las dos
- * ya tienen un resultado y el crudo vive 30 días (D-0065). No toca ninguna otra tabla.
- * Las `pending` y `failed` no se borran: su cuerpo crudo es la única copia de lo que
- * todavía no llegó a `message`, y borrarlo sería perderlo en silencio (T-0026).
- */
-export const deleteSettledDeliveriesReceivedBefore = async (sql: Sql, cutoff: Date): Promise<DeletedDeliveries> => {
+/** Borra el crudo al cumplir 30 días, cualquiera sea su estado (D-0065). */
+export const deleteExpiredDeliveries = async (sql: Sql, cutoff: Date): Promise<DeletedDeliveries> => {
   const rows = await sql<{ processing: string }[]>`
     delete from communication.webhook_delivery
-    where received_at < ${cutoff} and processing in ('processed', 'ignored')
+    where received_at <= ${cutoff}
     returning processing`
-  const ignored = rows.filter((r) => r.processing === 'ignored').length
-  return { processed: rows.length - ignored, ignored }
-}
-
-/** Las entregas sin procesar que la retención conserva por estar vencidas. */
-export const countUnprocessedDeliveriesReceivedBefore = async (sql: Sql, cutoff: Date): Promise<number> => {
-  const [row] = await sql<{ n: number }[]>`
-    select count(*)::int as n from communication.webhook_delivery
-    where received_at < ${cutoff} and processing in ('pending', 'failed')`
-  return row?.n ?? 0
+  return {
+    processed: rows.filter((r) => r.processing === 'processed').length,
+    ignored: rows.filter((r) => r.processing === 'ignored').length,
+    unprocessed: rows.filter((r) => r.processing === 'pending' || r.processing === 'failed').length,
+  }
 }
 
 /**

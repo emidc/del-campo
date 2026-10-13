@@ -2,7 +2,7 @@
 id: T-0026
 title: Desplegar Communication OS y ejecutar la aceptación de CO01
 kind: FEATURE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -76,6 +76,20 @@ alimenta la decisión de cierre de Q4 sobre Communication OS (D-0063).
 - Contratar planes pagos o aceptar condiciones comerciales en nombre de Del Campo.
 - Adjuntos, audio, reacciones, grupos, búsqueda e IA.
 
+## Alcance de cierre autorizado el 2026-10-13
+
+El owner autorizó DONE tras aprobar la guía y las copias saneadas, e informó el SHA
+productivo `6d432c2ae165196f883519f930372ec80035ecec`. El cierre corresponde al alcance
+reducido acordado: bloque uno aceptado, resto de pruebas en suspenso y dominio propio
+aplazado. Los cambios de retención y fixtures están verificados localmente y revisados;
+su publicación requiere el PR y merge que el owner revisará. DONE no afirma que esa
+corrección ya esté desplegada. Fecha del deployment informado no aportada.
+
+Evidencia consolidada: `ops/evidence/T-0026.md`. Se conserva sin cambios la verificación
+original como historia: las casillas no marcadas no pasan a significar pruebas
+aprobadas. Las excepciones y resultados vigentes están en el expediente de cierre.
+
+
 ## Verification
 
 ```bash
@@ -143,3 +157,26 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0026.md`:
 deja datos personales en una base hosteada: se trabaja en plan mode y con aprobación del
 owner en cada paso externo (R-13). La prueba de concepto de T-0020 con el número
 dedicado, pendiente del owner, conviene hacerla antes de empezar esta tarea.
+
+
+### Aceptación del owner con alcance reducido — 2026-10-12
+
+El owner aceptó CO01 al concluir el bloque uno de 24 horas y suspendió indefinidamente
+el resto de las pruebas. Ver `ops/evidence/T-0026-aceptacion.md`: conserva las mediciones,
+los desvíos de ejecución y los límites de la evidencia. Esta excepción no afirma el
+cumplimiento de §4 original ni marca como comprobados los ítems de Verification.
+El acta por sí sola no cerró la tarea. El cierre posterior fue autorizado por el owner
+el 2026-10-13 con el alcance indicado en Verification.
+
+
+### Decisiones de cierre del owner — 2026-10-13
+
+- El dominio de `delcampobroker.com` queda aplazado hasta que Communication OS se
+  integre con Broker OS y Broker OS esté operativa para los miembros del equipo Del
+  Campo. Hasta entonces se mantiene el dominio de Vercel actual. Esta excepción
+  reemplaza el requisito de dominio propio para el cierre de T-0026; no afirma que
+  DNS ni la integración estén implementados.
+- La retención borra también las entregas crudas pendientes o fallidas al cumplir
+  30 días desde su recepción, en la siguiente ejecución programada. Se pierde la
+  posibilidad de reprocesarlas y se registra cuántas se descartaron sin procesar.
+- El owner pidió un único merge después de completar los pendientes del cierre.

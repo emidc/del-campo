@@ -18,7 +18,7 @@ del paquete. Lo hace cumplir `pnpm lint` (R-25).
 | `src/persistence/` | Conexión, runner de migraciones, escrituras y lecturas. | `domain`, `postgres`, `node:*` |
 | `src/application/` | Receptor del webhook, lecturas de la UI, envío y operaciones. **Lo único que exporta el paquete.** | `domain`, `integration`, `persistence` |
 | `migrations/` | SQL del esquema `communication`, con su reversa en `down/`. | — |
-| `fixtures/` | Payloads de Meta: sintéticos, reales redactados de T-0020 (R-27) y `send-*.documented.json`, con la forma documentada del envío, sin captura real. | — |
+| `fixtures/` | Payloads de Meta: sintéticos, reales redactados de T-0020 (R-27) y respuesta de envío real redactada del owner; errores documentados. Ver fixtures/PROVENANCE.md. | — |
 
 ## Esquema
 
@@ -66,7 +66,7 @@ su ledger.
 |---|---|---|
 | unit | `*.test.ts` | Parseo, firma, desafío, regla de estados, runner, ventana de servicio, reglas de la respuesta. |
 | integración | `*.integration.test.ts` | Contra Postgres: idempotencia, orden del hilo, estados fuera de orden, retención, reproceso y migraciones; y lo de la UI: lista, hilo, envío, idempotencia del envío, ventana cerrada, retención de intentos. |
-| contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`, y el cliente de envío contra la forma documentada de `fixtures/send-*`. |
+| contrato | `*.contract.test.ts` | Los payloads reales redactados de `fixtures/real-*`, y el cliente de envío contra éxito real redactado y errores documentados de `fixtures/send-*`. |
 
 Los de integración y de contrato corren siempre sobre `delcampo_communication_test`:
 la crean si no existe, aplican las migraciones y vacían sus tablas antes de cada test.
@@ -110,10 +110,10 @@ Además exporta:
 - `sendReply` y `cloudApiSender`: responder desde el hilo con la clave de idempotencia
   persistida antes del envío (R-20).
 - `applyRetention`: la retención completa para la tarea programada. Borra las entregas
-  crudas procesadas y el texto de los intentos no aceptados de más de 30 días, y cierra
-  como `unconfirmed` los `pending` abandonados. Las entregas vencidas sin procesar no se
-  borran: se cuentan en `unprocessedKept`.
-- `purgeExpiredDeliveries`: solo las entregas crudas procesadas.
+  crudas de cualquier estado al cumplir 30 días y el texto de los intentos no aceptados de más de 30 días, y cierra
+  como `unconfirmed` los `pending` abandonados. Las entregas vencidas sin procesar se
+  borran y se cuentan en `unprocessedDeleted`; después no pueden reprocesarse.
+- `purgeExpiredDeliveries`: solo las entregas crudas vencidas, de cualquier estado.
 - `reprocessDeliveries`: vuelve a procesar las entregas `failed` y las `pending` de más de
   15 minutos (Meta no reintenta después de un 200). Idempotente, una transacción por
   entrega con la fila bloqueada; devuelve qué reprocesó y cómo terminó cada una.

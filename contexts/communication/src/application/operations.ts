@@ -5,8 +5,7 @@ import { retentionCutoff } from '../domain/retention.ts'
 import { clearSettledAttemptBodies, settleStalePendingAttempts } from '../persistence/attempts.ts'
 import type { Sql } from '../persistence/database.ts'
 import {
-  countUnprocessedDeliveriesReceivedBefore,
-  deleteSettledDeliveriesReceivedBefore,
+  deleteExpiredDeliveries,
   insertOutboundMessage,
   type OutboundMessage,
 } from '../persistence/store.ts'
@@ -30,15 +29,10 @@ export const recordOutboundMessage = async (sql: Sql, message: OutboundMessage):
   return insertOutboundMessage(sql, message)
 }
 
-/**
- * Borra las entregas crudas `processed` e `ignored` de más de 30 días (D-0065) y devuelve
- * cuántas. Los mensajes quedan. Las `pending` y `failed` no se borran aunque estén
- * vencidas: el crudo es para reprocesar, y borrar lo que todavía no se recuperó lo
- * perdería en silencio. Se cuentan en `applyRetention` y la UI las muestra como atraso.
- */
+/** Borra todo crudo al cumplir 30 días; los mensajes persistidos se conservan. */
 export const purgeExpiredDeliveries = async (sql: Sql, now: Date = new Date()): Promise<number> => {
-  const deleted = await deleteSettledDeliveriesReceivedBefore(sql, retentionCutoff(now))
-  return deleted.processed + deleted.ignored
+  const deleted = await deleteExpiredDeliveries(sql, retentionCutoff(now))
+  return deleted.processed + deleted.ignored + deleted.unprocessed
 }
 
 /** Un `pending` de más de una hora no está en curso: el envío tiene un timeout de 15 s. */
@@ -51,27 +45,26 @@ export interface RetentionResult {
    * configurado estuvo mal hasta su vencimiento, esto es lo que se perdió; queda contado.
    */
   readonly ignoredDeleted: number
-  /** Entregas vencidas que no se borraron por no estar procesadas. Distinto de 0 pide revisión. */
-  readonly unprocessedKept: number
+  /** Entregas vencidas borradas sin procesar: pérdida de la posibilidad de reproceso. */
+  readonly unprocessedDeleted: number
   readonly staleAttempts: number
   readonly attemptBodies: number
 }
 
 /**
  * La retención completa de D-0065, para la tarea programada de CO01: las entregas
- * crudas procesadas de más de 30 días y el texto de los intentos de envío no aceptados
+ * crudas de cualquier estado al cumplir 30 días y el texto de los intentos de envío no aceptados
  * cerrados hace más de 30 días. Antes cierra como `unconfirmed` los `pending` abandonados, para
  * que su texto también entre en la retención. Los mensajes no se tocan.
  */
 export const applyRetention = async (sql: Sql, now: Date = new Date()): Promise<RetentionResult> => {
-  const deleted = await deleteSettledDeliveriesReceivedBefore(sql, retentionCutoff(now))
+  const deleted = await deleteExpiredDeliveries(sql, retentionCutoff(now))
   const staleAttempts = await settleStalePendingAttempts(sql, new Date(now.getTime() - STALE_PENDING_FOR_RETENTION_MS), now)
   const attemptBodies = await clearSettledAttemptBodies(sql, retentionCutoff(now))
-  const unprocessedKept = await countUnprocessedDeliveriesReceivedBefore(sql, retentionCutoff(now))
   return {
-    deliveries: deleted.processed + deleted.ignored,
+    deliveries: deleted.processed + deleted.ignored + deleted.unprocessed,
     ignoredDeleted: deleted.ignored,
-    unprocessedKept,
+    unprocessedDeleted: deleted.unprocessed,
     staleAttempts,
     attemptBodies,
   }

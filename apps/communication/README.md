@@ -93,9 +93,9 @@ después; si eso falla, la entrega queda `failed`, y si el proceso cae antes, qu
   curl -sS -H "Authorization: Bearer $CRON_SECRET" https://<dominio>/api/jobs/reprocess
   ```
 
-- **`/api/jobs/retention`** borra las entregas procesadas de más de 30 días y el texto
-  de los intentos no aceptados. Las vencidas sin procesar **no** las borra: las cuenta en
-  `unprocessedKept`, que tiene que ser 0.
+- **`/api/jobs/retention`** borra las entregas crudas de cualquier estado al cumplir 30 días y el texto
+  de los intentos no aceptados. Las vencidas sin procesar también se borran y se cuentan en
+  `unprocessedDeleted`; después ya no pueden reprocesarse.
 
 Las dos responden JSON con conteos e ids de entrega, sin contenido.
 

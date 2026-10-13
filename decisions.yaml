@@ -1075,7 +1075,9 @@ decisions:
       de los dos puede faltar), el timestamp de WhatsApp y el de recepción, y el último
       estado de cada saliente. El saliente se persiste al enviarlo, con el wamid que
       devuelve la API; los webhooks de estado solo lo actualizan. El payload crudo de
-      cada webhook se conserva 30 días para reprocesar y después se borra. El contenido,
+      cada webhook se conserva 30 días para reprocesar y después se borra, incluso si
+      sigue pending o failed (confirmación del owner del 2026-10-13). El corte se calcula
+      desde received_at y se aplica en la siguiente ejecución de retención. El contenido,
       el wamid y los identificadores del participante se tratan como datos personales
       de clientes (R-19). El email sigue rigiéndose por D-0010.
 

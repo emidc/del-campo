@@ -1,6 +1,5 @@
-// El cliente de envío contra la forma de respuesta y de error que documenta Meta, sin
-// llamadas reales. Los fixtures `send-*.documented.json` no son capturas (R-27): son la
-// forma documentada, marcada como tal, hasta que la tarea de despliegue capture una.
+// Éxito: respuesta real redactada aportada por el owner (ver fixtures/PROVENANCE.md).
+// Errores: formas documentadas, no capturas. Fetch simulado: ninguna llamada a Meta.
 
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -31,7 +30,7 @@ const json = (body: string, status: number): Response =>
 
 describe('cliente de envío de Cloud API', () => {
   it('arma el request documentado y devuelve el wamid de una respuesta aceptada', async () => {
-    const { fetch, calls } = fakeFetch(() => json(fixture('send-accepted.documented.json'), 200))
+    const { fetch, calls } = fakeFetch(() => json(fixture('send-accepted.real-redacted.json'), 200))
     const outcome = await cloudApiSender({ ...CONFIG, fetch })('15550199001', 'Hola')
     assert.deepEqual(outcome, { kind: 'accepted', wamid: 'wamid.SYNTH-OUTBOUND-0001' })
     assert.equal(calls.length, 1)

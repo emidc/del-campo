@@ -517,6 +517,6 @@ describe('número mal configurado (S9b de la revisión fría)', () => {
     await deliverToWrongNumber(textPayload({ wamid: 'wamid.SYNTH-S9B-RET', timestamp: 1790000000 }))
     await deliver(textPayload({ wamid: 'wamid.SYNTH-S9B-OK', timestamp: 1790000001 }))
     const result = await applyRetention(sql, new Date(Date.now() + (RAW_DELIVERY_RETENTION_DAYS + 1) * 86_400_000))
-    assert.deepEqual([result.deliveries, result.ignoredDeleted, result.unprocessedKept], [2, 1, 0])
+    assert.deepEqual([result.deliveries, result.ignoredDeleted, result.unprocessedDeleted], [2, 1, 0])
   })
 })

@@ -1,10 +1,9 @@
 // Cliente de envío de texto de WhatsApp Cloud API. D-0063 ubica en el contexto el
 // código que habla con WhatsApp, sin una capa abstracta encima.
 //
-// Forma del request y de las respuestas: la documentada por Meta en "Send messages"
-// (POST /{version}/{phone_number_id}/messages). No hay una respuesta real capturada
-// (## Risks de T-0025, R-27): los fixtures `send-*.documented.json` están marcados
-// como documentados y la captura redactada queda para la tarea de despliegue.
+// Request basado en el contrato de Meta; éxito contrastado con una respuesta real
+// redactada del owner. Los errores siguen siendo fixtures documentados, no capturas.
+// Procedencia y límites: fixtures/PROVENANCE.md.
 //
 // Clasificación del resultado, pensada para no perder un envío que pudo haber salido:
 //   - 2xx con `messages[0].id`            → accepted, con el `wamid`;

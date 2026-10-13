@@ -89,3 +89,11 @@ supuestos que, si dejan de cumplirse, justifican ese ADR:
   del negocio.
 - **Aceptación de CO01.** Si muestra pérdidas o duplicados que la Cloud API no permita
   corregir, el mecanismo se revisa.
+
+
+## Confirmación del owner — 2026-10-13
+
+La retención de 30 días también alcanza las entregas `pending` y `failed`, contados
+ desde su recepción. Al vencer se borran en la siguiente ejecución de retención y
+ya no pueden reprocesarse. Se contabilizan como `unprocessedDeleted` para hacer visible
+el descarte. Los mensajes ya persistidos no se borran con esta operación.

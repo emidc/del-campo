@@ -328,7 +328,7 @@ describe('retención de intentos (D-0065)', () => {
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'sin confirmar nuevo', sha256('d'::bytea), 'unconfirmed', null, 'x', now() - interval '1 day', now() - interval '1 day')`
 
     const result = await applyRetention(sql)
-    assert.deepEqual(result, { deliveries: 0, ignoredDeleted: 0, unprocessedKept: 0, staleAttempts: 0, attemptBodies: 2 })
+    assert.deepEqual(result, { deliveries: 0, ignoredDeleted: 0, unprocessedDeleted: 0, staleAttempts: 0, attemptBodies: 2 })
     const rows = await sql<{ body: string | null }[]>`select body from communication.outbound_attempt order by id`
     assert.deepEqual(rows.map((r) => r.body), [null, null, 'rechazado nuevo', 'sin confirmar nuevo'])
     assert.equal(await count('outbound_attempt'), 4, 'las filas quedan, sin texto')
@@ -341,7 +341,7 @@ describe('retención de intentos (D-0065)', () => {
       values
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'colgado', sha256('e'::bytea), now() - interval '2 hours'),
         (gen_random_uuid(), ${NUMBER}, ${ANA}, 'en curso', sha256('f'::bytea), now() - interval '5 seconds')`
-    assert.deepEqual(await applyRetention(sql), { deliveries: 0, ignoredDeleted: 0, unprocessedKept: 0, staleAttempts: 1, attemptBodies: 0 })
+    assert.deepEqual(await applyRetention(sql), { deliveries: 0, ignoredDeleted: 0, unprocessedDeleted: 0, staleAttempts: 1, attemptBodies: 0 })
     const rows = await sql<{ state: string; body: string }[]>`select state, body from communication.outbound_attempt order by id`
     assert.deepEqual(rows.map((r) => ({ ...r })), [{ state: 'unconfirmed', body: 'colgado' }, { state: 'pending', body: 'en curso' }])
 
