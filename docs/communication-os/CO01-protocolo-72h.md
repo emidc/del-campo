@@ -2,7 +2,16 @@
 
 Workstream: BOS. Preparado el 2026-10-09 sobre `main` en `c0fd006`.
 Contrato: `SLICES/CO01.md` §4 y `TASKS/T-0026-despliegue-y-aceptacion-co01.md`.
-Estado: **PREPARACIÓN; inicio formal no fijado**. No modifica umbrales ni decisiones.
+Estado histórico: **PREPARACIÓN; inicio formal no fijado** al 2026-10-09.
+
+Actualización del 2026-10-12: el owner cerró y aceptó únicamente el bloque uno de 24 h;
+las pruebas restantes quedan en suspenso indefinido. Ver
+[acta de aceptación](../../ops/evidence/T-0026-aceptacion.md). Lo que sigue conserva el
+plan original, no constituye una instrucción de reanudar las pruebas suspendidas.
+El 2026-10-13 el owner también aplazó el dominio propio hasta la integración con Broker
+OS operativa para el equipo, y confirmó retención de 30 días para todo crudo, incluidas
+entregas pendientes/fallidas. Esas decisiones reemplazan los pendientes históricos de
+dominio y de decisión de retención indicados abajo.
 
 ## Antes de iniciar el reloj
 

@@ -42,8 +42,8 @@ export const retentionJobResponse = async (sql: Sql, log: (line: string) => void
   const result = await applyRetention(sql)
   log(
     `retención: ${String(result.deliveries)} entregas borradas (${String(result.ignoredDeleted)} ignoradas por ser de otro número), ` +
-      `${String(result.unprocessedKept)} vencidas sin procesar ` +
-      `conservadas, ${String(result.staleAttempts)} intentos cerrados, ${String(result.attemptBodies)} textos borrados`,
+      `${String(result.unprocessedDeleted)} vencidas sin procesar ` +
+      `borradas, ${String(result.staleAttempts)} intentos cerrados, ${String(result.attemptBodies)} textos borrados`,
   )
   return json(result)
 }

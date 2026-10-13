@@ -78,6 +78,22 @@ describe('contrato: payloads reales de punta a punta contra Postgres', () => {
     assert.equal(d?.processing, 'processed')
   })
 
+  it('persiste la copia redactada del número dedicado sin asociar un contacto de otro identificador', async () => {
+    const body = readFixture('inbound-dedicated.redacted.json')
+    assert.equal(await deliver(body), 200)
+    assert.equal(await deliver(body), 200)
+    const rows = await sql<Record<string, unknown>[]>`
+      select wamid, wa_id, bsuid, profile_name, body from communication.message`
+    assert.deepEqual(rows.map((r) => ({ ...r })), [{
+      wamid: 'wamid.SYNTH-DEDICATED-0001', wa_id: '15550000003',
+      bsuid: 'AR.SYNTH-SENDER-0001', profile_name: null,
+      body: 'Texto sintético del número dedicado.',
+    }])
+    const deliveries = await sql<{ processing: string }[]>`
+      select processing from communication.webhook_delivery`
+    assert.deepEqual(deliveries.map((r) => r.processing), ['processed', 'processed'])
+  })
+
   it('el estado real de un wamid no enviado por el contexto se registra sin crear mensaje', async () => {
     assert.equal(await deliver(realStatus), 200)
     const [s] = await sql<{ status: string }[]>`
@@ -85,5 +101,28 @@ describe('contrato: payloads reales de punta a punta contra Postgres', () => {
     assert.equal(s?.status, 'delivered')
     const [m] = await sql<{ n: number }[]>`select count(*)::int as n from communication.message`
     assert.equal(m?.n, 0)
+  })
+})
+
+
+describe('contrato: webhooks del número de prueba de Meta aportados por el owner', () => {
+  it('parsea texto con identificadores lógicos y metadata interna sin incorporarlos al mensaje', () => {
+    const p = parseDelivery(JSON.parse(readFixture('inbound-owner-20261013.redacted.json')))
+    assert.deepEqual(p.texts, [{
+      wamid: 'wamid.SYNTH-INBOUND-20261013', phoneNumberId: '900000000000002',
+      participant: { waId: '15550000002', bsuid: 'AR.SYNTH-USER-0001' },
+      profileName: 'Persona Sintética 1', body: 'Texto sintético 1.',
+      waTimestamp: new Date(1790000000 * 1000),
+    }])
+    assert.deepEqual([p.statuses, p.unsupported, p.discarded], [[], [], []])
+  })
+
+  it('parsea read con conversación, pricing y metadata interna sin crear un entrante', () => {
+    const p = parseDelivery(JSON.parse(readFixture('status-owner-20261013.redacted.json')))
+    assert.deepEqual(p.statuses, [{
+      wamid: 'wamid.SYNTH-STATUS-20261013', status: 'read',
+      statusAt: new Date(1790000001 * 1000), error: null,
+    }])
+    assert.deepEqual([p.texts, p.unsupported, p.discarded], [[], [], []])
   })
 })
