@@ -934,8 +934,8 @@ const crearPartyDesnuda = async (tx: postgres.TransactionSql): Promise<string> =
 // SIMULTÁNEAS, no secuencial. Un test secuencial no puede reproducir esta falla,
 // porque el problema es exactamente que un trigger recursivo no ve las filas no
 // commiteadas de OTRA transacción concurrente. Esta suite:
-//   1. despliega una versión SIN el advisory lock del trigger (con un pg_sleep
-//      deliberado para forzar la interseccion de ambas transacciones) y demuestra
+//   1. despliega una versión SIN el advisory lock del trigger y mantiene ambas
+//      transacciones abiertas hasta completar sus UPDATE; así demuestra
 //      que dos merges concurrentes A→B y B→A confirman un ciclo,
 //   2. restaura la función real de la migración (con el lock) y demuestra que la
 //      misma reproducción, con sesiones nuevas, ya no forma un ciclo.
@@ -954,7 +954,7 @@ const definicionVigente = async (): Promise<string> => {
   return unaFila(filas, 'definición de prevent_party_merge_cycle').definicion
 }
 
-const FUNCION_SIN_LOCK_CON_SLEEP = `
+const FUNCION_SIN_LOCK = `
 create or replace function prevent_party_merge_cycle() returns trigger
 language plpgsql as $f$
 declare
@@ -964,10 +964,6 @@ begin
   if new.merged_into_party_id is null then
     return new;
   end if;
-
-  -- Sin advisory lock. pg_sleep fuerza que ambas sesiones concurrentes estén "a
-  -- mitad" del trigger al mismo tiempo, para no depender de timing de scheduler.
-  perform pg_sleep(0.3);
 
   cursor_id := new.merged_into_party_id;
   loop
@@ -997,7 +993,7 @@ const desmergearYLimpiar = async (a: string, b: string): Promise<void> => {
 describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultáneas', () => {
   it('sin el advisory lock, dos merges concurrentes A→B y B→A confirman un ciclo', async () => {
     const original = await definicionVigente()
-    await sql.unsafe(FUNCION_SIN_LOCK_CON_SLEEP)
+    await sql.unsafe(FUNCION_SIN_LOCK)
 
     const filasA = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
     const filasB = await sql<FilaId[]>`insert into party (kind) values ('PERSON') returning id`
@@ -1007,16 +1003,30 @@ describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultánea
     const clienteA = postgres(databaseUrl, { max: 1 })
     const clienteB = postgres(databaseUrl, { max: 1 })
 
+    // Sesiones reservadas: BEGIN/UPDATE/COMMIT deben usar la misma conexión.
+    let sesionA: postgres.ReservedSql | undefined
+    let sesionB: postgres.ReservedSql | undefined
     try {
-      const resultados = await Promise.allSettled([
-        clienteA.begin(async (tx) => {
-          await tx`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`
-        }),
-        clienteB.begin(async (tx) => {
-          await tx`update party set status = 'MERGED', merged_into_party_id = ${a} where id = ${b}`
-        }),
+      sesionA = await clienteA.reserve()
+      sesionB = await clienteB.reserve()
+      await Promise.all([sesionA`begin`, sesionB`begin`])
+      await Promise.all([
+        sesionA`set local statement_timeout = '5s'`,
+        sesionB`set local statement_timeout = '5s'`,
       ])
-
+      const actualizaciones = await Promise.allSettled([
+        sesionA`update party set status = 'MERGED', merged_into_party_id = ${b} where id = ${a}`,
+        sesionB`update party set status = 'MERGED', merged_into_party_id = ${a} where id = ${b}`,
+      ])
+      // Ninguna transacción confirma mientras la otra todavía está en el trigger.
+      // Cada trigger ve el estado previo al merge de la otra sesión, sin depender
+      // de cuánto tarde el scheduler o de un pg_sleep aproximado.
+      assert.equal(
+        actualizaciones.every((resultado) => resultado.status === 'fulfilled'),
+        true,
+        `sin el lock, ambas actualizaciones deben terminar: ${JSON.stringify(actualizaciones)}`,
+      )
+      const resultados = await Promise.allSettled([sesionA`commit`, sesionB`commit`])
       assert.equal(
         resultados.every((resultado) => resultado.status === 'fulfilled'),
         true,
@@ -1036,6 +1046,10 @@ describe('concurrencia — BR-001: INV-003 con dos sesiones reales y simultánea
           'la ausencia de serialización es la causa real del defecto BR-001',
       )
     } finally {
+      // También libera las transacciones si falla un UPDATE o una aserción.
+      await Promise.allSettled([sesionA === undefined ? undefined : sesionA`rollback`, sesionB === undefined ? undefined : sesionB`rollback`])
+      sesionA?.release()
+      sesionB?.release()
       await clienteA.end()
       await clienteB.end()
       await desmergearYLimpiar(a, b)
