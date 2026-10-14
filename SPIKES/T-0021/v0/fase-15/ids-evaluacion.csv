@@ -1,0 +1,52 @@
+evaluacion_id,apariciones,fuentes_y_risk_id
+EV-0001,3,agro-y-alimentos:S01-R01; servicios-a-personas:S14-R01; dry-run:CP-01-R1
+EV-0002,3,agro-y-alimentos:S01-R02; servicios-a-personas:S14-R02; dry-run:CP-01-R2
+EV-0003,3,agro-y-alimentos:S01-R03; servicios-a-personas:S14-R03; dry-run:CP-01-R3
+EV-0004,3,agro-y-alimentos:S01-R04; servicios-a-personas:S14-R04; dry-run:CP-01-R4
+EV-0005,3,agro-y-alimentos:S01-R05; servicios-a-personas:S14-R05; dry-run:CP-01-R5
+EV-0006,3,agro-y-alimentos:S01-R06; servicios-a-personas:S14-R06; dry-run:CP-02-R1
+EV-0007,3,agro-y-alimentos:S01-R07; servicios-a-personas:S14-R07; dry-run:CP-02-R2
+EV-0008,3,agro-y-alimentos:S06-R01; servicios-a-personas:S26-R01; dry-run:CP-03-R1
+EV-0009,3,agro-y-alimentos:S06-R02; servicios-a-personas:S26-R02; dry-run:CP-03-R2
+EV-0010,3,agro-y-alimentos:S06-R03; servicios-a-personas:S26-R03; dry-run:CP-04-R1
+EV-0011,3,agro-y-alimentos:S06-R04; servicios-a-personas:S26-R04; dry-run:CP-04-R1
+EV-0012,3,agro-y-alimentos:S06-R05; servicios-a-personas:S26-R05; dry-run:CP-04-R2
+EV-0013,3,agro-y-alimentos:S06-R06; servicios-a-personas:S26-R06; dry-run:CP-05-R1
+EV-0014,3,agro-y-alimentos:S15-R01; servicios-a-personas:S26-R07; dry-run:CP-05-R2
+EV-0015,3,agro-y-alimentos:S15-R02; servicios-a-personas:S35-R01; dry-run:CP-06-R1
+EV-0016,3,agro-y-alimentos:S15-R03; servicios-a-personas:S35-R02; dry-run:CP-06-R2
+EV-0017,3,agro-y-alimentos:S15-R04; servicios-a-personas:S35-R03; dry-run:CP-07-R1
+EV-0018,3,agro-y-alimentos:S15-R05; servicios-a-personas:S35-R04; dry-run:CP-07-R2
+EV-0019,3,agro-y-alimentos:S15-R06; servicios-a-personas:S35-R05; dry-run:CP-08-R1
+EV-0020,3,agro-y-alimentos:S16-R01; servicios-a-personas:S35-R06; dry-run:CP-08-R2
+EV-0021,3,agro-y-alimentos:S16-R02; servicios-a-personas:S36-R01; dry-run:CP-08-R3
+EV-0022,3,agro-y-alimentos:S16-R03; servicios-a-personas:S36-R02; dry-run:CP-09-R1
+EV-0023,3,agro-y-alimentos:S16-R04; servicios-a-personas:S36-R03; dry-run:CP-10-R1
+EV-0024,3,agro-y-alimentos:S16-R05; servicios-a-personas:S36-R04; dry-run:CP-10-R1
+EV-0025,3,agro-y-alimentos:S16-R06; servicios-a-personas:S36-R05; dry-run:CP-11-A-R1
+EV-0026,3,agro-y-alimentos:S17-R01; servicios-a-personas:S36-R06; dry-run:CP-11-B-R2
+EV-0027,3,agro-y-alimentos:S17-R02; servicios-a-personas:S36-R07; dry-run:CP-12-R1-A
+EV-0028,2,agro-y-alimentos:S17-R03; dry-run:CP-12-R1-B
+EV-0029,2,agro-y-alimentos:S17-R04; dry-run:CP-12-R1a
+EV-0030,2,agro-y-alimentos:S17-R05; dry-run:CP-12-R1b
+EV-0031,2,agro-y-alimentos:S17-R06; dry-run:CP-12-R1c
+EV-0032,2,agro-y-alimentos:S18-R01; dry-run:CP-12-R2
+EV-0033,2,agro-y-alimentos:S18-R02; dry-run:CP-13-R1
+EV-0034,2,agro-y-alimentos:S18-R03; dry-run:CP-13-R2
+EV-0035,2,agro-y-alimentos:S18-R04; dry-run:CP-14-R1
+EV-0036,2,agro-y-alimentos:S18-R05; dry-run:CP-14-R2
+EV-0037,2,agro-y-alimentos:S18-R06; dry-run:CP-15-R1
+EV-0038,2,agro-y-alimentos:S18-R07; dry-run:CP-15-R2
+EV-0039,2,agro-y-alimentos:S19-R01; dry-run:CP-16-R1
+EV-0040,2,agro-y-alimentos:S19-R02; dry-run:CP-16-R2
+EV-0041,2,agro-y-alimentos:S19-R03; dry-run:CP-17-R1
+EV-0042,2,agro-y-alimentos:S19-R04; dry-run:CP-18-R1
+EV-0043,2,agro-y-alimentos:S19-R05; dry-run:CP-18-R1
+EV-0044,2,agro-y-alimentos:S19-R06; dry-run:CP-19-R1
+EV-0045,2,agro-y-alimentos:S19-E01; dry-run:CP-19-R1
+EV-0046,2,agro-y-alimentos:S20-R01; dry-run:CP-19-R1
+EV-0047,2,agro-y-alimentos:S20-R02; dry-run:CP-19-R1
+EV-0048,2,agro-y-alimentos:S20-R03; dry-run:CP-20-R1
+EV-0049,2,agro-y-alimentos:S20-R04; dry-run:CP-20-R2
+EV-0050,2,agro-y-alimentos:S20-R05; dry-run:CP-20-R3
+EV-0051,2,agro-y-alimentos:S20-R06; dry-run:CP-20-E1

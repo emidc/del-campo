@@ -1,0 +1,422 @@
+{
+ "huellas_congelamiento_v1": {
+  "total": 18,
+  "coinciden": 18,
+  "no_coinciden": []
+ },
+ "fichas": {
+  "F8-agente": 255,
+  "F8-emiliano": 30,
+  "F11b": 64,
+  "F12": 6
+ },
+ "fichas_total": 355,
+ "columnas_ausentes_en_archivos": {
+  "prioridad_provisional": 10
+ },
+ "base_por_factor_evaluaciones": {
+  "p": {
+   "observed": 253,
+   "reported": 29,
+   "assumed": 1,
+   "inferred": 69,
+   "(vacío)": 3
+  },
+  "i_econ": {
+   "reported": 46,
+   "assumed": 59,
+   "inferred": 177,
+   "observed": 70,
+   "(vacío)": 3
+  },
+  "i_pers": {
+   "inferred": 97,
+   "reported": 111,
+   "observed": 133,
+   "assumed": 11,
+   "(vacío)": 3
+  },
+  "i_cont": {
+   "reported": 113,
+   "observed": 134,
+   "inferred": 98,
+   "(vacío)": 3,
+   "assumed": 7
+  },
+  "i_legal": {
+   "inferred": 76,
+   "reported": 158,
+   "observed": 110,
+   "(vacío)": 3,
+   "assumed": 8
+  },
+  "v_cont": {
+   "observed": 299,
+   "reported": 14,
+   "(vacío)": 3,
+   "assumed": 2,
+   "inferred": 37
+  },
+  "v_rec": {
+   "reported": 60,
+   "observed": 252,
+   "assumed": 1,
+   "(vacío)": 3,
+   "inferred": 39
+  }
+ },
+ "base_fuera_de_enum_evaluaciones": [],
+ "base_vacia_con_valor": [],
+ "fichas_sin_factores": {
+  "padre|F8-agente": 3
+ },
+ "valores_enum": {
+  "tipo_objeto": {
+   "riesgo": 339,
+   "escenario": 3,
+   "padre": 3,
+   "sub_riesgo": 10
+  },
+  "actor": {
+   "ai": 319,
+   "human": 36
+  },
+  "tipo_evaluacion": {
+   "inicial": 291,
+   "reevaluacion": 64
+  },
+  "motivo": {
+   "(vacío)": 291,
+   "cambio_version_metodologia": 47,
+   "correccion_evaluacion": 17
+  },
+  "review_status": {
+   "pending": 353,
+   "accepted": 2
+  },
+  "uncertainty": {
+   "medium": 232,
+   "high": 69,
+   "low": 52,
+   "(vacío)": 2
+  },
+  "evaluable": {
+   "true": 327,
+   "false": 19,
+   "(vacío)": 9
+  },
+  "banda": {
+   "(vacío)": 293,
+   "Alta": 17,
+   "Media": 35,
+   "Baja": 5,
+   "Crítica": 5
+  },
+  "version_metodologia": {
+   "metodologia v0.2": 285,
+   "metodologia v1 candidate": 70
+  },
+  "consecuencia_extrema": {
+   "true": 77,
+   "false": 270,
+   "(vacío)": 8
+  },
+  "safety_critical": {
+   "true": 112,
+   "false": 235,
+   "(vacío)": 8
+  },
+  "prioridad_provisional": {
+   "(vacío)": 355
+  }
+ },
+ "procedencia_base_fuera_de_enum_fichas_informacion": 15,
+ "procedencia_guion": [
+  {
+   "ficha": "v0/emi41/fichas/S02/S02-R04.md",
+   "risk_id": "S02-R04",
+   "dato": "Días de baja 2023",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Las liquidaciones de la ART de 2023 no están en el archivo de la empresa"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S02/S02-R06.md",
+   "risk_id": "S02-R06",
+   "dato": "Cortes anteriores a 2023",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "No hay registro propio ni de la distribuidora antes de 2023"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S06/S06-R05.md",
+   "risk_id": "S06-R05",
+   "dato": "Ahorro de una cámara vacía",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Separación de costos fijos y variables"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S07/S07-E01.md",
+   "risk_id": "S07-E01",
+   "dato": "Daño sísmico a planta y campamento",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Estimación"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S07/S07-R04.md",
+   "risk_id": "S07-R04",
+   "dato": "Informe trimestral del segundo trimestre de 2026",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Emisión y contenido"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S10/S10-R05.md",
+   "risk_id": "S10-R05",
+   "dato": "Contenido de sílice del material",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "No hay análisis mineralógico de la caliza ni del conglomerado."
+  },
+  {
+   "ficha": "v0/emi41/fichas/S11/S11-R04.md",
+   "risk_id": "S11-R04",
+   "dato": "Disponibilidad del detector en 2023-11 a 2024-12",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Los registros se perdieron en una migración de servidor en 2025-01."
+  },
+  {
+   "ficha": "v0/emi41/fichas/S17/S17-R03.md",
+   "risk_id": "S17-R03",
+   "dato": "Cláusula de indemnización vigente",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Texto del contrato 2025-12 con el mayor cliente"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S22/S22-R02.md",
+   "risk_id": "S22-R02",
+   "dato": "Válvula de exceso de flujo de la cisterna",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Fecha y resultado de su última prueba"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S22/S22-R04.md",
+   "risk_id": "S22-R04",
+   "dato": "Choques y cuasi-accidentes antes de 2025",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "No se registraban"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S22/S22-R06.md",
+   "risk_id": "S22-R06",
+   "dato": "Espesor actual",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Medición por ultrasonido"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S31/S31-R06.md",
+   "risk_id": "S31-R06",
+   "dato": "Kilómetros 2023",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Ver faltantes"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S32/S32-R06.md",
+   "risk_id": "S32-R06",
+   "dato": "Registro de intrusiones de la operadora A",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "No disponible"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S33/S33-R02.md",
+   "risk_id": "S33-R02",
+   "dato": "Ensayo de granizo del lote B",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Ver faltantes"
+  },
+  {
+   "ficha": "v0/emi41/fichas/S34/S34-R01.md",
+   "risk_id": "S34-R01",
+   "dato": "Contrato con el cliente B",
+   "base": "—",
+   "evidencia": "sin_evidencia",
+   "que_falta_confirmar": "Ver faltantes"
+  }
+ ],
+ "esquemas_id": {
+  "EV-N": {
+   "agro-y-alimentos": 59,
+   "comercio-y-logistica": 26,
+   "servicios-a-personas": 27,
+   "F8-emiliano": 30,
+   "dry-run": 51
+  },
+  "EV-N-energia-y-agua-N": {
+   "energia-y-agua": 24
+  },
+  "EV-N-industria-y-construccion-N": {
+   "industria-y-construccion": 52
+  },
+  "EV-N-mineria-N": {
+   "mineria": 43
+  },
+  "EV-N-tecnologia-y-pagos-N": {
+   "tecnologia-y-pagos": 24
+  },
+  "EV-N-N": {
+   "F11b": 64
+  },
+  "EV-N-PILOTO-EMI-SN-RN": {
+   "F12": 6
+  }
+ },
+ "rangos_id": {
+  "agro-y-alimentos": [
+   "EV-0001",
+   "EV-0059",
+   59,
+   59
+  ],
+  "comercio-y-logistica": [
+   "EV-8401",
+   "EV-8426",
+   26,
+   26
+  ],
+  "energia-y-agua": [
+   "EV-8-energia-y-agua-0001",
+   "EV-8-energia-y-agua-0024",
+   24,
+   24
+  ],
+  "industria-y-construccion": [
+   "EV-8-industria-y-construccion-0001",
+   "EV-8-industria-y-construccion-0052",
+   52,
+   52
+  ],
+  "mineria": [
+   "EV-8-mineria-0001",
+   "EV-8-mineria-0043",
+   43,
+   43
+  ],
+  "servicios-a-personas": [
+   "EV-0001",
+   "EV-0027",
+   27,
+   27
+  ],
+  "tecnologia-y-pagos": [
+   "EV-8-tecnologia-y-pagos-0001",
+   "EV-8-tecnologia-y-pagos-0024",
+   24,
+   24
+  ],
+  "F8-emiliano": [
+   "EV-8101",
+   "EV-8130",
+   30,
+   30
+  ],
+  "F11b": [
+   "EV-11-0001",
+   "EV-11-0064",
+   64,
+   64
+  ],
+  "F12": [
+   "EV-12-PILOTO-EMI-S06-R01",
+   "EV-12-PILOTO-EMI-S06-R06",
+   6,
+   6
+  ],
+  "dry-run": [
+   "EV-0001",
+   "EV-0051",
+   51,
+   51
+  ]
+ },
+ "colisiones_dentro_emi41": 27,
+ "colisiones_con_dry_run": 51,
+ "ids_en_tres_fuentes": 27,
+ "par_evaluacion_risk_unico_emi41": true,
+ "evaluacion_anterior_id_ambiguo": [
+  [
+   "EV-11-0009",
+   "S06-R02",
+   "EV-0009"
+  ],
+  [
+   "EV-11-0016",
+   "S14-R04",
+   "EV-0004"
+  ],
+  [
+   "EV-11-0017",
+   "S15-R01",
+   "EV-0014"
+  ],
+  [
+   "EV-11-0025",
+   "S26-R03",
+   "EV-0010"
+  ],
+  [
+   "EV-11-0041",
+   "S35-R02",
+   "EV-0016"
+  ],
+  [
+   "EV-11-0042",
+   "S36-R02",
+   "EV-0022"
+  ],
+  [
+   "EV-11-0043",
+   "S36-R04",
+   "EV-0024"
+  ]
+ ],
+ "risk_id_emi41_distintos": 255,
+ "risk_id_dry_run_distintos": 45,
+ "risk_id_compartidos_emi41_dry_run": 0,
+ "dry_run_motivos": {
+  "(vacío)": 45,
+  "accion_ejecutada": 3,
+  "informacion_nueva": 1,
+  "correccion_evaluacion": 1,
+  "cambio_contexto": 1
+ },
+ "dry_run_con_accion": [
+  [
+   "EV-0011",
+   "CP-04-R1",
+   "CP-04-A1",
+   "efecto_total"
+  ],
+  [
+   "EV-0024",
+   "CP-10-R1",
+   "CP-10-A1",
+   "efecto_parcial"
+  ],
+  [
+   "EV-0043",
+   "CP-18-R1",
+   "CP-18-A1",
+   "efecto_total"
+  ]
+ ]
+}

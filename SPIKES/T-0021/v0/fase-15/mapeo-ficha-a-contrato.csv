@@ -1,0 +1,132 @@
+origen,campo,archivo_destino,tipo,uso_risk_os_v1,fuente,nota
+plantilla,evaluacion_id,risks.csv,dato,historial; movimiento por dimensión,metodología §14 Insumos (Assessment),"Pasa a id nuevo EVA-<ULID>; el histórico va a evaluacion_id_origen (decisión 1). 328 valores distintos: 27 ids se repiten entre agro y servicios a personas. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,risk_id,risks.csv,dato,todas,metodología §14 Insumos (Risk),"Pasa a RSK-<ULID>; el histórico (S01-R01, CP-01-R1) va a id_origen. Los 255 risk_id de EMI-41 son únicos. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,caso_empresa,risks.csv,experimento,ninguna; la organización la da organizacion_id,metodología §18,"Se reemplaza por organizacion_id (id opaco). No entra. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,tipo_objeto,risks.csv,dato,ordenar la lista; escenarios agregados; plan de acción,metodología §1.2,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,riesgo_padre_id,risks.csv,dato,ordenar la lista (posición del padre),metodología §1.4.7,"en las 355 fichas: 10 con valor, 345 vacías"
+plantilla,miembros,risks.csv,dato,escenarios agregados,metodología §10.3.1,"en las 355 fichas: 3 con valor, 352 vacías"
+plantilla,evaluador,risks.csv,dato,historial; evaluación vigente,protocolo §2.1,"10 evaluadores distintos. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,actor,risks.csv,dato,historial; revisión,EMI-17,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,fase,—,experimento,ninguna,metodología §18,"No entra. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,corrida_id,—,experimento,ninguna,metodología §18,"No entra. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,version_metodologia,risks.csv,dato,historial; derivados,protocolo §6.4,"Dos valores en las fichas: metodologia v0.2 (285) y v1 candidate (70). en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,version_protocolo,—,experimento,ninguna,metodología §18,"No entra. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,fecha,risks.csv,dato,historial,protocolo §2.1,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,tipo_evaluacion,risks.csv,dato,historial,protocolo §2.1,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,evaluacion_anterior_id,risks.csv,dato,historial; movimiento por dimensión,protocolo §6.1,"7 fichas de la Fase 11b apuntan a un id repetido (EV-0004, EV-0009, EV-0010, EV-0014, EV-0016, EV-0022, EV-0024): sólo se resuelven con el risk_id. en las 355 fichas: 64 con valor, 291 vacías"
+plantilla,motivo,risks.csv,dato,historial; plan de acción,D22,"en las 355 fichas: 64 con valor, 291 vacías"
+plantilla,accion_id,risks.csv,dato,plan de acción; movimiento por dimensión,protocolo §6.3,"En EMI-41 nunca se usa; los casos de propiedad del dry run lo usan 3 veces. en las 355 fichas: 0 con valor, 355 vacías"
+plantilla,accion_cambio_esperado,action-plan.csv,dato,plan de acción,D16; protocolo §6.3,"Pasa a cambio_esperado de la acción, no de la evaluación. en las 355 fichas: 0 con valor, 355 vacías"
+plantilla,accion_efecto,action-plan.csv,dato,plan de acción; movimiento por dimensión,D25; metodología §11.2.3,"Pasa a efecto de la acción, con evaluacion_efecto_id hacia la reevaluación que lo observó. en las 355 fichas: 0 con valor, 355 vacías"
+plantilla,accion_brecha_nota,action-plan.csv,dato,plan de acción,D25,"Pasa a efecto_nota. en las 355 fichas: 0 con valor, 355 vacías"
+plantilla,riesgo_causa,risks.csv,dato,detalle del riesgo,metodología §1.1.3,"en las 355 fichas: 353 con valor, 2 vacías"
+plantilla,riesgo_evento,risks.csv,dato,detalle del riesgo; priorizar (corte P/V),metodología §2.1,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,riesgo_consecuencia,risks.csv,dato,detalle del riesgo; padre,metodología §1.3.5,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,informacion_ref,—,experimento,ninguna; la reemplaza evidencia,metodología §18,"No entra. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,p_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en p_estado (known | unknown) y p_valor (1–5). en las 355 fichas: 351 con valor, 3 vacías, 1 unknown"
+plantilla,p_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 214 con valor, 141 vacías"
+plantilla,p_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 227 con valor, 128 vacías"
+plantilla,p_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,p_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,p_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_econ_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en i_econ_estado (known | unknown) y i_econ_valor (1–5). en las 355 fichas: 330 con valor, 3 vacías, 22 unknown"
+plantilla,i_econ_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 262 con valor, 93 vacías"
+plantilla,i_econ_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 277 con valor, 78 vacías"
+plantilla,i_econ_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_econ_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_econ_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_pers_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en i_pers_estado (known | unknown) y i_pers_valor (1–5). en las 355 fichas: 347 con valor, 3 vacías, 5 unknown"
+plantilla,i_pers_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 167 con valor, 188 vacías"
+plantilla,i_pers_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 191 con valor, 164 vacías"
+plantilla,i_pers_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_pers_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_pers_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_cont_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en i_cont_estado (known | unknown) y i_cont_valor (1–5). en las 355 fichas: 346 con valor, 3 vacías, 6 unknown"
+plantilla,i_cont_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 135 con valor, 220 vacías"
+plantilla,i_cont_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 151 con valor, 204 vacías"
+plantilla,i_cont_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_cont_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_cont_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_legal_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en i_legal_estado (known | unknown) y i_legal_valor (1–5). en las 355 fichas: 351 con valor, 3 vacías, 1 unknown"
+plantilla,i_legal_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 147 con valor, 208 vacías"
+plantilla,i_legal_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 172 con valor, 183 vacías"
+plantilla,i_legal_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_legal_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_legal_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_cont_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en v_cont_estado (known | unknown) y v_cont_valor (1–5). en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_cont_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 190 con valor, 165 vacías"
+plantilla,v_cont_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 203 con valor, 152 vacías"
+plantilla,v_cont_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_cont_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_cont_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_rec_valor,risks.csv,dato,priorizar; matriz; movimiento por dimensión,D8; metodología §9,"Se parte en v_rec_estado (known | unknown | no_aplica) y v_rec_valor (1–5). en las 355 fichas: 300 con valor, 3 vacías, 52 no_aplica"
+plantilla,v_rec_min,risks.csv,dato,detalle; cola de validación,D8,"en las 355 fichas: 141 con valor, 214 vacías"
+plantilla,v_rec_max,risks.csv,dato,detalle; techo; banderas; cola de validación,D8; §6.6; §8.2,"en las 355 fichas: 161 con valor, 194 vacías"
+plantilla,v_rec_base,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3b: opcional. Ninguna base fuera del enum en las fichas. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_rec_evidencia,risks.csv,experimento,"detalle del riesgo, cuando el archivo la trae (decisión 3b)","metodología §12.5, §17 EV-27; EMI-17","Decisión 3. en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,v_rec_observacion,risks.csv,dato,detalle del riesgo; historial,metodología §12,"en las 355 fichas: 352 con valor, 3 vacías"
+plantilla,i_efectivo,—,derivado,priorizar; ordenar la lista (paso 3 de D10),"metodología §4.1.1, §7.2","No se importa: se calcula (decisión 6). en las 355 fichas: 347 con valor, 8 vacías"
+plantilla,prioridad_provisional,—,derivado,ordenar la lista (padre con hijo no evaluable),metodología §1.4.5,"No se importa. Ningún caso de EMI-41 la dispara: hace falta un caso sintético nuevo. en las 355 fichas: 0 con valor, 6 vacías, 349 en archivos sin la columna"
+plantilla,i_efectivo_dimensiones,—,derivado,detalle y explicación,metodología §18,"No se importa. en las 355 fichas: 347 con valor, 8 vacías"
+plantilla,v_aspectos_aplicables,—,derivado,detalle y explicación,"metodología §5.5.4, §18","No se importa. en las 355 fichas: 346 con valor, 9 vacías"
+plantilla,c_dimension_determinante,—,derivado,priorizar; detalle,metodología §6.2,"No se importa. en las 355 fichas: 327 con valor, 28 vacías"
+plantilla,consecuencia_extrema,—,derivado,vista de seguridad; filtro de extremos,D20; metodología §8.1,"No se importa. en las 355 fichas: 347 con valor, 8 vacías"
+plantilla,consecuencia_extrema_dimensiones,—,derivado,filtro de extremos,metodología §8.1,"No se importa. en las 355 fichas: 77 con valor, 278 vacías"
+plantilla,safety_critical,—,derivado,vista de seguridad,D23; metodología §8.2,"No se importa. en las 355 fichas: 347 con valor, 8 vacías"
+plantilla,evaluable,—,derivado,vista de no evaluables y cola de validación,metodología §9.3-9.4,"No se importa: sale de los factores. en las 355 fichas: 346 con valor, 9 vacías"
+plantilla,motivo_no_evaluable,risks.csv,dato,vista de no evaluables,metodología §9.4,"Texto: qué factor y por qué. El sistema sabe el factor; el porqué lo escribe el evaluador. en las 355 fichas: 19 con valor, 336 vacías"
+plantilla,necesidad_validacion,risks.csv,dato,vista de no evaluables y cola de validación,"metodología §9.2, §9.5","en las 355 fichas: 71 con valor, 284 vacías"
+plantilla,uncertainty,risks.csv,dato,cola de validación; detalle,EMI-17; D9,"2 vacías: padres de la Fase 8. en las 355 fichas: 353 con valor, 2 vacías"
+plantilla,uncertainty_nota,risks.csv,dato,cola de validación; detalle,EMI-17,"en las 355 fichas: 304 con valor, 51 vacías"
+plantilla,c_raw,—,derivado,priorizar; ordenar la lista; matriz (interno),"metodología §6, «Uso de C_raw»","No se importa ni se edita. Siempre con el vector y las banderas (decisión 5). en las 355 fichas: 327 con valor, 28 vacías"
+plantilla,banda,—,derivado,ordenar la lista; matriz,metodología §6.5,"No se importa. Vacía en las fichas de la Fase 8 (v0.2 no tenía bandas). en las 355 fichas: 62 con valor, 293 vacías"
+plantilla,techo_plausible,—,derivado,detalle; vista y cola de validación; nunca ranking,metodología §6.6,"No se importa. en las 355 fichas: 344 con valor, 11 vacías"
+plantilla,reglas_aplicadas,risks.csv,dato,detalle y explicación,metodología §18,"Opcional. en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,justificacion,risks.csv,dato,detalle y explicación,P3; metodología §18,"en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,reputacion_texto,—,sin uso,ninguna pantalla nombrada,metodología §18; D13,"No entra: nunca se usó en las 355 fichas y ninguna pantalla de v1 la nombra. en las 355 fichas: 0 con valor, 355 vacías"
+plantilla,review_status,risks.csv,dato,revisión; evaluación vigente; historial,EMI-17; protocolo §6.2,"Decisión 4. 353 pending, 2 accepted (EV-11-0063 y EV-11-0064). en las 355 fichas: 355 con valor, 0 vacías"
+plantilla,revisado_por,risks.csv,dato,revisión; historial,protocolo §2.3,"Se agrega revisado_por_actor (human | ai) para que la aceptación se pueda validar. en las 355 fichas: 2 con valor, 353 vacías"
+plantilla,fecha_revision,risks.csv,dato,revisión; historial,protocolo §2.3,"en las 355 fichas: 2 con valor, 353 vacías"
+plantilla,anomalias,—,experimento,ninguna,metodología §18,"No entra. en las 355 fichas: 287 con valor, 68 vacías"
+plan Fase 15,risks: P,risks.csv,dato,priorizar; matriz,plan,"p_estado, p_valor"
+plan Fase 15,risks: dimensiones de I,risks.csv,dato,priorizar; matriz; movimiento,plan,"i_econ, i_pers, i_cont, i_legal"
+plan Fase 15,risks: I efectivo,—,derivado,ordenar la lista,plan; metodología §14 Insumos,Se calcula
+plan Fase 15,risks: V,risks.csv,dato,priorizar; plan de acción,plan; metodología §5,v_cont y v_rec por separado; V_d se calcula
+plan Fase 15,risks: rangos,risks.csv,dato,detalle; techo; cola,plan,"<f>_min, <f>_max"
+plan Fase 15,risks: valor plausible,risks.csv,dato,priorizar,plan; D8,<f>_valor
+plan Fase 15,risks: evidencias por factor,risks.csv,experimento,"detalle, si se importa",plan; metodología §12.5,Decisión 3: <f>_evidencia opcional; evidencia por registro obligatoria
+plan Fase 15,risks: procedencia,risks.csv,dato,detalle; historial; revisión,plan; EMI-17,"actor, base, evidencia por registro"
+plan Fase 15,risks: uncertainty,risks.csv,dato,cola de validación,plan; EMI-17,"uncertainty, uncertainty_nota"
+plan Fase 15,risks: consecuencia extrema,—,derivado,filtro de extremos,plan; D20,Se calcula
+plan Fase 15,risks: criticidad,—,derivado,priorizar (interno),plan; metodología §6,c_raw se calcula; nunca solo (decisión 5)
+plan Fase 15,risks: banda,—,derivado,ordenar la lista; matriz,plan,Se calcula
+plan Fase 15,risks: techo plausible,—,derivado,detalle; cola,plan,Se calcula
+plan Fase 15,risks: versión metodológica,risks.csv,dato,historial,plan,version_metodologia
+plan Fase 15,risks: review_status,risks.csv,dato,revisión,plan; EMI-17,Decisión 4
+plan Fase 15,risks: historial/referencias,risks.csv,dato,historial,plan; protocolo §6,"evaluacion_anterior_id, motivo, accion_id, fecha, id_origen"
+plan Fase 15,action-plan: riesgo relacionado,action-plan.csv,dato,plan de acción,plan; EMI-17,"risk_id, uno por registro"
+plan Fase 15,action-plan: acción,action-plan.csv,dato,plan de acción,plan,descripcion; tipo_registro
+plan Fase 15,action-plan: factor o factores objetivo,action-plan.csv,dato,plan de acción,plan; D16,factor_objetivo
+plan Fase 15,action-plan: mecanismo causal,action-plan.csv,dato,plan de acción,plan; D16,mecanismo_causal
+plan Fase 15,action-plan: cambio esperado,action-plan.csv,dato,plan de acción,plan; D16,cambio_esperado; nunca escribe un factor
+plan Fase 15,action-plan: estado de ejecución,action-plan.csv,dato,plan de acción; revisión pendiente,plan; D25,"estado, fecha_cumplida"
+plan Fase 15,action-plan: evidencia,action-plan.csv,dato,plan de acción,plan; EMI-17,evidencia_ejecucion y evidencia del registro
+plan Fase 15,action-plan: efecto observado posteriormente,action-plan.csv,dato,plan de acción; movimiento,plan; D25,"efecto, efecto_nota, evaluacion_efecto_id"
+plan Fase 15,risk-transfer: riesgo relacionado,risk-transfer.csv,dato,transferencia,plan; EMI-17,"risk_id, uno por registro"
+plan Fase 15,risk-transfer: póliza/cobertura,risk-transfer.csv,dato,transferencia,plan,"poliza_ref (opaca), cobertura, vigencia"
+plan Fase 15,risk-transfer: límites,risk-transfer.csv,dato,exposición retenida,plan,limite_monto
+plan Fase 15,risk-transfer: sublímites,risk-transfer.csv,dato,exposición retenida,plan,"sublimite_aplicable_monto, sublimites_texto"
+plan Fase 15,risk-transfer: deducibles,risk-transfer.csv,dato,exposición retenida,plan,"deducible_monto, deducible_texto"
+plan Fase 15,risk-transfer: exclusiones,risk-transfer.csv,dato,transferencia,plan,exclusiones
+plan Fase 15,risk-transfer: exposición económica retenida,risk-transfer.csv,dato,exposición retenida,plan; D17,"exposicion_retenida_monto, nota"
+plan Fase 15,risk-transfer: evaluación de suficiencia,risk-transfer.csv,dato,transferencia,plan,"suficiencia, suficiencia_nota, con procedencia y review_status"
+plan Fase 15,La transferencia no modifica la criticidad,—,regla,ninguna (invariante),plan; D17,Ninguna columna de risk-transfer.csv entra a ningún cálculo; test de la 15b
+EMI-16,Campos y relaciones mínimas,los tres,—,—,EMI-16,contrato/columnas-*.csv; relaciones en dossier §3.4
+EMI-16,Validaciones esenciales,los tres,—,—,EMI-16,contrato/reglas-validacion.csv
+EMI-16,Qué pertenece a cada CSV,los tres,—,—,EMI-16,"Este archivo, columna archivo_destino"
+EMI-16,Un caso consistente entre los tres archivos,los tres,—,—,EMI-16,Lo escribe la 15b (dossier §7: acciones sintéticas nuevas)
+metodología §13,monto económico bruto estimado por riesgo,risks.csv,dato,exposición retenida,metodología §13,Columna nueva i_econ_monto_bruto + moneda: la vista lo pide y la ficha sólo lo tenía en texto
+metodología §8.2,decisión explícita de la dirección sobre el tratamiento,action-plan.csv,dato,vista de seguridad,metodología §8.2; D23,tipo_registro = decision_tratamiento
+metodología §11.3,eventos de la póliza con fecha,risk-transfer.csv,dato,transferencia (historial),metodología §11.3,tipo_registro = evento
+metodología §7.1.4,organización,risks.csv,dato,ordenar la lista por organización,metodología §7.1.4; D-0063,organizacion_id opaco (decisión 1a)
+lista fija,titulo,risks.csv,dato,ordenar la lista; matriz,listas de EMI-41,No estaba en la plantilla

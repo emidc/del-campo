@@ -1,0 +1,36 @@
+columna,tipo,obligatoriedad,condicion,valores,regla_validacion,severidad,regla_id,origen,uso_risk_os_v1
+tipo_registro,enum,siempre,,cobertura | evento,enum; columnas propias de cada tipo,rechazo,RV-ARCH-05; RV-TRF-06,metodología §11.3 (historial propio de la póliza),transferencia
+transferencia_id,id,condicional,tipo_registro = cobertura,TRF-<ULID>,formato; único,rechazo,RV-ID-01; RV-ID-02,EMI-17; decisión 1,transferencia
+evento_id,id,condicional,tipo_registro = evento,EVT-<ULID>,formato; único,rechazo,RV-ID-01; RV-ID-02,metodología §11.3; decisión 1,transferencia (historial de la póliza)
+risk_id,id,siempre,,RSK-<ULID>,existe; no es padre,rechazo,RV-TRF-01,EMI-17 (exactamente un risk_id),transferencia; exposición retenida
+transferencia_ref,id,condicional,tipo_registro = evento,TRF-<ULID> de una cobertura del mismo risk_id,"existe, es cobertura, mismo riesgo",rechazo,RV-TRF-04,metodología §11.3,transferencia (historial)
+id_origen,texto,opcional,,,único con lote_origen,rechazo,RV-ID-03,decisión 1,trazabilidad
+lote_origen,texto,condicional,id_origen presente,,,rechazo,RV-ID-03,decisión 1,trazabilidad
+poliza_ref,texto opaco,condicional,tipo_registro = cobertura,"referencia a la póliza, sin clave foránea a Policy",no vacío; aviso si la misma póliza trae datos distintos,aviso; rechazo,RV-TRF-02; RV-TRF-07,plan Fase 15 (póliza o cobertura); D-0063,transferencia
+cobertura,texto,condicional,tipo_registro = cobertura,qué cubre para este riesgo,no vacío,rechazo,RV-TRF-02,plan Fase 15,transferencia
+vigencia_desde,fecha,condicional,tipo_registro = cobertura,AAAA-MM-DD,≤ vigencia_hasta,rechazo,RV-TRF-02,metodología §13 (renovación),transferencia
+vigencia_hasta,fecha,condicional,tipo_registro = cobertura,AAAA-MM-DD,aviso si vencida sin evento,aviso; rechazo,RV-TRF-02; RV-TRF-09,metodología §13,transferencia
+limite_monto,decimal,opcional,tipo_registro = cobertura,≥ 0,con moneda,rechazo,RV-TRF-03,plan Fase 15 (límites); metodología §13 (límite original),transferencia; exposición retenida
+sublimite_aplicable_monto,decimal,opcional,tipo_registro = cobertura,≥ 0; el sublímite que alcanza a este riesgo,con moneda,rechazo,RV-TRF-03,plan Fase 15 (sublímites),exposición retenida
+sublimites_texto,texto,opcional,tipo_registro = cobertura,todos los sublímites de la póliza que importan al riesgo,,,,plan Fase 15 (sublímites),transferencia
+deducible_monto,decimal,opcional,tipo_registro = cobertura,≥ 0,con moneda,rechazo,RV-TRF-03,plan Fase 15 (deducibles); metodología §13 (franquicia),exposición retenida
+deducible_texto,texto,opcional,tipo_registro = cobertura,"deducible o franquicia en palabras (porcentajes, mínimos, períodos de espera)",,,,plan Fase 15,transferencia
+exclusiones,texto,opcional,tipo_registro = cobertura,exclusiones relevantes para este riesgo,,,,plan Fase 15,transferencia
+exposicion_retenida_monto,decimal,opcional,tipo_registro = cobertura,≥ 0; estimación de lo que queda a cargo de la organización,con moneda,rechazo,RV-TRF-03,plan Fase 15; D17; metodología §13,exposición retenida
+exposicion_retenida_nota,texto,opcional,,cómo se estimó,,,,D17,exposición retenida
+suficiencia,enum,condicional,tipo_registro = cobertura,suficiente | parcial | insuficiente | sin_cobertura | no_evaluada,enum; aviso sin nota,aviso; rechazo,RV-ARCH-05; RV-TRF-08,plan Fase 15 (evaluación de suficiencia),transferencia
+suficiencia_nota,texto,condicional,suficiencia ≠ no_evaluada,,aviso si falta,aviso,RV-TRF-08,plan Fase 15; EMI-17,transferencia
+tipo_evento,enum,condicional,tipo_registro = evento,firma | ampliacion | renovacion | consumo_limite | vencimiento | cancelacion,enum,rechazo,RV-TRF-05,"metodología §11.3 (firma, consumo del límite, renovación)",transferencia (historial)
+fecha_evento,fecha,condicional,tipo_registro = evento,AAAA-MM-DD,presente,rechazo,RV-TRF-05,metodología §11.3,transferencia (historial)
+monto_evento,decimal,condicional,tipo_evento = consumo_limite; opcional en ampliacion,≥ 0,con moneda,rechazo,RV-TRF-03; RV-TRF-05,"metodología §13 (consumido, disponible)",exposición retenida (límite disponible)
+nota_evento,texto,opcional,tipo_registro = evento,,,,,metodología §11.3,transferencia (historial)
+moneda,enum,condicional,algún monto presente,ISO 4217,código válido,rechazo,RV-TRF-03,plan Fase 15,transferencia
+actor,enum,siempre,,human | ai | import,enum,rechazo,RV-PRO-04,EMI-17,revisión
+base,enum,siempre,,observed | reported | inferred | assumed,enum,rechazo,RV-PRO-01,EMI-17,transferencia (detalle)
+evidencia,lista,siempre,,referencias separadas por ; | sin_evidencia,no vacía,rechazo,RV-PRO-02; RV-PRO-03,EMI-17,transferencia (detalle)
+uncertainty,enum,condicional,tipo_registro = cobertura,low | medium | high,enum,rechazo,RV-UNC-01,EMI-17 (evaluación de transferencia),transferencia
+uncertainty_nota,texto,condicional,uncertainty = medium o high,qué falta confirmar,no vacía,aviso; rechazo,RV-UNC-02; RV-UNC-03,EMI-17,transferencia
+review_status,enum,condicional,tipo_registro = cobertura,pending | accepted | needs_revision | rejected,enum; ai nace pending,rechazo,RV-REV-01; RV-REV-02; RV-REV-03; RV-REV-04,EMI-17; decisión 4,revisión
+revisado_por,texto,condicional,review_status ≠ pending,persona,,rechazo,RV-REV-02; RV-REV-04,decisión 4,revisión
+revisado_por_actor,enum,condicional,review_status ≠ pending,human | ai,accepted sólo con human,rechazo,RV-REV-02; RV-REV-03,EMI-17; decisión 4,revisión
+fecha_revision,fecha,condicional,review_status ≠ pending,AAAA-MM-DD,formato,rechazo,RV-ARCH-05; RV-REV-02,decisión 4,revisión
