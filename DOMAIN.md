@@ -183,6 +183,13 @@ Existe como necesidad futura, pero todavía no existe evidencia suficiente para 
 Se preserva con fidelidad al origen porque no se borra historia, pero no tiene
 representación en el dominio y no se expone en producto. Promoverlo requiere ADR. → `D-0033`
 
+## OWNED BY ANOTHER CONTEXT
+
+Forma parte del lenguaje del programa, pero su modelo pertenece a otro contexto del
+monolito modular. Este documento lo nombra, lo distingue de los conceptos de Broker OS y
+apunta a su contrato; no incorpora su modelo interno. Broker OS no lo modela ni guarda
+copias propias de él. → `D-0063`, `D-0067`
+
 ---
 
 # 4. Glosario canónico
@@ -208,7 +215,7 @@ representación en el dominio y no se expone en producto. Promoverlo requiere AD
 | `Claim` | Siniestro | Proceso de gestión de un evento asegurado |
 | `InsuranceProduct` | Producto / Ramo | Producto asegurador que una Policy instancia |
 | `RiskObject` | Objeto asegurado | Aquello que se asegura: vehículo, inmueble, maquinaria |
-| `EnterpriseRisk` | Riesgo de empresa | Riesgo identificado mediante el proceso de gestión de riesgos |
+| `EnterpriseRisk` | Riesgo de empresa | Riesgo identificado mediante el proceso de gestión de riesgos; propiedad de Risk OS |
 | `ExternalReference` | Referencia externa | Referencia conocida hacia algo que existe en el origen y no en Broker OS |
 | `DocumentLink` | Documento | Vínculo con archivo/carpeta de Google Drive |
 | `Communication` | Comunicación | Referencia a una comunicación externa |
@@ -1344,23 +1351,19 @@ No se crea una entidad genérica antes de comprender el flujo.
 
 # 46. RiskAssessment
 
-**Estado: NAMED, NOT MODELED**
+**Estado: OWNED BY ANOTHER CONTEXT** — propiedad de Risk OS. → `D-0063`, `D-0067`
 
-Puede contener:
+Evaluación de un `EnterpriseRisk`: factores, criticidad, procedencia, incertidumbre y
+revisión, junto con el plan de acción y la evaluación de transferencia aseguradora de cada
+riesgo.
 
-- riesgos;
-- vulnerabilidades;
-- criticidad;
-- mitigaciones;
-- plan de acción;
-- transferencia aseguradora;
-- documentación.
+Su forma la fijó el spike de formatos y modelo de Risk OS (`T-0021`), en los contratos
+de `SPIKES/T-0021/v0/fase-15/contrato/` y la metodología `SPIKES/T-0021/v1/metodologia-v1.md`.
+Este documento no la reproduce.
 
-Esta sección mezcla hoy seis conceptos —riesgos, vulnerabilidades, criticidad,
-mitigaciones, plan de acción y transferencia— que todavía no están separados.
-
-Qué parte merece estructura lo determina el POC de gestión de riesgos empresariales,
-posterior a VS01. → §76
+La evaluación de transferencia de Risk OS no es la cobertura de una `PolicyVersion`: la
+cobertura contractual es de Broker OS (§28) y su estructura sigue sin decidirse
+(`D-0025`). → §76
 
 ---
 
@@ -2196,17 +2199,22 @@ Su estructura interna sigue sin decidirse. → `D-0026`
 
 # 76. EnterpriseRisk
 
-**Estado: NAMED, NOT MODELED**
+**Estado: OWNED BY ANOTHER CONTEXT** — propiedad de Risk OS. → `D-0063`, `D-0067`
 
 Riesgo empresarial identificado mediante el proceso de gestión de riesgos de una
 organización cliente.
 
 Es un concepto **distinto** de `InsuranceProduct` y de `RiskObject`, aunque el lenguaje
-corriente use "riesgo" para los tres.
+corriente use "riesgo" para los tres. Las unidades y tipos de objeto que Risk OS describe
+para evaluar un riesgo son suyos y no son `RiskObject`.
 
 La matriz de riesgos, el plan de acción, el mapa de transferencia y el feed de actividad
-pertenecen a este concepto y **no se modelan todavía**: su estructura la determina el POC
-de gestión de riesgos empresariales, posterior a VS01. → §46
+pertenecen a este concepto y los modela Risk OS (§46). Broker OS no los modela.
+
+Risk OS identifica a la organización evaluada con una identidad propia, no con `Party`,
+y a la póliza con una referencia local, no con `Policy`. Los hechos de póliza que Risk OS
+registra son observaciones locales: la autoridad sobre `Policy` sigue siendo Broker OS.
+Cualquier correspondencia con `Party` o `Policy` se decide al cierre de Q4. → `D-0067`
 
 ---
 

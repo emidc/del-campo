@@ -1104,3 +1104,46 @@ decisions:
       reales, o que la credencial se filtre. Cualquiera de esos casos exige reemplazarla
       por el login de VS01 (D-0059) u otro mecanismo con identidad individual.
 
+
+  # ── Propiedad de datos entre Broker OS y Risk OS (Q4, EMI-18) ────────────
+
+  - id: D-0067
+    title: Propiedad de datos entre Broker OS y Risk OS
+    status: PROVISIONAL
+    date: 2026-10-14
+    source: >
+      EMI-18 (Linear, proyecto Risk OS); decisiones del owner del 2026-10-14 en el hilo de
+      EMI-18 sobre la propuesta de cuatro puntos; contratos de T-0021
+      (SPIKES/T-0021/v0/fase-15/contrato/ y decisiones-15a.md, EMI-16), EMI-17; D-0025,
+      D-0050, D-0063; DOMAIN.md §25-37, §46 y §76; R-19.
+    adr: DECISIONS/0067-propiedad-de-datos-broker-risk.md
+    statement: >
+      Cada concepto tiene un único contexto autoritativo. Otro contexto conserva sólo
+      referencias, proyecciones, snapshots o datos derivados que necesita para sus propias
+      responsabilidades: con procedencia cuando corresponde, sin sincronización, sin
+      presentarse como el registro canónico del dueño, sin escritura de regreso y sin
+      transferir la propiedad conceptual. Broker OS es autoridad sobre Party y sus
+      perfiles, roles y contactos; sobre Policy, sus versiones, vigencia, renovación,
+      Endorsement, cancelación y el contenido contractual de la cobertura; y sobre
+      Insurer, InsuranceProduct, DocumentLink y User. Risk OS es autoridad sobre
+      EnterpriseRisk y RiskAssessment, el plan de acción y sus ciclos, la metodología
+      versionada y su evaluación de transferencia por riesgo (cobertura considerada,
+      límite y sublímite aplicables, exposición retenida y suficiencia). DOMAIN.md los
+      identifica como propiedad de Risk OS y no incorpora su modelo. Durante Q4, Risk OS
+      puede registrar hechos observados sobre una póliza (firma, renovación, vencimiento,
+      ampliación, consumo o cancelación) como observaciones locales con procedencia, que
+      no son hechos autoritativos de Policy ni resuelven D-0025; en una integración, esos
+      hechos vienen de Broker OS. organizacion_id es una identidad propia de Risk OS
+      (ORG-<ULID>) y poliza_ref una referencia documental local, que no es Policy.id ni
+      clave foránea y se interpreta dentro de su organización. En Q4 no se copian
+      identificadores internos de Broker OS ni hay flujos automáticos entre los dos
+      contextos; si se integran, la correspondencia con Party y Policy se establece
+      explícitamente sin reemplazar las identidades locales. Esta decisión no autoriza
+      usar ni almacenar datos reales en Risk OS, que requiere su propia autorización
+      bajo R-19.
+    falsified_by: >
+      Que Risk OS no pueda cumplir su aceptación de Q4 sin la vigencia o la cobertura
+      autoritativas de Broker OS; que las observaciones locales de hechos de póliza
+      diverjan de Broker OS al punto de cambiar una evaluación de transferencia aceptada;
+      que un tercer contexto necesite la misma proyección; o la decisión de cierre de Q4
+      sobre integrar, mantener separados o descartar los laboratorios.
