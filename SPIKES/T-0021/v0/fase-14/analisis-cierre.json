@@ -1,0 +1,1211 @@
+{
+ "inventario": {
+  "filas_lista": 255,
+  "por_tipo": {
+   "riesgo": 240,
+   "escenario": 3,
+   "padre": 3,
+   "sub_riesgo": 9
+  },
+  "ids_duplicados": [],
+  "fila_sin_ficha": [],
+  "ficha_sin_fila": [],
+  "carpetas": 37,
+  "carpetas_sin_empresa_md": [],
+  "carpetas_sin_transferencia_md": [],
+  "ficha_en_carpeta_ajena": [],
+  "empresa_fuera_de_familia_unica": [],
+  "por_familia": {
+   "Agro y alimentos": {
+    "riesgo": 58,
+    "escenario": 1
+   },
+   "Comercio y logística": {
+    "riesgo": 26
+   },
+   "Energía y agua": {
+    "riesgo": 24
+   },
+   "Industria y construcción": {
+    "riesgo": 47,
+    "padre": 1,
+    "sub_riesgo": 3,
+    "escenario": 1
+   },
+   "Minería": {
+    "escenario": 1,
+    "riesgo": 42
+   },
+   "Servicios a personas": {
+    "riesgo": 27
+   },
+   "Tecnología y pagos": {
+    "riesgo": 16,
+    "padre": 2,
+    "sub_riesgo": 6
+   }
+  },
+  "empresas_por_familia": {
+   "Agro y alimentos": [
+    "S01",
+    "S06",
+    "S15",
+    "S16",
+    "S17",
+    "S18",
+    "S19",
+    "S20",
+    "S21"
+   ],
+   "Comercio y logística": [
+    "S03",
+    "S13",
+    "S27",
+    "S28"
+   ],
+   "Energía y agua": [
+    "S31",
+    "S32",
+    "S33",
+    "S34"
+   ],
+   "Industria y construcción": [
+    "S02",
+    "S05",
+    "S22",
+    "S23",
+    "S24",
+    "S25",
+    "S37"
+   ],
+   "Minería": [
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12"
+   ],
+   "Servicios a personas": [
+    "S14",
+    "S26",
+    "S35",
+    "S36"
+   ],
+   "Tecnología y pagos": [
+    "S04",
+    "S29",
+    "S30"
+   ]
+  },
+  "fichas_por_carpeta_vs_lista": {
+   "S01": [
+    7,
+    7
+   ],
+   "S02": [
+    7,
+    7
+   ],
+   "S03": [
+    7,
+    7
+   ],
+   "S04": [
+    7,
+    7
+   ],
+   "S05": [
+    10,
+    10
+   ],
+   "S06": [
+    6,
+    6
+   ],
+   "S07": [
+    9,
+    9
+   ],
+   "S08": [
+    7,
+    7
+   ],
+   "S09": [
+    7,
+    7
+   ],
+   "S10": [
+    7,
+    7
+   ],
+   "S11": [
+    7,
+    7
+   ],
+   "S12": [
+    6,
+    6
+   ],
+   "S13": [
+    6,
+    6
+   ],
+   "S14": [
+    7,
+    7
+   ],
+   "S15": [
+    6,
+    6
+   ],
+   "S16": [
+    6,
+    6
+   ],
+   "S17": [
+    6,
+    6
+   ],
+   "S18": [
+    7,
+    7
+   ],
+   "S19": [
+    7,
+    7
+   ],
+   "S20": [
+    6,
+    6
+   ],
+   "S21": [
+    8,
+    8
+   ],
+   "S22": [
+    10,
+    10
+   ],
+   "S23": [
+    6,
+    6
+   ],
+   "S24": [
+    6,
+    6
+   ],
+   "S25": [
+    6,
+    6
+   ],
+   "S26": [
+    7,
+    7
+   ],
+   "S27": [
+    6,
+    6
+   ],
+   "S28": [
+    7,
+    7
+   ],
+   "S29": [
+    8,
+    8
+   ],
+   "S30": [
+    9,
+    9
+   ],
+   "S31": [
+    6,
+    6
+   ],
+   "S32": [
+    6,
+    6
+   ],
+   "S33": [
+    6,
+    6
+   ],
+   "S34": [
+    6,
+    6
+   ],
+   "S35": [
+    6,
+    6
+   ],
+   "S36": [
+    7,
+    7
+   ],
+   "S37": [
+    7,
+    7
+   ]
+  },
+  "carpetas_con_diferencia": [],
+  "padres": {
+   "S05-P01": {
+    "hijos_lista": [
+     "S05-P01-S01",
+     "S05-P01-S02",
+     "S05-P01-S03"
+    ],
+    "hijos_ficha": [
+     "S05-P01-S01",
+     "S05-P01-S02",
+     "S05-P01-S03"
+    ],
+    "coinciden": true,
+    "hijos_existen": true
+   },
+   "S29-P01": {
+    "hijos_lista": [
+     "S29-P01-S01",
+     "S29-P01-S02",
+     "S29-P01-S03"
+    ],
+    "hijos_ficha": [
+     "S29-P01-S01",
+     "S29-P01-S02",
+     "S29-P01-S03"
+    ],
+    "coinciden": true,
+    "hijos_existen": true
+   },
+   "S30-P01": {
+    "hijos_lista": [
+     "S30-P01-S01",
+     "S30-P01-S02",
+     "S30-P01-S03"
+    ],
+    "hijos_ficha": [
+     "S30-P01-S01",
+     "S30-P01-S02",
+     "S30-P01-S03"
+    ],
+    "coinciden": true,
+    "hijos_existen": true
+   }
+  },
+  "sub_riesgo_con_padre_inexistente": [],
+  "escenarios": {
+   "S19-E01": {
+    "miembros": "S19-R03;S19-R04",
+    "miembros_existen": true
+   },
+   "S22-E01": {
+    "miembros": "S22-R07;S22-R03",
+    "miembros_existen": true
+   },
+   "S07-E01": {
+    "miembros": "S07-R01;S07-R04",
+    "miembros_existen": true
+   }
+  },
+  "evaluaciones": {
+   "agente_f8_filas": 255,
+   "agente_f8_riesgos_distintos": 255,
+   "agente_f8_duplicadas": [],
+   "con_factores_sin_ficha_agente_f8": [],
+   "padres_con_ficha_agente_f8": [
+    "S05-P01",
+    "S29-P01",
+    "S30-P01"
+   ],
+   "agente_f8_fuera_de_lista": [],
+   "con_factores_sin_regresion_agente": [],
+   "regresion_filas": 285,
+   "regresion_agente": 255,
+   "regresion_emiliano": 30,
+   "emiliano_f8": 30,
+   "emiliano_igual_muestra": true,
+   "emiliano_sin_regresion": [],
+   "f11_fichas": 64,
+   "f12_fichas": 6,
+   "f12_riesgos": [
+    "S06-R01",
+    "S06-R02",
+    "S06-R03",
+    "S06-R04",
+    "S06-R05",
+    "S06-R06"
+   ],
+   "ids_duplicados": [
+    "EV-0001",
+    "EV-0002",
+    "EV-0003",
+    "EV-0004",
+    "EV-0005",
+    "EV-0006",
+    "EV-0007",
+    "EV-0008",
+    "EV-0009",
+    "EV-0010",
+    "EV-0011",
+    "EV-0012",
+    "EV-0013",
+    "EV-0014",
+    "EV-0015",
+    "EV-0016",
+    "EV-0017",
+    "EV-0018",
+    "EV-0019",
+    "EV-0020",
+    "EV-0021",
+    "EV-0022",
+    "EV-0023",
+    "EV-0024",
+    "EV-0025",
+    "EV-0026",
+    "EV-0027"
+   ],
+   "ids_duplicados_detalle": [
+    [
+     "EV-0001",
+     "S01-R01",
+     "S01"
+    ],
+    [
+     "EV-0001",
+     "S14-R01",
+     "S14"
+    ],
+    [
+     "EV-0002",
+     "S01-R02",
+     "S01"
+    ],
+    [
+     "EV-0002",
+     "S14-R02",
+     "S14"
+    ],
+    [
+     "EV-0003",
+     "S01-R03",
+     "S01"
+    ],
+    [
+     "EV-0003",
+     "S14-R03",
+     "S14"
+    ],
+    [
+     "EV-0004",
+     "S01-R04",
+     "S01"
+    ],
+    [
+     "EV-0004",
+     "S14-R04",
+     "S14"
+    ],
+    [
+     "EV-0005",
+     "S01-R05",
+     "S01"
+    ],
+    [
+     "EV-0005",
+     "S14-R05",
+     "S14"
+    ],
+    [
+     "EV-0006",
+     "S01-R06",
+     "S01"
+    ],
+    [
+     "EV-0006",
+     "S14-R06",
+     "S14"
+    ],
+    [
+     "EV-0007",
+     "S01-R07",
+     "S01"
+    ],
+    [
+     "EV-0007",
+     "S14-R07",
+     "S14"
+    ],
+    [
+     "EV-0008",
+     "S06-R01",
+     "S06"
+    ],
+    [
+     "EV-0008",
+     "S26-R01",
+     "S26"
+    ],
+    [
+     "EV-0009",
+     "S06-R02",
+     "S06"
+    ],
+    [
+     "EV-0009",
+     "S26-R02",
+     "S26"
+    ],
+    [
+     "EV-0010",
+     "S06-R03",
+     "S06"
+    ],
+    [
+     "EV-0010",
+     "S26-R03",
+     "S26"
+    ],
+    [
+     "EV-0011",
+     "S06-R04",
+     "S06"
+    ],
+    [
+     "EV-0011",
+     "S26-R04",
+     "S26"
+    ],
+    [
+     "EV-0012",
+     "S06-R05",
+     "S06"
+    ],
+    [
+     "EV-0012",
+     "S26-R05",
+     "S26"
+    ],
+    [
+     "EV-0013",
+     "S06-R06",
+     "S06"
+    ],
+    [
+     "EV-0013",
+     "S26-R06",
+     "S26"
+    ],
+    [
+     "EV-0014",
+     "S15-R01",
+     "S15"
+    ],
+    [
+     "EV-0014",
+     "S26-R07",
+     "S26"
+    ],
+    [
+     "EV-0015",
+     "S15-R02",
+     "S15"
+    ],
+    [
+     "EV-0015",
+     "S35-R01",
+     "S35"
+    ],
+    [
+     "EV-0016",
+     "S15-R03",
+     "S15"
+    ],
+    [
+     "EV-0016",
+     "S35-R02",
+     "S35"
+    ],
+    [
+     "EV-0017",
+     "S15-R04",
+     "S15"
+    ],
+    [
+     "EV-0017",
+     "S35-R03",
+     "S35"
+    ],
+    [
+     "EV-0018",
+     "S15-R05",
+     "S15"
+    ],
+    [
+     "EV-0018",
+     "S35-R04",
+     "S35"
+    ],
+    [
+     "EV-0019",
+     "S15-R06",
+     "S15"
+    ],
+    [
+     "EV-0019",
+     "S35-R05",
+     "S35"
+    ],
+    [
+     "EV-0020",
+     "S16-R01",
+     "S16"
+    ],
+    [
+     "EV-0020",
+     "S35-R06",
+     "S35"
+    ],
+    [
+     "EV-0021",
+     "S16-R02",
+     "S16"
+    ],
+    [
+     "EV-0021",
+     "S36-R01",
+     "S36"
+    ],
+    [
+     "EV-0022",
+     "S16-R03",
+     "S16"
+    ],
+    [
+     "EV-0022",
+     "S36-R02",
+     "S36"
+    ],
+    [
+     "EV-0023",
+     "S16-R04",
+     "S16"
+    ],
+    [
+     "EV-0023",
+     "S36-R03",
+     "S36"
+    ],
+    [
+     "EV-0024",
+     "S16-R05",
+     "S16"
+    ],
+    [
+     "EV-0024",
+     "S36-R04",
+     "S36"
+    ],
+    [
+     "EV-0025",
+     "S16-R06",
+     "S16"
+    ],
+    [
+     "EV-0025",
+     "S36-R05",
+     "S36"
+    ],
+    [
+     "EV-0026",
+     "S17-R01",
+     "S17"
+    ],
+    [
+     "EV-0026",
+     "S36-R06",
+     "S36"
+    ],
+    [
+     "EV-0027",
+     "S17-R02",
+     "S17"
+    ],
+    [
+     "EV-0027",
+     "S36-R07",
+     "S36"
+    ]
+   ],
+   "clave_id_riesgo_unica": true,
+   "review_status": {
+    "agente_f8": {
+     "pending": 255
+    },
+    "emiliano_f8": {
+     "pending": 30
+    },
+    "f11": {
+     "pending": 62,
+     "accepted": 2
+    },
+    "f12": {
+     "pending": 6
+    }
+   },
+   "f11_no_pending": [
+    [
+     "EV-11-0063",
+     "S02-R07",
+     "accepted",
+     "emiliano",
+     "2026-10-13",
+     "EV-8103"
+    ],
+    [
+     "EV-11-0064",
+     "S15-R04",
+     "accepted",
+     "emiliano",
+     "2026-10-13",
+     "EV-8115"
+    ]
+   ]
+  },
+  "hashes_intencion": {
+   "cerrado/emi41/intencion-mineria.md": {
+    "publicado": "d4d7bc3b4dec814e405424a9888b066d2506050a61e1723bfba72ebc50a7807b",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "d4d7bc3b4dec814e405424a9888b066d2506050a61e1723bfba72ebc50a7807b",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-energia-y-agua.md": {
+    "publicado": "6e8c91ac3796d00a0049fbfedafe65e622ff7e92e2785bd4efe0d17ec1702081",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "6e8c91ac3796d00a0049fbfedafe65e622ff7e92e2785bd4efe0d17ec1702081",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-agro-y-alimentos.md": {
+    "publicado": "4edb8c9ebbc6f65c6428868f623a35983d9213988681b34f98d0b298e6d4a443",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "4edb8c9ebbc6f65c6428868f623a35983d9213988681b34f98d0b298e6d4a443",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-industria-y-construccion.md": {
+    "publicado": "041ac19ba53852ea2e9bee35b1d8f2f59bc2c218961c9e049407870b2c43e146",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "041ac19ba53852ea2e9bee35b1d8f2f59bc2c218961c9e049407870b2c43e146",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-comercio-y-logistica.md": {
+    "publicado": "f8d4591dddd85da740fa91b02cb2b53b4c9198f6bff64f15cf25c195e6bcc936",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "f8d4591dddd85da740fa91b02cb2b53b4c9198f6bff64f15cf25c195e6bcc936",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-tecnologia-y-pagos.md": {
+    "publicado": "6147b0b5a9d20c3d701f18b6c36e33d08740be51369cb4a5c57be77d09ae388f",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "6147b0b5a9d20c3d701f18b6c36e33d08740be51369cb4a5c57be77d09ae388f",
+    "coincide": true
+   },
+   "cerrado/emi41/intencion-servicios-a-personas.md": {
+    "publicado": "aa6f8b63e5116880bbc40e423107860da6f32d9bfbc4741871ba0ce74474c9ff",
+    "fecha": "2026-10-06 20:58 UTC",
+    "recalculado": "aa6f8b63e5116880bbc40e423107860da6f32d9bfbc4741871ba0ce74474c9ff",
+    "coincide": true
+   }
+  },
+  "hashes_intencion_lineas_por_familia": {
+   "cerrado/emi41/intencion-mineria.md": 1,
+   "cerrado/emi41/intencion-energia-y-agua.md": 1,
+   "cerrado/emi41/intencion-agro-y-alimentos.md": 1,
+   "cerrado/emi41/intencion-industria-y-construccion.md": 1,
+   "cerrado/emi41/intencion-comercio-y-logistica.md": 1,
+   "cerrado/emi41/intencion-tecnologia-y-pagos.md": 1,
+   "cerrado/emi41/intencion-servicios-a-personas.md": 1
+  },
+  "congelamiento_v1": {
+   "v1/metodologia-v1-candidate.md": {
+    "congelado": "c21ebbec07c65854c03746809ff53e80c36811cb373ed10973a165f84347fec0",
+    "actual": "c21ebbec07c65854c03746809ff53e80c36811cb373ed10973a165f84347fec0",
+    "coincide": true
+   },
+   "v0/decisiones-v0.md": {
+    "congelado": "67ca2419792d348813c023e343773b1257df87baec67a3bdc102795bbca35608",
+    "actual": "67ca2419792d348813c023e343773b1257df87baec67a3bdc102795bbca35608",
+    "coincide": true
+   },
+   "v0/protocolo.md": {
+    "congelado": "c34ff6672882a369c194e90d4aaef9cac41685050418865176f8fefff5bcae1a",
+    "actual": "c34ff6672882a369c194e90d4aaef9cac41685050418865176f8fefff5bcae1a",
+    "coincide": true
+   },
+   "v0/changelog-metodologia.md": {
+    "congelado": "1a5e05539ce3a89d43cbf4badd2f89c48b3633611f7fdad79a32e9d5ff01b291",
+    "actual": "1a5e05539ce3a89d43cbf4badd2f89c48b3633611f7fdad79a32e9d5ff01b291",
+    "coincide": true
+   },
+   "v0/plantillas/ficha-evaluacion.csv": {
+    "congelado": "e678dd9ef9e36e2cc03698ab11e6b1d5fdcc3a2d1ef6fe9d5d8850eada049a06",
+    "actual": "e678dd9ef9e36e2cc03698ab11e6b1d5fdcc3a2d1ef6fe9d5d8850eada049a06",
+    "coincide": true
+   },
+   "v0/metodologia-v0.md": {
+    "congelado": "72e8491d640911400e3a526a9273ae7088a0f72933e6fcfc36c34a0648d02a6c",
+    "actual": "72e8491d640911400e3a526a9273ae7088a0f72933e6fcfc36c34a0648d02a6c",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluar.py": {
+    "congelado": "8314d175cd8cb8374c0962f0b271d239348c8a581a7e72446fb62aa6ed74cc08",
+    "actual": "8314d175cd8cb8374c0962f0b271d239348c8a581a7e72446fb62aa6ed74cc08",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluar-ronda-2.py": {
+    "congelado": "5294fdcae0d81233a7dec93600d3a2c40bef102db2cfd8bbe4189da0c7f30b10",
+    "actual": "5294fdcae0d81233a7dec93600d3a2c40bef102db2cfd8bbe4189da0c7f30b10",
+    "coincide": true
+   },
+   "v0/fase-11/regresion.py": {
+    "congelado": "64dd954d4d5f7240d4ba2c4cad9a838b814e2ea7026923d05aa1b399c1c51e06",
+    "actual": "64dd954d4d5f7240d4ba2c4cad9a838b814e2ea7026923d05aa1b399c1c51e06",
+    "coincide": true
+   },
+   "v0/fase-11/regresion-casos.csv": {
+    "congelado": "197be26dbe14a5a6cdaec400b2987fd6f44e5d7e2b8cc75fd8e8de951e4b5d8f",
+    "actual": "197be26dbe14a5a6cdaec400b2987fd6f44e5d7e2b8cc75fd8e8de951e4b5d8f",
+    "coincide": true
+   },
+   "v0/fase-11/regresion-emi41.csv": {
+    "congelado": "85a1a26ab5f6b8d7811598855cf49e8c0de7c0cb591c3762fdeadc1f0af7ae15",
+    "actual": "85a1a26ab5f6b8d7811598855cf49e8c0de7c0cb591c3762fdeadc1f0af7ae15",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluacion/cambios-por-factor.csv": {
+    "congelado": "9512f5246525c2074f6a8151edb769cf15c5e35bdcea8b5aae05b569a716f5fc",
+    "actual": "9512f5246525c2074f6a8151edb769cf15c5e35bdcea8b5aae05b569a716f5fc",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluacion/cambios-ronda-2.csv": {
+    "congelado": "496a4e62f7f892bc63d0f8d875a2b426bdd20ec308edeaa6d1a6683a3fec36e6",
+    "actual": "496a4e62f7f892bc63d0f8d875a2b426bdd20ec308edeaa6d1a6683a3fec36e6",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluacion/fichas-reevaluadas-factores.csv": {
+    "congelado": "d90490583051fed10ba8c9749621d21c99dcb790383e16a0cde8925a00853c9e",
+    "actual": "d90490583051fed10ba8c9749621d21c99dcb790383e16a0cde8925a00853c9e",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluacion/fichas-reevaluadas.csv": {
+    "congelado": "e6997c42a531328b750b7edab85cc68b86bde280a12a3f900d514d86e423d018",
+    "actual": "e6997c42a531328b750b7edab85cc68b86bde280a12a3f900d514d86e423d018",
+    "coincide": true
+   },
+   "v0/fase-11/reevaluacion/fichas-ronda-2-factores.csv": {
+    "congelado": "20d27cba5fb4e5794618626caaad420bc3e85f657974cc2673bd4d0c2716ef69",
+    "actual": "5e96850b902c04c91107932b49f8999c9b37a1d3fddad91067916af5b4fb6b15",
+    "coincide": false,
+    "tras_aceptacion_2026_10_13": "5e96850b902c04c91107932b49f8999c9b37a1d3fddad91067916af5b4fb6b15",
+    "coincide_tras_aceptacion": true
+   },
+   "v0/fase-11/reevaluacion/fichas-ronda-2.csv": {
+    "congelado": "43eda632c802794a3f4c3e07cad264ad1f2724d4e6732763f4ba1c5ec83913a9",
+    "actual": "7c8472b3e23cb6c5db97278c9ea57e15c4a0ebb5db0dd691f4bdfcdc13f35ce7",
+    "coincide": false,
+    "tras_aceptacion_2026_10_13": "7c8472b3e23cb6c5db97278c9ea57e15c4a0ebb5db0dd691f4bdfcdc13f35ce7",
+    "coincide_tras_aceptacion": true
+   }
+  }
+ },
+ "mediciones": {
+  "fichas_con_factores": 252,
+  "secciones_faltantes_ficha": {
+   "## Faltantes": [
+    "S13-R03",
+    "S13-R06",
+    "S27-R01",
+    "S27-R04",
+    "S27-R06",
+    "S28-R01",
+    "S28-R02",
+    "S28-R03",
+    "S28-R05",
+    "S28-R06",
+    "S31-R04",
+    "S32-R04",
+    "S33-R01",
+    "S33-R05",
+    "S34-R02",
+    "S34-R04",
+    "S34-R05",
+    "S34-R06",
+    "S11-R03",
+    "S04-R07",
+    "S29-P01-S02",
+    "S29-P01-S03",
+    "S29-R04",
+    "S29-R05",
+    "S29-R06",
+    "S30-P01-S01",
+    "S30-P01-S02",
+    "S30-P01-S03",
+    "S30-R04",
+    "S30-R07"
+   ],
+   "## Riesgo": [
+    "S22-E01"
+   ],
+   "### Exposición": [
+    "S22-E01"
+   ],
+   "### Antecedentes": [
+    "S22-E01"
+   ],
+   "### Precursores": [
+    "S22-E01"
+   ],
+   "### Controles preventivos": [
+    "S22-E01"
+   ],
+   "### Condiciones causales": [
+    "S22-E01"
+   ],
+   "### Fuentes disponibles": [
+    "S22-E01"
+   ],
+   "### Qué se daña y a quiénes": [
+    "S22-E01"
+   ],
+   "### Tiempo sin operar": [
+    "S22-E01"
+   ],
+   "### Consecuencias legales": [
+    "S22-E01"
+   ]
+  },
+  "v_menciona_respuesta": 161,
+  "v_menciona_redundancia_o_alternativa": 119,
+  "procedencia_filas": 1605,
+  "procedencia_bases": {
+   "observed": 1015,
+   "reported": 441,
+   "inferred": 89,
+   "assumed": 45,
+   "—": 15
+  },
+  "procedencia_sin_evidencia_explicita": 111,
+  "fichas_procedencia_todo_en_vocabulario": 237,
+  "secciones_faltantes_empresa": {},
+  "transferencia_menciona": {
+   "límite": 33,
+   "deducible": 37,
+   "exclusi": 37,
+   "no está asegurado": 10
+  },
+  "evaluaciones_procedencia": {
+   "agente_f8": {
+    "fichas": 255,
+    "factores_con_valor": 1729,
+    "con_base_valida": 1729,
+    "con_evidencia": 1729,
+    "uncertainty": {
+     "medium": 172,
+     "high": 41,
+     "low": 40,
+     "": 2
+    },
+    "medium_high_sin_nota": 0,
+    "actor": {
+     "ai": 255
+    }
+   },
+   "emiliano_f8": {
+    "fichas": 30,
+    "factores_con_valor": 205,
+    "con_base_valida": 205,
+    "con_evidencia": 205,
+    "uncertainty": {
+     "medium": 18,
+     "high": 12
+    },
+    "medium_high_sin_nota": 0,
+    "actor": {
+     "human": 30
+    }
+   },
+   "f11": {
+    "fichas": 64,
+    "factores_con_valor": 437,
+    "con_base_valida": 437,
+    "con_evidencia": 437,
+    "uncertainty": {
+     "medium": 42,
+     "high": 10,
+     "low": 12
+    },
+    "medium_high_sin_nota": 0,
+    "actor": {
+     "ai": 64
+    }
+   },
+   "f12": {
+    "fichas": 6,
+    "factores_con_valor": 41,
+    "con_base_valida": 41,
+    "con_evidencia": 41,
+    "uncertainty": {
+     "high": 6
+    },
+    "medium_high_sin_nota": 0,
+    "actor": {
+     "human": 6
+    }
+   }
+  },
+  "v1_agente": {
+   "fichas": 252,
+   "faltan_vigentes": [],
+   "con_algun_unknown": 15,
+   "factores_unknown": {
+    "i_econ": 10,
+    "i_pers": 5,
+    "i_cont": 2,
+    "p": 1
+   },
+   "no_evaluables_ficha": [
+    "S05-R09",
+    "S10-R05",
+    "S17-R03",
+    "S23-R01",
+    "S24-R04",
+    "S32-R06",
+    "S34-R01",
+    "S37-R02"
+   ],
+   "no_evaluables_regresion": [
+    "S05-R09",
+    "S10-R05",
+    "S17-R03",
+    "S23-R01",
+    "S24-R04",
+    "S32-R06",
+    "S34-R01",
+    "S37-R02"
+   ],
+   "no_evaluable_sin_motivo": [],
+   "con_unknown_y_evaluable": 7,
+   "factores_vacios": [],
+   "evaluables_sin_c_o_banda": [],
+   "sin_banderas": [],
+   "bandas": {
+    "Alta": 53,
+    "Media": 148,
+    "Baja": 22,
+    "Crítica": 21
+   }
+  },
+  "v1_emiliano": {
+   "fichas": 30,
+   "faltan_vigentes": [],
+   "con_algun_unknown": 9,
+   "factores_unknown": {
+    "i_econ": 9,
+    "i_cont": 3
+   },
+   "no_evaluables_ficha": [
+    "S04-R03",
+    "S12-R05",
+    "S13-R05",
+    "S15-R04",
+    "S19-R06",
+    "S28-R07",
+    "S37-R03"
+   ],
+   "no_evaluables_regresion": [
+    "S04-R03",
+    "S12-R05",
+    "S13-R05",
+    "S15-R04",
+    "S19-R06",
+    "S28-R07",
+    "S37-R03"
+   ],
+   "no_evaluable_sin_motivo": [],
+   "con_unknown_y_evaluable": 2,
+   "factores_vacios": [],
+   "evaluables_sin_c_o_banda": [],
+   "sin_banderas": [],
+   "bandas": {
+    "Alta": 8,
+    "Media": 13,
+    "Crítica": 2
+   }
+  },
+  "padres_resultado": {
+   "S05-P01": "C 80 · pos 1 · Crítica · ext=false · sc=true · I 4",
+   "S29-P01": "C 18 · pos 5 · Baja · ext= · sc= · I ",
+   "S30-P01": "C 18 · pos 5 · Baja · ext= · sc= · I "
+  }
+ },
+ "cobertura": {
+  "tensionó": 30,
+  "cubierto sin hallazgo": 4,
+  "cobertura insuficiente": 1
+ },
+ "empresas_sin_aporte_distinguible": [
+  "S01",
+  "S25",
+  "S30"
+ ],
+ "empresas_citas": {
+  "S01": [],
+  "S02": [
+   "changelog",
+   "inventario"
+  ],
+  "S03": [
+   "changelog",
+   "inventario"
+  ],
+  "S04": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S05": [
+   "inventario"
+  ],
+  "S06": [
+   "changelog",
+   "fase12"
+  ],
+  "S07": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S08": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S09": [
+   "changelog"
+  ],
+  "S10": [
+   "changelog",
+   "inventario"
+  ],
+  "S11": [
+   "changelog"
+  ],
+  "S12": [
+   "A1",
+   "inventario"
+  ],
+  "S13": [
+   "A1",
+   "inventario"
+  ],
+  "S14": [
+   "changelog"
+  ],
+  "S15": [
+   "changelog"
+  ],
+  "S16": [
+   "inventario"
+  ],
+  "S17": [
+   "inventario"
+  ],
+  "S18": [
+   "A1"
+  ],
+  "S19": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S20": [
+   "A1"
+  ],
+  "S21": [
+   "changelog",
+   "inventario"
+  ],
+  "S22": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S23": [
+   "inventario"
+  ],
+  "S24": [
+   "A1",
+   "inventario"
+  ],
+  "S25": [],
+  "S26": [
+   "changelog",
+   "inventario"
+  ],
+  "S27": [
+   "changelog",
+   "inventario"
+  ],
+  "S28": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S29": [
+   "changelog"
+  ],
+  "S30": [],
+  "S31": [
+   "A1",
+   "changelog",
+   "inventario"
+  ],
+  "S32": [
+   "changelog",
+   "inventario"
+  ],
+  "S33": [
+   "inventario"
+  ],
+  "S34": [
+   "changelog",
+   "inventario"
+  ],
+  "S35": [
+   "changelog",
+   "inventario"
+  ],
+  "S36": [
+   "changelog",
+   "inventario"
+  ],
+  "S37": [
+   "A1",
+   "changelog",
+   "inventario"
+  ]
+ },
+ "empresas_unico_directo": {
+  "S12": [
+   "C29"
+  ],
+  "S16": [
+   "C30"
+  ],
+  "S33": [
+   "C34"
+  ],
+  "S01": [],
+  "S25": [],
+  "S30": []
+ }
+}
