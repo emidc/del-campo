@@ -2,7 +2,7 @@
 id: T-0027
 title: Registrar la propiedad de datos entre Broker OS y Risk OS
 kind: REVIEW
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S
