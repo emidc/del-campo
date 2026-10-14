@@ -2,9 +2,20 @@
 
 - **Tarea:** `TASKS/T-0021-spike-formatos-y-modelo-risk-os.md`
 - **Fecha:** 2026-10-14
-- **Estado:** **listo para revisión del owner.** Lo escribió la Fase 15a y lo completó la 15b. El owner aprobó los formatos el 2026-10-14 con un cambio (la historia ramificada es rechazo); sus decisiones están en `SPIKES/T-0021/v0/fase-15/decisiones-15a.md`. La 15b escribió los CSV sintéticos, el validador, los casos inválidos y el export ciego (`SPIKES/T-0021/v0/fase-15/dossier-fase-15b.md`). Falta la confirmación del owner sobre los casos históricos y su aprobación del dossier de la 15b.
+- **Estado:** **aprobado por el owner** el 2026-10-14 (`SPIKES/T-0021/v0/fase-15/decisiones-15b.md`), salvo la comprobación de casos históricos, que espera su respuesta en `SPIKES/T-0021/v0/fase-15/lista-casos-historicos.md`. Lo escribió la Fase 15a y lo completó la 15b. Las decisiones de los formatos están en `SPIKES/T-0021/v0/fase-15/decisiones-15a.md`. Los CSV sintéticos, el validador, los casos inválidos y el export ciego están en `SPIKES/T-0021/v0/fase-15/dossier-fase-15b.md`.
 - **Decisiones que alimenta:** el contrato de Risk OS (análogo a `SLICES/VS01.md`) con su aceptación de Q4, y la primera tarea de implementación que crea `contexts/risk` bajo D-0063. No resuelve D-0029 ni cambia `DOMAIN.md`.
 - **Fuentes:** la metodología de criticidad v1 (`SPIKES/T-0021/v1/metodologia-v1.md`, congelada en `v1/congelamiento-v1.md`), EMI-16 y EMI-17 en Linear (leídos el 2026-10-14), el plan de EMI-15 + EMI-41 (`SPIKES/T-0021/fuentes/plan-emi15-emi41.md`, Fase 15) y el dataset sintético de EMI-41 (`SPIKES/T-0021/v0/fase-14/dataset/manifiesto.md`). Ningún agente leyó casos históricos reales (R-19).
+
+## Comprobaciones de T-0021
+
+Aprobadas por el owner el 2026-10-14 (`v0/fase-15/decisiones-15b.md`):
+
+- [x] Cada columna de los tres formatos tiene tipo, obligatoriedad y regla de validación, y cada relación entre archivos tiene su identificador.
+- [x] Los CSV sintéticos cumplen los formatos, e incluyen al menos un caso inválido por regla de rechazo, con el error esperado escrito.
+- [x] El número de empresas sintéticas está justificado por criterios de cobertura explícitos, no elegido de antemano.
+- [ ] El owner confirmó por escrito que los cinco casos históricos se pueden expresar en los formatos, o qué ajuste necesitan, sin exponer sus valores. *(Espera la respuesta en `v0/fase-15/lista-casos-historicos.md`.)*
+- [x] Está definido qué es un ciclo de actualización y qué evidencia deja cada ciclo en el historial.
+- [x] Está escrito qué cambio de actividad abre una revisión pendiente y qué la cierra.
 
 ## Resumen y recomendación
 
