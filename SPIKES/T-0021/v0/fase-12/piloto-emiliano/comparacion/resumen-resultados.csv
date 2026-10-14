@@ -1,0 +1,7 @@
+risk_id,orden_previo_A,posicion_humana_B,c_raw_humano,banda_humana,determinante_humana,techo_humano,extrema_humana,safety_humana,posicion_historica,c_raw_historico,banda_historica,evaluable_humano,evaluable_historico
+S06-R01,2,3,75,Crítica,econ,100,true,false,3,75,Crítica,true,true
+S06-R02,6,6,5,Baja,econ;pers;cont;legal,100,true,false,6,10,Baja,true,true
+S06-R03,1,1,80,Crítica,econ,125,true,true,1,100,Crítica,true,true
+S06-R04,3,4,60,Alta,econ;pers;cont,75,true,true,4,60,Alta,true,true
+S06-R05,4,2,80,Crítica,econ,100,true,false,2,80,Crítica,true,true
+S06-R06,5,5,36,Media,econ;pers,80,true,false,5,48,Media,true,true

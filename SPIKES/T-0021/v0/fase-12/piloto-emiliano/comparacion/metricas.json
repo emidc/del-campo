@@ -1,0 +1,95 @@
+{
+  "factores": {
+    "p": {
+      "n_numericos": 6,
+      "exacto": 5,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "i_econ": {
+      "n_numericos": 6,
+      "exacto": 6,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "i_pers": {
+      "n_numericos": 6,
+      "exacto": 5,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "i_cont": {
+      "n_numericos": 6,
+      "exacto": 5,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "i_legal": {
+      "n_numericos": 6,
+      "exacto": 6,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "v_cont": {
+      "n_numericos": 6,
+      "exacto": 3,
+      "dentro_1": 6,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    },
+    "v_rec": {
+      "n_numericos": 5,
+      "exacto": 3,
+      "dentro_1": 5,
+      "evaluabilidad_factor_coincide": 6,
+      "n_total": 6
+    }
+  },
+  "banda": {
+    "exacto": 6,
+    "n": 6
+  },
+  "evaluable": {
+    "exacto": 6,
+    "n": 6
+  },
+  "ranking_A_B": {
+    "coinciden": 13,
+    "n": 15
+  },
+  "ranking_B_historica": {
+    "coinciden": 15,
+    "n": 15
+  },
+  "orden_A": [
+    "S06-R03",
+    "S06-R01",
+    "S06-R04",
+    "S06-R05",
+    "S06-R06",
+    "S06-R02"
+  ],
+  "orden_B": [
+    "S06-R03",
+    "S06-R05",
+    "S06-R01",
+    "S06-R04",
+    "S06-R06",
+    "S06-R02"
+  ],
+  "orden_historico": [
+    "S06-R03",
+    "S06-R05",
+    "S06-R01",
+    "S06-R04",
+    "S06-R06",
+    "S06-R02"
+  ],
+  "discrepancias_registradas": 112,
+  "sha_B": "27922352243c5e3f92f82509e0c733038906eea5b5d2756c32afc11e686dcdaf"
+}
