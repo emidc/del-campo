@@ -1,13 +1,13 @@
 # Dossier · Fase 15a · contratos de EMI-16 y modelo mínimo de Risk OS
 
-> 2026-10-14 · T-0021, Fase 15a. RAIZ = `SPIKES/T-0021/` de `emidc/del-campo` en `main` (`39f4c89`, con las PR #73 y #74). **Propuesta: nada de esto está decidido hasta que respondas el "Para decidir" del final.** No cambia ninguna regla de la metodología, no edita nada congelado y no escribe CSV sintéticos, validador, export ni código de producto: eso es la 15b.
+> 2026-10-14 · T-0021, Fase 15a. RAIZ = `SPIKES/T-0021/` de `emidc/del-campo` en `main` (`39f4c89`, con las PR #73 y #74). **Decidido el 2026-10-14:** Emiliano respondió el "Para decidir" del final y aprobó los formatos con un cambio (punto 8: la historia ramificada es rechazo). Sus decisiones, copiadas sin cambios, están en `decisiones-15a.md`. No cambia ninguna regla de la metodología, no edita nada congelado y no escribe CSV sintéticos, validador, export ni código de producto: eso es la 15b.
 
 ## Resumen
 
 - **Tres formatos.** `risks.csv`: una fila por evaluación, con la identidad del riesgo repetida y validada; el padre va en una fila sin evaluación; 84 columnas, ningún derivado. `action-plan.csv`: un registro por acción y riesgo, más las decisiones de tratamiento de §8.2; 26 columnas. `risk-transfer.csv`: un registro por cobertura y riesgo, más los eventos de póliza como filas propias; 35 columnas, ninguna entra al cálculo.
-- **71 reglas de validación: 54 de rechazo y 17 avisos**, cada una con id y texto de error. La 15b escribe un caso inválido por cada una de las 54.
+- **71 reglas de validación: 55 de rechazo y 16 avisos**, cada una con id y texto de error. La 15b escribe un caso inválido por cada una de las 55.
 - **8 empresas sintéticas** (S05, S06, S07, S15, S28, S29, S32 y S36: 59 objetos), más **10 registros de acción nuevos** y unos pocos casos válidos nuevos que EMI-41 no tiene.
-- **Recomendaciones:** ids globales con prefijo de entidad y ULID, con el histórico como origen (1a). `base = —` es un dato faltante, sin tocar el enum (2a). Procedencia por registro obligatoria y por factor opcional (3b). `review_status` por registro en los tres archivos (4a). `C_raw` sólo en salidas, con el vector y las banderas, y el reordenamiento como registro aparte (5a). Derivados nunca importados (6a). Padre como fila sin evaluación y escenario con evaluación propia (7a). Una sola historia por riesgo; la evaluación vigente es la última aceptada (8a). Ciclo = revisión pendiente cerrada (9a). Export ciego por lista blanca y fuera del repo (11a). Guía del evento como anexo (12a). CH-113 y CH-114 siguen esperando (13a).
+- **Decisiones (2026-10-14, `decisiones-15a.md`):** ids globales con prefijo de entidad y ULID, con el histórico como origen (1a). `base = —` es un dato faltante, sin tocar el enum (2a). Procedencia por registro obligatoria y por factor opcional (3b). `review_status` por registro en los tres archivos (4a). `C_raw` sólo en salidas, con el vector y las banderas, y el reordenamiento como registro aparte (5a). Derivados nunca importados (6a). Padre como fila sin evaluación y escenario con evaluación propia (7a). Una sola historia por riesgo, lineal: una ramificación se rechaza; la evaluación vigente es la última aceptada (8a, con el cambio de Emiliano). Ciclo = revisión pendiente cerrada (9a). Export ciego por lista blanca y fuera del repo (11a). Guía del evento como anexo (12a). CH-113 y CH-114 siguen esperando (13a).
 
 ## 1. Punto de partida
 
@@ -31,7 +31,7 @@ Detalle en `inventario-campos.md`; script en `inventario_campos.py`.
 | sin uso | 1 | `reputacion_texto`: no se usó nunca y ninguna pantalla de v1 la nombra (§18). No entra |
 
 **Lo que se agrega**, porque una pantalla de v1 lo necesita y la ficha no lo tenía como columna:
-- `organizacion_id`: el ranking es siempre dentro de una organización (§7.1.4). Es un id opaco, sin clave foránea a `Party` (D-0063). Queda como propuesta, como pide T-0021.
+- `organizacion_id`: el ranking es siempre dentro de una organización (§7.1.4). Es un id opaco, sin clave foránea a `Party` (D-0063). Emiliano lo aprobó así (1a); la relación con `Party` sigue fuera de esta fase (D-0063).
 - `titulo`: la lista lo necesita; venía de las listas fijas.
 - `i_econ_monto_bruto` y `moneda`: la vista de exposición retenida pide "por riesgo, monto económico bruto estimado" (§13), y la ficha sólo lo tenía en el texto de `i_econ_observacion`.
 - `base` y `evidencia` del registro (EMI-17) y `revisado_por_actor` (para poder validar que sólo una persona acepta).
@@ -96,9 +96,9 @@ No hay relación Action ↔ Transfer (EMI-17). Toda referencia apunta a una fila
 
 ### 3.5 Qué rechaza y qué no es una regla de importación
 
-**Rechazo (54):** formato del archivo y de los ids, ids repetidos, referencias inexistentes o a otro riesgo, identidad inconsistente, padre con factores o con evaluación propia, sub-riesgo sin padre, escenario con menos de dos miembros o con un miembro de otra organización, más de una evaluación inicial por riesgo, factor sin estado, valor fuera de 1–5 o fuera de su rango, `no_aplica` fuera de V-recuperación, factor `unknown` sin nota de qué falta, `unknown` sin `necesidad_validacion`, base fuera del enum, evidencia vacía (la ausencia se escribe `sin_evidencia`), `uncertainty` medium o high sin nota, aceptación sin una persona, `accion_ejecutada` sin acción cumplida, acción sin factor o sin mecanismo, `cumplida` sin evidencia, eficacia sin reevaluación, decisión de tratamiento sin fecha de revisión, evento de póliza sin cobertura.
+**Rechazo (55):** formato del archivo y de los ids, ids repetidos, referencias inexistentes o a otro riesgo, identidad inconsistente, padre con factores o con evaluación propia, sub-riesgo sin padre, escenario con menos de dos miembros o con un miembro de otra organización, más de una evaluación inicial por riesgo, historia ramificada, factor sin estado, valor fuera de 1–5 o fuera de su rango, `no_aplica` fuera de V-recuperación, factor `unknown` sin nota de qué falta, `unknown` sin `necesidad_validacion`, base fuera del enum, evidencia vacía (la ausencia se escribe `sin_evidencia`), `uncertainty` medium o high sin nota, aceptación sin una persona, `accion_ejecutada` sin acción cumplida, acción sin factor o sin mecanismo, `cumplida` sin evidencia, eficacia sin reevaluación, decisión de tratamiento sin fecha de revisión, evento de póliza sin cobertura.
 
-**Aviso (17):** fechas desordenadas, historia ramificada, versión de metodología anterior a la v1 candidate, causa, consecuencia, justificación u observación vacías, no evaluable sin motivo, base del registro más fuerte que la de sus factores, padre sin hijos, porcentajes de confianza en una nota, falta de monto bruto con transferencia, acción sobre un escenario, varios factores sin un mecanismo por factor, `safety_critical` sin acción en curso ni decisión vigente, póliza con datos distintos entre riesgos, suficiencia sin nota y cobertura vencida sin evento.
+**Aviso (16):** fechas desordenadas, versión de metodología anterior a la v1 candidate, causa, consecuencia, justificación u observación vacías, no evaluable sin motivo, base del registro más fuerte que la de sus factores, padre sin hijos, porcentajes de confianza en una nota, falta de monto bruto con transferencia, acción sobre un escenario, varios factores sin un mecanismo por factor, `safety_critical` sin acción en curso ni decisión vigente, póliza con datos distintos entre riesgos, suficiencia sin nota y cobertura vencida sin evento.
 
 Dos criterios que no son de EMI-17 al pie de la letra, para que los veas:
 - **Algunas reglas semánticas rechazan** porque hay una regla específica (EMI-17 lo permite: "salvo regla específica"): `unknown` sin nota (P2, §9.2), `uncertainty` sin nota (EMI-17 mismo), aceptación por IA (EMI-17 mismo), `accion_ejecutada` sin acción cumplida (D18).
@@ -169,7 +169,7 @@ Los eventos de póliza tienen su propio historial y no son ciclos del riesgo (de
 - **Nunca viaja solo.** Toda fila de salida que tenga `c_raw` trae en la misma fila el vector completo (`p`, las cuatro dimensiones de I, `v_cont`, `v_rec`, con estado y valor), `consecuencia_extrema` y `safety_critical`. La 15b lo escribe como test del export de salida.
 - **Operaciones que no se permiten:** sumar, promediar, restar o dividir `C_raw`; mostrar diferencias o cocientes entre riesgos; agregarlo por organización o cartera; compararlo entre organizaciones (§7.1.4); usar cortes distintos de los de banda. Se permite sólo ordenar dentro de una organización (D10) y asignar banda.
 
-**Reordenamiento profesional.** Recomiendo un **registro aparte del contexto `risk`**, creado en Risk OS y no en los CSV de importación, por tres razones: es sobre un par o una posición, no sobre un riesgo solo; tiene autor y fecha propios; y tiene que conservar el orden calculado de ese momento para que el uso alimente los disparadores de reapertura (dossier de la Fase 13, §5). Una columna de `risks.csv` no puede decir "R05 va debajo de R01".
+**Reordenamiento profesional.** Decidido (5a): un **registro aparte del contexto `risk`**, creado en Risk OS y no en los CSV de importación, por tres razones: es sobre un par o una posición, no sobre un riesgo solo; tiene autor y fecha propios; y tiene que conservar el orden calculado de ese momento para que el uso alimente los disparadores de reapertura (dossier de la Fase 13, §5). Una columna de `risks.csv` no puede decir "R05 va debajo de R01".
 
 Campos mínimos:
 
@@ -209,7 +209,7 @@ El reordenamiento cambia el orden que se muestra, con el calculado visible al la
 | K13 | Seguro obligatorio cuyo pago no baja I (CH-099) | D17 |
 | K14 | `I efectivo ≥ n`, peor creíble fuera del rango, `v_rec = no_aplica`, `safety_critical`, `consecuencia_extrema` | banderas, cola, detalle |
 
-**Propuesta: 8 empresas, 59 objetos** (50 riesgos, 2 padres, 6 sub-riesgos, 1 escenario).
+**Aprobado (10a): 8 empresas, 59 objetos** (50 riesgos, 2 padres, 6 sub-riesgos, 1 escenario).
 
 | Empresa | Familia, tamaño | Criterios que sólo cubre ella o que cubre mejor |
 |---|---|---|
@@ -241,7 +241,7 @@ El reordenamiento cambia el orden que se muestra, con el calculado visible al la
 | 7 | Una acción real sobre dos riesgos, como dos registros (EMI-17) | 2 |
 | 8 | Acción cancelada | 1 |
 
-Más **54 casos inválidos**, uno por regla de rechazo, cada uno con el error esperado. Son variantes de un lote válido con una sola mutación; no son empresas nuevas.
+Más **55 casos inválidos**, uno por regla de rechazo, cada uno con el error esperado. Son variantes de un lote válido con una sola mutación; no son empresas nuevas.
 
 ## 8. Export ciego (especificación para la 15b)
 
@@ -263,13 +263,15 @@ Pedido de Emiliano en la Fase 14 (punto 4). La 15b escribe `v0/fase-15/export_ci
 
 ## 10. Guía de redacción del evento y CH-113/CH-114
 
-**Guía.** EV-33 a EV-42, la frontera I/V de S06-R05 y la recuperación parcial probada frente a informal (§5.4) son guía de evaluación, no forma de datos: §18 dice que la guía "no tiene pantalla". En el contrato sólo cabe `riesgo_evento` obligatorio (RV-EVA-09). Recomiendo un anexo aparte, que la 15b escriba como índice de esos casos apuntando a las reglas que ya los resuelven, sin reglas nuevas. Lo que no se pueda explicar con una regla existente va a EMI-43.
+**Guía.** EV-33 a EV-42, la frontera I/V de S06-R05 y la recuperación parcial probada frente a informal (§5.4) son guía de evaluación, no forma de datos: §18 dice que la guía "no tiene pantalla". En el contrato sólo cabe `riesgo_evento` obligatorio (RV-EVA-09). Decidido (12a): un anexo aparte, que la 15b escribe como índice de esos casos apuntando a las reglas que ya los resuelven, sin reglas nuevas. Lo que no se pueda explicar con una regla existente va a EMI-43.
 
 **CH-113 y CH-114.** Ninguna decisión de esta fase cambia una regla de la metodología: son decisiones de contrato y viven en `decisiones-15a.md` y en el spike. Si no hay filas propias de la Fase 15 para el changelog, mover sólo CH-113 y CH-114 cambiaría la huella del changelog sin otra razón que la regla 4, y vos dijiste que pasan "cuando se abra la siguiente versión".
 
 ---
 
 ## Para decidir
+
+> **Respondido el 2026-10-14 a las 16:15:39 UTC.** Las respuestas de Emiliano están en `decisiones-15a.md`. Lo de abajo queda como se preguntó; los conteos de la opción 10a (54 casos inválidos) son los de antes del cambio del punto 8.
 
 Para cada punto: la opción que elijas, o "recomendada". Con tus respuestas ajusto `contrato/` y el borrador del spike y no agrego nada que no decidas.
 
