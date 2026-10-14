@@ -51,7 +51,7 @@ const FACTORES = ['p', 'i_econ', 'i_pers', 'i_cont', 'i_legal', 'v_cont', 'v_rec
 const ORDEN_BASE = ['observed', 'reported', 'inferred', 'assumed']
 const PREFIJO: Record<string, string> = { RSK: 'riesgo', EVA: 'evaluación', ACC: 'acción', TRF: 'transferencia', EVT: 'evento' }
 /** Columnas de un riesgo que no son de la evaluación (RV-RSK-06): identidad, origen y la consecuencia común del padre. */
-const IDENTIDAD = new Set(['risk_id', 'organizacion_id', 'tipo_objeto', 'riesgo_padre_id', 'miembros', 'titulo', 'id_origen', 'lote_origen', 'riesgo_consecuencia'])
+const IDENTIDAD = new Set(['risk_id', 'organizacion_id', 'unidad_id', 'tipo_objeto', 'riesgo_padre_id', 'miembros', 'titulo', 'id_origen', 'lote_origen', 'riesgo_consecuencia'])
 const COLUMNAS_COBERTURA = ['transferencia_id', 'poliza_ref', 'cobertura', 'vigencia_desde', 'vigencia_hasta', 'limite_monto', 'sublimite_aplicable_monto', 'sublimites_texto', 'deducible_monto', 'deducible_texto', 'exclusiones', 'exposicion_retenida_monto', 'exposicion_retenida_nota', 'suficiencia', 'suficiencia_nota']
 const COLUMNAS_EVENTO = ['evento_id', 'transferencia_ref', 'tipo_evento', 'fecha_evento', 'monto_evento', 'nota_evento']
 const MONTOS_TRANSFERENCIA = ['limite_monto', 'sublimite_aplicable_monto', 'deducible_monto', 'exposicion_retenida_monto', 'monto_evento']
@@ -307,7 +307,7 @@ export function validarLote(contenidos: Readonly<Record<Archivo, Uint8Array>>, o
     const [primera, ...resto] = filas
     if (primera === undefined) continue
     for (const r of resto) {
-      const distinta = ['organizacion_id', 'tipo_objeto', 'riesgo_padre_id', 'miembros', 'titulo'].find((c) => (r.f[c] ?? '') !== (primera.f[c] ?? ''))
+      const distinta = ['organizacion_id', 'unidad_id', 'tipo_objeto', 'riesgo_padre_id', 'miembros', 'titulo'].find((c) => (r.f[c] ?? '') !== (primera.f[c] ?? ''))
       if (distinta !== undefined) informar('RV-RSK-01', AR, r.n, r.f, { columna: distinta })
     }
     const tipo = primera.f.tipo_objeto

@@ -28,6 +28,18 @@ describe('Fase 15b: casos inválidos', () => {
     assert.deepEqual(rechazos(porArchivo((a) => enc(aTexto(b, a)))), [])
   })
 
+  it('unidad_id: opcional y libre entre riesgos, igual en todas las filas de un riesgo', () => {
+    const b = base()
+    const rids = [...new Set(b.risks.map((f) => f.risk_id ?? ''))]
+    const conUnidad = { ...b, risks: b.risks.map((f) => ({ ...f, unidad_id: `UNI-${rids.indexOf(f.risk_id ?? '') % 2}` })) }
+    assert.deepEqual(rechazos(porArchivo((a) => enc(aTexto(conUnidad, a)))), [])
+    const repetido = rids.find((r) => b.risks.filter((f) => f.risk_id === r).length > 1)
+    assert.ok(repetido !== undefined)
+    let visto = false
+    const distinta = { ...b, risks: b.risks.map((f) => (f.risk_id === repetido ? { ...f, unidad_id: visto ? 'UNI-B' : ((visto = true), 'UNI-A') } : f)) }
+    assert.deepEqual(rechazos(porArchivo((a) => enc(aTexto(distinta, a)))).map((h) => [h.regla_id, h.mensaje.endsWith('(unidad_id)')]), [['RV-RSK-01', true]])
+  })
+
   it('los archivos en disco son los que genera el script', () => {
     for (const [ruta, texto] of Object.entries(archivos())) assert.equal(readFileSync(new URL(ruta, AQUI), 'utf8'), texto, ruta)
   })
