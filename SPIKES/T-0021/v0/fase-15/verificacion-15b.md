@@ -92,3 +92,15 @@ Test `export-ciego.test.ts`: falla con un archivo fuera de la lista blanca, con 
 | `tsc --noEmit -p SPIKES/T-0021/v0/fase-15` | ✓ (incluye el arnés) |
 
 El resultado de CI está en el PR.
+
+## 8. Ajuste de la lista de casos históricos
+
+El owner respondió `lista-casos-historicos.md` el 2026-10-14 con un ajuste de contrato: `risks.csv` tiene que poder asociar un riesgo a una sede o unidad. Se agregó `unidad_id` (opcional, id opaco, igual en todas las filas del riesgo por RV-RSK-01) y se regeneraron los CSV sintéticos y los casos inválidos, con la columna vacía.
+
+| Comprobación | Resultado |
+|---|---|
+| `generar.ts --check` de sintéticos y de inválidos | ✓ |
+| Validador sobre los sintéticos, corte 2026-10-14 | 0 rechazos, 103 avisos (los mismos de §3) |
+| Tests de la 15b | 100 pass, 0 fail. El nuevo comprueba que `unidad_id` puede variar entre riesgos y que, si varía entre filas de un mismo riesgo, da RV-RSK-01 |
+| Arnés de regresión | 213 tests: 211 pass, 0 fail, 2 todo |
+| `pnpm check`, `pnpm typecheck`, `pnpm lint` | ✓, salvo los tests de base que necesitan Postgres, como en §7 |
