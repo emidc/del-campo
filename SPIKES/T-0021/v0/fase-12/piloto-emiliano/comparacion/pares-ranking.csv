@@ -1,0 +1,16 @@
+par,orden_previo_A,orden_calculado_B,orden_historico,coincide_A_B,coincide_B_historica
+S06-R01/S06-R02,>,>,>,true,true
+S06-R01/S06-R03,<,<,<,true,true
+S06-R01/S06-R04,>,>,>,true,true
+S06-R01/S06-R05,>,<,<,false,true
+S06-R01/S06-R06,>,>,>,true,true
+S06-R02/S06-R03,<,<,<,true,true
+S06-R02/S06-R04,<,<,<,true,true
+S06-R02/S06-R05,<,<,<,true,true
+S06-R02/S06-R06,<,<,<,true,true
+S06-R03/S06-R04,>,>,>,true,true
+S06-R03/S06-R05,>,>,>,true,true
+S06-R03/S06-R06,>,>,>,true,true
+S06-R04/S06-R05,>,<,<,false,true
+S06-R04/S06-R06,>,>,>,true,true
+S06-R05/S06-R06,>,>,>,true,true

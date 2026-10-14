@@ -70,7 +70,19 @@ describe('F11-REG-01: fichas reevaluadas y regresión de EMI-41 contra la capa d
     for (const f of nuevas) {
       assert.ok(['cambio_version_metodologia', 'correccion_evaluacion'].includes(f.motivo), f.evaluacionId)
       assert.equal(f.versionMetodologia, 'metodologia v1 candidate', f.evaluacionId)
-      assert.equal(f.crudo.review_status, 'pending', f.evaluacionId)
+      // Aceptación humana posterior a la corrida: registro de 2026-10-13, regla 5 del congelamiento.
+      const aceptada = ['EV-11-0063', 'EV-11-0064'].includes(f.evaluacionId)
+      assert.equal(f.crudo.review_status, aceptada ? 'accepted' : 'pending', f.evaluacionId)
+      assert.equal(f.crudo.revisado_por, aceptada ? 'emiliano' : '', f.evaluacionId)
+      assert.equal(f.crudo.fecha_revision, aceptada ? '2026-10-13' : '', f.evaluacionId)
+      if (aceptada) {
+        const entrada = leerCsv(new URL('fase-11/reevaluacion/fichas-ronda-2-factores.csv', V0))
+          .find((x) => x.evaluacion_id === f.evaluacionId)
+        assert.ok(entrada, f.evaluacionId)
+        for (const campo of ['review_status', 'revisado_por', 'fecha_revision']) {
+          assert.equal(entrada[campo], f.crudo[campo], `${f.evaluacionId}: ${campo}`)
+        }
+      }
       assert.ok(![...agente, ...emiliano].some((a) => a.evaluacionId === f.evaluacionId), `${f.evaluacionId} pisa un id anterior`)
     }
   })

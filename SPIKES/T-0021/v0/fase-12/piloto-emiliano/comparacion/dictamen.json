@@ -1,0 +1,20 @@
+{
+  "fecha": "2026-10-13",
+  "revisor": "emiliano",
+  "posterior_a_revelacion": true,
+  "orden_mantenido": [
+    "S06-R03",
+    "S06-R01",
+    "S06-R04",
+    "S06-R05",
+    "S06-R06",
+    "S06-R02"
+  ],
+  "pares_rechazados": [
+    "S06-R01/S06-R05",
+    "S06-R04/S06-R05"
+  ],
+  "estado": "divergencia profesional confirmada, no resuelta",
+  "respuesta_ref": "../dictamen-profesional-emiliano.md",
+  "reglas_cambiadas": false
+}

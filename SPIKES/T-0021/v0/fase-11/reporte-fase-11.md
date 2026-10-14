@@ -2,6 +2,10 @@
 
 > 2026-10-11 · Corrida **F11-REG-01** · de metodologia v0.3 / protocolo v0.3 a **metodologia v1 candidate / protocolo v1 candidate**. Primera ronda: lo que Emiliano decidió el 2026-10-11 12:18 UTC (`decisiones-11a.md`). Segunda ronda: sus respuestas al "Para aprobar", el 2026-10-11 13:21 UTC. **La v1 candidate quedó congelada** (`v1/congelamiento.md`).
 
+## Actualización de aceptación · 2026-10-13
+
+Emiliano aceptó EV-11-0063 y EV-11-0064. Se registró la revisión humana sin cambiar factores ni reglas. El recálculo conserva 23/30 en evaluabilidad y 16/23 en banda; la corrida ya incluía las propuestas. Ver [registro de aceptación y huellas posteriores](aceptacion-fichas-emiliano-2026-10-13.md). El resto de este documento conserva el estado histórico de F11-REG-01.
+
 ## Resumen
 
 1. **Respuestas de Emiliano:** 1 sí; 2 opción c; 3 sí, pending; 4 no al umbral de F11-4, reevaluar por sustituibilidad real; 5 a 7 sí; 8 sí, con fichas nuevas sin sobrescribir; 9 congelar después de aplicar 2, 4 y 8 y una última regresión con 0 FAIL.
