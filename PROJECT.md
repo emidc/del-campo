@@ -121,6 +121,8 @@ Enunciado explícitamente para que no reaparezca por la ventana:
 - Diseño del framework de evaluación de modelos.
 - Integración entre Broker, Risk OS y Communication OS durante Q4: ni código ni
   esquemas compartidos. Se decide al cierre del trimestre. → `D-0063`
+- Flujos de datos entre Broker OS y Risk OS, o copia de ids internos de Broker OS hacia
+  Risk OS. Cada dato tiene un único contexto dueño. → `D-0067`
 - En WhatsApp, cualquier cosa fuera del alcance de Communication OS: grupos, adjuntos,
   el número corporativo y conversaciones con clientes sin autorización propia (R-19).
 - Cotización, emisión, Gmail, portal externo, agentes con efectos externos.

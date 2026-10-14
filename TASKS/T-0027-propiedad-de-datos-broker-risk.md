@@ -2,7 +2,7 @@
 id: T-0027
 title: Registrar la propiedad de datos entre Broker OS y Risk OS
 kind: REVIEW
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S
@@ -14,7 +14,7 @@ contextRefs: [DECISIONS/0063-aislamiento-por-contexto-q4.md, DOMAIN.md, PROJECT.
               SPIKES/T-0021/v0/fase-15/decisiones-15a.md,
               SPIKES/T-0021/v0/fase-15/contrato/columnas-risk-transfer.csv,
               SPIKES/T-0021/v0/fase-15/contrato/columnas-risks.csv]
-decisionRefs: [D-0025, D-0050, D-0063]
+decisionRefs: [D-0025, D-0050, D-0063, D-0067]
 ---
 
 ## Why
