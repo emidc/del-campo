@@ -1,0 +1,31 @@
+# MANIFIESTO del export ciego (T-0021, Fase 15b)
+
+empresas: S29
+version: v1
+script: v0/fase-15/export-ciego/export-ciego.ts sha256 a6376bdbe47aa1fb8b1894b5fdd623b6a3ac3ab2bf444c88e6bcc2121884c8ce
+modo: 1 (lista blanca)
+
+## Archivos (sha256  destino  ←  origen, relativo a SPIKES/T-0021)
+5c0ebb6a724f5cb500fadd80ab14d96a6e4e76876d6adbbe01d438caa74f67f3  empresas/S29/S29-P01-S01.md  ←  v0/emi41/fichas/S29/S29-P01-S01.md
+cfffdadc6ba2b04935b63cbb99e3cd5209e691c287e813c06a46821328c931a3  empresas/S29/S29-P01-S02.md  ←  v0/emi41/fichas/S29/S29-P01-S02.md
+2f3ff9034ba918f03212ac6959170d10cd13da9857f645be8c18ce8d9230e573  empresas/S29/S29-P01-S03.md  ←  v0/emi41/fichas/S29/S29-P01-S03.md
+05d007cc99b20e412e4b9eb7737e1bf6bef808c506ba61e2e2d6bd9d1acacf2b  empresas/S29/S29-P01.md  ←  v0/emi41/fichas/S29/S29-P01.md
+8651da3d5113f76b4b695fac86c6a60cc51d5e2d0907f0332829b3d8dff9a730  empresas/S29/S29-R04.md  ←  v0/emi41/fichas/S29/S29-R04.md
+7575ea5cbf1446697133fc23e275db7b890cc7a49a987f3599baa8ca8b1aa98f  empresas/S29/S29-R05.md  ←  v0/emi41/fichas/S29/S29-R05.md
+6acbd082b0da6702bf59e1f5742a548190de5646c4ab552d7848ce2c4e24e792  empresas/S29/S29-R06.md  ←  v0/emi41/fichas/S29/S29-R06.md
+ea605354e85ec4e3bfb047d841cbb9c94db79f03781c2bb44ded5d670d84fc24  empresas/S29/S29-R07.md  ←  v0/emi41/fichas/S29/S29-R07.md
+8e868b9d3dc4dda92175be75b9f6342421868274d387c56d1005c2c04f62fe18  empresas/S29/empresa.md  ←  v0/emi41/fichas/S29/empresa.md
+c0ebab8ffa08253d4a0d25b3f8ef77da59d50d967fd4aa33da3cebbfd172feaf  empresas/S29/transferencia.md  ←  v0/emi41/fichas/S29/transferencia.md
+f9e73d45bb74394d6372caf1a93cb25d43032cec6e00388ef0a0e8f7cf64ca92  lista-riesgos.csv  ←  v0/emi41/lista-riesgos-tecnologia-y-pagos.csv (sólo risk_id, empresa, tipo_objeto, riesgo_padre_id, miembros, titulo)
+946701326fa11c37fcc68e461d618f2ba556c7809513c2e82232ccc1f21a8709  metodologia/metodologia-v1.md  ←  v1/metodologia-v1.md
+c34ff6672882a369c194e90d4aaef9cac41685050418865176f8fefff5bcae1a  metodologia/protocolo.md  ←  v0/protocolo.md
+e678dd9ef9e36e2cc03698ab11e6b1d5fdcc3a2d1ef6fe9d5d8850eada049a06  plantilla/ficha-evaluacion.csv  ←  v0/plantillas/ficha-evaluacion.csv
+
+## Comprobaciones
+1. Origen en la lista blanca y misma huella que el origen: pasa.
+2. Ningún id de evaluación de los siete patrones: pasa, con las aceptaciones de abajo.
+3. Ningún CSV con columnas de resultado: pasa. Exenta: la plantilla vacía (v0/plantillas/ficha-evaluacion.csv, 0 filas).
+4. Contaminación por la metodología o el protocolo: pasa, ninguna cita.
+
+## Contaminación aceptada
+- EV-11-0063 (comprobación 2 en metodologia/metodologia-v1.md): Cita de la metodología v1 congelada (línea 52, tabla de las cinco condiciones de EMI-15). Es la evaluación de S02-R07, empresa que no está en este export, y no dice nada de S29. La metodología no se edita.

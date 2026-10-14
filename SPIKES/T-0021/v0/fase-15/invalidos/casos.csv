@@ -1,0 +1,56 @@
+caso,que_cambia
+RV-ARCH-01,una comilla sin cerrar en la línea 9
+RV-ARCH-02,el evento trae un campo de más
+RV-ARCH-03,falta la columna justificacion
+RV-ARCH-04,trae la columna derivada c_raw
+RV-ARCH-05,fecha 2026-13-01
+RV-ID-01,accion_id sin ULID
+RV-ID-02,A3 repite el id de A2
+RV-ID-03,A3 repite el origen de A2
+RV-RSK-01,la reevaluación de R1 cambia el título
+RV-RSK-02,sub_riesgo sin padre
+RV-RSK-03,el padre de S2 es un riesgo simple
+RV-RSK-04,escenario con un solo miembro
+RV-RSK-05,un miembro del escenario es el padre
+RV-RSK-06,el padre trae p_estado
+RV-RSK-07,el padre repetido en una segunda fila
+RV-RSK-09,R2 sin evaluacion_id
+RV-EVA-01,inicial con motivo
+RV-EVA-02,la anterior es de otro riesgo
+RV-EVA-03,una segunda inicial de R2
+RV-EVA-04,accion_id con motivo correccion_evaluacion (A1 sin eficacia registrada)
+RV-EVA-05,la acción citada es de otro riesgo y no está cumplida (A1 sin eficacia registrada)
+RV-EVA-07,una segunda reevaluación de la inicial de R1
+RV-EVA-09,sin riesgo_evento
+RV-PRO-01,base fuera del enum
+RV-PRO-02,evidencia vacía
+RV-PRO-03,sin_evidencia con una referencia
+RV-PRO-04,actor fuera del enum
+RV-PRO-05,p_base fuera del enum
+RV-FAC-01,i_legal_estado vacío
+RV-FAC-02,i_legal_valor 7
+RV-FAC-03,no_aplica en p
+RV-FAC-04,p 3 fuera de su rango 4–5
+RV-FAC-05,i_legal unknown sin nota
+RV-FAC-06,i_legal unknown sin necesidad_validacion
+RV-UNC-01,uncertainty fuera del enum
+RV-UNC-02,medium sin nota
+RV-REV-01,review_status fuera del enum
+RV-REV-02,needs_revision sin revisor
+RV-REV-03,accepted por una IA
+RV-REV-04,pending con revisor
+RV-ECO-01,monto bruto sin moneda
+RV-ACC-01,acción sobre el padre
+RV-ACC-03,factor V sin aspecto
+RV-ACC-04,sin mecanismo causal
+RV-ACC-06,cumplida sin evidencia de ejecución
+RV-ACC-07,efecto parcial sin nota
+RV-ACC-08,la eficacia apunta a la inicial
+RV-ACC-09,eficacia en una acción en curso
+RV-ACC-10,aceptar sin fundamento
+RV-TRF-01,una cobertura sobre el padre
+RV-TRF-02,vigencia invertida
+RV-TRF-03,límite negativo
+RV-TRF-04,evento sin cobertura
+RV-TRF-05,consumo_limite sin monto
+RV-TRF-06,el evento trae la columna cobertura

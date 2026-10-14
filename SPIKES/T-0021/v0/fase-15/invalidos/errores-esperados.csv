@@ -1,0 +1,56 @@
+caso,regla_id,archivo,fila,error_esperado
+RV-ARCH-01,RV-ARCH-01,risks.csv,,risks.csv: no se puede leer como CSV UTF-8 separado por comas (línea 9)
+RV-ARCH-02,RV-ARCH-02,risk-transfer.csv,3,"risk-transfer.csv línea 3: 36 campos, el encabezado tiene 35"
+RV-ARCH-03,RV-ARCH-03,risks.csv,1,risks.csv: falta la columna justificacion
+RV-ARCH-04,RV-ARCH-04,risks.csv,1,risks.csv: columna desconocida c_raw
+RV-ARCH-05,RV-ARCH-05,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: fecha = «2026-13-01» no es una fecha AAAA-MM-DD
+RV-ID-01,RV-ID-01,action-plan.csv,4,action-plan.csv línea 4: accion_id = «ACC-123» no es un id de acción
+RV-ID-02,RV-ID-02,action-plan.csv,4,action-plan.csv: id repetido ACC-01M3TC5H00AXSDVQTRMCHQQF8C (líneas 3 y 4)
+RV-ID-03,RV-ID-03,action-plan.csv,4,action-plan.csv: origen repetido T-0021/15b-invalidos/A2
+RV-RSK-01,RV-RSK-01,risks.csv,6,risks.csv RSK-01M3TC5H00JH6678HP6TG61NDH: identidad inconsistente entre filas (titulo)
+RV-RSK-02,RV-RSK-02,risks.csv,4,risks.csv RSK-01M3TC5H008KK2HDJB8W61ME3C: riesgo_padre_id obligatorio sólo en sub_riesgo
+RV-RSK-03,RV-RSK-03,risks.csv,4,"risks.csv RSK-01M3TC5H008KK2HDJB8W61ME3C: padre RSK-01M3TC5H00NY7QAFEF8DSGNA3Z inexistente, no es padre o es de otra organización"
+RV-RSK-04,RV-RSK-04,risks.csv,8,risks.csv RSK-01M3TC5H00GEC0ADAAWE7ZYHF2: miembros obligatorio (2 o más) sólo en escenario
+RV-RSK-05,RV-RSK-05,risks.csv,8,"risks.csv RSK-01M3TC5H00GEC0ADAAWE7ZYHF2: miembro RSK-01M3TC5H00Z837WDKVCHE6D4RY inexistente, repetido, de otra organización o de tipo padre"
+RV-RSK-06,RV-RSK-06,risks.csv,2,risks.csv RSK-01M3TC5H00Z837WDKVCHE6D4RY: un padre no tiene factores ni evaluación propia (p_estado)
+RV-RSK-07,RV-RSK-07,risks.csv,9,risks.csv RSK-01M3TC5H00Z837WDKVCHE6D4RY: un padre va en una sola fila
+RV-RSK-09,RV-RSK-09,risks.csv,7,risks.csv RSK-01M3TC5H00NY7QAFEF8DSGNA3Z: falta evaluacion_id (sólo un padre va sin evaluación)
+RV-EVA-01,RV-EVA-01,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: inicial con anterior/motivo inválido
+RV-EVA-02,RV-EVA-02,risks.csv,6,risks.csv EVA-01M3TC5H00CJJ9EQF05YXTG7DJ: anterior EVA-01M3TC5H00Q49B46JW2XQXEJPK inexistente o de otro riesgo
+RV-EVA-03,RV-EVA-03,risks.csv,9,"risks.csv RSK-01M3TC5H00NY7QAFEF8DSGNA3Z: más de una evaluación inicial (EVA-01M3TC5H00Q49B46JW2XQXEJPK, EVA-01M3TC5H000267Z8TAXD1THCM4)"
+RV-EVA-04,RV-EVA-04,risks.csv,6,risks.csv EVA-01M3TC5H00CJJ9EQF05YXTG7DJ: accion_id va sólo y siempre con accion_ejecutada
+RV-EVA-05,RV-EVA-05,risks.csv,6,"risks.csv EVA-01M3TC5H00CJJ9EQF05YXTG7DJ: acción ACC-01M3TC5H008Y5Y153SPK7TRQE3 inexistente, de otro riesgo o no cumplida"
+RV-EVA-07,RV-EVA-07,risks.csv,9,risks.csv RSK-01M3TC5H00JH6678HP6TG61NDH: EVA-01M3TC5H00CJJ9EQF05YXTG7DJ y EVA-01M3TC5H00GZKDG906M7JF2X0M reevalúan las dos EVA-01M3TC5H00H5SJZ1MCYFCCBNT9; la historia tiene que ser lineal
+RV-EVA-09,RV-EVA-09,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: falta riesgo_evento (corte P/V)
+RV-PRO-01,RV-PRO-01,risk-transfer.csv,2,risk-transfer.csv TRF-01M3TC5H00WKTSBX59NSN9W70D: base «confirmed» fuera del enum de EMI-17
+RV-PRO-02,RV-PRO-02,action-plan.csv,3,action-plan.csv ACC-01M3TC5H00AXSDVQTRMCHQQF8C: evidencia vacía; la ausencia se escribe sin_evidencia
+RV-PRO-03,RV-PRO-03,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: sin_evidencia no se combina con referencias
+RV-PRO-04,RV-PRO-04,action-plan.csv,4,action-plan.csv ACC-01M3TC5H008Y5Y153SPK7TRQE3: actor «bot» fuera del enum
+RV-PRO-05,RV-PRO-05,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: p_base «seguro» inválida
+RV-FAC-01,RV-FAC-01,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: i_legal_estado vacío o inválido
+RV-FAC-02,RV-FAC-02,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: i_legal_valor incompatible con i_legal_estado
+RV-FAC-03,RV-FAC-03,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: no_aplica sólo vale para v_rec (p)
+RV-FAC-04,RV-FAC-04,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: rango de p inválido (4–3–5)
+RV-FAC-05,RV-FAC-05,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: i_legal unknown sin nota de qué falta
+RV-FAC-06,RV-FAC-06,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: hay factores unknown y falta necesidad_validacion
+RV-UNC-01,RV-UNC-01,risk-transfer.csv,2,risk-transfer.csv TRF-01M3TC5H00WKTSBX59NSN9W70D: uncertainty vacía o inválida
+RV-UNC-02,RV-UNC-02,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: uncertainty medium sin nota de qué falta confirmar
+RV-REV-01,RV-REV-01,action-plan.csv,4,action-plan.csv ACC-01M3TC5H008Y5Y153SPK7TRQE3: review_status «aprobado» fuera del enum
+RV-REV-02,RV-REV-02,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: revisión sin autor o sin fecha
+RV-REV-03,RV-REV-03,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: sólo una persona acepta (revisado_por_actor = ai)
+RV-REV-04,RV-REV-04,risk-transfer.csv,2,risk-transfer.csv TRF-01M3TC5H00WKTSBX59NSN9W70D: pending no lleva revisor
+RV-ECO-01,RV-ECO-01,risks.csv,7,risks.csv EVA-01M3TC5H00Q49B46JW2XQXEJPK: monto bruto inválido o sin moneda
+RV-ACC-01,RV-ACC-01,action-plan.csv,4,action-plan.csv ACC-01M3TC5H008Y5Y153SPK7TRQE3: riesgo RSK-01M3TC5H00Z837WDKVCHE6D4RY inexistente o padre
+RV-ACC-03,RV-ACC-03,action-plan.csv,4,action-plan.csv ACC-01M3TC5H008Y5Y153SPK7TRQE3: factor_objetivo vacío o inválido (v)
+RV-ACC-04,RV-ACC-04,action-plan.csv,4,action-plan.csv ACC-01M3TC5H008Y5Y153SPK7TRQE3: falta mecanismo_causal
+RV-ACC-06,RV-ACC-06,action-plan.csv,2,action-plan.csv ACC-01M3TC5H004GJ1T9W48KFJAC4E: cumplida sin fecha o sin evidencia de ejecución
+RV-ACC-07,RV-ACC-07,action-plan.csv,2,action-plan.csv ACC-01M3TC5H004GJ1T9W48KFJAC4E: eficacia incompleta
+RV-ACC-08,RV-ACC-08,action-plan.csv,2,action-plan.csv ACC-01M3TC5H004GJ1T9W48KFJAC4E: evaluación de efecto EVA-01M3TC5H00H5SJZ1MCYFCCBNT9 no corresponde
+RV-ACC-09,RV-ACC-09,action-plan.csv,2,action-plan.csv ACC-01M3TC5H004GJ1T9W48KFJAC4E: eficacia sólo en una acción cumplida
+RV-ACC-10,RV-ACC-10,action-plan.csv,3,action-plan.csv ACC-01M3TC5H00AXSDVQTRMCHQQF8C: decisión de tratamiento incompleta
+RV-TRF-01,RV-TRF-01,risk-transfer.csv,4,risk-transfer.csv TRF-01M3TC5H00CTVWBT03VAF1ZWWS: riesgo RSK-01M3TC5H00Z837WDKVCHE6D4RY inexistente o padre
+RV-TRF-02,RV-TRF-02,risk-transfer.csv,2,risk-transfer.csv TRF-01M3TC5H00WKTSBX59NSN9W70D: cobertura incompleta o vigencia invertida
+RV-TRF-03,RV-TRF-03,risk-transfer.csv,2,risk-transfer.csv TRF-01M3TC5H00WKTSBX59NSN9W70D: limite_monto inválido o sin moneda
+RV-TRF-04,RV-TRF-04,risk-transfer.csv,3,risk-transfer.csv EVT-01M3TC5H00KP7P85HQABGS328M: evento sin cobertura válida
+RV-TRF-05,RV-TRF-05,risk-transfer.csv,3,risk-transfer.csv EVT-01M3TC5H00KP7P85HQABGS328M: evento incompleto
+RV-TRF-06,RV-TRF-06,risk-transfer.csv,3,risk-transfer.csv EVT-01M3TC5H00KP7P85HQABGS328M: columna cobertura no corresponde a tipo_registro evento

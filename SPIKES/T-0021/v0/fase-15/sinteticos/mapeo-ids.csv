@@ -1,0 +1,210 @@
+entidad,id_nuevo,lote_origen,id_origen,risk_id_origen,estado,motivo,fuente
+organizacion,ORG-01M3QSRT003GPNZ7ZJSV8AHDAR,T-0021/EMI-41,S05,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S05/empresa.md
+organizacion,ORG-01M3QSRT00DYBNSFKH76243NBK,T-0021/EMI-41,S06,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S06/empresa.md
+organizacion,ORG-01M3QSRT00VT0W3XH3JG6NDTEX,T-0021/EMI-41,S07,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S07/empresa.md
+organizacion,ORG-01M3QSRT000GZN8G3A3CZAYRCN,T-0021/EMI-41,S15,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S15/empresa.md
+organizacion,ORG-01M3QSRT00KSHKKKA2FYZQ8NXY,T-0021/EMI-41,S28,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S28/empresa.md
+organizacion,ORG-01M3QSRT00K226WFA1BR0HK7KT,T-0021/EMI-41,S29,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S29/empresa.md
+organizacion,ORG-01M3QSRT00CZQXJ5ECQ5RSGND2,T-0021/EMI-41,S32,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S32/empresa.md
+organizacion,ORG-01M3QSRT00SZK5202RV34YJQRP,T-0021/EMI-41,S36,,importada,"id opaco, sin Party (decisión 1a, D-0063)",v0/emi41/fichas/S36/empresa.md
+riesgo,RSK-01M3QSRT00YGHX3QG6MVCN3RP8,T-0021/EMI-41,S06-R01,S06-R01,importada,,v0/emi41/fichas/S06/S06-R01.md
+evaluacion,EVA-01M49THV00WDNT3KACBXDE12NW,T-0021/EMI-41,EV-0008,S06-R01,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R01,S06-R01,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT00ZNWX84MZ6BQT3J3W,T-0021/EMI-41,S06-R02,S06-R02,importada,,v0/emi41/fichas/S06/S06-R02.md
+evaluacion,EVA-01M49THV001FPE89FSMGDRM5ST,T-0021/EMI-41,EV-0009,S06-R02,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,EVA-01M4M44Q005Q9AHXH1GZ258Q3X,T-0021/EMI-41,EV-11-0009,S06-R02,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R02,S06-R02,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT004GEXF66CCW9PSAV7,T-0021/EMI-41,S06-R03,S06-R03,importada,,v0/emi41/fichas/S06/S06-R03.md
+evaluacion,EVA-01M49THV00P81N1C4FWTX4MXBN,T-0021/EMI-41,EV-0010,S06-R03,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R03,S06-R03,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT00GNDZAR97SYFZF9W7,T-0021/EMI-41,S06-R04,S06-R04,importada,,v0/emi41/fichas/S06/S06-R04.md
+evaluacion,EVA-01M49THV00MK7NRAMAQNSN0XQ8,T-0021/EMI-41,EV-0011,S06-R04,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R04,S06-R04,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT000RMNFYQ96SDPZZZZ,T-0021/EMI-41,S06-R05,S06-R05,importada,,v0/emi41/fichas/S06/S06-R05.md
+evaluacion,EVA-01M49THV00KE79W7EVTGPKH26B,T-0021/EMI-41,EV-0012,S06-R05,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R05,S06-R05,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT00CKHJ9YZV3A4BZ9FA,T-0021/EMI-41,S06-R06,S06-R06,importada,,v0/emi41/fichas/S06/S06-R06.md
+evaluacion,EVA-01M49THV00G12CEEH1A26THT98,T-0021/EMI-41,EV-0013,S06-R06,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-12-PILOTO-EMI-S06-R06,S06-R06,no_importada,evaluación paralela del piloto de la Fase 12: una sola historia por riesgo (decisión 8a),v0/fase-12/piloto-emiliano/etapa-b/fichas-emiliano-cerradas.csv
+riesgo,RSK-01M3QSRT00AJ3PNQ1C72WFMJP5,T-0021/EMI-41,S15-R01,S15-R01,importada,,v0/emi41/fichas/S15/S15-R01.md
+evaluacion,EVA-01M49THV00RA7ZJYZ046FF8BC7,T-0021/EMI-41,EV-0014,S15-R01,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+evaluacion,EVA-01M4M44Q00THEH1FZDVSANVWB3,T-0021/EMI-41,EV-11-0017,S15-R01,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+riesgo,RSK-01M3QSRT00DZ6QQYNDKMYQAKD4,T-0021/EMI-41,S15-R02,S15-R02,importada,,v0/emi41/fichas/S15/S15-R02.md
+evaluacion,EVA-01M49THV00GRY5B0FJRVDEFXK6,T-0021/EMI-41,EV-0015,S15-R02,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+riesgo,RSK-01M3QSRT00E80DAQFA0BG42PWB,T-0021/EMI-41,S15-R03,S15-R03,importada,,v0/emi41/fichas/S15/S15-R03.md
+evaluacion,EVA-01M49THV004JM38V4F9193W9CH,T-0021/EMI-41,EV-0016,S15-R03,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+riesgo,RSK-01M3QSRT0068GCJWQDJMRZARE4,T-0021/EMI-41,S15-R04,S15-R04,importada,,v0/emi41/fichas/S15/S15-R04.md
+evaluacion,EVA-01M49THV00GBS4ER9AHSTB7HPJ,T-0021/EMI-41,EV-8115,S15-R04,importada,,v0/fase-8/emiliano/fichas-emiliano.csv
+evaluacion,EVA-01M4M44Q00FWH28SPYKVC55HDB,T-0021/EMI-41,EV-11-0064,S15-R04,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+evaluacion,,T-0021/EMI-41,EV-0017,S15-R04,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/agente/agro-y-alimentos/fichas.csv
+riesgo,RSK-01M3QSRT002GTHR7EQSR1R006A,T-0021/EMI-41,S15-R05,S15-R05,importada,,v0/emi41/fichas/S15/S15-R05.md
+evaluacion,EVA-01M49THV00RYHWVMNWV1YZTC5M,T-0021/EMI-41,EV-0018,S15-R05,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+riesgo,RSK-01M3QSRT003KRMZ4ME0D08FMG8,T-0021/EMI-41,S15-R06,S15-R06,importada,,v0/emi41/fichas/S15/S15-R06.md
+evaluacion,EVA-01M49THV004D0DETFGYCNPA2PJ,T-0021/EMI-41,EV-0019,S15-R06,importada,,v0/fase-8/agente/agro-y-alimentos/fichas.csv
+riesgo,RSK-01M3QSRT00Z1WNVWRNFXZX8KQD,T-0021/EMI-41,S28-R01,S28-R01,importada,,v0/emi41/fichas/S28/S28-R01.md
+evaluacion,EVA-01M49THV00NFDHA1RP61MYVXSJ,T-0021/EMI-41,EV-8420,S28-R01,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+riesgo,RSK-01M3QSRT00VJW7PF7X4RHCSYBV,T-0021/EMI-41,S28-R02,S28-R02,importada,,v0/emi41/fichas/S28/S28-R02.md
+evaluacion,EVA-01M49THV00HWFSHXTG6EYWYXMH,T-0021/EMI-41,EV-8421,S28-R02,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+evaluacion,EVA-01M4M44Q0003784MKBN4DR3CJN,T-0021/EMI-41,EV-11-0027,S28-R02,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,EVA-01M4M44Q00Q5FZ02KWGHQ9F6DB,T-0021/EMI-41,EV-11-0055,S28-R02,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+riesgo,RSK-01M3QSRT00W116AFM3R0GGZ9EZ,T-0021/EMI-41,S28-R03,S28-R03,importada,,v0/emi41/fichas/S28/S28-R03.md
+evaluacion,EVA-01M49THV00PY99ENTW2QVSWFR0,T-0021/EMI-41,EV-8422,S28-R03,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+riesgo,RSK-01M3QSRT00Z8NF7J79CHGZC14Z,T-0021/EMI-41,S28-R04,S28-R04,importada,,v0/emi41/fichas/S28/S28-R04.md
+evaluacion,EVA-01M49THV00A524TMQX5YBHJY8R,T-0021/EMI-41,EV-8423,S28-R04,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+riesgo,RSK-01M3QSRT00D9YNB3ZBCCWKRX86,T-0021/EMI-41,S28-R05,S28-R05,importada,,v0/emi41/fichas/S28/S28-R05.md
+evaluacion,EVA-01M49THV00BNT9KSS0RJA692BF,T-0021/EMI-41,EV-8424,S28-R05,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+riesgo,RSK-01M3QSRT00XYHM3P221Q695HE2,T-0021/EMI-41,S28-R06,S28-R06,importada,,v0/emi41/fichas/S28/S28-R06.md
+evaluacion,EVA-01M49THV007H6JJ6KXNZJA1GSR,T-0021/EMI-41,EV-8425,S28-R06,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+riesgo,RSK-01M3QSRT00MKAMMSR2RH53NGYT,T-0021/EMI-41,S28-R07,S28-R07,importada,,v0/emi41/fichas/S28/S28-R07.md
+evaluacion,EVA-01M49THV0047JF9B7X0RYSRB1W,T-0021/EMI-41,EV-8426,S28-R07,importada,,v0/fase-8/agente/comercio-y-logistica/fichas.csv
+evaluacion,EVA-01M4M44Q00YBWZH3WBT72TZ7GQ,T-0021/EMI-41,EV-11-0028,S28-R07,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,,T-0021/EMI-41,EV-8123,S28-R07,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT00DSK3VYVBFPTPJXM6,T-0021/EMI-41,S32-R01,S32-R01,importada,,v0/emi41/fichas/S32/S32-R01.md
+evaluacion,EVA-01M49THV00197XVMRKV6Z67RE0,T-0021/EMI-41,EV-8-energia-y-agua-0007,S32-R01,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+evaluacion,EVA-01M4M44Q00R2H1H332KT2S3NNY,T-0021/EMI-41,EV-11-0032,S32-R01,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,EVA-01M4M44Q002FPR10CDZD7W0GTS,T-0021/EMI-41,EV-11-0056,S32-R01,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+riesgo,RSK-01M3QSRT00MFZBX6KHXNVSYM4E,T-0021/EMI-41,S32-R02,S32-R02,importada,,v0/emi41/fichas/S32/S32-R02.md
+evaluacion,EVA-01M49THV004C4QWWK5EZ4NAX48,T-0021/EMI-41,EV-8-energia-y-agua-0008,S32-R02,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+evaluacion,EVA-01M4M44Q0054SG77N6ARBK7KAR,T-0021/EMI-41,EV-11-0033,S32-R02,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,EVA-01M4M44Q00HR6MARHKYV84AH11,T-0021/EMI-41,EV-11-0057,S32-R02,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+riesgo,RSK-01M3QSRT007RA1R74SNDM3BS58,T-0021/EMI-41,S32-R03,S32-R03,importada,,v0/emi41/fichas/S32/S32-R03.md
+evaluacion,EVA-01M49THV00PA23YJ5YVXVKV1AZ,T-0021/EMI-41,EV-8-energia-y-agua-0009,S32-R03,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-8126,S32-R03,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT005YZRVZ24ZVJBEW45,T-0021/EMI-41,S32-R04,S32-R04,importada,,v0/emi41/fichas/S32/S32-R04.md
+evaluacion,EVA-01M49THV009QNT60W68M579N0M,T-0021/EMI-41,EV-8-energia-y-agua-0010,S32-R04,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+evaluacion,EVA-01M4M44Q00RD22J9TWESEW2S8E,T-0021/EMI-41,EV-11-0034,S32-R04,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,EVA-01M4M44Q00FMWBBS7MN77VXVGB,T-0021/EMI-41,EV-11-0058,S32-R04,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+riesgo,RSK-01M3QSRT00YQSKTYJ6VW0QE2K2,T-0021/EMI-41,S32-R05,S32-R05,importada,,v0/emi41/fichas/S32/S32-R05.md
+evaluacion,EVA-01M49THV00CW3HWJEK7BT6DA96,T-0021/EMI-41,EV-8-energia-y-agua-0011,S32-R05,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+evaluacion,EVA-01M4M44Q00E05CK20SDD8JTB7G,T-0021/EMI-41,EV-11-0035,S32-R05,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+riesgo,RSK-01M3QSRT00ABA8C8KQT476SSMG,T-0021/EMI-41,S32-R06,S32-R06,importada,,v0/emi41/fichas/S32/S32-R06.md
+evaluacion,EVA-01M49THV00PFBCWWPPSYTJ52WF,T-0021/EMI-41,EV-8-energia-y-agua-0012,S32-R06,importada,,v0/fase-8/agente/energia-y-agua/fichas.csv
+riesgo,RSK-01M3QSRT003ACT22GMQPCWM5K4,T-0021/EMI-41,S05-P01,S05-P01,importada,,v0/emi41/fichas/S05/S05-P01.md
+evaluacion,,T-0021/EMI-41,EV-8-industria-y-construccion-0008,S05-P01,no_importada,ficha de padre: el padre no tiene evaluación ni factores (decisión 7a); su consecuencia común va a la fila del padre,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT00GVYP83TQYC89ER0A,T-0021/EMI-41,S05-P01-S01,S05-P01-S01,importada,,v0/emi41/fichas/S05/S05-P01-S01.md
+evaluacion,EVA-01M49THV008HP9J9N7CFQXW9CH,T-0021/EMI-41,EV-8-industria-y-construccion-0009,S05-P01-S01,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT006P68BNPPANWQ5DH7,T-0021/EMI-41,S05-P01-S02,S05-P01-S02,importada,,v0/emi41/fichas/S05/S05-P01-S02.md
+evaluacion,EVA-01M49THV0046YMCF6ZNP7MH631,T-0021/EMI-41,EV-8-industria-y-construccion-0010,S05-P01-S02,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT00XS9F996JCX67CZZF,T-0021/EMI-41,S05-P01-S03,S05-P01-S03,importada,,v0/emi41/fichas/S05/S05-P01-S03.md
+evaluacion,EVA-01M49THV00W7V3PSYZKB4KMC65,T-0021/EMI-41,EV-8-industria-y-construccion-0011,S05-P01-S03,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT006WMZT2N1TAP3XQJD,T-0021/EMI-41,S05-R04,S05-R04,importada,,v0/emi41/fichas/S05/S05-R04.md
+evaluacion,EVA-01M49THV00NZEJ1TF4QG6DD5WT,T-0021/EMI-41,EV-8-industria-y-construccion-0012,S05-R04,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT00ZDGA2RKPHPDNV2ZH,T-0021/EMI-41,S05-R05,S05-R05,importada,,v0/emi41/fichas/S05/S05-R05.md
+evaluacion,EVA-01M49THV00HEG8RRK5HWWZGBWP,T-0021/EMI-41,EV-8-industria-y-construccion-0013,S05-R05,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT00XM57WER0Q3WMN3JC,T-0021/EMI-41,S05-R06,S05-R06,importada,,v0/emi41/fichas/S05/S05-R06.md
+evaluacion,EVA-01M49THV00N02CKD7RJNMACZC6,T-0021/EMI-41,EV-8-industria-y-construccion-0014,S05-R06,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT0088RNQDQ19BVVGVF7,T-0021/EMI-41,S05-R07,S05-R07,importada,,v0/emi41/fichas/S05/S05-R07.md
+evaluacion,EVA-01M49THV00JXK02SBJ2HSXB6VR,T-0021/EMI-41,EV-8-industria-y-construccion-0015,S05-R07,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT005N4JF8ZT19A188S1,T-0021/EMI-41,S05-R08,S05-R08,importada,,v0/emi41/fichas/S05/S05-R08.md
+evaluacion,EVA-01M49THV00QDRHEHKW3EYD7JV7,T-0021/EMI-41,EV-8-industria-y-construccion-0016,S05-R08,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-8106,S05-R08,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT007DF20FW013FVP2H2,T-0021/EMI-41,S05-R09,S05-R09,importada,,v0/emi41/fichas/S05/S05-R09.md
+evaluacion,EVA-01M49THV00T3F08ES3V9AK7JCP,T-0021/EMI-41,EV-8-industria-y-construccion-0017,S05-R09,importada,,v0/fase-8/agente/industria-y-construccion/fichas.csv
+riesgo,RSK-01M3QSRT00624YZM467A1G63J8,T-0021/EMI-41,S07-E01,S07-E01,importada,,v0/emi41/fichas/S07/S07-E01.md
+evaluacion,EVA-01M49THV00YB27KDV0V1K594C8,T-0021/EMI-41,EV-8-mineria-0001,S07-E01,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT004CK6MZ2026987B80,T-0021/EMI-41,S07-R01,S07-R01,importada,,v0/emi41/fichas/S07/S07-R01.md
+evaluacion,EVA-01M49THV007V1VJ6E8WQ07VCR6,T-0021/EMI-41,EV-8-mineria-0002,S07-R01,importada,,v0/fase-8/agente/mineria/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-8107,S07-R01,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT00KFM2D8TT6TZVJH51,T-0021/EMI-41,S07-R02,S07-R02,importada,,v0/emi41/fichas/S07/S07-R02.md
+evaluacion,EVA-01M49THV00T3HAHFTGYM2FDY4A,T-0021/EMI-41,EV-8-mineria-0003,S07-R02,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT00W15FE29B2H1HGKCT,T-0021/EMI-41,S07-R03,S07-R03,importada,,v0/emi41/fichas/S07/S07-R03.md
+evaluacion,EVA-01M49THV005EYBNVFR7VMXRM1H,T-0021/EMI-41,EV-8-mineria-0004,S07-R03,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT0004S0FJAQ1MFK2EG0,T-0021/EMI-41,S07-R04,S07-R04,importada,,v0/emi41/fichas/S07/S07-R04.md
+evaluacion,EVA-01M49THV00RSQ8QA5X6S1YZ667,T-0021/EMI-41,EV-8-mineria-0005,S07-R04,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT00M6R8H1BVZQ68A2C5,T-0021/EMI-41,S07-R05,S07-R05,importada,,v0/emi41/fichas/S07/S07-R05.md
+evaluacion,EVA-01M49THV00MNTQD39TVGS55J3Q,T-0021/EMI-41,EV-8-mineria-0006,S07-R05,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT00F065SXMVH9HHW58C,T-0021/EMI-41,S07-R06,S07-R06,importada,,v0/emi41/fichas/S07/S07-R06.md
+evaluacion,EVA-01M49THV00XT43X4B8P88R3EM9,T-0021/EMI-41,EV-8-mineria-0007,S07-R06,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT003GMH1JYGKW7NT45X,T-0021/EMI-41,S07-R07,S07-R07,importada,,v0/emi41/fichas/S07/S07-R07.md
+evaluacion,EVA-01M49THV00NBF10RAXYC6Y28A0,T-0021/EMI-41,EV-8-mineria-0008,S07-R07,importada,,v0/fase-8/agente/mineria/fichas.csv
+evaluacion,EVA-01M4M44Q00CSCBN0FJ8WHBZB9M,T-0021/EMI-41,EV-11-0010,S07-R07,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,EVA-01M4M44Q0090ETJYRPSA7D9QWH,T-0021/EMI-41,EV-11-0048,S07-R07,importada,,v0/fase-11/reevaluacion/fichas-ronda-2.csv
+riesgo,RSK-01M3QSRT00HYWARSRP805D77G2,T-0021/EMI-41,S07-R08,S07-R08,importada,,v0/emi41/fichas/S07/S07-R08.md
+evaluacion,EVA-01M49THV00A7XW8HJQR15YCSVM,T-0021/EMI-41,EV-8-mineria-0009,S07-R08,importada,,v0/fase-8/agente/mineria/fichas.csv
+riesgo,RSK-01M3QSRT00NDS8K3ZZ1MQZ9A32,T-0021/EMI-41,S36-R01,S36-R01,importada,,v0/emi41/fichas/S36/S36-R01.md
+evaluacion,EVA-01M49THV00E1V5T1JSGSVVPQRT,T-0021/EMI-41,EV-0021,S36-R01,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+riesgo,RSK-01M3QSRT004YSSSDXB9JJ6J0FH,T-0021/EMI-41,S36-R02,S36-R02,importada,,v0/emi41/fichas/S36/S36-R02.md
+evaluacion,EVA-01M49THV009BMRQKHYH2P2XFD8,T-0021/EMI-41,EV-0022,S36-R02,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+evaluacion,EVA-01M4M44Q00S9SYK77D4X79KCFX,T-0021/EMI-41,EV-11-0042,S36-R02,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+riesgo,RSK-01M3QSRT00SH16QHK769J9F0FG,T-0021/EMI-41,S36-R03,S36-R03,importada,,v0/emi41/fichas/S36/S36-R03.md
+evaluacion,EVA-01M49THV00H51FDVV4XBJ05FA6,T-0021/EMI-41,EV-0023,S36-R03,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-8128,S36-R03,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT00PYGCBXYYRSKKGXJ4,T-0021/EMI-41,S36-R04,S36-R04,importada,,v0/emi41/fichas/S36/S36-R04.md
+evaluacion,EVA-01M49THV00MZ7J4QJ374Y354BS,T-0021/EMI-41,EV-0024,S36-R04,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+evaluacion,EVA-01M4M44Q00Y1BJSC4R0MR7TM9N,T-0021/EMI-41,EV-11-0043,S36-R04,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+evaluacion,,T-0021/EMI-41,EV-8129,S36-R04,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT00HBJJ746FF8STKZF6,T-0021/EMI-41,S36-R05,S36-R05,importada,,v0/emi41/fichas/S36/S36-R05.md
+evaluacion,EVA-01M49THV00ZT7N15NCNB3F60RG,T-0021/EMI-41,EV-0025,S36-R05,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+riesgo,RSK-01M3QSRT00G3735N1AS81YCQFC,T-0021/EMI-41,S36-R06,S36-R06,importada,,v0/emi41/fichas/S36/S36-R06.md
+evaluacion,EVA-01M49THV00SN8HSRARV2DT327H,T-0021/EMI-41,EV-0026,S36-R06,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+riesgo,RSK-01M3QSRT00PRRYCXJ023YX851J,T-0021/EMI-41,S36-R07,S36-R07,importada,,v0/emi41/fichas/S36/S36-R07.md
+evaluacion,EVA-01M49THV00Y3DXJ6856GH8B8FH,T-0021/EMI-41,EV-0027,S36-R07,importada,,v0/fase-8/agente/servicios-a-personas/fichas.csv
+riesgo,RSK-01M3QSRT001KWB1TCSHS6MKM1Q,T-0021/EMI-41,S29-P01,S29-P01,importada,,v0/emi41/fichas/S29/S29-P01.md
+evaluacion,,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0008,S29-P01,no_importada,ficha de padre: el padre no tiene evaluación ni factores (decisión 7a); su consecuencia común va a la fila del padre,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+riesgo,RSK-01M3QSRT002YX5GJ9GG93AHS32,T-0021/EMI-41,S29-P01-S01,S29-P01-S01,importada,,v0/emi41/fichas/S29/S29-P01-S01.md
+evaluacion,EVA-01M49THV00822WMZKZMRQ11XFE,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0009,S29-P01-S01,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+riesgo,RSK-01M3QSRT00E2E0F10W7Q5EDPVB,T-0021/EMI-41,S29-P01-S02,S29-P01-S02,importada,,v0/emi41/fichas/S29/S29-P01-S02.md
+evaluacion,EVA-01M49THV0044G20PPQ2MARZ36H,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0010,S29-P01-S02,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+evaluacion,EVA-01M4M44Q0067TZX3ZME6E6Z1Z6,T-0021/EMI-41,EV-11-0029,S29-P01-S02,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+riesgo,RSK-01M3QSRT004DFZP1QEMJWSPYMM,T-0021/EMI-41,S29-P01-S03,S29-P01-S03,importada,,v0/emi41/fichas/S29/S29-P01-S03.md
+evaluacion,EVA-01M49THV005ZYK3E0PQCHHSBS0,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0011,S29-P01-S03,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+riesgo,RSK-01M3QSRT009JCQ2FPZ463FWXCE,T-0021/EMI-41,S29-R04,S29-R04,importada,,v0/emi41/fichas/S29/S29-R04.md
+evaluacion,EVA-01M49THV008RE1WE2V7MFEVBD8,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0012,S29-R04,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+evaluacion,EVA-01M4M44Q00X5DFTSKY0KMMTCM9,T-0021/EMI-41,EV-11-0030,S29-R04,importada,,v0/fase-11/reevaluacion/fichas-reevaluadas.csv
+riesgo,RSK-01M3QSRT001FTXJJ1EM6ZWBM7P,T-0021/EMI-41,S29-R05,S29-R05,importada,,v0/emi41/fichas/S29/S29-R05.md
+evaluacion,EVA-01M49THV002TSGCBD1FQBN5P9T,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0013,S29-R05,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+riesgo,RSK-01M3QSRT00G6ZXV5Y3TBZ39767,T-0021/EMI-41,S29-R06,S29-R06,importada,,v0/emi41/fichas/S29/S29-R06.md
+evaluacion,EVA-01M49THV00RFPFGQ0R9XPVW47C,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0014,S29-R06,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+evaluacion,,T-0021/EMI-41,EV-8124,S29-R06,no_importada,evaluación paralela del experimento (otro evaluador sobre el mismo riesgo): una sola historia por riesgo (decisión 8a),v0/fase-8/emiliano/fichas-emiliano.csv
+riesgo,RSK-01M3QSRT0011097ZNAAQZH9241,T-0021/EMI-41,S29-R07,S29-R07,importada,,v0/emi41/fichas/S29/S29-R07.md
+evaluacion,EVA-01M49THV00WPCM7QFAVBY4CJWJ,T-0021/EMI-41,EV-8-tecnologia-y-pagos-0015,S29-R07,importada,,v0/fase-8/agente/tecnologia-y-pagos/fichas.csv
+transferencia,TRF-01KJKB3Q00S9PKTFPFGXWQVB8P,T-0021/EMI-41,POL-S06-1/S06-R03,S06-R03,importada,,v0/emi41/fichas/S06/transferencia.md
+transferencia,TRF-01KJKB3Q002MD4HJ7NHHJAEXW1,T-0021/EMI-41,POL-S06-1/S06-R04,S06-R04,importada,,v0/emi41/fichas/S06/transferencia.md
+transferencia,TRF-01KWDFKD00M40X9ZCXDPW60Q1T,T-0021/EMI-41,POL-S07-1/S07-R01,S07-R01,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00SFWV36H6Z65K0J62,T-0021/EMI-41,POL-S07-1/S07-R02,S07-R02,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00DT4JP5Q2BTS0KZAX,T-0021/EMI-41,POL-S07-1/S07-R03,S07-R03,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00EQBAWJTGM3Q7PG5X,T-0021/EMI-41,POL-S07-1/S07-R04,S07-R04,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD0077F5VFD6ESWECFVE,T-0021/EMI-41,POL-S07-1/S07-R05,S07-R05,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD004PR0PTWENJVRWS06,T-0021/EMI-41,POL-S07-1/S07-R06,S07-R06,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00QSHVFXHSP9E1HV93,T-0021/EMI-41,POL-S07-1/S07-R07,S07-R07,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00Z0SKXDQ6NAN72YYR,T-0021/EMI-41,POL-S07-1/S07-E01,S07-E01,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00CWA4D0DVDBYGJPXS,T-0021/EMI-41,POL-S07-2/S07-R04,S07-R04,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01KWDFKD00GNHQM3DQSMET2VV0,T-0021/EMI-41,POL-S07-2/S07-E01,S07-E01,importada,,v0/emi41/fichas/S07/transferencia.md
+transferencia,TRF-01M3AXS700JHSW3YW5Y0J2WKAD,T-0021/EMI-41,POL-S15-1/S15-R01,S15-R01,importada,,v0/emi41/fichas/S15/transferencia.md
+transferencia,TRF-01KDVDNA007S9GAAB9YDARJQMT,T-0021/EMI-41,POL-S28-1/S28-R01,S28-R01,importada,,v0/emi41/fichas/S28/transferencia.md
+transferencia,TRF-01KDVDNA00SJ6K3FQ5A2VAZC0Q,T-0021/EMI-41,POL-S28-1/S28-R02,S28-R02,importada,,v0/emi41/fichas/S28/transferencia.md
+transferencia,TRF-01KDVDNA00X1873QAQ1YHY2KS2,T-0021/EMI-41,POL-S28-1/S28-R06,S28-R06,importada,,v0/emi41/fichas/S28/transferencia.md
+transferencia,TRF-01KN35E000DQPA6M96RCGJBB1J,T-0021/EMI-41,POL-S29-1/S29-P01-S02,S29-P01-S02,importada,,v0/emi41/fichas/S29/transferencia.md
+transferencia,TRF-01KN35E000TY6CZDQ9MN2PZSZ1,T-0021/EMI-41,POL-S29-1/S29-R04,S29-R04,importada,,v0/emi41/fichas/S29/transferencia.md
+transferencia,TRF-01KN35E000A871MWR1GK0Y6WH2,T-0021/EMI-41,POL-S29-1/S29-R07,S29-R07,importada,,v0/emi41/fichas/S29/transferencia.md
+transferencia,TRF-01KN35E0006G9JJY0ZGM1M30KF,T-0021/EMI-41,POL-S29-2/S29-R04,S29-R04,importada,,v0/emi41/fichas/S29/transferencia.md
+transferencia,TRF-01KN35E000X6CRNV8XW395CTTW,T-0021/EMI-41,POL-S29-2/S29-R05,S29-R05,importada,,v0/emi41/fichas/S29/transferencia.md
+transferencia,TRF-01KDVDNA00VWTXMQN2TNRA3VX5,T-0021/EMI-41,POL-S32-1/S32-R01,S32-R01,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA00BGDM1J7R3ZX72RCB,T-0021/EMI-41,POL-S32-1/S32-R02,S32-R02,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA009H9YA4580T8XW1V9,T-0021/EMI-41,POL-S32-1/S32-R04,S32-R04,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA00SBR9NQ0SNANEDNBQ,T-0021/EMI-41,POL-S32-1/S32-R06,S32-R06,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA00DKQ5FGBH5XZ8YRTJ,T-0021/EMI-41,POL-S32-2/S32-R01,S32-R01,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA00EJQQTYM749HBQ18C,T-0021/EMI-41,POL-S32-2/S32-R02,S32-R02,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KDVDNA00HV6BMVXG95G75EPA,T-0021/EMI-41,POL-S32-2/S32-R04,S32-R04,importada,,v0/emi41/fichas/S32/transferencia.md
+transferencia,TRF-01KJKB3Q00A0WC2WH4A23A21NC,T-0021/EMI-41,POL-S36-1/S36-R01,S36-R01,importada,,v0/emi41/fichas/S36/transferencia.md
+transferencia,TRF-01KJKB3Q00DVAG4T9CAE1TCXYP,T-0021/EMI-41,POL-S36-1/S36-R02,S36-R02,importada,,v0/emi41/fichas/S36/transferencia.md
+transferencia,TRF-01KJKB3Q00VKT2647WMBHGBY0A,T-0021/EMI-41,POL-S36-1/S36-R03,S36-R03,importada,,v0/emi41/fichas/S36/transferencia.md
+transferencia,TRF-01KJKB3Q002X3TPADZ5FVHWVR1,T-0021/EMI-41,POL-S36-1/S36-R06,S36-R06,importada,,v0/emi41/fichas/S36/transferencia.md
+accion,ACC-01M3TC5H00303VY4F8EKY78B2W,T-0021/15b,15B-A01,S07-R06,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M4PPHE00M175XHKB29V1Q4SY,T-0021/15b,15B-R01,S07-R06,nueva,reevaluación sintética (accion_ejecutada),v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3TC5H00EDYFW4Q5TCV0YAXA,T-0021/15b,15B-A02,S36-R06,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M4S8Y500CP4XK3J0BYA84JYP,T-0021/15b,15B-R02,S36-R06,nueva,reevaluación sintética (accion_ejecutada),v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3TC5H00MXNC6X95WH1G8D11,T-0021/15b,15B-A03,S28-R05,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M4S8Y500XD7AAA3T6GTSZGGM,T-0021/15b,15B-R03,S28-R05,nueva,reevaluación sintética (accion_ejecutada),v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3WYJ800BA2G82TTK1BV3S97,T-0021/15b,15B-A04,S05-P01-S03,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3WYJ800SBQFQD0VAT2VTYBT,T-0021/15b,15B-A05,S05-P01-S03,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M44NRD009P1SA85GVF8CEMSE,T-0021/15b,15B-A06,S32-R05,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3ZGYZ00X8FN2RZNZC3CR8ZK,T-0021/15b,15B-A07,S06-R01,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M423BP00GP1MT3DRCSY1KD6Q,T-0021/15b,15B-A08,S29-R04,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M423BP001AKW8CY4ZJ49WGG4,T-0021/15b,15B-A09,S29-P01-S02,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+accion,ACC-01M3TC5H00NVDGYTXYQM8405M1,T-0021/15b,15B-A10,S15-R03,nueva,acción sintética,v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M49THV00WBGJSRXWBQCN9MM8,T-0021/15b,15B-R04,S29-P01-S01,nueva,reevaluación sintética (informacion_nueva),v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M4HHR00046KQWSVSNWKH1NTD,T-0021/15b,15B-R05,S05-P01-S01,nueva,reevaluación sintética (cambio_contexto),v0/fase-15/sinteticos/nuevos.ts
+riesgo,RSK-01M3QSRT00KB1BWWXNNWR3HKEP,T-0021/15b,15B-S28-N01,,nueva,"riesgo identificado sin evaluar (caso válido nuevo, 10a)",v0/fase-15/sinteticos/nuevos.ts
+evaluacion,EVA-01M4EZB9005XWZYXWE70EMM43M,T-0021/15b,15B-R06,15B-S28-N01,nueva,evaluación inicial con los siete factores unknown,v0/fase-15/sinteticos/nuevos.ts
+evento,EVT-01M4785400W36KNFF6N10K8PJB,T-0021/15b,15B-E01,S36-R02,nueva,evento de póliza sintético (consumo del límite),v0/fase-15/sinteticos/nuevos.ts
