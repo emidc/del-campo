@@ -2,7 +2,7 @@
 
 > Respuesta de Emiliano al "Para aprobar" de `dossier-cierre-emi41.md`, copiada tal cual. Recibida el **2026-10-14 a las 15:04:55 UTC** en el thread del proyecto "Fase 14 cierre EMI-41".
 >
-> EV-11-0063 y EV-11-0064 no se tocan: ya estaban aceptadas desde el 2026-10-13 (`v0/fase-11/aceptacion-fichas-emiliano-2026-10-13.md`). Las filas CH-111 y CH-112 quedan aprobadas en `anexo-changelog-fase-14.md` y no entran ahora al changelog, que está congelado con la v1 (punto 6).
+> EV-11-0063 y EV-11-0064 no se tocan: ya estaban aceptadas desde el 2026-10-13 (`v0/fase-11/aceptacion-fichas-emiliano-2026-10-13.md`). Las filas que la respuesta llama CH-111 y CH-112 quedan aprobadas en `anexo-changelog-fase-14.md`, renumeradas CH-113 y CH-114 porque la PR #73 de la Fase 13 ya usa CH-111 y CH-112 (mismo contenido), y no entran ahora al changelog, que está congelado con la v1 (punto 6).
 
 ---
 

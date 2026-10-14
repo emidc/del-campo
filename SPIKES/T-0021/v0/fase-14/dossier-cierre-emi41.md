@@ -77,5 +77,5 @@ Dos cosas del prompt no se pueden hacer como están escritas:
 3. ¿Aprobás la cobertura efectiva (`cobertura-efectiva.csv`) con su regla de atribución?
 4. ¿Aprobás el manifiesto del dataset (`dataset/manifiesto.md`), con sus tres modos de uso?
 5. ¿Registramos S01, S25 y S30 como empresas que no aportaron nada distinto después de la Fase 8, conservándolas en el dataset?
-6. ¿Aprobás CH-111 y CH-112 del anexo como limitaciones, para pasarlas al changelog cuando se abra la versión siguiente?
+6. ¿Aprobás CH-111 y CH-112 del anexo como limitaciones, para pasarlas al changelog cuando se abra la versión siguiente? *(Renumeradas después de la aprobación a CH-113 y CH-114, porque la PR #73 de la Fase 13 usa CH-111 y CH-112.)*
 7. ¿Damos EMI-41 por cerrada con este dossier, dejando su estado en Linear como está (Done)?
