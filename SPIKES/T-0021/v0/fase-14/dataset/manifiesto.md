@@ -1,6 +1,6 @@
 # Manifiesto · dataset sintético de EMI-41
 
-> 2026-10-14 · T-0021, Fase 14. **Propuesto, pendiente de aprobación de Emiliano** (punto 4 del "Para aprobar" de `../dossier-cierre-emi41.md`). Rutas relativas a `SPIKES/T-0021/` (RAIZ).
+> 2026-10-14 · T-0021, Fase 14. **Aprobado por Emiliano el 2026-10-14 15:04 UTC** (punto 4 del "Para aprobar" de `../dossier-cierre-emi41.md`; respuesta en `../decisiones-14.md`). Para evaluaciones ciegas futuras, Emiliano pide además una vista o export generado por script, físicamente libre de resultados y metadatos posteriores; queda para cuando se use el modo 1. Rutas relativas a `SPIKES/T-0021/` (RAIZ).
 
 ## Qué es
 

@@ -1,8 +1,8 @@
 # Anexo · filas propuestas para el changelog · Fase 14
 
-> 2026-10-14 · Cierre de EMI-41. **Propuesto, no aprobado** (punto 6 del "Para aprobar" de `dossier-cierre-emi41.md`).
+> 2026-10-14 · Cierre de EMI-41. **Aprobado por Emiliano el 2026-10-14 15:04 UTC** (punto 6 del "Para aprobar" de `dossier-cierre-emi41.md`; respuesta en `decisiones-14.md`).
 > Releído hoy: el último id de `v0/changelog-metodologia.md` es **CH-110**. Los ids son provisorios desde CH-111.
-> **El changelog está en la tabla de `v1/congelamiento.md`** y no se puede editar mientras la v1 candidate esté congelada (reglas 1 y 2). Si Emiliano aprueba estas filas, quedan acá con su aprobación y pasan al changelog cuando se abra la versión siguiente, con los ids libres en ese momento. Ninguna cambia una regla.
+> **El changelog está en la tabla de `v1/congelamiento.md`** y no se puede editar mientras la v1 candidate esté congelada (reglas 1 y 2). Quedan acá con su aprobación y pasan al changelog cuando se abra la versión siguiente, con los ids libres en ese momento. Ninguna cambia una regla.
 
 | id | fecha | versión | elemento | antes | después | motivo | fuente |
 |---|---|---|---|---|---|---|---|

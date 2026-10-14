@@ -1,6 +1,6 @@
 # Dossier de cierre de EMI-41 · Fase 14
 
-> 2026-10-14 · T-0021, workstream BOS / Risk OS. Verificación y empaquetado: no se crearon empresas ni riesgos, no se reevaluaron factores, no se editaron fichas, listas, diseño, `cerrado/` ni archivos de la tabla de `v1/congelamiento.md`. Fuente: la repo después de la PR #72 (Fase 12 cerrada y mergeada); la copia de la carpeta compartida está atrasada (`inventario.md`, encabezado).
+> 2026-10-14 · T-0021, workstream BOS / Risk OS. **Aprobado por Emiliano el 2026-10-14 15:04 UTC: sí a los siete puntos. EMI-41 cerrada** (respuesta en `decisiones-14.md`). Verificación y empaquetado: no se crearon empresas ni riesgos, no se reevaluaron factores, no se editaron fichas, listas, diseño, `cerrado/` ni archivos de la tabla de `v1/congelamiento.md`. Fuente: la repo después de la PR #72 (Fase 12 cerrada y mergeada); la copia de la carpeta compartida está atrasada (`inventario.md`, encabezado).
 
 ## Resumen
 
