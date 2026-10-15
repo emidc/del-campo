@@ -1172,3 +1172,31 @@ decisions:
       gratuito de D-0062: pausa por inactividad, sin backups automáticos (copia manual
       del owner fuera del repositorio), logs cortos y condiciones de uso de Vercel
       Hobby.
+
+  # ── Acceso a la UI de Risk OS v1 (Q4, RO01, T-0030) ──────────────────────
+
+  - id: D-0069
+    title: La UI de Risk OS v1 usa una credencial por persona, con autenticación propia
+    status: PROVISIONAL
+    date: 2026-10-15
+    source: >
+      SLICES/RO01-decisiones.md, punto 2 (opción b) y punto 6; SLICES/RO01.md §2
+      (Acceso) y §7; T-0030; D-0059, D-0063, D-0066; R-05, R-16, R-18, R-22, R-23.
+    adr: DECISIONS/0069-acceso-por-persona-risk-os.md
+    statement: >
+      La UI de Risk OS v1 exige que cada persona entre con su propia credencial antes
+      de ver o escribir nada. El usuario y el hash scrypt de la contraseña viven en el
+      esquema risk (risk.usuario, risk.credencial), sólo de inserción: la vigente es la
+      última, y rotarla o darla de baja invalida las sesiones abiertas. La valida el
+      servidor en tiempo constante y emite una cookie de sesión firmada con HMAC, cuyo
+      secreto es una variable del despliegue; cada request comprueba la firma, el
+      vencimiento y que la credencial siga vigente. La identidad de quien escribe o
+      accede es la persona de la sesión. Las credenciales las genera y carga el owner
+      con la línea de comandos del contexto, nunca en el repositorio. Sin
+      configuración, todo se niega. Sin OIDC, sin roles y sin dependencias nuevas.
+    falsified_by: >
+      Que Risk OS se integre en Broker OS; que entren usuarios externos o hagan falta
+      roles o permisos por persona; que una credencial o el secreto de sesión se
+      filtren; o que el despliegue muestre intentos de acceso repetidos que el costo de
+      scrypt no alcanza a frenar. Cualquiera de esos casos exige el login de VS01
+      (D-0059) u otro mecanismo con proveedor de identidad.

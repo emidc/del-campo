@@ -13,12 +13,15 @@
 // el archivo homónimo de `migrations/down/`.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { SCHEMA, type Sql } from './database.ts'
 
-export const MIGRATIONS_DIR = fileURLToPath(new URL('../../migrations/', import.meta.url))
+// Con `join` y no con `new URL('../../migrations/', import.meta.url)`: el bundler de Next.js
+// trata ese literal como un asset a empaquetar, y `apps/risk` importa este módulo a través de
+// la raíz del paquete (T-0030).
+export const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'migrations')
 const LEDGER = `${SCHEMA}.schema_migrations`
 
 export class MigrationError extends Error {

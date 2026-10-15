@@ -14,8 +14,8 @@ hace cumplir `pnpm lint` (R-25).
 
 | Carpeta | Qué hay | Puede importar |
 |---|---|---|
-| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). Puro. | Solo `src/domain/` |
-| `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`). | `domain`, `postgres`, `node:*` |
+| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). De las vistas (T-0030): lo registrado de una organización (`organizacion.ts`) y el armado de cada vista con las reglas de RO01 §3 (`vistas.ts`). Puro. | Solo `src/domain/` |
+| `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`); lo que leen las vistas (`vistas.ts`) y el acceso (`acceso.ts`, T-0030). | `domain`, `postgres`, `node:*` |
 | `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
 | `src/testing/` | Soporte de los tests: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv` (`sinteticos.ts`, `regresion.ts`), y arma lotes a partir de las sintéticas y de los inválidos de la 15b (`lotes.ts`). El paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
 | `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
@@ -46,6 +46,7 @@ recálculo, es un error y no un dato.
 | Tabla | Qué guarda |
 |---|---|
 | `persona`, `registro_acceso` | Las personas con acceso y cada inicio de sesión o vista con resultados. |
+| `usuario`, `credencial` | El usuario de cada persona y sus credenciales: hash scrypt, la vigente es la última, un hash nulo es la baja (D-0069, T-0030). |
 | `riesgo`, `miembro_escenario` | La identidad del riesgo (riesgo, padre, sub-riesgo, escenario) y los miembros de cada escenario. |
 | `evaluacion` | Evaluación inmutable con sus siete factores. Una sola inicial por riesgo, ninguna con dos sucesoras, la anterior ya registrada y del mismo riesgo; el padre no tiene. |
 | `accion`, `accion_estado` | Acciones y decisiones de tratamiento de un riesgo, y cada cambio de estado, ejecución y eficacia. |
@@ -110,6 +111,34 @@ es el único que sale del equipo del owner con datos reales. Sale con 0 si el lo
 importado (ahora o antes), con 1 si no se escribió nada y con 2 si la carpeta o las
 opciones no sirven.
 
+## Personas con acceso a la UI
+
+La app (`apps/risk`) deja entrar sólo a una persona con usuario y contraseña propios
+(D-0069). Las da de alta el owner; la app no tiene pantalla para esto:
+
+```bash
+# La contraseña se lee de la entrada estándar, nunca de un argumento (20 caracteres o más)
+openssl rand -base64 24 | tee /dev/tty | \
+  pnpm --filter @del-campo/risk run persona alta --nombre "Nombre Apellido" --usuario nombre
+pnpm --filter @del-campo/risk run persona clave --usuario nombre   # contraseña nueva
+pnpm --filter @del-campo/risk run persona baja --usuario nombre    # ya no entra
+```
+
+Como el importador, apunta a `RISK_DATABASE_URL` o a `delcampo_risk_dev`, y sólo opera
+sobre las dos bases locales. Una contraseña nueva o la baja dejan sin valor las sesiones
+abiertas: el guard de la app compara la credencial de la cookie con la vigente en cada
+request.
+
+## Vistas
+
+`src/application/vistas.ts` tiene un caso de uso por vista, cada uno con la sesión de una
+persona y de una sola organización: lista (ranking D10, seguridad, no evaluables y cola),
+escenarios, plan de acción, transferencia, actividad y detalle. Lo calculado sale de las
+funciones de `src/domain/` en el momento: nada se guarda. Las que muestran ranking, bandas
+o `C_raw` (lista, escenarios, detalle) registran el acceso en `registro_acceso` antes de
+devolver nada. `C_raw` sólo sale en el detalle, junto al vector completo y las dos
+banderas (H6).
+
 ## Tests
 
 `pnpm test` incluye los del contexto (R-26):
@@ -119,6 +148,7 @@ opciones no sirven.
 | unit, oráculo externo | `src/domain/regresion.test.ts` | Los derivados de las 8 sintéticas contra `SPIKES/T-0021/v0/fase-11/regresion-emi41.csv`: 59 objetos, S15 sin la posición (`verificacion-15b.md` §4). Falla si se altera un valor de esa tabla en una copia. |
 | unit | `src/domain/*.test.ts`, `src/application/*.test.ts` | Las funciones v1 (casos PV, bandas, §9.3, banderas, D10, padre, cola), las propiedades 1 a 7 de la metodología §14, las reglas 3 y 5 de RO01 §3 y lo que exporta el paquete. |
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
+| integración, vistas | `src/application/vistas.integration.test.ts`, `acceso.integration.test.ts` | Las reglas 1 a 7 de RO01 §3 sobre las vistas de las 8 sintéticas: `C_raw` sólo en la criticidad del detalle; el ranking contra `rankingOrganizacion` y, en las organizaciones sin filas de la 15b, contra `regresion-emi41.csv`; el techo no mueve posiciones; el filtro por unidad las conserva; `unknown` sin valor; la evaluación usada y su rótulo; versiones; el registro de acceso; login, rotación y baja. |
 | integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |
 
 Los de integración corren siempre sobre `delcampo_risk_test`: la crean si no existe y
@@ -140,10 +170,7 @@ node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
   puede saltear (`disable trigger`, `session_replication_role`). El rol con que corra la
   app no debería ser dueño del esquema ni tener `UPDATE`, `DELETE` ni `TRUNCATE` sobre
   `risk` (como pide R-22 para la auditoría de negocio).
-- **T-0030, presentación.** `RankingOrganizacion.items` trae `C_raw` para ordenar; la UI
-  nunca lo muestra solo, sino con el vector y las banderas de `derivados` (RO01 §3,
-  regla 1).
-- **T-0030, invariantes de varias filas** que la base no hace cumplir: están en
+- **T-0031, invariantes de varias filas** que la base no hace cumplir: están en
   `ops/evidence/T-0028.md`, «Lo que la base no hace cumplir». La importación las hace
   cumplir con el validador; lo que queda abierto está en `ops/evidence/T-0029.md`.
 

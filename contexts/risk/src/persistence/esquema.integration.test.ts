@@ -253,12 +253,21 @@ const CASOS: Caso[] = [
   ['lote_importacion_huella_unica', 'lote_importacion', dosDistintas('lote_importacion', { huella: 'a'.repeat(64) })],
   ['lote_importacion_huellas_sha256', 'lote_importacion', { huella_action_plan: 'A'.repeat(64) }],
   ['lote_importacion_conteos_no_negativos', 'lote_importacion', { avisos: -1 }],
+
+  // usuario y credencial (T-0030, D-0069).
+  ['usuario_pkey', 'usuario', { usuario: 'persona-de-la-base' }],
+  ['usuario_formato', 'usuario', { usuario: 'Con Mayúsculas' }],
+  ['usuario_una_por_persona', 'usuario', { persona_id: B.persona }],
+  ['usuario_persona_id_fkey', 'usuario', { persona_id: PERSONA_INEXISTENTE }],
+  ['credencial_de_un_usuario', 'credencial', { persona_id: B.otraPersona }],
+  ['credencial_hash_scrypt', 'credencial', { password_hash: 'contraseña-en-claro' }],
 ]
 
 const TABLAS: Tabla[] = [
   'persona', 'registro_acceso', 'riesgo', 'miembro_escenario', 'accion', 'evaluacion', 'accion_estado',
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
+  'usuario', 'credencial',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */
