@@ -17,7 +17,7 @@ hace cumplir `pnpm lint` (R-25).
 | `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Puro. | Solo `src/domain/` |
 | `src/persistence/` | Conexión, runner de migraciones y su CLI. | `domain`, `postgres`, `node:*` |
 | `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
-| `src/testing/` | Soporte del test de oráculo: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv`. No es el importador (T-0029). | `domain`, `node:*` |
+| `src/testing/` | Soporte del test de oráculo: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv`. No es el importador (T-0029) y el paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
 | `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
 
 Cada derivado lleva la versión de las funciones que lo calcularon (`metodologia v1`):
@@ -101,6 +101,18 @@ pnpm test                                   # todo el workspace
 node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
   "contexts/risk/src/**/*.test.ts"          # solo este contexto
 ```
+
+## Pendiente para otras tareas
+
+- **T-0032, rol de la app.** El sólo inserción es por trigger, y el dueño de las tablas lo
+  puede saltear (`disable trigger`, `session_replication_role`). El rol con que corra la
+  app no debería ser dueño del esquema ni tener `UPDATE`, `DELETE` ni `TRUNCATE` sobre
+  `risk` (como pide R-22 para la auditoría de negocio).
+- **T-0030, presentación.** `RankingOrganizacion.items` trae `C_raw` para ordenar; la UI
+  nunca lo muestra solo, sino con el vector y las banderas de `derivados` (RO01 §3,
+  regla 1).
+- **T-0029 y T-0030, invariantes de varias filas** que la base no hace cumplir: están en
+  `ops/evidence/T-0028.md`, «Lo que la base no hace cumplir».
 
 ## Datos
 

@@ -351,6 +351,15 @@ describe('historia de evaluaciones', () => {
     })
   })
 
+  it('el evaluador es texto en una importación y la persona en una sesión', async () => {
+    await enTransaccionRevertida(sql, async (tx) => {
+      await base(tx)
+      await insertar(tx, 'evaluacion', fila('evaluacion', { origen: 'sesion', autor_persona_id: B.persona, evaluador: null }))
+      const obtenida = await rechazo(() => insertar(tx, 'evaluacion', fila('evaluacion', { risk_id: B.escenario, riesgo_tipo: 'escenario', evaluador: null })))
+      assert.equal(obtenida, 'evaluacion_evaluador')
+    })
+  })
+
   it('la evidencia no admite una lista vacía', async () => {
     await enTransaccionRevertida(sql, async (tx) => {
       await base(tx)
