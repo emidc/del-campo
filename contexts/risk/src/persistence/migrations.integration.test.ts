@@ -9,11 +9,11 @@ import { appliedMigrations, down, migrate } from './migrations.ts'
 import { openTestDatabase } from './testing.ts'
 
 const TABLES = [
-  'accion', 'accion_estado', 'cierre_revision', 'evaluacion', 'evento_poliza', 'miembro_escenario', 'novedad',
+  'accion', 'accion_estado', 'cierre_revision', 'evaluacion', 'evento_poliza', 'lote_importacion', 'miembro_escenario', 'novedad',
   'orden_previo', 'orden_previo_item', 'persona', 'registro_acceso', 'reordenamiento', 'reordenamiento_vigente',
   'revision_humana', 'revision_pendiente', 'riesgo', 'transferencia',
 ]
-const FILES = ['0001_risk_schema.sql']
+const FILES = ['0001_risk_schema.sql', '0002_lote_importacion.sql']
 
 let sql: Sql
 before(async () => {

@@ -8,6 +8,8 @@ let siguiente = 1000
 
 /** Un id con el prefijo de la entidad y 26 caracteres Crockford (RV-ID-01). */
 export const nuevoId = (prefijo: string): string => `${prefijo}-${String(siguiente++).padStart(26, '0')}`
+/** Una huella sha256 distinta en cada llamada (64 hexadecimales). */
+export const huella = (): string => String(siguiente++).padStart(64, '0')
 const fijo = (prefijo: string, n: number): string => `${prefijo}-${String(n).padStart(26, '0')}`
 
 export const ORG_A = 'ORG-SINTETICA-A'
@@ -49,7 +51,7 @@ export type Tabla =
   | 'persona' | 'registro_acceso' | 'riesgo' | 'miembro_escenario' | 'accion' | 'evaluacion'
   | 'accion_estado' | 'transferencia' | 'evento_poliza' | 'revision_humana' | 'novedad'
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
-  | 'reordenamiento' | 'reordenamiento_vigente'
+  | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion'
 
 export type Fila = Record<string, unknown>
 
@@ -111,6 +113,11 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
     causa: 'sin_causa', fundamento: 'Fundamento sintético', patron: 'otro',
   }),
   reordenamiento_vigente: () => ({ reordenamiento_id: B.reordenamiento, organizacion_id: ORG_A, evaluacion_id: B.inicial, risk_id: B.riesgo }),
+  lote_importacion: () => ({
+    huella: huella(), huella_risks: huella(), huella_action_plan: huella(), huella_risk_transfer: huella(),
+    origen: 'lote-sintetico', importado_por: 'Persona sintética', fecha_corte: '2026-10-14',
+    filas_risks: 1, filas_action_plan: 0, filas_risk_transfer: 0, avisos: 0, escritas: { riesgo: 1 },
+  }),
 }
 
 /** Una fila válida de `tabla` sobre los registros de `base`, con `cambios` encima. */
@@ -124,7 +131,7 @@ export const valores = (tx: TransactionSql, f: Fila): Record<string, never> =>
   Object.fromEntries(
     Object.entries(f).map(([k, v]) => [
       k,
-      k === 'orden_calculado' && v !== null ? tx.json(v as never) : Array.isArray(v) ? tx.array(v as string[], TEXT) : v,
+      (k === 'orden_calculado' || k === 'escritas') && v !== null ? tx.json(v as never) : Array.isArray(v) ? tx.array(v as string[], TEXT) : v,
     ]),
   ) as Record<string, never>
 
