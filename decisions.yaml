@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-10-03
+updated: 2026-10-14
 
 decisions:
 
@@ -1147,3 +1147,21 @@ decisions:
       diverjan de Broker OS al punto de cambiar una evaluación de transferencia aceptada;
       que un tercer contexto necesite la misma proyección; o la decisión de cierre de Q4
       sobre integrar, mantener separados o descartar los laboratorios.
+
+  # ── Datos reales de Risk OS v1 (Q4, RO01) ────────────────────────────────
+
+  - id: D-0068
+    title: Dónde viven los datos reales de Risk OS v1 y quién los carga
+    status: OPEN
+    date: 2026-10-14
+    source: >
+      SLICES/RO01.md §5 y §7; SLICES/RO01-dossier.md, punto 1 de "Para decidir";
+      D-0062, que no se extiende (D-0063); D-0067, que no autoriza datos reales; R-19.
+    adr: DECISIONS/0068-datos-reales-risk-os.md
+    statement: >
+      Dónde se almacenan los datos de las cinco empresas históricas que exige la
+      aceptación de Risk OS v1 (proveedor, plan y región, o sólo la máquina del owner),
+      con qué condiciones (copia de respaldo, previews, borrado al cierre de Q4) y qué
+      riesgos se aceptan. Cualquier opción deja la carga al owner, desde su máquina, y
+      excluye a los agentes de desarrollo (R-19). Las opciones están en el ADR.
+    unblocked_by: respuesta del owner al punto 1 de "Para decidir" de SLICES/RO01-dossier.md
