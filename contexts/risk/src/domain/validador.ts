@@ -118,6 +118,8 @@ const texto = (v: string | undefined): string => v ?? ''
 const lista = (v: string | undefined): string[] => (v ?? '').split(';').map((x) => x.trim()).filter((x) => x !== '')
 const esUlid = (v: string): boolean => /^[0-9A-HJKMNP-TV-Z]{26}$/.test(v)
 const esIdDe = (v: string, prefijo: string): boolean => v.startsWith(`${prefijo}-`) && esUlid(v.slice(prefijo.length + 1))
+/** Un id de Risk OS con formato válido (RV-ID-01), de cualquier entidad: lo único de una fila que el informe sin valores muestra. */
+export const esIdRiskOs = (v: string): boolean => Object.keys(PREFIJO).some((p) => esIdDe(v, p))
 const esEntero15 = (v: string): boolean => /^[1-5]$/.test(v)
 const esMonto = (v: string): boolean => /^\d+(\.\d+)?$/.test(v)
 const esMoneda = (v: string): boolean => /^[A-Z]{3}$/.test(v)

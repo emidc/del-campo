@@ -8,7 +8,7 @@
 
 import { ARCHIVOS, type Archivo } from './contrato.ts'
 import { TABLAS_IMPORTACION, type SinDestino, type TablaImportacion } from './importacion.ts'
-import type { Hallazgo } from './validador.ts'
+import { esIdRiskOs, type Hallazgo } from './validador.ts'
 
 export interface ResumenLote {
   readonly huella: string
@@ -68,10 +68,13 @@ function conteoPorArchivo(hallazgos: readonly Hallazgo[], filas: Readonly<Record
   })
 }
 
+/** Sin valores, una celda de id sale sólo si tiene formato de id: mal cargada puede traer cualquier dato. */
+const idVisible = (id: string): string => (id === '' || esIdRiskOs(id) ? id : '(id no válido)')
+
 function hallazgo(h: Hallazgo, modo: Modo): string {
   const linea = h.fila === null ? '' : String(h.fila)
+  if (modo === 'sin_valores') return `  ${h.severidad} ${h.regla_id} ${h.archivo}:${linea} ${idVisible(h.id)}`.trimEnd()
   const base = `  ${h.severidad} ${h.regla_id} ${h.archivo}:${linea} ${h.id}`.trimEnd()
-  if (modo === 'sin_valores') return base
   return `${base}${h.origen === '' ? '' : ` [${h.origen}]`} — ${h.mensaje}`
 }
 
@@ -100,7 +103,7 @@ export function informe(r: Resultado, modo: Modo): string[] {
     lineas.push(`lote ${String(r.id)}; filas escritas:`, ...enOrden(r.escritas))
   }
   if (r.estado === 'sin_destino') {
-    lineas.push('celdas sin columna en el esquema:', ...r.sinDestino.map((s) => `  ${[`${s.archivo}:${String(s.fila)}`, s.id, s.columna].filter((x) => x !== '').join(' ')}`))
+    lineas.push('celdas sin columna en el esquema:', ...r.sinDestino.map((s) => `  ${[`${s.archivo}:${String(s.fila)}`, modo === 'sin_valores' ? idVisible(s.id) : s.id, s.columna].filter((x) => x !== '').join(' ')}`))
   }
   if (r.estado === 'falla_escritura') {
     const f = r.falla

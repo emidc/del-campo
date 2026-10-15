@@ -178,6 +178,15 @@ describe('línea de comandos', () => {
     }
   })
 
+  it('un argumento que no es una opción conocida (un —sin-valores con raya larga) sale con 2 sin importar', async () => {
+    for (const malo of ['—sin-valores', 'sin-valores', '--sin-valor']) {
+      const r = correr(fileURLToPath(SINTETICOS), malo)
+      assert.equal(r.status, 2, malo)
+      assert.equal(r.stdout, '')
+    }
+    assert.deepEqual(await conFilas(), [])
+  })
+
   it('una carpeta sin los tres archivos no es un lote: sale con 2 y no toca la base', async () => {
     const r = correr(fileURLToPath(new URL('RV-EVA-07/', INVALIDOS)))
     assert.equal(r.status, 2)

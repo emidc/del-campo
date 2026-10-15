@@ -36,6 +36,9 @@ describe('informe', () => {
   // Un rechazo cuyo mensaje interpola la celda (RV-ARCH-05 «{valor}») y avisos.
   Object.assign(filas['risks.csv'][5] ?? {}, { fecha: 'MARCA-FECHA', riesgo_causa: '' })
   marcas.push('MARCA-FECHA')
+  // Una celda de id mal cargada con otro dato (RV-ID-01): sin valores no puede salir como id.
+  Object.assign(filas['action-plan.csv'][0] ?? {}, { accion_id: 'MARCA-ID-EMPRESA' })
+  marcas.push('MARCA-ID-EMPRESA')
   const hallazgos = validarLote(contrato, aLote(contrato, filas), { fechaCorte: FECHA_CORTE })
   const lote = { huella: 'f'.repeat(64), filas: { 'risks.csv': 7, 'action-plan.csv': 3, 'risk-transfer.csv': 2 } }
   const resultados: Resultado[] = [
@@ -43,14 +46,15 @@ describe('informe', () => {
     { estado: 'importado', lote, id: 1, hallazgos: hallazgos.filter((h) => h.severidad === 'aviso'), escritas: { riesgo: 6, miembro_escenario: 2, accion: 3, evaluacion: 6, accion_estado: 2, transferencia: 1, evento_poliza: 1, revision_humana: 0 } },
     { estado: 'ya_importado', lote, registrado: { id: 1, huella: lote.huella, origen: '/datos/MARCA-CARPETA', importadoPor: 'MARCA-PERSONA', importadoEn: new Date('2026-10-15T00:00:00Z'), fechaCorte: FECHA_CORTE, escritas: { riesgo: 6 } } },
     { estado: 'falla_escritura', lote, hallazgos: [], falla: { tabla: 'evento_poliza', restriccion: 'evento_poliza_monto', codigo: '23514', mensaje: 'Failing row contains (MARCA-FALLA, …)' } },
-    { estado: 'sin_destino', lote, hallazgos: [], sinDestino: [{ archivo: 'risk-transfer.csv', fila: 3, id: 'EVT-X', columna: 'uncertainty' }] },
+    { estado: 'sin_destino', lote, hallazgos: [], sinDestino: [{ archivo: 'risk-transfer.csv', fila: 3, id: 'MARCA-ID-EVT', columna: 'uncertainty' }] },
   ]
-  marcas.push('MARCA-CARPETA', 'MARCA-PERSONA', 'MARCA-FALLA')
+  marcas.push('MARCA-CARPETA', 'MARCA-PERSONA', 'MARCA-FALLA', 'MARCA-ID-EVT')
 
   it('el lote marcado tiene rechazos y avisos con marcadores en sus mensajes', () => {
     assert.ok(hallazgos.some((h) => h.severidad === 'rechazo' && h.mensaje.includes('MARCA-FECHA')))
     assert.ok(hallazgos.some((h) => h.severidad === 'aviso'))
     assert.ok(hallazgos.some((h) => /MARCA\d/.test(h.origen)), 'el origen de la fila también es una celda')
+    assert.ok(hallazgos.some((h) => h.regla_id === 'RV-ID-01' && h.id === 'MARCA-ID-EMPRESA'), 'el id de la fila también puede ser una celda cualquiera')
   })
 
   for (const r of resultados) {
@@ -58,7 +62,7 @@ describe('informe', () => {
       const sin = informe(r, 'sin_valores').join('\n')
       for (const m of marcas) assert.ok(!sin.includes(m), `${m} en:\n${sin}`)
       assert.ok(!sin.includes('MARCA'), sin)
-      if (r.estado !== 'sin_destino') assert.match(informe(r, 'con_valores').join('\n'), /MARCA/)
+      assert.match(informe(r, 'con_valores').join('\n'), /MARCA/)
     })
   }
 
