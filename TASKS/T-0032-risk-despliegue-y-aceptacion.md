@@ -32,19 +32,20 @@ cierre de Q4 sobre el laboratorio (D-0063).
 ## Outcome
 
 - **Risk OS corre en su propio proyecto de aplicación y en su propia base Postgres
-  hosteada para los datos reales, en planes pagos y dedicados** (D-0068; decisiones 1
-  y 3 del owner), sin compartir credenciales, esquema ni ciclo de despliegue con VS01
+  hosteada para los datos reales, dedicados** (D-0068; decisiones 1 y 3 del owner), sin compartir credenciales, esquema ni ciclo de despliegue con VS01
   ni con Communication OS. Las previews sólo reciben la base sintética. No hay worker.
 - **`docs/despliegue/vercel-risk.md`** documenta, como `vercel-communication.md`:
   - la configuración del proyecto y las variables de entorno, sin valores;
   - cómo crear la base y aplicar y revertir las migraciones del contexto. Las ejecuta
     el owner (R-13); ningún agente se conecta a la base con datos reales;
   - cómo importar un lote con el modo sin valores y dónde pegar su informe;
-  - cómo comprobar los backups del plan, cómo volver a la versión anterior y cómo
-    apagar todo (pausar el proyecto, borrar la base);
+  - cómo hacer y guardar la copia manual de la base fuera del repositorio, cómo
+    restaurarla, cómo reactivar el proyecto si se pausa por inactividad, cómo volver a
+    la versión anterior y cómo apagar todo (pausar el proyecto, borrar la base);
   - cómo da de alta el owner la credencial de cada persona;
-  - los planes (Supabase Pro en sa-east-1 y Vercel Pro, D-0068) y sus costos. Esta
-    tarea no contrata nada (R-14).
+  - los planes (Supabase Free en sa-east-1 y Vercel Hobby, D-0068), sus límites y qué
+    cambia al pasar a planes pagos cuando Broker OS quede operativo. Esta tarea no
+    contrata nada (R-14).
 - **Script de aceptación** del contexto: corre contra una base y devuelve los criterios
   A6, A7, A8 y A12 de RO01 §6 con códigos de empresa (H1 a H5 para las históricas),
   conteos y fechas, sin títulos, observaciones ni montos. Para A8 compara, por
@@ -101,7 +102,7 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 ## Data effects
 
 - **Sistemas externos:** un proyecto de aplicación nuevo y una base Postgres hosteada
-  nueva: Vercel Pro y Supabase Pro en sa-east-1 (D-0068). Los contrata,
+  nueva: Vercel Hobby y Supabase Free en sa-east-1 (D-0068). Los
   crea y configura el owner (R-13, R-14).
 - **Datos reales:** los de las cinco empresas históricas, cargados por el owner desde
   su máquina en la base que autorice D-0068. Ningún agente los ve (R-19).
@@ -121,6 +122,9 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 - **Material ciego.** Si el material que recibe el revisor deja ver el ranking o las
   bandas de Risk OS, A8 deja de ser evidencia independiente. Lo prepara y lo controla
   el owner.
+- **Plan gratuito** (D-0068): el proyecto de Supabase se pausa tras una semana sin
+  actividad y no tiene backups automáticos. Una pausa en medio de los ciclos corta el
+  acceso del revisor; la copia manual del owner es la única recuperación.
 - **Un fallo de un criterio.** No se reemplaza ni se borra, y los umbrales no bajan
   después de medir (RO01 §6).
 
@@ -137,4 +141,4 @@ sistemas externos: plan mode y aprobación del owner en cada paso externo (R-13)
 RO01 §10. Linear: el hito "v1 accepted"; cierra lo que quede de EMI-23 a EMI-26 según
 el acta. Ajustada a las decisiones del owner del 2026-10-15
 (`SLICES/RO01-decisiones.md`): 1b, 2b, 3a, 6b con el orden previo ciego y 7b, y a
-D-0068 con Supabase Pro en sa-east-1 y Vercel Pro.
+D-0068 con Supabase Free en sa-east-1 y Vercel Hobby.

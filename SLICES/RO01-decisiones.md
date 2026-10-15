@@ -67,3 +67,14 @@ y la misma región, pero D-0068 queda aceptada sin criterio de revisión", sobre
 opción anterior "Supabase Pro en sa-east-1 y Vercel Pro".
 
 Se aplicó a `decisions.yaml`, al ADR 0068, a RO01 §5, §7, §9 y §10, y a T-0032.
+
+## Corrección del plan de D-0068
+
+El **2026-10-15 a las 12:19:22 UTC** el owner escribió en el hilo (copia literal):
+
+> una corrección vamos a usar supabase gratuito y Vercel Hoby, hasta que Broker OS quede operativo.
+
+Reemplaza los planes pagos de arriba: Supabase Free y Vercel Hobby, en proyectos
+nuevos y dedicados a Risk OS, hasta que Broker OS quede operativo. La región sigue en
+sa-east-1 y el estado de D-0068 no cambia. Se aplicó a `decisions.yaml`, al ADR 0068,
+a RO01 §5, §7 y §8, y a T-0032.

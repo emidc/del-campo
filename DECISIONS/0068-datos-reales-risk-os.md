@@ -4,9 +4,11 @@
 - **Fecha:** 2026-10-14
 - **Supersede:** —
 
-> **Decidido por el owner el 2026-10-15:** opción b (`SLICES/RO01-decisiones.md`,
-> punto 1), con Supabase Pro en sa-east-1 y Vercel Pro. El estado está en
-> `decisions.yaml`; el owner lo eligió sin criterio de revisión.
+> **Decidido por el owner el 2026-10-15:** base y despliegue hosteados y dedicados a
+> Risk OS (opción b, `SLICES/RO01-decisiones.md`, punto 1), en Supabase de plan
+> gratuito, región sa-east-1, y Vercel Hobby hasta que Broker OS quede operativo, por
+> una corrección del owner del mismo día que reemplaza los planes pagos. El estado está
+> en `decisions.yaml`.
 
 ## Contexto
 
@@ -68,16 +70,29 @@ infraestructura hosteada, paga y dedicada a Risk OS. La base y el despliegue no 
 comparten con Broker OS ni Communication OS. Los sintéticos y previews no requieren
 datos reales." Con las condiciones comunes de arriba.
 
-Proveedor, plan y región, elegidos por el owner el mismo día: un proyecto nuevo de
-Supabase en plan Pro, región sa-east-1 (São Paulo), para la base, y un proyecto nuevo de
-Vercel en plan Pro para la aplicación. Los dos son propios de Risk OS y no se comparten
-con VS01 ni con Communication OS.
+Proveedor y región, elegidos por el owner el mismo día: un proyecto nuevo de Supabase,
+región sa-east-1 (São Paulo), para la base, y un proyecto nuevo de Vercel para la
+aplicación. Los dos son propios de Risk OS y no se comparten con VS01 ni con
+Communication OS.
+
+**Plan, corregido por el owner el 2026-10-15 a las 12:19 UTC:** "una corrección vamos a usar supabase gratuito y Vercel Hoby, hasta que Broker OS quede operativo." Esto deja la
+infraestructura dedicada de la opción b pero en los planes de la opción a: Supabase
+Free y Vercel Hobby, con los riesgos que esa opción describe. Los planes pagos se
+contratan cuando Broker OS quede operativo, como en D-0062.
 
 ## Consecuencias
 
 - T-0032 escribe `docs/despliegue/vercel-risk.md` para Supabase y Vercel, y el owner
-  contrata y opera una base hosteada más, con su costo mensual (R-14).
-- Los backups son los del plan Pro de Supabase; no hay pausa por inactividad.
+  crea y opera una base hosteada más, sin costo mensual mientras dure el plan gratuito.
+- El proyecto de Supabase se pausa tras una semana sin actividad: durante los ciclos
+  de A7 una pausa corta el acceso del owner y del revisor hasta que se reactive.
+- No hay backups automáticos: la única recuperación es la copia manual del owner, fuera
+  del repositorio, antes de cada carga y al cierre de cada semana de ciclos.
+- Vercel Hobby es para uso no comercial y los logs son cortos; es el mismo riesgo que el
+  owner aceptó para VS01 en D-0062.
+- Supabase limita los proyectos gratuitos activos por organización. Si los dos de VS01
+  (producción y la base sintética de Preview) siguen activos, el de Risk OS puede
+  necesitar otra organización o pausar uno; lo comprueba el owner al crearlo.
 - Los datos de terceros salen del país, a São Paulo, igual que en VS01.
 - Borrar los datos al cierre de Q4 es borrar una base, porque Risk OS no comparte
   esquema con nadie (D-0063).
@@ -87,6 +102,7 @@ de lugar es una exportación y una importación que hace el owner.
 
 ## Criterio de falsación
 
-No tiene. El owner eligió la decisión firme, sin criterio de revisión. Al cierre de Q4
-se decide igual si los datos se conservan o se borran (D-0063), lo que no reabre dónde
-viven mientras existan.
+No tiene. El owner eligió la decisión firme, sin criterio de revisión. El cambio a
+planes pagos cuando Broker OS quede operativo es parte de lo decidido, no una
+reapertura. Al cierre de Q4 se decide igual si los datos se conservan o se borran
+(D-0063).

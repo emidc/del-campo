@@ -1155,15 +1155,20 @@ decisions:
     status: ACCEPTED
     date: 2026-10-15
     source: >
-      SLICES/RO01-decisiones.md, punto 1 (opción b) y proveedor, región y estado
-      elegidos por el owner el 2026-10-15; SLICES/RO01.md §5 y §7; D-0062, que no se
-      extiende (D-0063); D-0067, que no autoriza datos reales; R-19.
+      SLICES/RO01-decisiones.md, punto 1 (opción b), proveedor, región y estado
+      elegidos por el owner el 2026-10-15 y su corrección de plan del mismo día;
+      SLICES/RO01.md §5 y §7; D-0062, que no se extiende (D-0063); D-0067, que no
+      autoriza datos reales; R-19.
     adr: DECISIONS/0068-datos-reales-risk-os.md
     statement: >
-      El owner eligió la opción b: los datos de las cinco empresas históricas se alojan
-      en infraestructura hosteada, paga y dedicada a Risk OS, sin compartir base ni
+      Los datos de las cinco empresas históricas se alojan en infraestructura hosteada
+      y dedicada a Risk OS, sin compartir base ni
       despliegue con Broker OS ni Communication OS; los sintéticos y las previews no
       usan datos reales. Carga el owner, desde su máquina, y ningún agente de
-      desarrollo los ve (R-19). Proveedor: un proyecto de Supabase en plan Pro, región
-      sa-east-1 (São Paulo), y un proyecto de Vercel en plan Pro, los dos nuevos y
-      propios de Risk OS. Los contrata el owner (R-14).
+      desarrollo los ve (R-19). Proveedor: un proyecto nuevo de Supabase en plan Free,
+      región sa-east-1 (São Paulo), y un proyecto nuevo de Vercel en plan Hobby, los
+      dos propios de Risk OS, hasta que Broker OS quede operativo; entonces se pasan a
+      planes pagos, que contrata el owner (R-14). Se aceptan los riesgos del plan
+      gratuito de D-0062: pausa por inactividad, sin backups automáticos (copia manual
+      del owner fuera del repositorio), logs cortos y condiciones de uso de Vercel
+      Hobby.
