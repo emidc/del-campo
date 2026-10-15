@@ -43,7 +43,8 @@ cierre de Q4 sobre el laboratorio (D-0063).
   - cómo comprobar los backups del plan, cómo volver a la versión anterior y cómo
     apagar todo (pausar el proyecto, borrar la base);
   - cómo da de alta el owner la credencial de cada persona;
-  - el plan y los costos que fije D-0068. Esta tarea no contrata nada (R-14).
+  - los planes (Supabase Pro en sa-east-1 y Vercel Pro, D-0068) y sus costos. Esta
+    tarea no contrata nada (R-14).
 - **Script de aceptación** del contexto: corre contra una base y devuelve los criterios
   A6, A7, A8 y A12 de RO01 §6 con códigos de empresa (H1 a H5 para las históricas),
   conteos y fechas, sin títulos, observaciones ni montos. Para A8 compara, por
@@ -100,7 +101,7 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 ## Data effects
 
 - **Sistemas externos:** un proyecto de aplicación nuevo y una base Postgres hosteada
-  nueva, en planes pagos, con el proveedor y la región que fije D-0068. Los contrata,
+  nueva: Vercel Pro y Supabase Pro en sa-east-1 (D-0068). Los contrata,
   crea y configura el owner (R-13, R-14).
 - **Datos reales:** los de las cinco empresas históricas, cargados por el owner desde
   su máquina en la base que autorice D-0068. Ningún agente los ve (R-19).
@@ -135,5 +136,5 @@ sistemas externos: plan mode y aprobación del owner en cada paso externo (R-13)
 
 RO01 §10. Linear: el hito "v1 accepted"; cierra lo que quede de EMI-23 a EMI-26 según
 el acta. Ajustada a las decisiones del owner del 2026-10-15
-(`SLICES/RO01-decisiones.md`): 1b, 2b, 3a, 6b con el orden previo ciego y 7b. No pasa a
-`READY` hasta que D-0068 tenga proveedor, plan y región.
+(`SLICES/RO01-decisiones.md`): 1b, 2b, 3a, 6b con el orden previo ciego y 7b, y a
+D-0068 con Supabase Pro en sa-east-1 y Vercel Pro.

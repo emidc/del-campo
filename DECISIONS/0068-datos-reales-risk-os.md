@@ -4,9 +4,9 @@
 - **Fecha:** 2026-10-14
 - **Supersede:** —
 
-> **Opción elegida por el owner el 2026-10-15: b** (`SLICES/RO01-decisiones.md`,
-> punto 1). Falta que fije proveedor, plan y región, y el estado de esta decisión;
-> hasta entonces sigue abierta en `decisions.yaml`.
+> **Decidido por el owner el 2026-10-15:** opción b (`SLICES/RO01-decisiones.md`,
+> punto 1), con Supabase Pro en sa-east-1 y Vercel Pro. El estado está en
+> `decisions.yaml`; el owner lo eligió sin criterio de revisión.
 
 ## Contexto
 
@@ -68,16 +68,17 @@ infraestructura hosteada, paga y dedicada a Risk OS. La base y el despliegue no 
 comparten con Broker OS ni Communication OS. Los sintéticos y previews no requieren
 datos reales." Con las condiciones comunes de arriba.
 
-Queda sin decidir: el proveedor de la base y de la aplicación, el plan y la región. La
-tabla de opciones nombra sa-east-1 y Vercel como punto de partida, no como elección.
+Proveedor, plan y región, elegidos por el owner el mismo día: un proyecto nuevo de
+Supabase en plan Pro, región sa-east-1 (São Paulo), para la base, y un proyecto nuevo de
+Vercel en plan Pro para la aplicación. Los dos son propios de Risk OS y no se comparten
+con VS01 ni con Communication OS.
 
 ## Consecuencias
 
-- T-0032 escribe `docs/despliegue/vercel-risk.md` para el proveedor que se fije, y el
-  owner contrata y opera una base hosteada más, con su costo mensual (R-14).
-- Los backups son los del plan pago; no hay pausa por inactividad.
-- Los datos de terceros salen del país si la región está fuera de Argentina, igual que
-  en VS01.
+- T-0032 escribe `docs/despliegue/vercel-risk.md` para Supabase y Vercel, y el owner
+  contrata y opera una base hosteada más, con su costo mensual (R-14).
+- Los backups son los del plan Pro de Supabase; no hay pausa por inactividad.
+- Los datos de terceros salen del país, a São Paulo, igual que en VS01.
 - Borrar los datos al cierre de Q4 es borrar una base, porque Risk OS no comparte
   esquema con nadie (D-0063).
 
@@ -86,4 +87,6 @@ de lugar es una exportación y una importación que hace el owner.
 
 ## Criterio de falsación
 
-Se escribe cuando el owner fije el estado, si queda con criterio de falsación.
+No tiene. El owner eligió la decisión firme, sin criterio de revisión. Al cierre de Q4
+se decide igual si los datos se conservan o se borran (D-0063), lo que no reabre dónde
+viven mientras existan.

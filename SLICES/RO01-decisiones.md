@@ -48,8 +48,7 @@
   reemplazan por lo decidido. Lo nuevo es el punto 6: un registro del orden y las bandas
   previos del revisor, con fecha anterior a su primer acceso a resultados, y las sesiones
   de cada persona registradas para poder comprobarlo (RO01 §2, §6 y §7).
-- **D-0068** queda con la opción b escrita. La respuesta no nombra proveedor, plan ni
-  región, que el statement deja como lo único sin decidir; el estado lo fija el owner.
+- **D-0068** queda con la opción b escrita y, con lo de abajo, decidida.
 - **T-0028 a T-0032** quedan ajustadas: novedades y reordenamiento en el esquema
   (T-0028), lector portado y "ya importado" (T-0029), credencial por persona con su
   registro de sesiones y `C_raw` sólo en el detalle (T-0030), orden previo del revisor y
@@ -57,3 +56,14 @@
   protocolo de la revisión ciega (T-0032).
 - **T-0021** queda en `DONE`, con su evidencia, y `PROJECT.md` §3 con el cambio
   preparado.
+
+## Proveedor, región y estado de D-0068
+
+La respuesta de arriba no nombraba proveedor, plan, región ni estado de D-0068. Se le
+preguntó en el hilo con una tarjeta de decisión: "¿Con qué proveedor y región cierro
+D-0068, y en qué estado queda?". El **2026-10-15 a las 01:29:18 UTC** el owner eligió
+la opción "Supabase + Vercel, firme", cuyo texto en la tarjeta era: "El mismo proveedor
+y la misma región, pero D-0068 queda aceptada sin criterio de revisión", sobre la
+opción anterior "Supabase Pro en sa-east-1 y Vercel Pro".
+
+Se aplicó a `decisions.yaml`, al ADR 0068, a RO01 §5, §7, §9 y §10, y a T-0032.
