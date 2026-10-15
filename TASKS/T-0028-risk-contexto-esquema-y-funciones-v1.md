@@ -2,7 +2,7 @@
 id: T-0028
 title: Crear el contexto risk con su esquema y las funciones de la metodología v1
 kind: FEATURE
-status: DRAFT
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: M
