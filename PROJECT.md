@@ -95,8 +95,11 @@ declarada en `ops/evidence/T-0018-aceptacion.md`. `SLICES/VS01.md` es histórico
    contextos aislados dentro del monolito modular (D-0063). El spike de integración de
    WhatsApp (`T-0020`) cerró el 03/10/2026: WhatsApp entra por Cloud API oficial, con
    copia del contenido (D-0065), y el contrato de Communication OS es `SLICES/CO01.md`,
-   aprobado el 03/10/2026. Sigue el spike de formatos y modelo de Risk OS (`T-0021`):
-   un spike por vez (§5).
+   aprobado el 03/10/2026. El spike de formatos y modelo de Risk OS (`T-0021`) cerró
+   el 14/10/2026, y la propiedad de datos con Broker OS quedó en D-0067 (`T-0027`). El
+   contrato de Risk OS v1 es `SLICES/RO01.md`, con su aceptación para el hito del
+   25/11/2026; lo implementan `T-0028` a `T-0032`, en ese orden, con `T-0030` y
+   `T-0031` en paralelo (§5).
 
    Pendientes del owner para Communication OS, sin fecha:
    - alta del número dedicado en la WABA y repetición de la prueba de `T-0020` con él;
