@@ -8,7 +8,7 @@ riskClass: MEDIUM
 size: M
 created: 2026-10-14
 blockedBy: [T-0028]
-contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md,
+contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               SPIKES/T-0021-formatos-y-modelo-risk-os.md,
@@ -39,8 +39,9 @@ necesitan datos importados.
   texto de error), y los escribe en una sola transacción. Con un rechazo no se escribe
   ninguna fila. Las dos etapas y las precedencias del validador de la 15b
   (`dossier-fase-15b.md` §3) se conservan.
-- **Lee los CSV con el lector portado de `validador/csv.ts`**, cuyos errores de
-  estructura son parte del contrato (RV-ARCH-01 con número de línea). No agrega
+- **Lee los CSV con el lector portado de `validador/csv.ts`** al contexto, con su
+  comportamiento y su regresión (H7): sus errores de estructura son parte del contrato
+  (RV-ARCH-01 con número de línea), y sus tests del spike se portan con él. No agrega
   dependencias.
 - **Informe por fila:** `regla_id`, archivo, línea, id, origen y mensaje, para cada
   rechazo y cada aviso. Los avisos no bloquean.
@@ -50,9 +51,10 @@ necesitan datos importados.
 - **Lotes posteriores.** Un lote puede referenciar riesgos y evaluaciones que ya existen
   en Risk OS (el `existentes` del validador). Un id de evaluación, acción,
   transferencia o evento que ya existe es RV-ID-02.
-- **Reimportación.** Un lote idéntico a uno ya importado (misma huella de los tres
-  archivos) se reconoce antes de validar y responde "ya importado" sin escribir
-  (hallazgo H3 del dossier).
+- **Reimportación (H3).** Un lote cuya huella de los tres archivos es idéntica a la de
+  uno ya importado se reconoce antes de validar y responde `ya importado`, sin escribir
+  ni ejecutar una segunda importación. Un lote distinto que reutiliza ids sigue
+  fallando por RV-ID-02.
 - **Lo importado queda como está en el archivo:** nada se acepta, se calcula ni se
   completa al importar. `review_status`, `actor` y procedencia se conservan; los
   derivados se calculan después con las funciones de T-0028 (decisión 6a).
@@ -65,7 +67,8 @@ necesitan datos importados.
     con `regresion-emi41.csv` en los 59 objetos (RO01 A1);
   - cada uno de los 55 casos de `invalidos/` produce exactamente su error de
     `errores-esperados.csv` y deja cero filas en el esquema `risk` (A2);
-  - importar dos veces el mismo lote deja el mismo estado (A3);
+  - importar dos veces el mismo lote responde `ya importado` la segunda vez y deja el
+    mismo estado (A3); un lote distinto con un id ya importado es RV-ID-02;
   - una falla inyectada a mitad de la escritura no deja ninguna fila (A4);
   - un lote posterior que agrega una reevaluación a un riesgo ya importado entra, y uno
     que repite un id existente es RV-ID-02;
@@ -122,5 +125,5 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0029.md`:
 RO01 §10. Linear: EMI-23 completo y la parte de importación de EMI-26 (importación
 inválida, relaciones rotas, escrituras incompletas).
 
-Depende del punto 9 de "Para decidir" de `SLICES/RO01-dossier.md` (hallazgos H3 y H7):
-está escrita con las propuestas del dossier. Se ajusta si el owner decide otra cosa.
+Ajustada a las decisiones del owner del 2026-10-15 (`SLICES/RO01-decisiones.md`,
+punto 9: H3 y H7).

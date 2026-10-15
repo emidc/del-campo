@@ -8,7 +8,7 @@ riskClass: MEDIUM
 size: L
 created: 2026-10-14
 blockedBy: [T-0029]
-contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md,
+contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               SPIKES/T-0021/v1/metodologia-v1.md,
@@ -47,17 +47,24 @@ persistente y habilita A5, A7, A8 y A12 de `SLICES/RO01.md`.
 - **Transferencia:** alta y revisión de coberturas; alta de eventos de póliza como
   observaciones locales con procedencia (D-0067). Un evento no abre revisión ni cambia
   derivados (D17).
-- **Novedades** (hallazgo H2): comentario, información nueva o cambio de contexto sobre
-  un riesgo, una acción o una cobertura, con texto, evidencia, autor y fecha.
+- **Novedades** (H2): registro append-only de `comentario`, `informacion_nueva` o
+  `cambio_contexto` sobre un riesgo, una acción o una transferencia, con texto,
+  evidencia, autor y fecha. Las dos últimas abren revisión pendiente; `comentario` no.
 - **Revisión pendiente** (dossier 15a §5, decisión 9a): la abren solas una acción que
   pasa a `cumplida`, una novedad de información nueva y una de cambio de contexto. No
   la abren una acción planificada, en curso o cancelada, un evento de póliza, un
   comentario ni un reordenamiento. La cierra una persona con una reevaluación aceptada
   o con un "sin cambio" fundamentado; una reevaluación rechazada o `needs_revision` la
   deja abierta. Nada recalcula ni escribe un factor por su cuenta.
-- **Reordenamiento profesional** (recomendación del punto 5): un registro con los
-  campos del dossier 15a §6, hecho por una persona. La lista muestra el orden
-  profesional al lado del calculado; factores, `C_raw` y banda no cambian.
+- **Reordenamiento profesional** (decisión 5 del owner): un registro propio de Risk
+  OS, hecho por una persona, que conserva el orden calculado, las evaluaciones
+  vigentes, autor, fecha, causa, fundamento y los campos de los disparadores de
+  reapertura (dossier de la Fase 13, §5). La lista muestra el orden profesional al lado
+  del calculado; factores, `C_raw` y banda no cambian.
+- **Orden previo del revisor** (decisión 6 del owner): por cada empresa, el revisor
+  registra su orden profesional y sus bandas desde una pantalla que no muestra
+  ranking, bandas ni `C_raw`. El registro es append-only, con autor de la sesión y
+  fecha.
 - **Historial:** cada cambio es un registro nuevo con autor, fecha, estado anterior y
   estado nuevo. Para un riesgo se reconstruye todo lo que cambió desde la importación,
   en el detalle de T-0030. Ningún cambio en el esquema queda sin su registro.
@@ -67,8 +74,11 @@ persistente y habilita A5, A7, A8 y A12 de `SLICES/RO01.md`.
   registro de historial huérfano.
 - **Script de ciclos** del contexto: cuenta las revisiones cerradas después de la
   importación, con disparador, apertura, cierre, quién, resultado y evaluación, por
-  empresa y por tipo de disparador. Su salida tiene sólo códigos de empresa, conteos y
-  fechas.
+  empresa y por tipo de disparador, y dice si se cumple A7 (al menos 10, al menos una
+  por empresa histórica, al menos tres tipos entre `accion_ejecutada`,
+  `informacion_nueva` y `cambio_contexto`; decisión 7). Las revisiones abiertas y los
+  ciclos que vienen en los CSV no cuentan. Su salida tiene sólo códigos de empresa,
+  conteos y fechas.
 - **Tests (R-26):**
   - unit: qué abre y qué no abre una revisión, qué la cierra, vigente después de cada
     revisión;
@@ -78,7 +88,11 @@ persistente y habilita A5, A7, A8 y A12 de `SLICES/RO01.md`.
   - falla inyectada en cada operación compuesta (RO01 A5);
   - el historial reconstruye cada cambio de un recorrido completo, y no hay `UPDATE`
     ni `DELETE` sobre tablas de historia o evaluaciones (R-22, R-23);
-  - el script de ciclos cuenta bien un recorrido sintético de diez ciclos.
+  - el script de ciclos cuenta bien un recorrido sintético de diez ciclos, y da A7 no
+    cumplido si falta una empresa, si hay sólo dos tipos de disparador o si se cuenta
+    una revisión abierta o un ciclo de los CSV;
+  - el orden previo del revisor no se puede registrar desde una sesión que ya accedió a
+    resultados de esa empresa, o queda marcado como posterior.
 
 ## Non-scope
 
@@ -118,9 +132,8 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0031.md`:
 
 ## Risks
 
-- **Es la tarea más grande de RO01** (`size: L`). Si el calendario aprieta, el
-  reordenamiento puede salir a un registro fuera de la app (opción b del punto 5)
-  sin tocar el resto.
+- **Es la tarea más grande de RO01** (`size: L`). Si el calendario aprieta, se avisa
+  al owner; el alcance no se recorta en silencio.
 - **Un ciclo de las sintéticas que ya viene cerrado** no cuenta para A7. El script lo
   distingue por su origen.
 
@@ -130,6 +143,6 @@ RO01 §10. Linear: EMI-25 completo y lo que queda de EMI-26 (actualización
 interrumpida y qué historia se conserva).
 
 Puede empezar en paralelo con T-0030 por dominio y aplicación; su UI espera las
-pantallas de T-0030. Depende de los puntos 2 (autor), 5 (reordenamiento), 7 (cómo
-cuenta el script) y 9 (hallazgo H2) de "Para decidir" de `SLICES/RO01-dossier.md`, y
-está escrita con las opciones recomendadas. Se ajusta antes de pasar a `READY`.
+pantallas de T-0030. Ajustada a las decisiones del owner del 2026-10-15
+(`SLICES/RO01-decisiones.md`): autor desde la sesión (2), reordenamiento (5), orden
+previo del revisor (6), conteo de A7 (7) y novedades (H2).

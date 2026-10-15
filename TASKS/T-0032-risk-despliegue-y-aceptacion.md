@@ -8,7 +8,7 @@ riskClass: HIGH
 size: L
 created: 2026-10-14
 blockedBy: [T-0030, T-0031]
-contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md,
+contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0068-datos-reales-risk-os.md,
@@ -31,21 +31,26 @@ cierre de Q4 sobre el laboratorio (D-0063).
 
 ## Outcome
 
-- **Risk OS corre en su propio proyecto de Vercel con su app, y en su propia base
-  Postgres hosteada para los datos reales**, separados de VS01 y de Communication OS.
-  Las previews sólo reciben la base sintética. No hay worker.
+- **Risk OS corre en su propio proyecto de aplicación y en su propia base Postgres
+  hosteada para los datos reales, en planes pagos y dedicados** (D-0068; decisiones 1
+  y 3 del owner), sin compartir credenciales, esquema ni ciclo de despliegue con VS01
+  ni con Communication OS. Las previews sólo reciben la base sintética. No hay worker.
 - **`docs/despliegue/vercel-risk.md`** documenta, como `vercel-communication.md`:
   - la configuración del proyecto y las variables de entorno, sin valores;
   - cómo crear la base y aplicar y revertir las migraciones del contexto. Las ejecuta
     el owner (R-13); ningún agente se conecta a la base con datos reales;
   - cómo importar un lote con el modo sin valores y dónde pegar su informe;
-  - cómo hacer y guardar la copia manual que pida D-0068, cómo volver a la versión
-    anterior y cómo apagar todo (pausar el proyecto, borrar la base);
-  - el plan y los costos. Esta tarea no contrata nada (R-14).
+  - cómo comprobar los backups del plan, cómo volver a la versión anterior y cómo
+    apagar todo (pausar el proyecto, borrar la base);
+  - cómo da de alta el owner la credencial de cada persona;
+  - el plan y los costos que fije D-0068. Esta tarea no contrata nada (R-14).
 - **Script de aceptación** del contexto: corre contra una base y devuelve los criterios
   A6, A7, A8 y A12 de RO01 §6 con códigos de empresa (H1 a H5 para las históricas),
-  conteos y fechas, sin títulos, observaciones ni montos. Lo corre el owner contra la
-  base real.
+  conteos y fechas, sin títulos, observaciones ni montos. Para A8 compara, por
+  empresa, la fecha del orden previo del revisor con la de su primer acceso a
+  resultados, y mide los disparadores de reapertura (dossier de la Fase 13, §5) entre
+  ese orden y el de Risk OS, como evidencia para EMI-44 y D14. Lo corre el owner
+  contra la base real.
 - **La aceptación de RO01 está ejecutada según §6**, con su acta en
   `ops/evidence/T-0032-aceptacion.md`: cada criterio con su valor medido y si cumple,
   la salida literal de los tests de A1 a A5, A9 y A10, el informe sin valores de cada
@@ -83,6 +88,9 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 - [ ] Ninguna preview tiene la cadena de conexión de la base real.
 - [ ] Las cinco históricas están importadas, y el informe sin valores de cada intento
       está en el acta.
+- [ ] El revisor, distinto del evaluador original, registró su orden y sus bandas de
+      cada empresa con material ciego que preparó el owner fuera del repositorio
+      (R-19), antes de su primer acceso a resultados según el registro de sesiones.
 - [ ] `ops/evidence/T-0032-aceptacion.md` tiene los trece criterios de RO01 §6 con su
       valor medido.
 - [ ] El repositorio, el acta y la evidencia no contienen valores de las históricas ni
@@ -91,9 +99,9 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 
 ## Data effects
 
-- **Sistemas externos:** un proyecto nuevo de Vercel y una base Postgres hosteada nueva,
-  en el proveedor, plan y región que fije D-0068. Los crea y configura el owner (R-13,
-  R-14).
+- **Sistemas externos:** un proyecto de aplicación nuevo y una base Postgres hosteada
+  nueva, en planes pagos, con el proveedor y la región que fije D-0068. Los contrata,
+  crea y configura el owner (R-13, R-14).
 - **Datos reales:** los de las cinco empresas históricas, cargados por el owner desde
   su máquina en la base que autorice D-0068. Ningún agente los ve (R-19).
 - **Credenciales:** las del acceso a la UI y la cadena de conexión. Las genera y carga
@@ -109,8 +117,9 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 - **Preparar las históricas puede pedir completar las acciones** (hallazgo H1 del
   dossier). Si un intento se rechaza, se corrige en el origen; los rechazos quedan
   contados.
-- **Plan gratuito**, si D-0068 lo elige: pausa por inactividad y sin backups
-  automáticos. La copia manual del owner es la única recuperación.
+- **Material ciego.** Si el material que recibe el revisor deja ver el ranking o las
+  bandas de Risk OS, A8 deja de ser evidencia independiente. Lo prepara y lo controla
+  el owner.
 - **Un fallo de un criterio.** No se reemplaza ni se borra, y los umbrales no bajan
   después de medir (RO01 §6).
 
@@ -125,6 +134,6 @@ origen, que es lo que fue T-0013. R-33 rige igual en los dos kinds.
 sistemas externos: plan mode y aprobación del owner en cada paso externo (R-13).
 
 RO01 §10. Linear: el hito "v1 accepted"; cierra lo que quede de EMI-23 a EMI-26 según
-el acta. Depende de los puntos 1, 2, 3, 6 y 7 de "Para decidir" de
-`SLICES/RO01-dossier.md`, y está escrita con las opciones recomendadas (1a, 2b, 3a, 6b y
-7b). No pasa a `READY` hasta que D-0068 esté decidido.
+el acta. Ajustada a las decisiones del owner del 2026-10-15
+(`SLICES/RO01-decisiones.md`): 1b, 2b, 3a, 6b con el orden previo ciego y 7b. No pasa a
+`READY` hasta que D-0068 tenga proveedor, plan y región.

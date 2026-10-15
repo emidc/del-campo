@@ -1155,13 +1155,15 @@ decisions:
     status: OPEN
     date: 2026-10-14
     source: >
-      SLICES/RO01.md §5 y §7; SLICES/RO01-dossier.md, punto 1 de "Para decidir";
-      D-0062, que no se extiende (D-0063); D-0067, que no autoriza datos reales; R-19.
+      SLICES/RO01-decisiones.md, punto 1 (opción b, 2026-10-15); SLICES/RO01.md §5 y
+      §7; D-0062, que no se extiende (D-0063); D-0067, que no autoriza datos reales;
+      R-19.
     adr: DECISIONS/0068-datos-reales-risk-os.md
     statement: >
-      Dónde se almacenan los datos de las cinco empresas históricas que exige la
-      aceptación de Risk OS v1 (proveedor, plan y región, o sólo la máquina del owner),
-      con qué condiciones (copia de respaldo, previews, borrado al cierre de Q4) y qué
-      riesgos se aceptan. Cualquier opción deja la carga al owner, desde su máquina, y
-      excluye a los agentes de desarrollo (R-19). Las opciones están en el ADR.
-    unblocked_by: respuesta del owner al punto 1 de "Para decidir" de SLICES/RO01-dossier.md
+      El owner eligió la opción b: los datos de las cinco empresas históricas se alojan
+      en infraestructura hosteada, paga y dedicada a Risk OS, sin compartir base ni
+      despliegue con Broker OS ni Communication OS; los sintéticos y las previews no
+      usan datos reales. Carga el owner, desde su máquina, y ningún agente de
+      desarrollo los ve (R-19). Falta fijar proveedor, plan y región, y el estado de
+      la decisión.
+    unblocked_by: el owner fija proveedor, plan y región de la opción b, y el estado de D-0068

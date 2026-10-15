@@ -3,6 +3,10 @@
 > 2026-10-14 · Plan de Risk OS v1, Fase 0. Base: `main` en `a8ccd07` (PR #78 de T-0027
 > mergeada). Acompaña a `SLICES/RO01.md` y termina en "Para decidir". No escribe código,
 > no cambia la metodología ni los contratos de T-0021 y no lee casos históricos (R-19).
+>
+> **Respondido el 2026-10-15.** El owner aprobó RO01 y eligió en los once puntos; su
+> respuesta y lo que se aplicó están en `SLICES/RO01-decisiones.md`. Este dossier queda
+> como lo que se le presentó: las recomendaciones de abajo no son lo decidido.
 
 ## Resumen
 

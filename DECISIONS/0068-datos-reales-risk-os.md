@@ -4,12 +4,9 @@
 - **Fecha:** 2026-10-14
 - **Supersede:** —
 
-> **Borrador para decidir.** Escrito en la Fase 0 del plan de Risk OS v1, con
-> `SLICES/RO01.md`. Presenta las opciones y no elige ninguna: la elección es del owner,
-> en el punto 1 de "Para decidir" de `SLICES/RO01-dossier.md`. Cuando decida, este ADR
-> se completa con su respuesta, el `statement` de `decisions.yaml` pasa a decir lo
-> decidido con el alcance de D-0062 (dónde, quién carga, qué se carga y qué no, qué
-> riesgos se aceptan) y el estado pasa al que diga el owner.
+> **Opción elegida por el owner el 2026-10-15: b** (`SLICES/RO01-decisiones.md`,
+> punto 1). Falta que fije proveedor, plan y región, y el estado de esta decisión;
+> hasta entonces sigue abierta en `decisions.yaml`.
 
 ## Contexto
 
@@ -35,8 +32,9 @@ Hechos que restringen la elección:
    observaciones de I-personas. Es información confidencial de terceros, con categorías
    que `DOMAIN.md` trata como especialmente sensibles (información financiera,
    accidentes).
-5. **Quién la usa:** el owner y, según el punto 6 del dossier, un revisor profesional.
-   No hay clientes ni usuarios externos.
+5. **Quién la usa:** el owner y un revisor profesional distinto del evaluador original
+   (decisión 6 del owner), cada uno con su credencial. No hay clientes ni usuarios
+   externos.
 6. **Plazo y capacidad:** el hito es el 2026-11-25, con 28 h semanales de programa
    técnico (`PROJECT.md` §5).
 
@@ -63,20 +61,29 @@ Cualquier opción cumple estas condiciones, que no están en discusión:
 | c | Sólo en la máquina del owner: Postgres local, con la app corriendo ahí. Nada hosteado con datos reales. | Ningún dato real sale del equipo del owner ni hay transferencia internacional. El revisor trabaja en ese equipo o junto al owner. El despliegue de RO01 §7 queda para las sintéticas, o no se hace. La copia de respaldo es manual. La base no puede llamarse `*_dev` ni `*_test`, para que los tests de integración nunca la toquen (`scripts/guard-db-tests.mjs`). |
 | d | En el proyecto de Supabase de VS01, con el esquema `risk` y un rol propio. | Menos infraestructura. Mezcla con la producción de Broker OS datos de otra clase, que es lo que D-0063 evita, y una falla o una pausa del proyecto afecta a los dos sistemas. |
 
+## Decisión
+
+Opción b, en palabras del owner: "Las cinco empresas reales se alojan en
+infraestructura hosteada, paga y dedicada a Risk OS. La base y el despliegue no se
+comparten con Broker OS ni Communication OS. Los sintéticos y previews no requieren
+datos reales." Con las condiciones comunes de arriba.
+
+Queda sin decidir: el proveedor de la base y de la aplicación, el plan y la región. La
+tabla de opciones nombra sa-east-1 y Vercel como punto de partida, no como elección.
+
 ## Consecuencias
 
-Se completan con la opción elegida. Lo que ya se puede decir:
-
-- Con a, b o d, T-0032 escribe `docs/despliegue/vercel-risk.md` y el owner opera una
-  base hosteada más.
-- Con c, el acceso a la UI del punto 2 del dossier puede no hacer falta, y la medición
-  de la aceptación corre en el equipo del owner.
-- En todas, borrar los datos al cierre de Q4 es borrar una base, porque Risk OS no
-  comparte esquema con nadie (D-0063).
+- T-0032 escribe `docs/despliegue/vercel-risk.md` para el proveedor que se fije, y el
+  owner contrata y opera una base hosteada más, con su costo mensual (R-14).
+- Los backups son los del plan pago; no hay pausa por inactividad.
+- Los datos de terceros salen del país si la región está fuera de Argentina, igual que
+  en VS01.
+- Borrar los datos al cierre de Q4 es borrar una base, porque Risk OS no comparte
+  esquema con nadie (D-0063).
 
 **Costo de revertir:** bajo mientras no haya datos cargados. Después, mover los datos
 de lugar es una exportación y una importación que hace el owner.
 
 ## Criterio de falsación
 
-Se escribe con la decisión, si queda con criterio de falsación.
+Se escribe cuando el owner fije el estado, si queda con criterio de falsación.

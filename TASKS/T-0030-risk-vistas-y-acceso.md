@@ -8,7 +8,7 @@ riskClass: MEDIUM
 size: M
 created: 2026-10-14
 blockedBy: [T-0029]
-contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md,
+contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0058-nextjs-en-vercel.md,
@@ -37,10 +37,14 @@ vistas en local, con el acceso que decidió el owner, y habilita la aceptación 
   sólo lo que exporta `@del-campo/risk`. `pnpm lint` falla si la app importa
   `packages/*`, otra app, otro contexto o un archivo interno del contexto. `pnpm
   typecheck` y `pnpm lint` la cubren.
-- **Acceso:** credencial por persona, validada en el servidor, con la contraseña como
-  hash en variables del despliegue y comparación en tiempo constante. Sin la
-  configuración, la app niega todo. Cada escritura de T-0031 toma el autor de la
-  credencial. El mecanismo se registra en un ADR nuevo antes de implementarlo (R-05).
+- **Acceso (decisión 2 del owner):** credencial por persona, con autenticación mínima
+  propia y sin OIDC, validada en el servidor, con la contraseña como hash y
+  comparación en tiempo constante. Sin la configuración, la app niega todo. La
+  identidad de quien evalúa, revisa o acepta sale de la sesión; ninguna pantalla pide
+  un nombre de autor. Cada inicio de sesión y cada acceso a una vista con ranking,
+  bandas o `C_raw` queda registrado por persona, empresa y fecha, para la comprobación
+  de A8 (decisión 6). El mecanismo se registra en un ADR nuevo antes de implementarlo
+  (R-05).
 - **Lista por organización:** riesgos evaluables en el orden de D10, con posición
   (empate y provisional marcados), banda, vector de factores con estado y valor,
   banderas y dimensión determinante. El padre en la posición de su hijo prioritario,
@@ -57,13 +61,14 @@ vistas en local, con el acceso que decidió el owner, y habilita la aceptación 
   observación local con su procedencia (D-0067); límite disponible calculado. El feed
   une por fecha evaluaciones, cambios de estado de acciones, eventos, revisiones
   pendientes y novedades.
-- **Vistas de la metodología** (RO01 §2, recomendación del punto 4): seguridad, con
-  cada `safety_critical` y su acción o decisión, o la alerta; no evaluables con la cola
-  de validación en el orden de §9.5; escenarios con sus miembros; detalle del riesgo
+- **Vistas de la metodología** (RO01 §2, decisión 4 del owner), en forma mínima:
+  seguridad, con cada `safety_critical` y su acción o decisión, o la alerta, y no
+  evaluables con la cola de validación en el orden de §9.5, como secciones o filtros de
+  la lista; escenarios como listado de escenarios y sus miembros; detalle del riesgo
   con su historial, el movimiento por dimensión contra la evaluación anterior aceptada
   y el techo plausible rotulado aparte.
-- **`C_raw`:** la lista muestra banda, vector y banderas; `C_raw` aparece en el detalle,
-  siempre con el vector y las banderas (hallazgo H6). Ninguna vista lo suma, promedia,
+- **`C_raw`:** la lista muestra banda, vector y banderas, y `C_raw` no es su número
+  principal; aparece en el detalle, siempre con el vector y las banderas (H6). Ninguna vista lo suma, promedia,
   resta, divide, agrega ni compara entre organizaciones (RO01 §3, reglas 1 y 2).
 - **Lista de recorrido** en el README de la app: qué tiene que mostrar cada vista con
   las 8 sintéticas, para A11.
@@ -73,6 +78,8 @@ vistas en local, con el acceso que decidió el owner, y habilita la aceptación 
   - reglas 2 a 6 de RO01 §3 sobre lo que entregan las vistas;
   - denegación (R-28): sin credencial y con credencial inválida, en cada página y cada
     endpoint, sin exponer datos;
+  - el autor de cada escritura es la persona de la sesión, y el registro de accesos
+    anota cada vista con resultados por persona y empresa;
   - integración contra el Postgres local con las sintéticas importadas.
 
   `pnpm test` los incluye.
@@ -122,15 +129,13 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0030.md`:
 - **Una vista que agrega sin querer.** Un total, un promedio o un gráfico por
   organización es la forma más fácil de violar RO01 §3. El test de la regla 2 mira
   las salidas, no la intención.
-- **El acceso decide el autor de T-0031.** Si el owner elige una credencial compartida
-  en lugar de una por persona, el autor de cada cambio pasa a ser declarado y A8 lo
-  tiene que decir.
+- **El registro de accesos es la prueba de A8.** Si una vista con resultados no lo
+  escribe, el orden previo del revisor no se puede fechar contra su primer acceso.
 
 ## Notes
 
 RO01 §10. Linear: EMI-24.
 
-Depende de tres puntos de "Para decidir" de `SLICES/RO01-dossier.md`: acceso (punto 2,
-escrita con b, credencial por persona), vistas (punto 4, escrita con a, las cuatro) y
-`C_raw` en pantalla (punto 9, hallazgo H6). Se ajusta antes de pasar a `READY` si el
-owner decide otra cosa. Con el punto 1 en c (todo local) el acceso puede no hacer falta.
+Ajustada a las decisiones del owner del 2026-10-15 (`SLICES/RO01-decisiones.md`):
+acceso por persona (2), las cuatro vistas mínimas (4), registro de accesos para la
+revisión ciega (6) y `C_raw` sólo en el detalle (H6).

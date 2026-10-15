@@ -8,7 +8,7 @@ riskClass: MEDIUM
 size: M
 created: 2026-10-14
 blockedBy: []
-contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md,
+contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0045-schema-en-migraciones-sql.md,
@@ -43,14 +43,22 @@ crea el primer código real del contexto `risk` (D-0063) y habilita T-0029.
   propio sobre `delcampo_risk_dev` y `delcampo_risk_test` que rechaza cualquier otra
   base, como el de `contexts/communication`. Tiene las entidades del dossier 15a §4
   (riesgo, evaluación con sus siete factores, acción, transferencia, evento de póliza,
-  revisión pendiente) y el registro de novedades del hallazgo H2 si el owner lo aprueba.
-  El reordenamiento profesional entra si RO01 lo incluye.
+  revisión pendiente), más lo que agregaron las decisiones del owner
+  (`SLICES/RO01-decisiones.md`): el registro append-only de novedades (H2), con destino
+  riesgo, acción o transferencia, tipo `comentario`, `informacion_nueva` o
+  `cambio_contexto`, texto, evidencia, autor y fecha; el reordenamiento profesional
+  (decisión 5), con orden calculado, evaluaciones vigentes, autor, fecha, causa,
+  fundamento y los campos de los disparadores de reapertura; el orden y las bandas
+  previos del revisor por empresa (decisión 6); y el registro de sesiones y accesos por
+  persona. Las personas son las del acceso de T-0030: el autor de cada registro es una
+  referencia a la persona, no un texto libre (decisión 2).
 - **Las invariantes del contrato que son de una fila o de una relación están en la
   base** (D-0051): enums, rangos de 1 a 5, ids con su prefijo, padre sin evaluación,
   referencias al mismo riesgo y cadena lineal de evaluaciones (como mucho una inicial y
   ninguna evaluación con dos sucesoras). Una evaluación no se puede modificar después de
-  escrita, y el historial es sólo de inserción (R-22, R-23): un `UPDATE` o `DELETE`
-  sobre esas tablas falla.
+  escrita, y el historial, las novedades, los reordenamientos, el orden previo del
+  revisor y el registro de sesiones son sólo de inserción (R-22, R-23): un `UPDATE` o
+  `DELETE` sobre esas tablas falla.
 - **Las funciones de la metodología v1 son funciones puras de `src/domain`**, portadas
   de `regresion-ejecutable/metodologia.ts` sin cambiar reglas: `I efectivo`, `V_d`,
   `C_d`, `C_raw`, dimensión determinante, banda, banderas, techo plausible, ranking D10,
@@ -131,7 +139,6 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0028.md`:
 Primera tarea de RO01 §10. Linear: no cierra ningún issue por sí sola; es la base de
 EMI-23, EMI-24, EMI-25 y EMI-26.
 
-Depende de puntos de "Para decidir" de `SLICES/RO01-dossier.md`: el registro de
-novedades (punto 9, hallazgo H2) y el reordenamiento (punto 5). Está escrita con las
-opciones recomendadas: los dos entran. Se ajusta antes de pasar a `READY` si el owner
-decide otra cosa.
+Ajustada a las decisiones del owner del 2026-10-15 (`SLICES/RO01-decisiones.md`):
+novedades (H2), reordenamiento (5), orden previo del revisor (6) y autor desde la
+sesión (2).
