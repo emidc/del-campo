@@ -1,0 +1,109 @@
+# Risk OS — `@del-campo/risk`
+
+Contexto de D-0063 para Risk OS v1 (`SLICES/RO01.md`). Guarda riesgos, evaluaciones,
+acciones, coberturas y lo que agregaron las decisiones del owner
+(`SLICES/RO01-decisiones.md`), y calcula los derivados de la metodología v1 con funciones
+puras. Lo creó T-0028; el importador es T-0029, la app y el acceso T-0030, el despliegue
+T-0032.
+
+No importa nada de Broker OS (`packages/*`, `apps/*`) ni de otro contexto, y nadie más lo
+importa: no tiene `Party`, `Policy` ni claves foráneas a otro esquema (D-0063, D-0067). Lo
+hace cumplir `pnpm lint` (R-25).
+
+## Estructura
+
+| Carpeta | Qué hay | Puede importar |
+|---|---|---|
+| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Puro. | Solo `src/domain/` |
+| `src/persistence/` | Conexión, runner de migraciones y su CLI. | `domain`, `postgres`, `node:*` |
+| `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
+| `src/testing/` | Soporte del test de oráculo: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv`. No es el importador (T-0029). | `domain`, `node:*` |
+| `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
+
+Cada derivado lleva la versión de las funciones que lo calcularon (`metodologia v1`):
+`derivados`, `rankingOrganizacion` y `colaDeValidacion` la piden como primer argumento y
+rechazan una que no conocen.
+
+## Esquema
+
+Todo vive en el esquema de Postgres `risk`, incluido el ledger de migraciones
+(`risk.schema_migrations`). Cada tabla nombra en su `comment on table` la superficie de
+RO01 §2 que la usa; cada restricción tiene nombre y cita la regla del contrato
+(`SPIKES/T-0021/v0/fase-15/contrato/reglas-validacion.csv`) que transcribe.
+
+**Ninguna tabla admite `UPDATE`, `DELETE` ni `TRUNCATE`** (R-22, R-23): lo impide el
+trigger `risk.solo_insercion()`. Un cambio de estado es una fila nueva y el vigente es el
+de la última: el estado de una acción (`accion_estado`), la revisión humana
+(`revision_humana`), el cierre de una revisión pendiente (`cierre_revision`). Una
+corrección de una evaluación es otra evaluación que apunta a la anterior.
+
+**Ningún derivado se guarda** (decisión 6a): no hay columnas de `C_raw`, banda, banderas,
+techo, I efectivo ni posición. La excepción es `reordenamiento.orden_calculado`, una foto
+para auditoría con la versión de las funciones que la produjo; si no coincide con el
+recálculo, es un error y no un dato.
+
+| Tabla | Qué guarda |
+|---|---|
+| `persona`, `registro_acceso` | Las personas con acceso y cada inicio de sesión o vista con resultados. |
+| `riesgo`, `miembro_escenario` | La identidad del riesgo (riesgo, padre, sub-riesgo, escenario) y los miembros de cada escenario. |
+| `evaluacion` | Evaluación inmutable con sus siete factores. Una sola inicial por riesgo, ninguna con dos sucesoras, la anterior ya registrada y del mismo riesgo; el padre no tiene. |
+| `accion`, `accion_estado` | Acciones y decisiones de tratamiento de un riesgo, y cada cambio de estado, ejecución y eficacia. |
+| `transferencia`, `evento_poliza` | Coberturas sobre un riesgo y eventos de póliza como observaciones locales (D-0067). |
+| `revision_humana` | `review_status` de evaluaciones, acciones y coberturas; `accepted` sólo por una persona. |
+| `novedad` | Novedades append-only sobre un riesgo, una acción o una cobertura (H2). |
+| `revision_pendiente`, `cierre_revision` | Revisiones abiertas por actividad y su cierre por una persona. |
+| `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
+| `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
+
+## Bases locales
+
+Solo dos: `delcampo_risk_dev` y `delcampo_risk_test`, en `localhost`. Son bases aparte de
+las de Broker y de Communication OS. El runner rechaza cualquier otra.
+
+```bash
+# Crear la base de desarrollo y aplicar las migraciones
+pnpm --filter @del-campo/risk db:create
+
+# Lo mismo sobre la de tests
+RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test \
+  pnpm --filter @del-campo/risk db:create
+
+# Aplicar las pendientes / revertir la última aplicada
+pnpm --filter @del-campo/risk db:migrate
+pnpm --filter @del-campo/risk db:down
+
+# Descartar todo
+dropdb delcampo_risk_dev
+```
+
+Sin `RISK_DATABASE_URL`, el runner apunta a `delcampo_risk_dev`. `db:down` revierte una
+sola migración; con todas revertidas, queda el esquema vacío con su ledger. Como las
+tablas son sólo de inserción, la única forma de vaciar una base es `db:down` o `dropdb`.
+
+## Tests
+
+`pnpm test` incluye los del contexto (R-26):
+
+| Capa | Archivos | Qué cubre |
+|---|---|---|
+| unit, oráculo externo | `src/domain/regresion.test.ts` | Los derivados de las 8 sintéticas contra `SPIKES/T-0021/v0/fase-11/regresion-emi41.csv`: 59 objetos, S15 sin la posición (`verificacion-15b.md` §4). Falla si se altera un valor de esa tabla en una copia. |
+| unit | `src/domain/*.test.ts`, `src/application/*.test.ts` | Las funciones v1 (casos PV, bandas, §9.3, banderas, D10, padre, cola), las propiedades 1 a 7 de la metodología §14, las reglas 3 y 5 de RO01 §3 y lo que exporta el paquete. |
+| integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
+
+Los de integración corren siempre sobre `delcampo_risk_test`: la crean si no existe y
+aplican las migraciones. Como el esquema no se puede vaciar, cada caso escribe dentro de
+una transacción que se revierte. La URL sale de `RISK_DATABASE_URL` o, si falta, de
+`DATABASE_URL` con el nombre de la base cambiado; `scripts/guard-db-tests.mjs` valida las
+dos antes de cualquier test.
+
+```bash
+pnpm test                                   # todo el workspace
+node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
+  "contexts/risk/src/**/*.test.ts"          # solo este contexto
+```
+
+## Datos
+
+Sólo sintéticos (R-19). Ningún test, fixture ni migración usa valores de las cinco
+empresas históricas; el oráculo lee las 8 sintéticas de `SPIKES/T-0021/v0/`, que no se
+modifica.

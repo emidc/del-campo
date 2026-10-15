@@ -54,9 +54,11 @@ const leerEnv = () => {
   return valorDeEnv(readFileSync(archivo, 'utf8'))
 }
 
-// Los tests del contexto communication (D-0063) usan su propia base. La toman de
-// COMMUNICATION_DATABASE_URL o, si falta, de DATABASE_URL con otro nombre de base
-// (contexts/communication/src/persistence/testing.ts). Las dos pasan por la misma guarda.
+// Los tests de cada contexto (D-0063) usan su propia base. La toman de su variable
+// (COMMUNICATION_DATABASE_URL, RISK_DATABASE_URL) o, si falta, de DATABASE_URL con otro
+// nombre de base (contexts/*/src/persistence/testing.ts). Todas pasan por la misma guarda.
+const VARIABLES_DE_CONTEXTOS = ['COMMUNICATION_DATABASE_URL', 'RISK_DATABASE_URL']
+
 export function motivoDelEntorno(env, envDelArchivo) {
   const delEnv = env.DATABASE_URL === undefined ? envDelArchivo() : { valor: env.DATABASE_URL }
   if (delEnv.ambiguo) {
@@ -64,8 +66,11 @@ export function motivoDelEntorno(env, envDelArchivo) {
   }
   const motivo = motivoDeRechazo(delEnv.valor)
   if (motivo) return motivo
-  const deComunicacion = motivoDeRechazo(env.COMMUNICATION_DATABASE_URL)
-  return deComunicacion ? `COMMUNICATION_DATABASE_URL: ${deComunicacion}` : null
+  for (const variable of VARIABLES_DE_CONTEXTOS) {
+    const delContexto = motivoDeRechazo(env[variable])
+    if (delContexto) return `${variable}: ${delContexto}`
+  }
+  return null
 }
 
 const motivo = motivoDelEntorno(process.env, leerEnv)

@@ -46,5 +46,9 @@ test('la base del contexto communication pasa por la misma guarda', () => {
   assert.match(motivoDelEntorno({ COMMUNICATION_DATABASE_URL: 'postgres://localhost:5432/postgres' }, sinArchivo), /no termina/)
   assert.match(motivoDelEntorno({ DATABASE_URL: 'postgres://remoto.example.com/x_test',
     COMMUNICATION_DATABASE_URL: 'postgres://localhost:5432/delcampo_communication_test' }, sinArchivo), /no es local/)
+  assert.equal(motivoDelEntorno({ RISK_DATABASE_URL: 'postgres://localhost:5432/delcampo_risk_test' }, sinArchivo), null)
+  assert.match(motivoDelEntorno({ RISK_DATABASE_URL: 'postgres://db.example.com:5432/delcampo_risk_test' }, sinArchivo),
+    /^RISK_DATABASE_URL: .*no es local/)
+  assert.match(motivoDelEntorno({ RISK_DATABASE_URL: 'postgres://localhost:5432/delcampo_risk' }, sinArchivo), /no termina/)
   assert.equal(motivoDelEntorno({}, () => ({ ambiguo: 2 })).includes('valores distintos'), true)
 })

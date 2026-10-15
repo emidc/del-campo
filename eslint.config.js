@@ -43,7 +43,7 @@ const prohibirImports = (regex, mensaje) =>
 // ── D-0063 · Contextos ───────────────────────────────────────────────────────
 // Cada contexto es un paquete bajo `contexts/`. Broker (`packages/*`, `apps/*`) no
 // importa ningún contexto, ni por nombre ni por ruta relativa.
-const CONTEXTOS = ['communication']
+const CONTEXTOS = ['communication', 'risk']
 
 const brokerNoImportaContextos = [
   ...prohibirImports(
@@ -160,6 +160,7 @@ export default tseslint.config(
       // tsconfig, falla. Sin esto, un .mjs saltaba R-25 (hallazgo C3 de T-0025).
       '!apps/communication/**/*.mjs',
       '!contexts/communication/**/*.mjs',
+      '!contexts/risk/**/*.mjs',
     ],
   },
 
@@ -235,40 +236,43 @@ export default tseslint.config(
       'la web pasa por api, no por la base'),
   },
 
-  // ── R-25, D-0063 · contexts/communication ─────────────────────────────────
-  // Tres bloques en orden de especificidad; cada uno repite la lista del anterior porque
-  // redefine la misma regla. domain no importa nada fuera de domain; persistence no
-  // importa application; application es lo único que el paquete exporta (package.json).
-  {
-    files: ['contexts/communication/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-syntax': ['error', ...contextoAislado('contexts/communication')],
+  // ── R-25, D-0063 · contextos (contexts/communication, contexts/risk) ──────
+  // Tres bloques por contexto, en orden de especificidad; cada uno repite la lista del
+  // anterior porque redefine la misma regla. domain no importa nada fuera de domain;
+  // persistence no importa application; application es lo único que el paquete exporta
+  // (package.json).
+  ...CONTEXTOS.flatMap((contexto) => [
+    {
+      files: [`contexts/${contexto}/**/*.{ts,tsx}`],
+      rules: {
+        'no-restricted-syntax': ['error', ...contextoAislado(`contexts/${contexto}`)],
+      },
     },
-  },
-  {
-    files: ['contexts/communication/src/persistence/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        ...contextoAislado('contexts/communication'),
-        ...prohibirImports('/(^|\\x2F)application\\x2F/', 'persistence no importa application (D-0063).'),
-      ],
+    {
+      files: [`contexts/${contexto}/src/persistence/**/*.{ts,tsx}`],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          ...contextoAislado(`contexts/${contexto}`),
+          ...prohibirImports('/(^|\\x2F)application\\x2F/', 'persistence no importa application (D-0063).'),
+        ],
+      },
     },
-  },
-  {
-    files: ['contexts/communication/src/domain/**/*.{ts,tsx}'],
-    // Los tests de domain importan node:test y node:assert. No son código de dominio:
-    // quedan bajo el bloque general del contexto, que igual les prohíbe salir de él.
-    ignores: ['contexts/communication/src/domain/**/*.test.ts'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        ...contextoAislado('contexts/communication'),
-        ...noBareImports('contexts/communication/src/domain'),
-        ...prohibirImports('/(^|\\x2F)(persistence|application)\\x2F/', 'domain no importa nada fuera de domain (D-0063).'),
-      ],
+    {
+      files: [`contexts/${contexto}/src/domain/**/*.{ts,tsx}`],
+      // Los tests de domain importan node:test y node:assert. No son código de dominio:
+      // quedan bajo el bloque general del contexto, que igual les prohíbe salir de él.
+      ignores: [`contexts/${contexto}/src/domain/**/*.test.ts`],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          ...contextoAislado(`contexts/${contexto}`),
+          ...noBareImports(`contexts/${contexto}/src/domain`),
+          ...prohibirImports('/(^|\\x2F)(persistence|application)\\x2F/', 'domain no importa nada fuera de domain (D-0063).'),
+        ],
+      },
     },
-  },
+  ]),
 
   // ── R-25, D-0063 · apps/communication (T-0025) ──────────────────────────
   // Puede importar: @del-campo/communication (solo la raíz), next, react, react-dom,
