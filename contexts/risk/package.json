@@ -9,7 +9,8 @@
   "scripts": {
     "db:create": "node src/persistence/cli.ts create",
     "db:migrate": "node src/persistence/cli.ts migrate",
-    "db:down": "node src/persistence/cli.ts down"
+    "db:down": "node src/persistence/cli.ts down",
+    "import": "node src/application/cli-importar.ts"
   },
   "dependencies": {
     "postgres": "^3.4.9"

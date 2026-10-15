@@ -12,7 +12,7 @@
 import { iEfectivoTexto } from '../domain/metodologia.ts'
 import { derivados, historia, numeroDePosicion, rankingOrganizacion, type RankingOrganizacion } from '../domain/lectura.ts'
 import { VERSION_METODOLOGIA, type Riesgo } from '../domain/modelo.ts'
-import { LOTE_EMI41, loteDe, type Fila } from './sinteticos.ts'
+import { LOTE_EMI41, loteDe, type Fila, type Lote } from './sinteticos.ts'
 
 /** El `resultado_nuevo` de `regresion-emi41.csv` para un objeto, calculado con `src/domain`. */
 export function resultado(r: RankingOrganizacion, riesgo: Riesgo): string {
@@ -43,7 +43,11 @@ const sinPos = (s: string): string => s.replace(/ · pos [^·]+/, '')
 
 export function compararConRegresion(risks: readonly Fila[], regresion: readonly Fila[]): Comparacion {
   // Sin las filas de la 15b: la regresión de EMI-41 es la foto anterior a ellas.
-  const lote = loteDe(risks.filter((f) => f.lote_origen === LOTE_EMI41))
+  return compararLote(loteDe(risks.filter((f) => f.lote_origen === LOTE_EMI41)), regresion)
+}
+
+/** Lo mismo sobre riesgos y evaluaciones ya armados: los de los CSV o los leídos de la base (T-0029). */
+export function compararLote(lote: Lote, regresion: readonly Fila[]): Comparacion {
   const diferencias: string[] = []
   const origen = (id: string): string => lote.origenDeRiesgo.get(id) ?? id
   const filasDe = (o: string): Fila[] => regresion.filter((x) => x.risk_id === o)

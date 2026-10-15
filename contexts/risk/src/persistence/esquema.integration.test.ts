@@ -248,12 +248,17 @@ const CASOS: Caso[] = [
   ['reordenamiento_vigente_reordenamiento', 'reordenamiento_vigente', { organizacion_id: ORG_B, risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
   ['reordenamiento_vigente_riesgo_de_la_organizacion', 'reordenamiento_vigente', { risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
   ['reordenamiento_vigente_evaluacion_del_riesgo', 'reordenamiento_vigente', { evaluacion_id: B.inicialOrgB }],
+
+  // lote_importacion (T-0029).
+  ['lote_importacion_huella_unica', 'lote_importacion', dosDistintas('lote_importacion', { huella: 'a'.repeat(64) })],
+  ['lote_importacion_huellas_sha256', 'lote_importacion', { huella_action_plan: 'A'.repeat(64) }],
+  ['lote_importacion_conteos_no_negativos', 'lote_importacion', { avisos: -1 }],
 ]
 
 const TABLAS: Tabla[] = [
   'persona', 'registro_acceso', 'riesgo', 'miembro_escenario', 'accion', 'evaluacion', 'accion_estado',
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
-  'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente',
+  'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */

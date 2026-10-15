@@ -14,11 +14,12 @@ hace cumplir `pnpm lint` (R-25).
 
 | Carpeta | Qué hay | Puede importar |
 |---|---|---|
-| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Puro. | Solo `src/domain/` |
-| `src/persistence/` | Conexión, runner de migraciones y su CLI. | `domain`, `postgres`, `node:*` |
+| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). Puro. | Solo `src/domain/` |
+| `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`). | `domain`, `postgres`, `node:*` |
 | `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
-| `src/testing/` | Soporte del test de oráculo: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv`. No es el importador (T-0029) y el paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
+| `src/testing/` | Soporte de los tests: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv` (`sinteticos.ts`, `regresion.ts`), y arma lotes a partir de las sintéticas y de los inválidos de la 15b (`lotes.ts`). El paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
 | `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
+| `contrato/` | Copia byte a byte de `SPIKES/T-0021/v0/fase-15/contrato/`: columnas de los tres CSV y las 71 reglas. Un test falla si se aparta del spike. | — |
 
 Cada derivado lleva la versión de las funciones que lo calcularon (`metodologia v1`):
 `derivados`, `rankingOrganizacion` y `colaDeValidacion` la piden como primer argumento y
@@ -54,6 +55,7 @@ recálculo, es un error y no un dato.
 | `revision_pendiente`, `cierre_revision` | Revisiones abiertas por actividad y su cierre por una persona. |
 | `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
 | `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
+| `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
 ## Bases locales
 
@@ -80,6 +82,34 @@ Sin `RISK_DATABASE_URL`, el runner apunta a `delcampo_risk_dev`. `db:down` revie
 sola migración; con todas revertidas, queda el esquema vacío con su ledger. Como las
 tablas son sólo de inserción, la única forma de vaciar una base es `db:down` o `dropdb`.
 
+## Importar un lote
+
+Un lote son los tres CSV (`risks.csv`, `action-plan.csv`, `risk-transfer.csv`) en una
+carpeta. Se importa todo o nada, en una transacción:
+
+1. Si la huella de los tres archivos es la de un lote ya importado, responde
+   `ya importado` sin validar ni escribir (H3).
+2. Si no, valida el lote completo con las 71 reglas, contra lo que ya está en la base (un
+   lote posterior puede reevaluar un riesgo importado antes; repetir un id es RV-ID-02).
+   Con un rechazo no escribe nada; los avisos no bloquean.
+3. Si una celda con valor no tiene columna en el esquema (por ejemplo `uncertainty` en un
+   evento de póliza), no escribe nada y dice cuál.
+4. Escribe las filas, registra el lote en `lote_importacion` y confirma. Si la base rechaza
+   una fila o la conexión se corta, no queda nada.
+
+```bash
+pnpm --filter @del-campo/risk run import SPIKES/T-0021/v0/fase-15/sinteticos \
+  [--corte AAAA-MM-DD] [--por nombre] [--sin-valores]
+```
+
+Hace falta `run`: `pnpm import` es un comando propio de pnpm. Apunta a
+`RISK_DATABASE_URL` o, si falta, a `delcampo_risk_dev`, y aplica las migraciones
+pendientes antes. `--corte` es la fecha contra la que se miran vencimientos (por defecto,
+hoy). `--sin-valores` deja el informe sin mensajes ni celdas, sólo conteos, líneas e ids:
+es el único que sale del equipo del owner con datos reales. Sale con 0 si el lote quedó
+importado (ahora o antes), con 1 si no se escribió nada y con 2 si la carpeta o las
+opciones no sirven.
+
 ## Tests
 
 `pnpm test` incluye los del contexto (R-26):
@@ -89,10 +119,12 @@ tablas son sólo de inserción, la única forma de vaciar una base es `db:down` 
 | unit, oráculo externo | `src/domain/regresion.test.ts` | Los derivados de las 8 sintéticas contra `SPIKES/T-0021/v0/fase-11/regresion-emi41.csv`: 59 objetos, S15 sin la posición (`verificacion-15b.md` §4). Falla si se altera un valor de esa tabla en una copia. |
 | unit | `src/domain/*.test.ts`, `src/application/*.test.ts` | Las funciones v1 (casos PV, bandas, §9.3, banderas, D10, padre, cola), las propiedades 1 a 7 de la metodología §14, las reglas 3 y 5 de RO01 §3 y lo que exporta el paquete. |
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
+| integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |
 
 Los de integración corren siempre sobre `delcampo_risk_test`: la crean si no existe y
 aplican las migraciones. Como el esquema no se puede vaciar, cada caso escribe dentro de
-una transacción que se revierte. La URL sale de `RISK_DATABASE_URL` o, si falta, de
+una transacción que se revierte; los de `importar-confirmado` confirman de verdad y
+rehacen el esquema (`db:down` y migrar) antes de cada caso y al terminar. La URL sale de `RISK_DATABASE_URL` o, si falta, de
 `DATABASE_URL` con el nombre de la base cambiado; `scripts/guard-db-tests.mjs` valida las
 dos antes de cualquier test.
 
@@ -111,8 +143,9 @@ node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
 - **T-0030, presentación.** `RankingOrganizacion.items` trae `C_raw` para ordenar; la UI
   nunca lo muestra solo, sino con el vector y las banderas de `derivados` (RO01 §3,
   regla 1).
-- **T-0029 y T-0030, invariantes de varias filas** que la base no hace cumplir: están en
-  `ops/evidence/T-0028.md`, «Lo que la base no hace cumplir».
+- **T-0030, invariantes de varias filas** que la base no hace cumplir: están en
+  `ops/evidence/T-0028.md`, «Lo que la base no hace cumplir». La importación las hace
+  cumplir con el validador; lo que queda abierto está en `ops/evidence/T-0029.md`.
 
 ## Datos
 

@@ -1,0 +1,27 @@
+columna,tipo,obligatoriedad,condicion,valores,regla_validacion,severidad,regla_id,origen,uso_risk_os_v1
+accion_id,id,siempre,,ACC-<ULID>,formato; único,rechazo,RV-ID-01; RV-ID-02,EMI-17; decisión 1,plan de acción
+risk_id,id,siempre,,RSK-<ULID> de risks.csv o de Risk OS,existe; no es padre; aviso si es escenario,aviso; rechazo,RV-ACC-01; RV-ACC-02,EMI-17 (exactamente un risk_id),plan de acción
+id_origen,texto,opcional,,id de origen tal cual,único con lote_origen,rechazo,RV-ID-03,decisión 1,trazabilidad
+lote_origen,texto,condicional,id_origen presente,,,rechazo,RV-ID-03,decisión 1,trazabilidad
+tipo_registro,enum,siempre,,accion | decision_tratamiento,enum,rechazo,RV-ARCH-05,metodología §8.2 (acción en curso o decisión de la dirección),plan de acción; vista de seguridad
+descripcion,texto,siempre,,qué se hace o qué se decidió,no vacía,rechazo,RV-ARCH-05,plan Fase 15 (acción),plan de acción
+factor_objetivo,lista de enum,condicional,tipo_registro = accion,"p | i_econ | i_pers | i_cont | i_legal | v_cont | v_rec, separados por ;",no vacío; V siempre con aspecto (v_cont o v_rec),rechazo,RV-ACC-03,D16; metodología §11.2.6,plan de acción; movimiento por dimensión
+mecanismo_causal,texto,condicional,tipo_registro = accion,"por qué la acción actúa sobre ese factor; con varios factores, uno por factor",no vacío; aviso si varios factores sin mecanismo por factor,aviso; rechazo,RV-ACC-04; RV-ACC-05,D16; D15,plan de acción
+cambio_esperado,texto,opcional,tipo_registro = accion,"hipótesis, p. ej. «v_cont 4→2»",nunca escribe un factor,,,D16; protocolo §6.3.1,plan de acción
+estado,enum,condicional,tipo_registro = accion,planificada | en_curso | cumplida | cancelada,enum,rechazo,RV-ARCH-05,D25 (cumplida); metodología §8.2 (en curso),plan de acción; vista de seguridad; revisión pendiente
+fecha_alta,fecha,siempre,,AAAA-MM-DD,formato,rechazo,RV-ARCH-05,metodología §11,plan de acción; historial
+fecha_cumplida,fecha,condicional,estado = cumplida,AAAA-MM-DD,presente si cumplida,rechazo,RV-ACC-06,D25,plan de acción; revisión pendiente (la abre)
+evidencia_ejecucion,lista,condicional,estado = cumplida,referencias separadas por ;,al menos una referencia si cumplida,rechazo,RV-ACC-06,D25 (ejecución verificada); plan Fase 15 (evidencia),plan de acción
+efecto,enum,condicional,acción cumplida con reevaluación que observó el efecto,efecto_total | efecto_parcial | sin_efecto_medible,sólo con evaluacion_efecto_id y estado cumplida,rechazo,RV-ACC-07; RV-ACC-09,D25; metodología §11.2.3,plan de acción; movimiento por dimensión
+efecto_nota,texto,condicional,efecto ≠ efecto_total,"esperado, obtenido y brecha",no vacía,rechazo,RV-ACC-07,D25; protocolo §6.3.3,plan de acción
+evaluacion_efecto_id,id,condicional,efecto presente,EVA-<ULID> de risks.csv,"existe, mismo riesgo, motivo accion_ejecutada, accion_id = esta acción",rechazo,RV-ACC-07; RV-ACC-08,protocolo §6.3; plan Fase 15 (efecto observado posteriormente),plan de acción; historial
+decision,enum,condicional,tipo_registro = decision_tratamiento,tratar | aceptar | transferir,presente,rechazo,RV-ACC-10,metodología §8.2,vista de seguridad
+fundamento,texto,condicional,decision = aceptar,por qué se acepta,no vacío si aceptar,rechazo,RV-ACC-10,metodología §8.2 (aceptar con fundamento),vista de seguridad
+fecha_proxima_revision,fecha,condicional,tipo_registro = decision_tratamiento; opcional en accion,AAAA-MM-DD,presente en decisión; aviso de seguridad si vencida,aviso; rechazo,RV-ACC-10; RV-ACC-11,metodología §8.2 (con fecha de revisión),vista de seguridad
+actor,enum,siempre,,human | ai | import,enum,rechazo,RV-PRO-04,EMI-17,revisión
+base,enum,siempre,,observed | reported | inferred | assumed,enum,rechazo,RV-PRO-01,EMI-17,plan de acción (detalle)
+evidencia,lista,siempre,,referencias separadas por ; | sin_evidencia,no vacía,rechazo,RV-PRO-02; RV-PRO-03,EMI-17,plan de acción (detalle)
+review_status,enum,siempre,,pending | accepted | needs_revision | rejected,enum; ai nace pending,rechazo,RV-REV-01; RV-REV-02; RV-REV-03; RV-REV-04,EMI-17; decisión 4,revisión
+revisado_por,texto,condicional,review_status ≠ pending,persona,,rechazo,RV-REV-02; RV-REV-04,decisión 4,revisión
+revisado_por_actor,enum,condicional,review_status ≠ pending,human | ai,accepted sólo con human,rechazo,RV-REV-02; RV-REV-03,EMI-17; decisión 4,revisión
+fecha_revision,fecha,condicional,review_status ≠ pending,AAAA-MM-DD,formato,rechazo,RV-ARCH-05; RV-REV-02,decisión 4,revisión
