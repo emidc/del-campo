@@ -2,7 +2,7 @@
 id: T-0021
 title: Definir formatos de importación, modelo mínimo y datos sintéticos de Risk OS
 kind: SPIKE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: LOW
 size: M

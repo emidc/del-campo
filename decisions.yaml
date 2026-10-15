@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-10-03
+updated: 2026-10-14
 
 decisions:
 
@@ -1147,3 +1147,28 @@ decisions:
       diverjan de Broker OS al punto de cambiar una evaluación de transferencia aceptada;
       que un tercer contexto necesite la misma proyección; o la decisión de cierre de Q4
       sobre integrar, mantener separados o descartar los laboratorios.
+
+  # ── Datos reales de Risk OS v1 (Q4, RO01) ────────────────────────────────
+
+  - id: D-0068
+    title: Dónde viven los datos reales de Risk OS v1 y quién los carga
+    status: ACCEPTED
+    date: 2026-10-15
+    source: >
+      SLICES/RO01-decisiones.md, punto 1 (opción b), proveedor, región y estado
+      elegidos por el owner el 2026-10-15 y su corrección de plan del mismo día;
+      SLICES/RO01.md §5 y §7; D-0062, que no se extiende (D-0063); D-0067, que no
+      autoriza datos reales; R-19.
+    adr: DECISIONS/0068-datos-reales-risk-os.md
+    statement: >
+      Los datos de las cinco empresas históricas se alojan en infraestructura hosteada
+      y dedicada a Risk OS, sin compartir base ni
+      despliegue con Broker OS ni Communication OS; los sintéticos y las previews no
+      usan datos reales. Carga el owner, desde su máquina, y ningún agente de
+      desarrollo los ve (R-19). Proveedor: un proyecto nuevo de Supabase en plan Free,
+      región sa-east-1 (São Paulo), y un proyecto nuevo de Vercel en plan Hobby, los
+      dos propios de Risk OS, hasta que Broker OS quede operativo; entonces se pasan a
+      planes pagos, que contrata el owner (R-14). Se aceptan los riesgos del plan
+      gratuito de D-0062: pausa por inactividad, sin backups automáticos (copia manual
+      del owner fuera del repositorio), logs cortos y condiciones de uso de Vercel
+      Hobby.
