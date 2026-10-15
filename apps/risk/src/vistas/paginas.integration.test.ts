@@ -219,10 +219,23 @@ describe('HTML de las vistas sobre las 8 sintéticas (RO01 §3)', () => {
     assert.ok(todas.some((p) => p.html.includes('>aceptada<')))
   })
 
+  it('regla 6 en el detalle: dice qué evaluación usa; el de un padre, la de su hijo prioritario', () => {
+    let padres = 0
+    for (const p of todas.filter((x) => x.vista === 'detalle')) {
+      if (p.html.includes('data-lee-por=')) {
+        padres++
+        assert.match(p.html, /data-lee-por="RSK-[^"]+"[^>]*>[\s\S]*?data-evaluacion="EVA-/, `${p.nombre}: el padre no dice qué evaluación usa`)
+      } else if (!p.html.includes('data-posicion-detalle=""')) {
+        assert.match(p.html, /Evaluación usada: <span data-evaluacion="EVA-/, `${p.nombre}: sin la evaluación usada`)
+      }
+    }
+    assert.equal(padres, 2)
+  })
+
   it('regla 7: las vistas con algo calculado dicen la versión; las demás dicen que no calculan', () => {
     for (const p of todas) {
-      // Un detalle sin evaluaciones (un padre) no muestra nada calculado.
-      if (p.vista === 'detalle' && !p.html.includes('data-c-raw')) continue
+      // Un detalle sin evaluaciones y fuera del ranking (un padre no evaluable) no muestra nada calculado.
+      if (p.vista === 'detalle' && !p.html.includes('data-c-raw') && p.html.includes('data-posicion-detalle=""')) continue
       if (['lista', 'escenarios', 'transferencia', 'detalle'].includes(p.vista)) assert.ok(p.html.includes(`calculado con las funciones de ${V}`), p.nombre)
       if (p.vista === 'plan') assert.match(p.html, /No usa ninguna evaluación ni calcula nada/)
     }

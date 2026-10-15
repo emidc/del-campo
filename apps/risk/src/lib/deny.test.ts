@@ -183,7 +183,8 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
       const source = readFileSync(join(APP, file), 'utf8')
       if (PUBLIC.has(file)) return
       if (file.endsWith('page.tsx')) {
-        assert.match(source, /const sesion = await requireSession\(\)\n/, `${file} no llama a requireSession() primero`)
+        // La primera sentencia del componente de la página, antes de leer parámetros o datos.
+        assert.match(source, /export default async function \w+\([^)]*(\([^)]*\)[^)]*)*\) \{\n {2}const sesion = await requireSession\(\)\n/, `${file} no llama a requireSession() primero`)
         return
       }
       const handlers = source.match(/export (const|function|async function) (GET|POST|PUT|PATCH|DELETE)\b/g) ?? []

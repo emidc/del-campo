@@ -72,7 +72,8 @@ de esta carpeta, que está gitignored.
 3. **El techo plausible no entra al ranking:** sólo en la cola de validación y en el
    detalle, en su propia columna o línea, rotulado.
 4. **Una organización por vista:** nada se ordena entre organizaciones. El filtro por
-   unidad oculta filas y conserva el número de posición de la organización.
+   unidad oculta filas y conserva el número de posición de la organización. Un padre
+   aparece en su unidad y en la de cualquiera de sus hijos.
 5. **`unknown` es `unknown`:** con su rango si lo tiene, nunca completado con un valor.
 6. **Qué evaluación usa cada fila:** id corto, fecha y `aceptada` o `pendiente de
    revisión` (la vigente de 8a: la última aceptada o, si no hay, la última no rechazada).
@@ -147,7 +148,9 @@ padre, hijos, miembros y escenarios; el historial de evaluaciones de la última 
 inicial, cada una con su criticidad (`C_raw`, banda, I efectivo, determinante, vector y
 banderas en una misma fila), el techo plausible en una línea aparte y el movimiento por
 dimensión contra la anterior aceptada (o la anterior de la cadena, rotulada). Por
-ejemplo, S32-R01 tiene tres evaluaciones; en la última, I cont. vuelve de 1 a 4.
+ejemplo, S32-R01 tiene tres evaluaciones; en la última, I cont. vuelve de 1 a 4. El
+detalle de un padre (S05-P01, S29-P01) no tiene historial propio: dice por qué hijo
+prioritario se lee y qué evaluación de ese hijo usa su posición.
 
 ## Tests
 

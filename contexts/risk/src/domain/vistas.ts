@@ -326,7 +326,9 @@ export function armarLista(version: VersionFunciones, d: DatosOrganizacion, unid
     organizacionId: d.organizacionId,
     unidades,
     unidad,
-    ranking: ranking.filter(filtro),
+    // Un padre se lee por sus hijos (§1.4): queda en la unidad propia y en la de cualquiera de sus
+    // hijos, para que la unidad no pierda a su riesgo más alto si el padre está en otra.
+    ranking: ranking.filter((f) => filtro(f) || (f.padre?.hijos.some(filtro) ?? false)),
     seguridad: seguridad.filter(filtro),
     noEvaluables: noEvaluables.filter(filtro),
     cola: cola.filter(filtro),
@@ -759,6 +761,11 @@ export interface VistaDetalle {
   /** En el ranking principal de su organización; `null` si no compite (sub-riesgo, escenario, no evaluable). */
   readonly posicion: { readonly posicion: number; readonly empate: boolean; readonly provisional: boolean } | null
   readonly evaluacionUsada: EvaluacionUsada | null
+  /**
+   * Un padre no tiene evaluación: se lee por su hijo prioritario (§1.4), y su posición es la de
+   * ese hijo. Acá va qué hijo y qué evaluación de él usa la posición (RO01 §3, regla 6).
+   */
+  readonly leePor: (Identidad & { readonly evaluacion: EvaluacionUsada | null; readonly prioridadProvisional: boolean }) | null
   /** De la inicial a la última. */
   readonly historial: readonly EvaluacionDetalle[]
   readonly acciones: readonly AccionVista[]
@@ -853,6 +860,12 @@ export function armarDetalle(version: VersionFunciones, d: DatosOrganizacion, ri
     },
     posicion: enRanking === undefined || numero === null ? null : { posicion: numero, empate: enRanking.ids.length > 1, provisional: enRanking.provisional },
     evaluacionUsada: evaluacionUsada(o, riskId),
+    leePor: (() => {
+      const padre = o.ranking.padres.get(riskId)
+      const hijo = padre?.hijosPrioritarios[0]
+      if (padre === undefined || hijo === undefined) return null
+      return { ...ident(hijo), evaluacion: evaluacionUsada(o, hijo), prioridadProvisional: padre.prioridadProvisional }
+    })(),
     historial,
     acciones: acciones.sort((a, b) => a.fechaAlta.localeCompare(b.fechaAlta) || a.id.localeCompare(b.id)).map((a) => accionVista(o, a)),
     coberturas: d.coberturas.filter((c) => c.riskId === riskId).map((c) => coberturaVista(version, c)),

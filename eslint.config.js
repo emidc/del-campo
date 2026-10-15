@@ -302,6 +302,21 @@ export default tseslint.config(
       'local/sin-salir-de': ['error', 'apps/risk'],
     },
   },
+  // La raíz de @del-campo/risk exporta migrar e importar para los tests de integración de la
+  // app. Fuera de los tests, la app sólo lee (T-0030; las escrituras son de T-0031).
+  {
+    files: ['apps/risk/**/*.{ts,tsx,js,mjs}'],
+    ignores: ['apps/risk/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '@del-campo/risk',
+          importNames: ['migrate', 'importarLote', 'leerArchivosDeLote', 'leerContrato'],
+          message: 'apps/risk no migra ni importa lotes fuera de sus tests (T-0030).',
+        }],
+      }],
+    },
+  },
 
   // El config de ESLint es JS y no está en el programa de TypeScript.
   {

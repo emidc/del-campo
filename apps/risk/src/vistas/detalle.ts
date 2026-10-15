@@ -82,7 +82,12 @@ export const PaginaDetalle = (v: VistaDetalle, persona: string): ReactElement =>
     h('p', { 'data-posicion-detalle': v.posicion === null ? '' : String(v.posicion.posicion) },
       v.posicion === null ? 'No compite en el ranking principal de su organización.' :
         `Posición ${String(v.posicion.posicion)} en el ranking de su organización${v.posicion.empate ? ' (empate)' : ''}${v.posicion.provisional ? ' (provisional)' : ''}.`),
-    h('p', null, 'Evaluación usada: ', evaluacionUsada(v.evaluacionUsada)),
+    v.posicion === null ? null : calculado(v.version, 'Posición'),
+    v.leePor === null
+      ? h('p', null, 'Evaluación usada: ', evaluacionUsada(v.evaluacionUsada))
+      : h('p', { 'data-lee-por': v.leePor.riskId },
+        'Un padre no tiene evaluación propia: se lee por su hijo prioritario ', enlaceRiesgo(v.leePor.riskId, v.leePor.titulo, v.leePor.idOrigen),
+        v.leePor.prioridadProvisional ? ' (prioridad provisional por un unknown)' : '', '. Evaluación usada: ', evaluacionUsada(v.leePor.evaluacion)),
     relacion('Padre', r.padre === null ? [] : [r.padre]),
     relacion('Hijos', r.hijos),
     relacion('Miembros', r.miembros),

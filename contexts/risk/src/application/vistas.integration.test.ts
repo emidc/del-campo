@@ -218,6 +218,15 @@ describe('vistas de T-0030 sobre las 8 sintéticas (RO01 §3)', () => {
         assert.equal(f.posicion, posicionEnToda.get(f.riskId), `${f.idOrigen ?? ''} cambió de posición con el filtro`)
       }
       assert.throws(() => armarLista(V, conUnidades, 'U-OTRA'))
+
+      // Un padre en una unidad y sus hijos en otra: el padre aparece, con su posición, en la de los hijos.
+      const padre = d.riesgos.find((r) => r.tipoObjeto === 'padre')
+      assert.ok(padre !== undefined)
+      const separados: DatosOrganizacion = {
+        ...d, riesgos: d.riesgos.map((r) => ({ ...r, unidadId: r.id === padre.id ? 'U-ADMIN' : r.riesgoPadreId === padre.id ? 'U-NAVE' : 'U-OBRA' })),
+      }
+      const nave = armarLista(V, separados, 'U-NAVE')
+      assert.deepEqual(nave.ranking.map((f) => [f.riskId, f.posicion]), [[padre.id, armarLista(V, separados).ranking.find((f) => f.riskId === padre.id)?.posicion]])
       // Por el caso de uso: una unidad que la organización no tiene es `null`, y no registra acceso.
       assert.equal(await vistaLista(tx, sesion, V, o.organizacionId, 'U-NORTE'), null)
       assert.deepEqual(await accesos(tx), [])
