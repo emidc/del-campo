@@ -110,7 +110,7 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
     risk_id_baja: B.otroRiesgo, orden_calculado: { posiciones: [B.otroRiesgo, B.riesgo] }, version_funciones: 'metodologia v1',
     causa: 'sin_causa', fundamento: 'Fundamento sintético', patron: 'otro',
   }),
-  reordenamiento_vigente: () => ({ reordenamiento_id: B.reordenamiento, evaluacion_id: B.inicial }),
+  reordenamiento_vigente: () => ({ reordenamiento_id: B.reordenamiento, organizacion_id: ORG_A, evaluacion_id: B.inicial, risk_id: B.riesgo }),
 }
 
 /** Una fila válida de `tabla` sobre los registros de `base`, con `cambios` encima. */

@@ -177,6 +177,7 @@ create table risk.accion (
   autor_persona_id        risk.id_persona references risk.persona,
   registrada_en           timestamptz not null default now(),
   constraint accion_id_riesgo unique (id, risk_id),
+  constraint accion_id_riesgo_tipo unique (id, risk_id, tipo_registro),
   constraint accion_id_tipo unique (id, tipo_registro),
   -- RV-ACC-01, EMI-17: exactamente un riesgo, que no es padre (las acciones van en los hijos).
   constraint accion_riesgo foreign key (risk_id, riesgo_tipo) references risk.riesgo (id, tipo_objeto),
@@ -215,11 +216,16 @@ create table risk.evaluacion (
                             'accion_ejecutada', 'informacion_nueva', 'correccion_evaluacion', 'cambio_contexto',
                             'cambio_version_metodologia')),
   accion_id               risk.id_accion,
+  -- Constante del lado que referencia: la acción nombrada es una acción y no una decisión de
+  -- tratamiento, que nunca está cumplida (RV-EVA-04, RV-EVA-05).
+  accion_tipo             text generated always as (case when accion_id is not null then 'accion' end) stored,
   fecha                   date not null,
   version_metodologia     text not null constraint evaluacion_version_metodologia check (version_metodologia in (
                             'metodologia v0.1', 'metodologia v0.2', 'metodologia v0.3', 'metodologia v1 candidate',
                             'metodologia v1')),
-  evaluador               risk.texto not null,
+  -- El evaluador como lo trae el CSV (`agente`, un nombre). Desde una sesión no hay texto: el
+  -- evaluador es la persona de `autor_persona_id` (decisión 2 del owner).
+  evaluador               risk.texto,
   actor                   risk.actor not null,
   base                    risk.base not null,
   evidencia               risk.referencias not null,
@@ -357,9 +363,12 @@ create table risk.evaluacion (
   constraint evaluacion_sin_ramas unique (evaluacion_anterior_id),
   -- RV-EVA-04: accion_ejecutada nombra su acción, y sólo ese motivo la nombra.
   constraint evaluacion_accion_con_motivo check ((motivo = 'accion_ejecutada') = (accion_id is not null)),
-  -- RV-EVA-05 (en parte): la acción existe y es del mismo riesgo. Que esté cumplida depende de
-  -- su estado en ese momento: lo comprueba la aplicación.
-  constraint evaluacion_accion_del_mismo_riesgo foreign key (accion_id, risk_id) references risk.accion (id, risk_id),
+  -- RV-EVA-05 (en parte): la acción existe, es del mismo riesgo y es una acción, no una
+  -- decisión de tratamiento. Que esté cumplida depende de su estado en ese momento: lo
+  -- comprueba la aplicación.
+  constraint evaluacion_accion_del_mismo_riesgo foreign key (accion_id, risk_id, accion_tipo)
+    references risk.accion (id, risk_id, tipo_registro),
+  constraint evaluacion_evaluador check (case origen when 'sesion' then evaluador is null else evaluador is not null end),
   -- RV-ECO-01.
   constraint evaluacion_monto_con_moneda check (i_econ_monto_bruto is null or moneda is not null),
   -- RV-UNC-02.
@@ -583,6 +592,8 @@ create table risk.revision_pendiente (
   disparador           text not null constraint revision_pendiente_disparador check (disparador in (
                          'accion_ejecutada', 'informacion_nueva', 'cambio_contexto', 'cambio_version_metodologia')),
   accion_id            risk.id_accion,
+  -- Como en `evaluacion`: una acción cumplida abre la revisión; una decisión de tratamiento no.
+  accion_tipo          text generated always as (case when accion_id is not null then 'accion' end) stored,
   novedad_id           risk.id_novedad,
   version_metodologia  risk.texto,
   origen               risk.origen not null,
@@ -595,7 +606,8 @@ create table risk.revision_pendiente (
     (disparador = 'accion_ejecutada') = (accion_id is not null)
     and (disparador in ('informacion_nueva', 'cambio_contexto')) = (novedad_id is not null)
     and (disparador = 'cambio_version_metodologia') = (version_metodologia is not null)),
-  constraint revision_pendiente_accion_del_riesgo foreign key (accion_id, risk_id) references risk.accion (id, risk_id),
+  constraint revision_pendiente_accion_del_riesgo foreign key (accion_id, risk_id, accion_tipo)
+    references risk.accion (id, risk_id, tipo_registro),
   -- La novedad es del mismo riesgo y de su mismo tipo: un comentario no abre revisión (H2).
   constraint revision_pendiente_novedad_del_riesgo foreign key (novedad_id, risk_id, disparador)
     references risk.novedad (id, risk_id, tipo),
@@ -697,7 +709,8 @@ create table risk.reordenamiento (
   constraint reordenamiento_baja_de_la_organizacion foreign key (risk_id_baja, organizacion_id) references risk.riesgo (id, organizacion_id),
   constraint reordenamiento_riesgo_de_la_organizacion foreign key (risk_id, organizacion_id) references risk.riesgo (id, organizacion_id),
   constraint reordenamiento_orden_previo_de_la_organizacion foreign key (orden_previo_id, organizacion_id)
-    references risk.orden_previo (id, organizacion_id)
+    references risk.orden_previo (id, organizacion_id),
+  constraint reordenamiento_id_organizacion unique (id, organizacion_id)
 );
 comment on table risk.reordenamiento is
   'RO01 §2, reordenamiento profesional: discrepancia con causa sobre el orden calculado de una organización, con los campos de los disparadores de reapertura (decisión 5; dossier 15a §6).';
@@ -705,9 +718,19 @@ comment on table risk.reordenamiento is
 -- Las evaluaciones vigentes de los riesgos involucrados cuando se reordenó: con ellas, el orden
 -- calculado de ese momento se puede reproducir.
 create table risk.reordenamiento_vigente (
-  reordenamiento_id  risk.id_reordenamiento not null references risk.reordenamiento,
-  evaluacion_id      risk.id_evaluacion not null references risk.evaluacion,
-  primary key (reordenamiento_id, evaluacion_id)
+  reordenamiento_id  risk.id_reordenamiento not null,
+  organizacion_id    risk.texto not null,
+  evaluacion_id      risk.id_evaluacion not null,
+  risk_id            risk.id_riesgo not null,
+  primary key (reordenamiento_id, evaluacion_id),
+  -- Las tres claves encadenan reordenamiento → organización → riesgo → evaluación: una
+  -- evaluación de otra organización no entra (§7.1.4, como BR-004 en D-0051).
+  constraint reordenamiento_vigente_reordenamiento foreign key (reordenamiento_id, organizacion_id)
+    references risk.reordenamiento (id, organizacion_id),
+  constraint reordenamiento_vigente_riesgo_de_la_organizacion foreign key (risk_id, organizacion_id)
+    references risk.riesgo (id, organizacion_id),
+  constraint reordenamiento_vigente_evaluacion_del_riesgo foreign key (evaluacion_id, risk_id)
+    references risk.evaluacion (id, risk_id)
 );
 comment on table risk.reordenamiento_vigente is
   'RO01 §2, reordenamiento profesional: las evaluaciones vigentes con las que se calculó el orden que se reordenó.';

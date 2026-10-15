@@ -269,6 +269,9 @@ export default tseslint.config(
           ...contextoAislado(`contexts/${contexto}`),
           ...noBareImports(`contexts/${contexto}/src/domain`),
           ...prohibirImports('/(^|\\x2F)(persistence|application)\\x2F/', 'domain no importa nada fuera de domain (D-0063).'),
+          // Ni de una carpeta hermana como src/testing/ (hallazgo A3 de la revisión ciega de
+          // T-0028): desde src/domain/ cualquier segmento `..` ya salió de domain.
+          ...prohibirImports('/(^|\\x2F)\\.\\.(\\x2F|$)/', 'domain no importa nada fuera de domain (D-0063).'),
         ],
       },
     },

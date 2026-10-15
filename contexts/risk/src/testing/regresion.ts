@@ -90,7 +90,7 @@ export function compararConRegresion(risks: readonly Fila[], regresion: readonly
       const calculado = resultado(ranking, r)
       // Para un padre, la regresión agrega banda y banderas de su hijo: se compara C y posición.
       const [a, b] = conPos ? [calculado, esperado] : [sinPos(calculado), sinPos(esperado)]
-      const igual = r.tipoObjeto === 'padre' ? b.startsWith(a) : a === b
+      const igual = r.tipoObjeto === 'padre' ? b === a || b.startsWith(`${a} · `) : a === b
       if (!igual) diferencias.push(`${origen(r.id)}: ${calculado} ≠ ${esperado}`)
     }
   }

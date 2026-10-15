@@ -78,7 +78,9 @@ describe('historia y evaluación vigente (decisiones 8 y 8a)', () => {
     assert.equal(vigente([ev('X', 'T', f, { review: 'rejected' })]), undefined)
   })
 
-  it('§14 propiedad 6: una reevaluación por cambio de versión no sobrescribe la anterior', () => {
+  // La lectura no muta la historia; que una evaluación escrita no se pueda modificar lo
+  // garantiza la base (`esquema.integration.test.ts`, «un UPDATE sobre una evaluación escrita falla»).
+  it('§14 propiedad 6, del lado de la lectura: agregar una reevaluación deja la historia anterior igual', () => {
     const antes = historia([e1, e2], 'R')
     const congelada = JSON.stringify(antes)
     const nueva = ev('E3v', 'R', fx(4, [3, 1, 1, 1], 3, 3), { anterior: 'E2' })

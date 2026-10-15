@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 
 import type { Sql, TransactionSql } from './database.ts'
-import { B, base, fila, insertar, valores, LOTE, nuevoId, ORG_A, ORG_B, PERSONA_INEXISTENTE, type Fila, type Tabla } from './fixtures.ts'
+import { B, base, fila, insertar, valores, LOTE, nuevoId, ORG_B, PERSONA_INEXISTENTE, type Fila, type Tabla } from './fixtures.ts'
 import { enTransaccionRevertida, openTestDatabase } from './testing.ts'
 
 let sql: Sql
@@ -120,9 +120,10 @@ const CASOS: Caso[] = [
   }],
   ['evaluacion_accion_con_motivo', 'evaluacion', { ...reevaluacion, motivo: 'accion_ejecutada' }],
   ['evaluacion_accion_del_mismo_riesgo', 'evaluacion', { ...reevaluacion, motivo: 'accion_ejecutada', accion_id: B.accionOrgB }],
+  ['evaluacion_evaluador', 'evaluacion', { origen: 'sesion', autor_persona_id: B.persona }],
   ['evaluacion_anterior_del_mismo_riesgo', 'evaluacion', { ...reevaluacion, risk_id: B.subRiesgo, riesgo_tipo: 'sub_riesgo' }],
   ['evaluacion_autor_de_sesion', 'evaluacion', sesionSinAutor],
-  ['evaluacion_autor_persona_id_fkey', 'evaluacion', autorInexistente],
+  ['evaluacion_autor_persona_id_fkey', 'evaluacion', { ...autorInexistente, evaluador: null }],
   ...['p', 'i_econ', 'i_pers', 'i_cont', 'i_legal', 'v_cont', 'v_rec'].flatMap(factor),
   ['evaluacion_v_rec_no_aplica_sin_rango', 'evaluacion', { v_rec_estado: 'no_aplica', v_rec_valor: null, v_rec_min: 1 }],
   ['evaluacion_inicial_o_reevaluacion', 'evaluacion', { motivo: 'informacion_nueva' }],
@@ -244,8 +245,9 @@ const CASOS: Caso[] = [
   ['reordenamiento_tipo_completo', 'reordenamiento', { risk_id_baja: B.riesgo }],
   ['reordenamiento_version_funciones', 'reordenamiento', { version_funciones: 'metodologia v1 candidate' }],
   ['reordenamiento_vigente_pkey', 'reordenamiento_vigente', dosVeces('reordenamiento_vigente')],
-  ['reordenamiento_vigente_evaluacion_id_fkey', 'reordenamiento_vigente', { evaluacion_id: 'EVA-00000000000000000000000999' }],
-  ['reordenamiento_vigente_reordenamiento_id_fkey', 'reordenamiento_vigente', { reordenamiento_id: 'ROR-00000000000000000000000999' }],
+  ['reordenamiento_vigente_reordenamiento', 'reordenamiento_vigente', { organizacion_id: ORG_B, risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
+  ['reordenamiento_vigente_riesgo_de_la_organizacion', 'reordenamiento_vigente', { risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
+  ['reordenamiento_vigente_evaluacion_del_riesgo', 'reordenamiento_vigente', { evaluacion_id: B.inicialOrgB }],
 ]
 
 const TABLAS: Tabla[] = [
@@ -444,12 +446,33 @@ describe('trazabilidad y derivados', () => {
     assert.equal(columnas[0]?.n, 0)
   })
 
-  it('organizaciones distintas no comparten un orden: un reordenamiento mezcla una sola', async () => {
+  it('un reordenamiento es de una sola organización: riesgos y evaluaciones vigentes', async () => {
+    const casos: [string, Tabla, Fila][] = [
+      ['reordenamiento_sube_de_la_organizacion', 'reordenamiento', { risk_id_sube: B.riesgoOrgB }],
+      ['reordenamiento_baja_de_la_organizacion', 'reordenamiento', { risk_id_baja: B.riesgoOrgB }],
+      ['reordenamiento_riesgo_de_la_organizacion', 'reordenamiento', { ...soloPosicion, risk_id: B.riesgoOrgB }],
+      // La evaluación de otra organización, se declare con su riesgo o con uno de la propia.
+      ['reordenamiento_vigente_riesgo_de_la_organizacion', 'reordenamiento_vigente', { risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
+      ['reordenamiento_vigente_evaluacion_del_riesgo', 'reordenamiento_vigente', { evaluacion_id: B.inicialOrgB }],
+    ]
+    for (const [restriccion, tabla, cambios] of casos) {
+      await enTransaccionRevertida(sql, async (tx) => {
+        await base(tx)
+        assert.equal(await rechazo(() => insertar(tx, tabla, fila(tabla, cambios))), restriccion)
+      })
+    }
+  })
+
+  it('una reevaluación por acción ejecutada y una revisión pendiente no nombran una decisión de tratamiento', async () => {
     await enTransaccionRevertida(sql, async (tx) => {
       await base(tx)
-      await insertar(tx, 'reordenamiento', fila('reordenamiento', { organizacion_id: ORG_A }))
-      const obtenida = await rechazo(() => insertar(tx, 'reordenamiento', fila('reordenamiento', { risk_id_baja: B.riesgoOrgB })))
-      assert.equal(obtenida, 'reordenamiento_baja_de_la_organizacion')
+      const ev = await rechazo(() => insertar(tx, 'evaluacion', fila('evaluacion', { ...reevaluacion, motivo: 'accion_ejecutada', accion_id: B.decision })))
+      assert.equal(ev, 'evaluacion_accion_del_mismo_riesgo')
+    })
+    await enTransaccionRevertida(sql, async (tx) => {
+      await base(tx)
+      const rp = await rechazo(() => insertar(tx, 'revision_pendiente', fila('revision_pendiente', { disparador: 'accion_ejecutada', accion_id: B.decision, version_metodologia: null })))
+      assert.equal(rp, 'revision_pendiente_accion_del_riesgo')
     })
   })
 })
