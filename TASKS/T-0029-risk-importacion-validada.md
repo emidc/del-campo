@@ -2,7 +2,7 @@
 id: T-0029
 title: Importar los tres CSV de Risk OS en una transacción, con validación completa
 kind: FEATURE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
