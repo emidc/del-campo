@@ -110,7 +110,7 @@ persistente y habilita A5, A7, A8 y A12 de `SLICES/RO01.md`.
 ```bash
 pnpm check
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test pnpm test
-pnpm --filter "./apps/risk" build
+pnpm --filter "./apps/risk" run build
 ```
 
 Comprobaciones humanas, registradas en `ops/evidence/T-0031.md`:
