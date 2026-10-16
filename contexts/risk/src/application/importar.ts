@@ -15,7 +15,8 @@
 
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ARCHIVOS, contratoDe, porArchivo, type Archivo, type ArchivoContrato, type Contrato } from '../domain/contrato.ts'
 import { leerCsv } from '../domain/csv.ts'
@@ -26,7 +27,9 @@ import type { Sql, TransactionSql } from '../persistence/database.ts'
 import { bloquearImportaciones, buscarLote, escribirFilas, leerExistentes, registrarLote } from '../persistence/importacion.ts'
 
 /** `contrato/` del contexto: copia byte a byte de `SPIKES/T-0021/v0/fase-15/contrato/` (lo comprueba un test). */
-export const CONTRATO_DIR = new URL('../../contrato/', import.meta.url)
+// Sin `new URL('../../contrato/', import.meta.url)`: el bundler de Next.js trata ese literal como
+// un asset a empaquetar (ver `MIGRATIONS_DIR`).
+export const CONTRATO_DIR = pathToFileURL(`${join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'contrato')}/`)
 
 export const leerContrato = (dir: URL = CONTRATO_DIR): Contrato => {
   const leer = (a: ArchivoContrato): Uint8Array => readFileSync(new URL(a, dir))

@@ -2,7 +2,7 @@
 id: T-0030
 title: Entregar las vistas de Risk OS v1 con su acceso
 kind: FEATURE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
