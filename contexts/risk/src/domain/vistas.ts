@@ -759,6 +759,8 @@ export interface EvaluacionDetalle {
   readonly justificacion: string | null
   readonly reglasAplicadas: readonly string[] | null
   readonly idOrigen: string | null
+  /** Cuándo se registró en Risk OS: una reevaluación cierra sólo revisiones abiertas antes. */
+  readonly registradaEn: string
   readonly reviewStatus: ReviewStatus
   readonly revisiones: readonly RevisionRegistrada[]
   readonly vigente: boolean
@@ -876,7 +878,7 @@ export function armarDetalle(version: VersionFunciones, d: DatosOrganizacion, ri
       })),
       montoBruto: reg.montoBruto, moneda: reg.moneda, uncertainty: reg.uncertainty, uncertaintyNota: reg.uncertaintyNota,
       necesidadValidacion: reg.necesidadValidacion, motivoNoEvaluableRegistrado: reg.motivoNoEvaluable, justificacion: reg.justificacion,
-      reglasAplicadas: reg.reglasAplicadas, idOrigen: reg.idOrigen, reviewStatus: ev.reviewStatus, revisiones: reg.revisiones,
+      reglasAplicadas: reg.reglasAplicadas, idOrigen: reg.idOrigen, registradaEn: reg.registradaEn, reviewStatus: ev.reviewStatus, revisiones: reg.revisiones,
       vigente: usada?.id === ev.id,
       criticidad: criticidadDe(version, reg, der),
       techoPlausible: { version, valor: der.techoPlausible, rotulo: ROTULO_TECHO },

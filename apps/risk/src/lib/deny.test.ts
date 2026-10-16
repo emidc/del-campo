@@ -11,6 +11,9 @@ import { after, before, describe, it } from 'node:test'
 
 import { POST as loginPOST } from '../app/api/login/route.ts'
 import { POST as logoutPOST } from '../app/api/logout/route.ts'
+import { POST as ordenPrevioPOST } from '../app/api/o/[org]/orden-previo/route.ts'
+import { POST as reordenarPOST } from '../app/api/o/[org]/reordenar/route.ts'
+import { POST as actualizarPOST } from '../app/api/r/[id]/actualizar/route.ts'
 import { GET as actividadGET } from '../app/api/o/[org]/actividad/route.ts'
 import { GET as escenariosGET } from '../app/api/o/[org]/escenarios/route.ts'
 import { GET as listaGET } from '../app/api/o/[org]/lista/route.ts'
@@ -49,6 +52,14 @@ after(() => {
 })
 
 const org = { params: Promise.resolve({ org: ORG }) }
+const post = (path: string, headers: Record<string, string>): Request =>
+  new Request(`${ORIGIN}${path}`, { method: 'POST', headers, body: new URLSearchParams({ op: 'novedad', texto: 'x' }) })
+// Los POST de la actualización (T-0031). Sin `origin` son de otro origen; ENDPOINTS les pone el propio.
+const ESCRITURAS: { readonly name: string; readonly call: (headers: Record<string, string>) => Promise<Response> }[] = [
+  { name: 'POST /api/r/:id/actualizar', call: (headers) => actualizarPOST(post(`/api/r/${RIESGO}/actualizar`, headers), { params: Promise.resolve({ id: RIESGO }) }) },
+  { name: 'POST /api/o/:org/reordenar', call: (headers) => reordenarPOST(post(`/api/o/${ORG}/reordenar`, headers), org) },
+  { name: 'POST /api/o/:org/orden-previo', call: (headers) => ordenPrevioPOST(post(`/api/o/${ORG}/orden-previo`, headers), org) },
+]
 const ENDPOINTS: { readonly name: string; readonly call: (headers: Record<string, string>) => Promise<Response> }[] = [
   { name: 'GET /api/organizaciones', call: (headers) => organizacionesGET(new Request(`${ORIGIN}/api/organizaciones`, { headers }), {}) },
   { name: 'GET /api/o/:org/lista', call: (headers) => listaGET(new Request(`${ORIGIN}/api/o/${ORG}/lista`, { headers }), org) },
@@ -60,6 +71,7 @@ const ENDPOINTS: { readonly name: string; readonly call: (headers: Record<string
     name: 'GET /api/r/:id',
     call: (headers) => detalleGET(new Request(`${ORIGIN}/api/r/${RIESGO}`, { headers }), { params: Promise.resolve({ id: RIESGO }) }),
   },
+  ...ESCRITURAS.map((e) => ({ name: e.name, call: (headers: Record<string, string>) => e.call({ origin: ORIGIN, ...headers }) })),
 ]
 
 const valida = (): string => issueSession(SECRET, { personaId: PERSONA, credencialId: '1' })
@@ -137,6 +149,20 @@ describe('login y logout desde otro origen: 403', () => {
     assert.equal(r.status, 303)
     assert.match(r.headers.get('set-cookie') ?? '', /^risk_session=; .*Max-Age=0/)
   })
+})
+
+describe('escrituras desde otro origen o sin origen: 403 aun con una sesión válida, sin tocar la base', () => {
+  for (const e of ESCRITURAS) {
+    it(`${e.name}, desde otro origen`, async () => {
+      const r = await e.call({ origin: 'https://otro.example', ...cookie(valida()) })
+      assert.equal(r.status, 403)
+      assert.deepEqual(await r.json(), { error: 'origen no permitido' })
+    })
+    it(`${e.name}, sin origen`, async () => {
+      const r = await e.call(cookie(valida()))
+      assert.equal(r.status, 403)
+    })
+  }
 })
 
 describe('guard: la base se pide sólo con una cookie bien firmada', () => {

@@ -12,11 +12,12 @@ export const PaginaOrganizaciones = (os: readonly Organizacion[], persona: strin
   marco('Organizaciones', { activa: 'organizaciones', persona },
     h('p', { className: 'muted' }, 'Cada vista es de una sola organización: nada se ordena ni se compara entre organizaciones.'),
     os.length === 0 ? vacio('No hay organizaciones con riesgos registrados.') :
-      tabla([th('Organización'), th('Objetos'), th('Referencias')], os.map((o) =>
+      tabla([th('Organización'), th('Objetos'), th('Referencias'), th('Orden previo')], os.map((o) =>
         h('tr', { 'data-organizacion': o.organizacionId },
           h('td', null, h('a', { href: `/o/${encodeURIComponent(o.organizacionId)}` }, o.organizacionId)),
           h('td', null, Object.entries(o.objetos).filter(([, n]) => n > 0).map(([t, n]) => `${String(n)} ${OBJETOS[t] ?? t}`).join(', ')),
-          h('td', null, o.referencias.join(', ') || '—')))))
+          h('td', null, o.referencias.join(', ') || '—'),
+          h('td', null, h('a', { href: `/o/${encodeURIComponent(o.organizacionId)}/orden-previo` }, 'registrar sin ver resultados'))))))
 
 export const PaginaLogin = (configurada: boolean, error: boolean): ReactElement =>
   h('main', null,

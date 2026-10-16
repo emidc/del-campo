@@ -90,3 +90,18 @@ dl.datos dd { margin: 0; }
 form.login { max-width: 360px; margin: 64px auto; display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
 form.login label { display: flex; flex-direction: column; gap: 4px; }
 input, select, button { font: inherit; padding: 6px 8px; }
+
+/* Formularios de la actualización (T-0031): cerrados por defecto, para que la lectura siga primero. */
+details.formulario { margin: 8px 0; }
+details.formulario > summary { cursor: pointer; color: var(--accent); }
+details.formulario form { display: flex; flex-direction: column; gap: 8px; max-width: 720px; margin: 8px 0; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+details.formulario label { display: flex; flex-direction: column; gap: 4px; }
+details.formulario textarea { font: inherit; padding: 6px 8px; min-height: 4em; }
+details.formulario button { align-self: flex-start; }
+.formularios { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.checks label { flex-direction: row; align-items: center; }
+.aviso-ok, .aviso-error { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); }
+.aviso-ok { color: var(--ok); background: var(--surface); }
+.aviso-error { color: var(--warn); background: var(--warn-bg); }
+td.profesional.movido { font-weight: 600; }

@@ -86,10 +86,27 @@ export const tabla = (cabecera: ReactElement[], filas: ReactElement[]): ReactEle
 
 export const th = (texto: string): ReactElement => h('th', { scope: 'col' }, texto)
 
+/** Lo que trae a la página el resultado de un formulario: `?ok=` o `?error=` (T-0031). */
+export interface Aviso {
+  readonly ok?: string | undefined
+  readonly error?: string | undefined
+}
+
+export const aviso = (a: Aviso | undefined): ReactElement | null =>
+  a?.error !== undefined ? h('p', { className: 'aviso-error', role: 'alert', 'data-aviso': 'error' }, `No se guardó nada: ${a.error}`)
+    : a?.ok !== undefined ? h('p', { className: 'aviso-ok', role: 'status', 'data-aviso': 'ok' }, a.ok) : null
+
+/** El aviso de los parámetros de una página. */
+export const avisoDe = (q: { ok?: string | string[] | undefined; error?: string | string[] | undefined }): Aviso => ({
+  ok: typeof q.ok === 'string' ? q.ok.slice(0, 300) : undefined,
+  error: typeof q.error === 'string' ? q.error.slice(0, 300) : undefined,
+})
+
 export interface Navegacion {
   readonly organizacionId?: string
-  readonly activa?: 'organizaciones' | 'lista' | 'escenarios' | 'plan' | 'transferencia'
+  readonly activa?: 'organizaciones' | 'lista' | 'escenarios' | 'plan' | 'transferencia' | 'orden-previo'
   readonly persona: string
+  readonly aviso?: Aviso
 }
 
 /** El marco de toda página: navegación de la organización y quién está en la sesión. */
@@ -107,10 +124,12 @@ export const marco = (titulo: string, nav: Navegacion, ...children: ReactNode[])
           link('escenarios', `${base}/escenarios`, 'Escenarios'),
           link('plan', `${base}/plan`, 'Plan de acción'),
           link('transferencia', `${base}/transferencia`, 'Transferencia y actividad'),
+          link('orden-previo', `${base}/orden-previo`, 'Orden previo'),
         ])),
       h('form', { method: 'post', action: '/api/logout', className: 'salir' },
         h('span', { className: 'muted' }, nav.persona), h('button', { type: 'submit' }, 'Salir'))),
     h('h1', null, titulo),
     org === undefined ? null : h('p', { className: 'muted' }, 'Organización ', h('code', null, org)),
+    aviso(nav.aviso),
     ...children)
 }
