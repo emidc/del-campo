@@ -13,7 +13,7 @@ const TABLES = [
   'orden_previo', 'orden_previo_item', 'persona', 'registro_acceso', 'reordenamiento', 'reordenamiento_vigente',
   'revision_humana', 'revision_pendiente', 'riesgo', 'transferencia', 'usuario',
 ]
-const FILES = ['0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql']
+const FILES = ['0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql', '0004_actualizacion.sql']
 
 let sql: Sql
 before(async () => {

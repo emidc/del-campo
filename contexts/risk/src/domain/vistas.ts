@@ -22,6 +22,8 @@ import {
 } from './lectura.ts'
 import { iEfectivoTexto, type Banda, type Dimension, type MotivoNoEvaluable, type Uncertainty } from './metodologia.ts'
 import { exigirVersion, type Evaluacion, type ReviewStatus, type TipoObjeto, type VersionFunciones } from './modelo.ts'
+import { reconstruirHistorial, type EntradaHistorial } from './historial.ts'
+import { fotoOrdenCalculado, involucrados, ordenProfesional, sigueEnPie, type PosicionProfesional } from './reordenamiento.ts'
 import {
   aEvaluacion, aRiesgo, exigirUnaOrganizacion, FACTORES, reviewStatusDe,
   type AccionRegistrada, type CoberturaRegistrada, type DatosOrganizacion, type EvaluacionRegistrada, type EventoRegistrado,
@@ -197,6 +199,28 @@ export interface FilaRanking extends Identidad {
   /** En un padre, la lectura de su (primer) hijo prioritario: el padre no tiene evaluación (§1.4). */
   readonly lectura: Lectura
   readonly padre: { readonly prioridadProvisional: boolean; readonly hijos: readonly HijoEnLista[] } | null
+  /**
+   * El orden profesional, al lado del calculado (decisión 5): la posición con los reordenamientos
+   * en pie aplicados y la banda profesional si alguno la dio. No cambia la lectura de arriba.
+   */
+  readonly profesional: PosicionProfesional | null
+}
+
+/** Un reordenamiento profesional, como lo muestra la lista. */
+export interface ReordenamientoVista {
+  readonly id: string
+  readonly autor: string
+  readonly registradoEn: string
+  readonly tipo: 'par' | 'posicion' | 'banda'
+  readonly riesgos: readonly Identidad[]
+  readonly detalle: string
+  readonly causa: string
+  readonly fundamento: string
+  readonly patron: string
+  /** Las evaluaciones vigentes de sus riesgos siguen siendo las de entonces: se aplica al orden profesional. */
+  readonly enPie: boolean
+  readonly conOrdenPrevio: boolean
+  readonly versionFunciones: string
 }
 
 export interface Tratamiento {
@@ -237,6 +261,8 @@ export interface VistaLista extends Calculado {
   readonly seguridad: readonly FilaSeguridad[]
   readonly noEvaluables: readonly FilaNoEvaluable[]
   readonly cola: readonly FilaCola[]
+  /** Los reordenamientos de la organización, del más antiguo al más reciente. */
+  readonly reordenamientos: readonly ReordenamientoVista[]
 }
 
 export const ROTULO_TECHO = 'techo plausible: no entra al ranking'
@@ -261,6 +287,18 @@ export function armarLista(version: VersionFunciones, d: DatosOrganizacion, unid
   const unidades = [...new Set(d.riesgos.flatMap((r) => (r.unidadId === null ? [] : [r.unidadId])))].sort()
   if (unidad !== null && !unidades.includes(unidad)) throw new Error(`la organización no tiene la unidad ${unidad}`)
 
+  const vigentesIds = new Map([...o.ranking.vigentes].map(([id, e]) => [id, e.id]))
+  const enPie = d.reordenamientos.filter((r) => sigueEnPie(r, d.riesgos, vigentesIds))
+  const profesional = ordenProfesional(fotoOrdenCalculado(o.ranking), enPie)
+  const reordenamientos = d.reordenamientos.map((r): ReordenamientoVista => ({
+    id: r.id, autor: r.autor, registradoEn: r.registradoEn, tipo: r.tipo,
+    riesgos: involucrados(r).flatMap((id) => { const x = o.riesgo.get(id); return x === undefined ? [] : [identidad(x)] }),
+    detalle: r.tipo === 'par' ? `${r.riskIdSube ?? ''} sube sobre ${r.riskIdBaja ?? ''}`
+      : r.tipo === 'posicion' ? `${r.riskId ?? ''} a la posición ${String(r.posicionProfesional)}` : `${r.riskId ?? ''} en banda ${r.bandaProfesional ?? ''}`,
+    causa: r.causa, fundamento: r.fundamento, patron: r.patron, enPie: enPie.includes(r), conOrdenPrevio: r.ordenPrevioId !== null,
+    versionFunciones: r.versionFunciones,
+  }))
+
   const ranking: FilaRanking[] = []
   for (const p of o.ranking.posiciones) {
     for (const id of [...p.ids].sort()) {
@@ -279,6 +317,7 @@ export function armarLista(version: VersionFunciones, d: DatosOrganizacion, unid
       ranking.push({
         ...identidad(r), posicion, empate: p.ids.length > 1, provisional: p.provisional, lectura: l,
         padre: padre === undefined || hijos === null ? null : { prioridadProvisional: padre.prioridadProvisional, hijos },
+        profesional: profesional.get(id) ?? null,
       })
     }
   }
@@ -332,6 +371,7 @@ export function armarLista(version: VersionFunciones, d: DatosOrganizacion, unid
     seguridad: seguridad.filter(filtro),
     noEvaluables: noEvaluables.filter(filtro),
     cola: cola.filter(filtro),
+    reordenamientos,
   }
 }
 
@@ -772,6 +812,8 @@ export interface VistaDetalle {
   readonly coberturas: readonly CoberturaVista[]
   readonly novedades: readonly NovedadVista[]
   readonly revisionesPendientes: readonly RevisionPendienteVista[]
+  /** Todo lo que cambió del riesgo, con quién, cuándo y qué había antes (RO01 §2, Historial; A12). */
+  readonly cambios: readonly EntradaHistorial[]
 }
 
 function criticidadDe(version: VersionFunciones, e: EvaluacionRegistrada, d: Derivados): CriticidadDetalle {
@@ -879,5 +921,6 @@ export function armarDetalle(version: VersionFunciones, d: DatosOrganizacion, ri
         id: p.id, disparador: p.disparador, referencia: p.accionId ?? p.novedadId ?? p.versionMetodologia, abiertaEn: p.abiertaEn,
         estado: p.cierre === null ? 'abierta' : 'cerrada', cierre: p.cierre,
       })),
+    cambios: reconstruirHistorial(d, riskId),
   }
 }

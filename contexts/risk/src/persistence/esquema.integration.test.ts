@@ -28,6 +28,7 @@ const loteSinIdOrigen = { id_origen: 'S99-X99', lote_origen: null }
 const decision = { tipo_registro: 'decision_tratamiento', factor_objetivo: null, mecanismo_causal: null, decision: 'tratar', fecha_proxima_revision: '2027-01-01' }
 const reevaluacion = { risk_id: B.riesgo, riesgo_tipo: 'riesgo', tipo_evaluacion: 'reevaluacion', evaluacion_anterior_id: B.reevaluacion, motivo: 'informacion_nueva' }
 const cumplida = { estado: 'cumplida', fecha_cumplida: '2026-10-05', evidencia_ejecucion: ['DOC-SINTETICO-1'] }
+const enSesion = { origen: 'sesion', autor_persona_id: B.persona }
 const soloPosicion = { tipo: 'posicion', risk_id_sube: null, risk_id_baja: null, risk_id: B.riesgo, posicion_profesional: 1 }
 
 /** Inserta dos veces la misma fila: la segunda choca con la clave primaria. */
@@ -208,7 +209,7 @@ const CASOS: Caso[] = [
   ['revision_pendiente_referencia', 'revision_pendiente', { disparador: 'accion_ejecutada' }],
   ['revision_pendiente_riesgo', 'revision_pendiente', { risk_id: B.subRiesgo }],
   ['revision_pendiente_riesgo_no_padre', 'revision_pendiente', { risk_id: B.padre, riesgo_tipo: 'padre' }],
-  ['revision_pendiente_una_por_accion', 'revision_pendiente', { disparador: 'accion_ejecutada', accion_id: B.accion, version_metodologia: null }],
+  ['revision_pendiente_una_por_accion', 'revision_pendiente', { disparador: 'accion_ejecutada', accion_id: B.accionCumplida, version_metodologia: null }],
   ['revision_pendiente_una_por_novedad', 'revision_pendiente', { disparador: 'informacion_nueva', novedad_id: B.novedad, version_metodologia: null }],
   ['revision_pendiente_una_por_version', 'revision_pendiente', dosDistintas('revision_pendiente', {})],
 
@@ -248,6 +249,42 @@ const CASOS: Caso[] = [
   ['reordenamiento_vigente_reordenamiento', 'reordenamiento_vigente', { organizacion_id: ORG_B, risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
   ['reordenamiento_vigente_riesgo_de_la_organizacion', 'reordenamiento_vigente', { risk_id: B.riesgoOrgB, evaluacion_id: B.inicialOrgB }],
   ['reordenamiento_vigente_evaluacion_del_riesgo', 'reordenamiento_vigente', { evaluacion_id: B.inicialOrgB }],
+
+  // Actualización (T-0031, migración 0004). Los casos de cada regla de los triggers están en
+  // `src/application/actualizacion.integration.test.ts`; acá, uno por nombre.
+  ['evaluacion_sesion_humana', 'evaluacion', { ...enSesion, evaluador: null, actor: 'ai' }],
+  ['accion_sesion_humana', 'accion', { ...enSesion, actor: 'ai' }],
+  ['transferencia_sesion_humana', 'transferencia', { ...enSesion, actor: 'import' }],
+  ['evento_poliza_sesion_humana', 'evento_poliza', { ...enSesion, actor: 'ai' }],
+  ['accion_estado_transicion', 'accion_estado', async (tx) => {
+    await insertar(tx, 'accion_estado', fila('accion_estado', { estado: 'cancelada' }))
+    await insertar(tx, 'accion_estado', fila('accion_estado', { estado: 'en_curso' }))
+  }],
+  ['evaluacion_accion_cumplida', 'evaluacion', { ...reevaluacion, ...enSesion, evaluador: null, motivo: 'accion_ejecutada', accion_id: B.accion }],
+  ['revision_pendiente_accion_cumplida', 'revision_pendiente', { disparador: 'accion_ejecutada', accion_id: B.accion, version_metodologia: null }],
+  ['cierre_revision_reevaluacion_valida', 'cierre_revision', { resultado: 'reevaluacion_aceptada', evaluacion_id: B.inicial, fundamento: null }],
+  ['cierre_revision_una_por_evaluacion', 'cierre_revision', async (tx) => {
+    // Una reevaluación aceptada cierra la revisión de la novedad; no puede cerrar otra.
+    const x = nuevoId('EVA')
+    await insertar(tx, 'evaluacion', fila('evaluacion', { ...reevaluacion, id: x }))
+    await insertar(tx, 'revision_humana', fila('revision_humana', { evaluacion_id: x }))
+    await insertar(tx, 'cierre_revision', fila('cierre_revision', { resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null }))
+    const otraNovedad = nuevoId('NOV')
+    const otraRevision = nuevoId('REV')
+    await insertar(tx, 'novedad', fila('novedad', { id: otraNovedad }))
+    await insertar(tx, 'revision_pendiente', fila('revision_pendiente', { id: otraRevision, disparador: 'informacion_nueva', novedad_id: otraNovedad, version_metodologia: null }))
+    await insertar(tx, 'cierre_revision', fila('cierre_revision', { revision_id: otraRevision, resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null }))
+  }],
+  ['orden_previo_antes_de_resultados', 'orden_previo', async (tx) => {
+    await insertar(tx, 'registro_acceso', fila('registro_acceso', { persona_id: B.otraPersona, tipo: 'vista_resultados', organizacion_id: ORG_B, vista: 'lista' }))
+    await insertar(tx, 'orden_previo', fila('orden_previo'))
+  }],
+  ['orden_previo_item_en_su_registro', 'orden_previo_item', async (tx) => {
+    // Un orden previo registrado en otra transacción (antes): sus posiciones ya no entran.
+    const id = nuevoId('OPR')
+    await insertar(tx, 'orden_previo', fila('orden_previo', { id, registrado_en: '2026-10-01T00:00:00Z' }))
+    await insertar(tx, 'orden_previo_item', fila('orden_previo_item', { orden_previo_id: id, organizacion_id: ORG_B, risk_id: B.riesgoOrgB }))
+  }],
 
   // lote_importacion (T-0029).
   ['lote_importacion_huella_unica', 'lote_importacion', dosDistintas('lote_importacion', { huella: 'a'.repeat(64) })],
