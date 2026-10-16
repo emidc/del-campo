@@ -91,8 +91,8 @@ necesitan datos importados.
 ```bash
 pnpm check
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test pnpm test
-RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev pnpm --filter @del-campo/risk run import SPIKES/T-0021/v0/fase-15/sinteticos
-RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev pnpm --filter @del-campo/risk run import SPIKES/T-0021/v0/fase-15/sinteticos
+RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev pnpm --filter @del-campo/risk import SPIKES/T-0021/v0/fase-15/sinteticos
+RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev pnpm --filter @del-campo/risk import SPIKES/T-0021/v0/fase-15/sinteticos
 ```
 
 Comprobaciones humanas, registradas en `ops/evidence/T-0029.md`:
