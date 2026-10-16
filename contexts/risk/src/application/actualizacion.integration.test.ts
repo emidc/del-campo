@@ -201,6 +201,11 @@ describe('qué cierra una revisión y qué no', () => {
       const h = d?.historial ?? []
       for (let i = 1; i < h.length; i++) assert.equal(h[i]?.anteriorId, h[i - 1]?.id)
       assert.equal(d?.evaluacionUsada?.id, evaluacionId)
+      // Lo que cerró la revisión no se desdice después: ni rejected ni needs_revision.
+      for (const estado of ['rejected', 'needs_revision']) {
+        await rechaza(revisar(tx, sesion, { evaluacionId }, estado), /cerró una revisión: para corregirla, cargá otra reevaluación/)
+      }
+      assert.equal((await vistaDetalle(tx, sesion, V, rid))?.evaluacionUsada?.id, evaluacionId)
     }))
 
   it('un motivo que no responde al disparador no cierra; un «sin cambio» sin fundamento se rechaza y con fundamento cierra', () =>
@@ -325,6 +330,7 @@ describe('orden previo del revisor (decisión 6; A8a)', () => {
 
       const items = p.objetos.map((o, i) => ({ riskId: o.riskId, posicion: p.objetos.length - i, banda: i === 0 ? 'Alta' : null }))
       await rechaza(registrarOrdenPrevio(tx, revisor, ORG_S07, { materialRef: 'MAT-S07', items: items.slice(1) }), /cubre todos los de la empresa/)
+      await rechaza(registrarOrdenPrevio(tx, revisor, ORG_S07, { materialRef: 'MAT-S07', items: items.map((i) => ({ ...i, posicion: 1 })) }), /la posición 1 está dos veces/)
       await registrarOrdenPrevio(tx, revisor, ORG_S07, { materialRef: 'MAT-S07', items })
       await rechaza(registrarOrdenPrevio(tx, revisor, ORG_S07, { materialRef: 'MAT-S07', items }), /ya registraste/)
 

@@ -15,8 +15,12 @@
 --   4. Una revisión se cierra con una reevaluación aceptada sólo si es una reevaluación del
 --      motivo de su disparador, registrada después de la apertura y `accepted` en ese momento
 --      (dossier 15a §5). Una reevaluación cierra una sola revisión.
+--      Una reevaluación que ya cerró una revisión no se puede dejar después en `rejected` ni en
+--      `needs_revision`: la revisión quedaría «cerrada con una reevaluación aceptada» que ya no
+--      lo es (y contaría para A7). Para corregirla se carga otra reevaluación.
 --   5. El orden previo del revisor se registra antes de su primer acceso a resultados de esa
---      empresa, y sus posiciones van en la misma transacción que el registro (decisión 6, A8a).
+--      empresa, con sus posiciones en la misma transacción que el registro y sin repetir una
+--      posición (decisión 6, A8a).
 --
 -- Los triggers son AFTER INSERT de fila: corren después de las CHECK, las claves únicas y las
 -- foráneas de la misma fila, así que una fila mal formada sigue fallando por su restricción de
@@ -166,6 +170,22 @@ $$;
 create trigger cierre_revision_reevaluacion_valida after insert on risk.cierre_revision
   for each row execute function risk.cierre_revision_reevaluacion_valida();
 
+-- Lo que cerró una revisión no se desdice: una reevaluación con la que se cerró una revisión ya
+-- no pasa a `rejected` ni a `needs_revision` (sigue vigente, y el cierre sigue siendo cierto).
+create function risk.revision_humana_cierre_firme() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.evaluacion_id is not null and new.estado <> 'accepted'
+     and exists (select 1 from risk.cierre_revision c where c.evaluacion_id = new.evaluacion_id) then
+    raise exception 'risk.revision_humana: la evaluación % cerró una revisión; para corregirla se carga otra reevaluación', new.evaluacion_id
+      using errcode = 'check_violation', constraint = 'revision_humana_cierre_firme';
+  end if;
+  return new;
+end
+$$;
+create trigger revision_humana_cierre_firme after insert on risk.revision_humana
+  for each row execute function risk.revision_humana_cierre_firme();
+
 -- ── 5. Orden previo del revisor ──────────────────────────────────────────────
 
 -- Antes de su primer acceso a ranking, bandas o `C_raw` de esa empresa (decisión 6; RO01 A8a).
@@ -201,3 +221,7 @@ end
 $$;
 create trigger orden_previo_item_en_su_registro after insert on risk.orden_previo_item
   for each row execute function risk.orden_previo_item_en_su_registro();
+
+-- Un orden: cada posición, una vez. Como el orden previo es uno por revisor y empresa y no se
+-- corrige, un orden con posiciones repetidas sería evidencia de A8a perdida.
+alter table risk.orden_previo_item add constraint orden_previo_item_posicion_unica unique (orden_previo_id, posicion);

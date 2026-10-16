@@ -442,6 +442,10 @@ export async function revisar(
     ? (['evaluacion', objeto.evaluacionId, 'evaluacion_id'] as const)
     : 'accionId' in objeto ? (['accion', objeto.accionId, 'accion_id'] as const) : (['transferencia', objeto.transferenciaId, 'transferencia_id'] as const)
   await operar(db, sesion, await organizacionDeObjeto(db, tabla, id), op, async (o) => {
+    // Lo que cerró una revisión no se desdice (migración 0004): se corrige con otra reevaluación.
+    if (tabla === 'evaluacion' && e !== 'accepted' && o.d.revisionesPendientes.some((r) => r.cierre?.evaluacionId === id)) {
+      rechazar('esta reevaluación cerró una revisión: para corregirla, cargá otra reevaluación')
+    }
     await o.escribir('revision_humana', {
       [columna]: id, estado: e, revisado_por_actor: 'human', revisor_persona_id: sesion.personaId, fecha_revision: await hoy(o.tx),
       origen: 'sesion', registrada_en: await o.ahora(),
@@ -711,11 +715,14 @@ export async function registrarOrdenPrevio(
     const objetos = objetosCiegos(o.d)
     const ids = new Set(objetos.map((x) => x.riskId))
     const vistos = new Set<string>()
+    const posiciones = new Set<number>()
     for (const i of p.items) {
       if (!ids.has(i.riskId)) rechazar(`${i.riskId} no está en el material de esta empresa`)
       if (vistos.has(i.riskId)) rechazar(`${i.riskId} aparece dos veces`)
       vistos.add(i.riskId)
       if (!Number.isInteger(i.posicion) || i.posicion < 1 || i.posicion > objetos.length) rechazar(`las posiciones van de 1 a ${String(objetos.length)}`)
+      if (posiciones.has(i.posicion)) rechazar(`la posición ${String(i.posicion)} está dos veces: cada riesgo va en una posición distinta`)
+      posiciones.add(i.posicion)
       if (opcional(i.banda) !== null) enLista(i.banda ?? '', BANDAS, 'banda')
     }
     if (vistos.size !== ids.size) rechazar(`faltan ${String(ids.size - vistos.size)} riesgos: el orden previo cubre todos los de la empresa`)

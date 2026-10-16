@@ -35,6 +35,16 @@ describe('A7', () => {
     assert.equal(c.cumpleA7, false)
     assert.match(c.faltas.join('\n'), /2 tipos de disparador/)
   })
+  it('no cumple si se indican menos de las cinco empresas históricas', () => {
+    const c = contarCiclos(diez, EMPRESAS.slice(0, 1))
+    assert.equal(c.cumpleA7, false)
+    assert.match(c.faltas.join('\n'), /A7 pide las 5 empresas históricas; se indicaron 1/)
+  })
+  it('separa los cierres con reevaluación aceptada de los sin cambio', () => {
+    const c = contarCiclos(diez.map((x, n) => (n < 3 && x.cierre !== null ? { ...x, cierre: { ...x.cierre, resultado: 'reevaluacion_aceptada' as const, evaluacionId: 'EVA-1' } } : x)), EMPRESAS)
+    assert.deepEqual(c.porResultado, { reevaluacion_aceptada: 3, sin_cambio: 7 })
+    assert.match(informeCiclos(c).join('\n'), /reevaluación aceptada: 3; sin cambio: 7/)
+  })
   it('una revisión abierta no cuenta', () => {
     const c = contarCiclos([...diez.slice(0, 9), ciclo(9, { cierre: null })], EMPRESAS)
     assert.equal(c.ciclos, 9)

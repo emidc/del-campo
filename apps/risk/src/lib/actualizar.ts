@@ -36,8 +36,17 @@ const leerCampos = async (request: Request): Promise<Campos | null> => {
 }
 
 /** La página a la que vuelve un formulario: una ruta propia de la app, nunca otra URL. */
-export const volverA = (raw: string, defecto: string): string =>
-  /^\/(r|o)\/[A-Za-z0-9_%.\-/]+$/.test(raw) && !raw.includes('//') && !raw.includes('..') ? raw : defecto
+export const volverA = (raw: string, defecto: string): string => {
+  if (!/^\/(r|o)\/[A-Za-z0-9_%.\-/]+$/.test(raw)) return defecto
+  let decodificado: string
+  try {
+    decodificado = decodeURIComponent(raw)
+  } catch {
+    return defecto
+  }
+  // También codificado (`%2e%2e`, `%2f`): ni subir de carpeta ni salir de /r o /o.
+  return [raw, decodificado].some((x) => x.includes('//') || x.includes('..') || x.includes('\\')) ? defecto : raw
+}
 
 const volver = (request: Request, ruta: string, aviso: { ok: string } | { error: string }): Response => {
   const url = new URL(ruta, request.url)

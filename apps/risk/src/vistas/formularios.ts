@@ -54,7 +54,8 @@ export const formRevisar = (riskId: string, objeto: 'evaluacion' | 'accion' | 't
   formulario(destinoRiesgo(riskId), 'revisar', volver, 'Revisar', 'Registrar revisión',
     h('input', { type: 'hidden', name: 'objeto', value: objeto }),
     h('input', { type: 'hidden', name: 'id', value: id }),
-    seleccion('Estado', 'estado', opciones(ESTADOS_REVISION), 'accepted'))
+    // Sin estado elegido: aceptar no queda a un clic.
+    seleccion('Estado', 'estado', opciones(ESTADOS_REVISION), null, { vacio: 'elegí un estado' }))
 
 // ── Acciones ─────────────────────────────────────────────────────────────────
 

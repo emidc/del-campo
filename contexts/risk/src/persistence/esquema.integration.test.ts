@@ -275,6 +275,18 @@ const CASOS: Caso[] = [
     await insertar(tx, 'revision_pendiente', fila('revision_pendiente', { id: otraRevision, disparador: 'informacion_nueva', novedad_id: otraNovedad, version_metodologia: null }))
     await insertar(tx, 'cierre_revision', fila('cierre_revision', { revision_id: otraRevision, resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null }))
   }],
+  ['revision_humana_cierre_firme', 'revision_humana', async (tx) => {
+    // La reevaluación que cerró la revisión de la novedad no pasa después a rejected.
+    const x = nuevoId('EVA')
+    await insertar(tx, 'evaluacion', fila('evaluacion', { ...reevaluacion, id: x }))
+    await insertar(tx, 'revision_humana', fila('revision_humana', { evaluacion_id: x }))
+    await insertar(tx, 'cierre_revision', fila('cierre_revision', { resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null }))
+    await insertar(tx, 'revision_humana', fila('revision_humana', { evaluacion_id: x, estado: 'rejected' }))
+  }],
+  ['orden_previo_item_posicion_unica', 'orden_previo_item', async (tx) => {
+    await insertar(tx, 'orden_previo_item', fila('orden_previo_item'))
+    await insertar(tx, 'orden_previo_item', fila('orden_previo_item', { risk_id: B.otroRiesgo }))
+  }],
   ['orden_previo_antes_de_resultados', 'orden_previo', async (tx) => {
     await insertar(tx, 'registro_acceso', fila('registro_acceso', { persona_id: B.otraPersona, tipo: 'vista_resultados', organizacion_id: ORG_B, vista: 'lista' }))
     await insertar(tx, 'orden_previo', fila('orden_previo'))

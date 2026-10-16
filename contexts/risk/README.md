@@ -56,7 +56,7 @@ recálculo, es un error y no un dato.
 | `revision_pendiente`, `cierre_revision` | Revisiones abiertas por actividad y su cierre por una persona. |
 | `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
 | `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
-| (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, y una reevaluación cierra una sola; el orden previo va antes del primer acceso a resultados. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
+| (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, una reevaluación cierra una sola, y la que cerró una revisión no pasa después a `rejected` ni a `needs_revision`; el orden previo va antes del primer acceso a resultados, sin posiciones repetidas. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
 | `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
 ## Bases locales

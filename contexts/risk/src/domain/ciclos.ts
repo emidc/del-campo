@@ -9,6 +9,8 @@
 export const MINIMO_CICLOS = 10
 export const DISPARADORES_A7 = ['accion_ejecutada', 'informacion_nueva', 'cambio_contexto'] as const
 export const MINIMO_TIPOS = 3
+/** Las empresas históricas de A7: un conteo con menos no puede dar A7 por cumplido. */
+export const EMPRESAS_HISTORICAS = 5
 
 /** Una revisión pendiente, como la lee el script: sin textos. */
 export interface RevisionParaContar {
@@ -39,6 +41,8 @@ export interface ConteoEmpresa {
 export interface ConteoCiclos {
   readonly ciclos: number
   readonly porDisparador: Readonly<Record<string, number>>
+  /** Cuántos se cerraron con una reevaluación aceptada y cuántos sin cambio. */
+  readonly porResultado: Readonly<Record<string, number>>
   readonly porEmpresa: readonly ConteoEmpresa[]
   /** Lo que no cuenta, por qué. */
   readonly noCuentan: { readonly abiertas: number; readonly deLosCsv: number }
@@ -69,7 +73,8 @@ export function contarCiclos(revisiones: readonly RevisionParaContar[], empresas
   const empresasSinCiclo = empresasHistoricas.filter((e) => !cuentan.some((r) => r.organizacionId === e))
   const faltas: string[] = []
   if (cuentan.length < MINIMO_CICLOS) faltas.push(`${String(cuentan.length)} ciclos cerrados; A7 pide al menos ${String(MINIMO_CICLOS)}`)
-  if (empresasHistoricas.length === 0) faltas.push('no se indicaron las empresas históricas')
+  const indicadas = new Set(empresasHistoricas).size
+  if (indicadas < EMPRESAS_HISTORICAS) faltas.push(`A7 pide las ${String(EMPRESAS_HISTORICAS)} empresas históricas; se indicaron ${String(indicadas)}`)
   for (const e of empresasSinCiclo) faltas.push(`${e} no tiene ningún ciclo cerrado`)
   if (tiposA7.length < MINIMO_TIPOS) {
     faltas.push(`${String(tiposA7.length)} tipos de disparador (${tiposA7.join(', ') || 'ninguno'}); A7 pide ${String(MINIMO_TIPOS)} entre ${DISPARADORES_A7.join(', ')}`)
@@ -77,6 +82,7 @@ export function contarCiclos(revisiones: readonly RevisionParaContar[], empresas
   return {
     ciclos: cuentan.length,
     porDisparador,
+    porResultado: Object.fromEntries(['reevaluacion_aceptada', 'sin_cambio'].map((x) => [x, cuentan.filter((r) => r.cierre?.resultado === x).length])),
     porEmpresa,
     noCuentan: {
       abiertas: revisiones.filter((r) => r.cierre === null).length,
@@ -95,6 +101,7 @@ export function informeCiclos(c: ConteoCiclos): string[] {
     Object.keys(n).sort().map((d) => `${d} ${String(n[d])}`).join(', ') || '—'
   return [
     `ciclos cerrados después de la importación: ${String(c.ciclos)} (${tipos(c.porDisparador)})`,
+    `cerrados con reevaluación aceptada: ${String(c.porResultado.reevaluacion_aceptada ?? 0)}; sin cambio: ${String(c.porResultado.sin_cambio ?? 0)}`,
     `no cuentan: ${String(c.noCuentan.abiertas)} abiertas, ${String(c.noCuentan.deLosCsv)} de los CSV`,
     ...c.porEmpresa.map((e) =>
       `  ${e.organizacionId}: ${String(e.ciclos)} (${tipos(e.porDisparador)})${e.primerCierre === null ? '' : `, cierres del ${e.primerCierre} al ${e.ultimoCierre ?? ''}`}`),
