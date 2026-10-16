@@ -159,6 +159,7 @@ export default tseslint.config(
       // propios: uno nuevo ahí se lintea con sus límites, y como no está en ningún
       // tsconfig, falla. Sin esto, un .mjs saltaba R-25 (hallazgo C3 de T-0025).
       '!apps/communication/**/*.mjs',
+      '!apps/risk/**/*.mjs',
       '!contexts/communication/**/*.mjs',
       '!contexts/risk/**/*.mjs',
     ],
@@ -208,7 +209,7 @@ export default tseslint.config(
   // le permite importar su contexto. Toda otra app, presente o futura, queda acá.
   {
     files: ['packages/**/*.ts', 'apps/**/*.{ts,tsx}'],
-    ignores: ['apps/communication/**'],
+    ignores: ['apps/communication/**', 'apps/risk/**'],
     rules: {
       'no-restricted-syntax': ['error', ...brokerNoImportaContextos],
     },
@@ -286,6 +287,34 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': ['error', ...appDeContexto('communication')],
       'local/sin-salir-de': ['error', 'apps/communication'],
+    },
+  },
+
+  // ── R-25, D-0063 · apps/risk (T-0030) ───────────────────────────────────
+  // Lo mismo para Risk OS: @del-campo/risk (solo la raíz), next, react, react-dom, node:* y
+  // relativos dentro de apps/risk. Ni Broker OS, ni communication, ni archivos internos del
+  // contexto.
+  {
+    files: ['apps/risk/**/*.{ts,tsx,js,mjs}'],
+    plugins: { local: { rules: { 'sin-salir-de': sinSalirDe } } },
+    rules: {
+      'no-restricted-syntax': ['error', ...appDeContexto('risk')],
+      'local/sin-salir-de': ['error', 'apps/risk'],
+    },
+  },
+  // La raíz de @del-campo/risk exporta migrar e importar para los tests de integración de la
+  // app. Fuera de los tests, la app sólo lee (T-0030; las escrituras son de T-0031).
+  {
+    files: ['apps/risk/**/*.{ts,tsx,js,mjs}'],
+    ignores: ['apps/risk/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '@del-campo/risk',
+          importNames: ['migrate', 'importarLote', 'leerArchivosDeLote', 'leerContrato'],
+          message: 'apps/risk no migra ni importa lotes fuera de sus tests (T-0030).',
+        }],
+      }],
     },
   },
 

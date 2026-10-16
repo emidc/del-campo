@@ -47,11 +47,14 @@ export const B = {
 
 export const PERSONA_INEXISTENTE = fijo('PER', 999)
 
+/** Un hash con la forma de D-0069, sin contraseña detrás (sal y clave de ceros). */
+export const HASH_SINTETICO = `scrypt:32768:8:1:${Buffer.alloc(16).toString('base64')}:${Buffer.alloc(32).toString('base64')}`
+
 export type Tabla =
   | 'persona' | 'registro_acceso' | 'riesgo' | 'miembro_escenario' | 'accion' | 'evaluacion'
   | 'accion_estado' | 'transferencia' | 'evento_poliza' | 'revision_humana' | 'novedad'
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
-  | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion'
+  | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion' | 'usuario' | 'credencial'
 
 export type Fila = Record<string, unknown>
 
@@ -118,6 +121,9 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
     origen: 'lote-sintetico', importado_por: 'Persona sintética', fecha_corte: '2026-10-14',
     filas_risks: 1, filas_action_plan: 0, filas_risk_transfer: 0, avisos: 0, escritas: { riesgo: 1 },
   }),
+  // T-0030 (D-0069). El hash es de prueba: no es la de ninguna contraseña que alguien use.
+  usuario: () => ({ usuario: `usuario-${String(siguiente++)}`, persona_id: B.otraPersona }),
+  credencial: () => ({ persona_id: B.persona, password_hash: HASH_SINTETICO }),
 }
 
 /** Una fila válida de `tabla` sobre los registros de `base`, con `cambios` encima. */
@@ -176,4 +182,5 @@ export const base = async (tx: TransactionSql): Promise<void> => {
   await ins('orden_previo', { id: B.ordenPrevio, organizacion_id: ORG_A, revisor_persona_id: B.persona })
   await ins('orden_previo', { id: B.ordenPrevioOrgB, organizacion_id: ORG_B, revisor_persona_id: B.persona })
   await ins('reordenamiento', { id: B.reordenamiento })
+  await ins('usuario', { usuario: 'persona-de-la-base', persona_id: B.persona })
 }

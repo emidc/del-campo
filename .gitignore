@@ -24,3 +24,5 @@ apps/web/.next/
 apps/web/*.tsbuildinfo
 apps/communication/.next/
 apps/communication/*.tsbuildinfo
+apps/risk/.next/
+apps/risk/*.tsbuildinfo
