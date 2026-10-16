@@ -87,12 +87,12 @@ es una hipótesis rotulada, nunca el valor de un factor (D16).
 ## Correr en local
 
 ```bash
-pnpm --filter @del-campo/risk db:create                   # delcampo_risk_dev con su esquema
+pnpm --filter @del-campo/risk run db:create                # delcampo_risk_dev con su esquema
 pnpm --filter @del-campo/risk run import SPIKES/T-0021/v0/fase-15/sinteticos \
   --corte 2026-10-14 --por "Nombre"                        # las 8 sintéticas
 openssl rand -base64 24 | tee /dev/tty | \
   pnpm --filter @del-campo/risk run persona alta --nombre "Nombre" --usuario nombre
-pnpm --filter ./apps/risk dev                             # http://localhost:3200
+pnpm --filter ./apps/risk run dev                         # http://localhost:3200
 ```
 
 Con `.env.local` en esta carpeta:

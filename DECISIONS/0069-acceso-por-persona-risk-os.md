@@ -4,6 +4,9 @@
 - **Estado:** PROVISIONAL
 - **Fecha:** 2026-10-15
 - **Supersede:** —
+- **Aprobación:** el owner la aprobó como PROVISIONAL el 2026-10-16: Risk OS mantiene
+  autenticación propia y aislada durante Q4, igual que Communication OS (D-0063,
+  D-0066); el límite de intentos queda para T-0032.
 
 ## Contexto
 

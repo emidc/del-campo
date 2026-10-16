@@ -65,15 +65,15 @@ las de Broker y de Communication OS. El runner rechaza cualquier otra.
 
 ```bash
 # Crear la base de desarrollo y aplicar las migraciones
-pnpm --filter @del-campo/risk db:create
+pnpm --filter @del-campo/risk run db:create
 
 # Lo mismo sobre la de tests
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test \
-  pnpm --filter @del-campo/risk db:create
+  pnpm --filter @del-campo/risk run db:create
 
 # Aplicar las pendientes / revertir la última aplicada
-pnpm --filter @del-campo/risk db:migrate
-pnpm --filter @del-campo/risk db:down
+pnpm --filter @del-campo/risk run db:migrate
+pnpm --filter @del-campo/risk run db:down
 
 # Descartar todo
 dropdb delcampo_risk_dev

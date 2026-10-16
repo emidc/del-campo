@@ -2,7 +2,7 @@
 id: T-0030
 title: Entregar las vistas de Risk OS v1 con su acceso
 kind: FEATURE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
@@ -103,7 +103,7 @@ vistas en local, con el acceso que decidió el owner, y habilita la aceptación 
 ```bash
 pnpm check
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test pnpm test
-pnpm --filter "./apps/risk" build
+pnpm --filter "./apps/risk" run build
 ```
 
 Comprobaciones humanas, registradas en `ops/evidence/T-0030.md`:

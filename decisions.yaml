@@ -1194,6 +1194,8 @@ decisions:
       accede es la persona de la sesión. Las credenciales las genera y carga el owner
       con la línea de comandos del contexto, nunca en el repositorio. Sin
       configuración, todo se niega. Sin OIDC, sin roles y sin dependencias nuevas.
+      Aprobada por el owner el 2026-10-16: se mantiene propia y aislada durante Q4,
+      igual que la de Communication OS; el límite de intentos de login es de T-0032.
     falsified_by: >
       Que Risk OS se integre en Broker OS; que entren usuarios externos o hagan falta
       roles o permisos por persona; que una credencial o el secreto de sesión se
