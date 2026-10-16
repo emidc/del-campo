@@ -76,7 +76,7 @@ cierre de Q4 sobre el laboratorio (D-0063).
 ```bash
 pnpm check
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test pnpm test
-pnpm --filter "./apps/risk" build
+pnpm --filter "./apps/risk" run build
 ```
 
 Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
