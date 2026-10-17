@@ -84,7 +84,7 @@ describe('manifiesto de la aceptación', () => {
 
   it('pide el revisor R1 y sólo acepta códigos de persona con su id', () => {
     falla(con((m) => { delete (m.personas as Record<string, string>).R1 }), 'personas.R1')
-    falla(con((m) => { (m.personas as Record<string, string>)['Juan Pérez'] = 'PER-01M50T00000000000000000003' }), 'personas.Juan Pérez')
+    falla(con((m) => { (m.personas as Record<string, string>)['Juan Pérez'] = 'PER-01M50T00000000000000000003' }), 'personas (un código que no es R1, O1, …)', 'Juan')
     falla(con((m) => { (m.personas as Record<string, string>).O2 = 'Juan Pérez' }), 'personas.O2', 'Juan')
     falla(con((m) => { (m.personas as Record<string, string>).O1 = m.personas.R1 }), 'personas.O1')
   })

@@ -14,8 +14,10 @@ export interface Verificacion {
   readonly pendientes: readonly string[]
   /** Superusuario, salta RLS, crea roles o bases: un rol de app no tiene nada de eso. */
   readonly atributos: readonly string[]
-  /** Tablas de `risk` de las que el rol es dueño: un dueño puede desactivar los triggers. */
+  /** Tablas de `risk` de las que el rol es dueño, o miembro del dueño: puede desactivar los triggers. */
   readonly duenoDe: number
+  /** Roles de los que es miembro, aun sin heredar: con `SET ROLE` tendría sus privilegios. */
+  readonly miembroDe: readonly string[]
   /** `tabla privilegio` que el rol no debería tener: UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER. */
   readonly privilegiosDeMas: readonly string[]
   /** Tablas de `risk` (salvo el ledger) en las que el rol no puede leer o insertar. */
@@ -39,7 +41,7 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
       case when rolreplication then 'replicación' end], null) as atributos
     from pg_roles where rolname = current_user`
   const tablas = await db<{ tabla: string; dueno: boolean; sel: boolean; ins: boolean; demas: string[] }[]>`
-    select c.relname as tabla, pg_has_role(c.relowner, 'usage') as dueno,
+    select c.relname as tabla, pg_has_role(c.relowner, 'member') as dueno,
            has_table_privilege(c.oid, 'select') as sel, has_table_privilege(c.oid, 'insert') as ins,
            array_remove(array[
              case when has_table_privilege(c.oid, 'update') then 'update' end,
@@ -49,6 +51,10 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
              case when has_table_privilege(c.oid, 'trigger') then 'trigger' end], null) as demas
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'risk' and c.relkind = 'r' order by c.relname`
+  // 'member' y no 'usage': un rol NOINHERIT no hereda los privilegios, pero con SET ROLE los toma.
+  const miembro = await db<{ rol: string }[]>`
+    select rolname as rol from pg_roles
+    where rolname <> current_user and pg_has_role(current_user, oid, 'member') order by rolname`
   const [crea] = await db<{ crea: boolean }[]>`select coalesce(has_schema_privilege('risk', 'create'), false) as crea`
   const fuera = await db<{ esquema: string; n: number }[]>`
     select n.nspname as esquema, count(*)::int as n
@@ -67,6 +73,7 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
     pendientes: await pendientesSinCrear(db, dir),
     atributos: r?.atributos ?? [],
     duenoDe: tablas.filter((t) => t.dueno).length,
+    miembroDe: miembro.map((m) => m.rol),
     privilegiosDeMas: tablas.flatMap((t) => t.demas.map((p) => `${t.tabla} ${p}`)),
     faltan: tablas.filter((t) => t.tabla !== 'schema_migrations' && !(t.sel && t.ins)).map((t) => t.tabla),
     creaEnRisk: crea?.crea ?? false,
@@ -85,6 +92,7 @@ export const puntosVerificacion = (v: Verificacion): { readonly punto: string; r
     { punto: 'migraciones al día', cumple: v.pendientes.length === 0, detalle: `pendientes: ${lista(v.pendientes)}` },
     { punto: 'sin atributos de administración', cumple: v.atributos.length === 0, detalle: lista(v.atributos) },
     { punto: 'no es dueño de ninguna tabla de risk', cumple: v.duenoDe === 0, detalle: `dueño de ${String(v.duenoDe)}` },
+    { punto: 'no es miembro de ningún otro rol', cumple: v.miembroDe.length === 0, detalle: lista(v.miembroDe) },
     { punto: 'sin UPDATE, DELETE, TRUNCATE, REFERENCES ni TRIGGER en risk', cumple: v.privilegiosDeMas.length === 0, detalle: lista(v.privilegiosDeMas) },
     { punto: 'lee e inserta en cada tabla de risk', cumple: v.faltan.length === 0, detalle: `le falta: ${lista(v.faltan)}` },
     { punto: 'no crea objetos en risk', cumple: !v.creaEnRisk, detalle: v.creaEnRisk ? 'puede crear' : 'no puede' },

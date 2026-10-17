@@ -78,9 +78,9 @@ de ninguna tabla (no puede desactivar el trigger de sólo inserción, R-22), sin
 sin leer otros esquemas (D-0063). Lo prueba `rol-app.integration.test.ts`.
 
 **Reversa.** En local, `pnpm --filter @del-campo/risk run db:down` revierte una migración por
-vez (probado en CI). En la base hosteada, `db:down --hosteada` existe pero **no es el camino
-para volver atrás la app** (§7): borra tablas con lo registrado. Se usa sólo con una copia
-previa (§8) y una decisión explícita.
+vez (probado en CI). En la base hosteada, `db:down --hosteada --borra-datos` existe pero **no es
+el camino para volver atrás la app** (§7): borra tablas con lo registrado. Sin `--borra-datos`
+se niega. Se usa sólo con una copia previa (§8) y una decisión explícita.
 
 ## 3. Proyecto de Vercel
 
@@ -98,14 +98,14 @@ Variables, **sólo en Production** (la lista canónica está en el
 
 | Variable | Valor |
 | --- | --- |
-| `RISK_DATABASE_URL` | Transaction pooler con el usuario `risk_app` |
+| `RISK_DATABASE_URL` | Transaction pooler con el usuario `risk_app`. La app exige TLS con toda base que no está en `localhost`; se puede agregar `?sslmode=require` igual. |
 | `RISK_UI_SESSION_SECRET` | 32 caracteres o más al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. |
 
 Ninguna con prefijo `NEXT_PUBLIC_`. **Las previews nunca ven la base real.** Para A11 (RO01
 §6, protocolo 3: el owner recorre las vistas con las 8 sintéticas en el despliegue), un
 segundo proyecto de Supabase, **sintético**, con los mismos pasos 1 y 2 y las sintéticas
-importadas (`import SPIKES/T-0021/v0/fase-15/sinteticos --hosteada --corte 2026-10-14`), y
-sus dos variables cargadas sólo en **Preview**, con otro `RISK_UI_SESSION_SECRET`. Si el
+importadas (`import SPIKES/T-0021/v0/fase-15/sinteticos --hosteada --corte 2026-10-14`), las
+personas que van a recorrerla dadas de alta en esa base (§5, con su cadena), y sus dos variables cargadas sólo en **Preview**, con otro `RISK_UI_SESSION_SECRET`. Si el
 límite de proyectos gratuitos no lo permite, Preview queda sin variables (los endpoints
 responden 503 y no se puede entrar) y A11 se recorre en local como en T-0030, dicho así en
 el acta. Development queda sin variables.
@@ -137,6 +137,9 @@ done                                                       # 401 en todos
 for p in / /o/X /o/X/escenarios /o/X/plan /o/X/transferencia /o/X/orden-previo /r/X; do
   printf '%s ' "$p"; curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$D$p"
 done                                                       # redirige a /login
+for p in /api/o/X/orden-previo /api/o/X/reordenar /api/r/X/actualizar /api/logout; do
+  printf 'POST %s ' "$p"; curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Origin: $D" "$D$p"
+done                                                       # 401 (logout: 303 a /login, sin sesión que cerrar)
 curl -s -o /dev/null -w '%{http_code}\n' -X POST "$D/api/login" -H 'Origin: https://otro.example' # 403
 ```
 
@@ -214,10 +217,13 @@ repositorio, a Drive compartido ni a un mensaje.
 **Restaurar** en un proyecto vacío (o en el mismo, después de borrar el esquema):
 
 ```bash
-pg_restore --dbname "$RISK_HOSTED_DATABASE_URL" --no-owner --exit-on-error /ruta/privada/risk-….dump
+pg_restore --dbname "$RISK_HOSTED_DATABASE_URL" --no-owner --no-privileges --exit-on-error /ruta/privada/risk-….dump
 psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 -f contexts/risk/deploy/rol-app.sql
 pnpm --filter @del-campo/risk run db:verificar --hosteada     # con risk_app
 ```
+
+`--no-privileges`: en un proyecto nuevo `risk_app` todavía no existe y sus permisos los vuelve a
+dar `rol-app.sql`, después.
 
 **Pausa por inactividad.** El plan Free pausa el proyecto tras una semana sin actividad: la
 app responde con error y nadie entra. Se reactiva desde el panel de Supabase (*Restore
@@ -245,6 +251,10 @@ qué persona es el revisor:
   "personas": { "R1": "PER-… (el revisor)", "O1": "PER-… (la operadora, opcional)" }
 }
 ```
+
+El revisor da una banda a **cada** posición del orden previo: A8a pide «su orden profesional
+y sus bandas», y el script no lo da por cumplido con bandas faltantes. Los disparadores comparan
+ese orden con el ranking que Risk OS daba cuando se registró, con lo cargado hasta ese momento.
 
 Sólo acepta ids, fechas, estados, huellas y conteos por `regla_id`; cualquier otro campo lo
 rechaza nombrando sólo el campo, sin repetir el contenido. Con la cadena de `risk_app`:

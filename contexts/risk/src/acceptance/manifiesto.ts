@@ -110,7 +110,9 @@ export function leerManifiesto(input: unknown): Manifiesto {
   if (!Object.hasOwn(p, 'R1')) throw new ManifiestoInvalido('personas.R1')
   const ids = new Set<string>()
   for (const [codigo, id] of Object.entries(p)) {
-    if (!CODIGO_PERSONA.test(codigo) || typeof id !== 'string' || !PERSONA.test(id) || ids.has(id)) throw new ManifiestoInvalido(`personas.${codigo}`)
+    // Un código que no tiene la forma no se repite: el owner pudo haber escrito un nombre.
+    if (!CODIGO_PERSONA.test(codigo)) throw new ManifiestoInvalido('personas (un código que no es R1, O1, …)')
+    if (typeof id !== 'string' || !PERSONA.test(id) || ids.has(id)) throw new ManifiestoInvalido(`personas.${codigo}`)
     ids.add(id)
   }
   return { empresas, personas: p as Record<string, string> }

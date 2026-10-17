@@ -182,6 +182,15 @@ const normal = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').
 const soloEconomico = (f: FilaRanking): boolean =>
   !f.lectura.banderas.safetyCritical && f.lectura.dimensionDeterminante.length === 1 && f.lectura.dimensionDeterminante[0] === 'econ'
 
+const antesDe = (x: string, t: string): boolean => Date.parse(x) <= Date.parse(t)
+
+/** Lo registrado de la organización hasta `t`: las evaluaciones y sus revisiones de ese momento. */
+const hasta = (d: DatosOrganizacion, t: string): DatosOrganizacion => ({
+  ...d,
+  evaluaciones: d.evaluaciones.filter((e) => antesDe(e.registradaEn, t)).map((e) => ({ ...e, revisiones: e.revisiones.filter((r) => antesDe(r.registradaEn, t)) })),
+  reordenamientos: d.reordenamientos.filter((x) => antesDe(x.registradoEn, t)),
+})
+
 function medirA8(
   m: Manifiesto, l: LecturaAceptacion, listas: ReadonlyMap<string, FilaRanking[]>,
 ): { readonly porEmpresa: readonly A8Empresa[]; readonly disparadores: Disparadores; readonly cumple: boolean } {
@@ -213,13 +222,17 @@ function medirA8(
       revisionesPorEstado: porEstado, ultimaRevision: delRevisor.map((h) => h.registradaEn).sort().at(-1) ?? null,
       reordenamientos: reord.length, reordenamientosPorCausa: porCausa, reordenamientosSinFundamento: reord.filter((x) => !x.conFundamento).length,
       inicialesDelRevisor,
-      cumpleA: previoAntesDelAcceso && op.items.length > 0,
+      // RO01 §6, A8a: «su orden profesional y sus bandas»: una banda en cada posición.
+      cumpleA: previoAntesDelAcceso && op.items.length > 0 && op.items.every((i) => i.banda !== null),
       cumpleB: vigentes.length > 0 && revisadas === vigentes.length,
       cumpleC: reord.every((x) => x.conFundamento),
     })
 
-    // Disparadores de reapertura (dossier de la Fase 13, §5), con el orden previo como el orden escrito antes de ver Risk OS.
-    const fila = new Map(ranking.map((f) => [f.riskId, f]))
+    // Disparadores de reapertura (dossier de la Fase 13, §5), con el orden previo como el orden escrito antes de ver Risk OS,
+    // contra el ranking que Risk OS daba en ese momento: con lo registrado hasta el orden previo, sin las reevaluaciones ni
+    // las revisiones posteriores, que el revisor no tenía (revisión ciega de T-0032, hallazgo 5).
+    const rankingDeEntonces = op === null || d === undefined ? ranking : [...armarLista(V, hasta(d, op.registradoEn)).ranking]
+    const fila = new Map(rankingDeEntonces.map((f) => [f.riskId, f]))
     const items = (op?.items ?? []).filter((i) => fila.has(i.riskId)).sort((a, b) => a.posicion - b.posicion)
     const invertidos: { arribaRevisor: string; arribaRiskOs: string }[] = []
     let comparables = 0
@@ -232,7 +245,7 @@ function medirA8(
     }
     const conBandas = items.filter((i) => i.banda !== null && fila.get(i.riskId)?.lectura.banda != null)
     const safetyBajoEconomico = items.filter((i) => i.posicion <= 3 && fila.get(i.riskId)?.lectura.banderas.safetyCritical === true)
-      .filter((i) => ranking.some((x) => x.posicion < (fila.get(i.riskId)?.posicion ?? 0) && soloEconomico(x)))
+      .filter((i) => rankingDeEntonces.some((x) => x.posicion < (fila.get(i.riskId)?.posicion ?? 0) && soloEconomico(x)))
       .map((i) => i.riskId)
     const deLaEmpresa = l.reordenamientos.filter((x) => x.organizacionId === org)
     comparaciones.push({
@@ -456,7 +469,7 @@ export function informeAceptacion(r: MedicionAceptacion): string[] {
   l.push('', `A8 revisión profesional (R1): ${si(r.a8.cumple)}`)
   for (const e of r.a8.porEmpresa) {
     const op = e.ordenPrevio
-    l.push(`  ${e.empresa}: (a) ${si(e.cumpleA)}: ${op === null ? 'sin orden previo' : `orden previo del ${dia(op.registradoEn)} con ${String(op.items)} posiciones y ${String(op.conBanda)} bandas`}; ` +
+    l.push(`  ${e.empresa}: (a) ${si(e.cumpleA)}: ${op === null ? 'sin orden previo' : `orden previo del ${dia(op.registradoEn)} con ${String(op.items)} posiciones y ${String(op.conBanda)} con banda`}; ` +
       `primer acceso a resultados ${dia(e.primerAcceso)}; ${String(e.enRanking)} objetos en el ranking de Risk OS`)
     l.push(`      (b) ${si(e.cumpleB)}: ${String(e.vigentesRevisadas)} de ${String(e.vigentes)} evaluaciones vigentes con revisión de R1 (${conteo(e.revisionesPorEstado)}); la última el ${dia(e.ultimaRevision)}`)
     l.push(`      (c) ${si(e.cumpleC)}: ${String(e.reordenamientos)} reordenamientos de R1 (${conteo(e.reordenamientosPorCausa)}), ${String(e.reordenamientosSinFundamento)} sin fundamento; ` +
@@ -464,7 +477,7 @@ export function informeAceptacion(r: MedicionAceptacion): string[] {
   }
 
   const d = r.disparadores
-  l.push('', 'Disparadores de reapertura (dossier de la Fase 13, §5), orden previo de R1 contra el ranking de Risk OS:')
+  l.push('', 'Disparadores de reapertura (dossier de la Fase 13, §5), orden previo de R1 contra el ranking de Risk OS de ese momento:')
   for (const e of d.porEmpresa) {
     l.push(`  ${e.empresa}: ${String(e.paresInvertidos.length)} de ${String(e.paresComparables)} pares invertidos; bandas ${String(e.bandasCoinciden)} de ${String(e.bandasComparables)} coinciden; ` +
       `safety en el top-3 de R1 debajo de un riesgo sólo económico: ${String(e.safetyBajoEconomico.length)}; reordenamientos familia S06 ${String(e.reordenamientosFamiliaS06)}, safety bajo económico ${String(e.reordenamientosSafetyBajoEconomico)}`)

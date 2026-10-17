@@ -8,7 +8,9 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 
 import type { Sql, TransactionSql } from '../persistence/database.ts'
-import { credencialDePersona, credencialDeUsuario, fallidosRecientes, registrarAcceso, registrarFallido } from '../persistence/acceso.ts'
+import {
+  bloquearIntentos, credencialDePersona, credencialDeUsuario, fallidosRecientes, registrarAcceso, registrarFallido,
+} from '../persistence/acceso.ts'
 
 type Db = Sql | TransactionSql
 
@@ -114,15 +116,21 @@ export const huellaUsuario = (usuario: string): string => createHash('sha256').u
  */
 export const iniciarSesion = async (db: Db, usuario: string, contrasena: string): Promise<Sesion | null> => {
   const huella = huellaUsuario(usuario)
-  if ((await fallidosRecientes(db, huella, LOGIN_VENTANA_MINUTOS)) >= LOGIN_MAXIMO_FALLIDOS) return null
-  const c = USUARIO.test(usuario) ? await credencialDeUsuario(db, usuario) : null
-  const ok = await verificarContrasena(c?.hash ?? null, contrasena)
-  if (!ok || c === null) {
-    await registrarFallido(db, huella)
-    return null
+  // Contar, comparar y registrar el fallido en una transacción con el lock del usuario: los
+  // intentos en paralelo de un mismo usuario esperan su turno y ven los fallidos anteriores.
+  const intento = async (tx: TransactionSql): Promise<Sesion | null> => {
+    await bloquearIntentos(tx, huella)
+    if ((await fallidosRecientes(tx, huella, LOGIN_VENTANA_MINUTOS)) >= LOGIN_MAXIMO_FALLIDOS) return null
+    const c = USUARIO.test(usuario) ? await credencialDeUsuario(tx, usuario) : null
+    const ok = await verificarContrasena(c?.hash ?? null, contrasena)
+    if (!ok || c === null) {
+      await registrarFallido(tx, huella)
+      return null
+    }
+    await registrarAcceso(tx, c.personaId, { tipo: 'inicio_sesion' })
+    return { personaId: c.personaId, nombre: c.nombre, credencialId: c.credencialId }
   }
-  await registrarAcceso(db, c.personaId, { tipo: 'inicio_sesion' })
-  return { personaId: c.personaId, nombre: c.nombre, credencialId: c.credencialId }
+  return 'savepoint' in db ? db.savepoint(intento) : db.begin(intento)
 }
 
 /** La sesión de una persona si esa credencial sigue siendo su vigente, o `null`. */

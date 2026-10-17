@@ -4,7 +4,8 @@
 //   RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test \
 //     node src/persistence/cli.ts create | migrate | down | verificar
 //
-//   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts migrate | down | verificar --hosteada
+//   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts migrate | verificar --hosteada
+//   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts down --hosteada --borra-datos
 //
 // Sin `--hosteada`, apunta a RISK_DATABASE_URL o a delcampo_risk_dev, y sólo opera sobre esa
 // base y sobre delcampo_risk_test, en localhost (## Data effects de T-0028). Con `--hosteada`,
@@ -19,7 +20,7 @@ import { down, migrate, MigrationError } from './migrations.ts'
 import { informeVerificacion, puntosVerificacion, verificar } from './verificacion.ts'
 
 const DEFAULT_URL = 'postgres://localhost:5432/delcampo_risk_dev'
-const USO = `uso: node src/persistence/cli.ts create | migrate | down | verificar [${HOSTED_FLAG}]`
+const USO = `uso: node src/persistence/cli.ts create | migrate | down | verificar [${HOSTED_FLAG}] (down ${HOSTED_FLAG} pide además --borra-datos)`
 
 const die = (message: string): never => {
   process.stderr.write(`✗ ${message}\n`)
@@ -28,9 +29,16 @@ const die = (message: string): never => {
 
 const r = destinoDe(process.argv.slice(2), process.env, DEFAULT_URL)
 if ('error' in r) die(r.error)
-const { destino, args } = r as { destino: Destino; args: string[] }
+const { destino, args: todos } = r as { destino: Destino; args: string[] }
+// `down` contra la hosteada borra tablas con lo registrado: se pide de nuevo, con su nombre.
+const BORRA = '--borra-datos'
+const args = todos.filter((a) => a !== BORRA)
 const command = args[0]
-if (args.length !== 1 || !['create', 'migrate', 'down', 'verificar'].includes(command ?? '')) die(USO)
+if (args.length !== 1 || todos.length - args.length > 1 || !['create', 'migrate', 'down', 'verificar'].includes(command ?? '')) die(USO)
+if (todos.length !== args.length && !(command === 'down' && destino.hosteada)) die(`${BORRA} es sólo para down ${HOSTED_FLAG}`)
+if (command === 'down' && destino.hosteada && todos.length === args.length) {
+  die(`down ${HOSTED_FLAG} borra la última migración y lo registrado en sus tablas: hacé antes una copia (docs/despliegue/vercel-risk.md §8) y repetilo con ${BORRA}`)
+}
 if (command === 'create' && destino.hosteada) die('create es sólo para las bases locales: la base hosteada la crea el owner en Supabase')
 const name = destino.nombre
 

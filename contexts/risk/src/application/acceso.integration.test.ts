@@ -6,7 +6,7 @@ import { after, before, describe, it } from 'node:test'
 
 import { altaPersona, nuevaCredencial } from '../persistence/acceso.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
-import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
+import { conBaseTemporal, enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
 import {
   hashContrasena, huellaUsuario, iniciarSesion, leerHash, LARGO_MINIMO_CONTRASENA, LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, sesionVigente,
   verificarContrasena,
@@ -139,4 +139,13 @@ describe('límite de intentos de login (D-0069, T-0032)', () => {
       assert.equal((await fallidos(tx)).length, LOGIN_MAXIMO_FALLIDOS)
     })
   })
+
+  it('los intentos en paralelo de un mismo usuario esperan su turno: el límite corta también una ráfaga', () =>
+    conBaseTemporal('delcampo_risk_login_t0032_test', async (base) => {
+      const r = await Promise.all(Array.from({ length: 3 * LOGIN_MAXIMO_FALLIDOS }, () => iniciarSesion(base, 'rafaga', 'no es la contraseña')))
+      assert.ok(r.every((x) => x === null))
+      // Sólo los primeros LOGIN_MAXIMO_FALLIDOS llegan a comparar y quedan registrados; el resto ve el bloqueo.
+      const [n] = await base<{ n: number }[]>`select count(*)::int as n from risk.login_fallido where usuario_huella = ${huellaUsuario('rafaga')}`
+      assert.equal(n?.n, LOGIN_MAXIMO_FALLIDOS)
+    }))
 })

@@ -113,7 +113,7 @@ export async function ensayar(sql: Sql): Promise<unknown> {
   const revisor = await sesionDe(sql, REVISOR)
 
   // 3. Orden previo de R1 en cada empresa, con el material ciego y antes de ver resultados (A8a).
-  //    Ordena en el orden de origen y da la banda que después calcula Risk OS a la mitad.
+  //    Ordena en el orden de origen y da a cada objeto la banda que después calcula Risk OS (o Media).
   for (const c of codigos) {
     const p = await pantallaOrdenPrevio(sql, revisor, orgs[c])
     assert.ok(p !== null && !p.vioResultados)
@@ -122,7 +122,7 @@ export async function ensayar(sql: Sql): Promise<unknown> {
     const banda = new Map(armarLista(V, d).ranking.map((x) => [x.riskId, x.lectura.banda]))
     await registrarOrdenPrevio(sql, revisor, orgs[c], {
       materialRef: `material ciego del ensayo ${c}`,
-      items: p.objetos.map((o, i) => ({ riskId: o.riskId, posicion: i + 1, banda: i % 2 === 0 ? (banda.get(o.riskId) ?? null) : null })),
+      items: p.objetos.map((o, i) => ({ riskId: o.riskId, posicion: i + 1, banda: banda.get(o.riskId) ?? 'Media' })),
     })
   }
 

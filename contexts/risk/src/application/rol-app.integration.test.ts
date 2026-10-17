@@ -128,4 +128,22 @@ describe('rol de la app (deploy/rol-app.sql)', () => {
       const fallan = puntosVerificacion(v).filter((p) => !p.cumple).map((p) => p.punto)
       assert.deepEqual(fallan, ['no lee tablas fuera de risk', 'sin tablas de Broker OS ni de Communication OS en esta base'])
     }))
+
+  it('verificar marca un rol de la app miembro del dueño, y rol-app.sql le saca la membresía', () =>
+    enTransaccionRevertida(sql, async (tx) => {
+      const [{ dueno } = { dueno: '' }] = await tx<{ dueno: string }[]>`select current_user as dueno`
+      await tx.unsafe(rolApp())
+      await tx.unsafe(`grant ${dueno} to risk_app`)
+      await tx.unsafe('set local role risk_app')
+      const v = await verificar(tx)
+      assert.ok(v.miembroDe.includes(dueno), v.miembroDe.join(', '))
+      assert.ok(v.duenoDe > 0)
+      await tx.unsafe('reset role')
+      await tx.unsafe(rolApp())
+      await tx.unsafe('set local role risk_app')
+      const despues = await verificar(tx)
+      assert.deepEqual([despues.miembroDe, despues.duenoDe], [[], 0])
+      // SET ROLE mira la membresía de quien abrió la sesión, que acá es el superusuario de los
+      // tests: lo que se prueba es lo que dice el catálogo, que es lo que verificar lee.
+    }))
 })

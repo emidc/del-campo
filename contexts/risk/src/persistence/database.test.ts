@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { connect, connectHosted, destinoDe, errorSinDatos, HOSTED_URL_ENV, notHostedDatabase, notLocalDatabase } from './database.ts'
+import { connect, connectHosted, tlsPara, destinoDe, errorSinDatos, HOSTED_URL_ENV, notHostedDatabase, notLocalDatabase } from './database.ts'
 
 describe('conexión', () => {
   it('no usa sentencias preparadas: el Transaction pooler de Supabase no las admite', async () => {
@@ -9,6 +9,19 @@ describe('conexión', () => {
     const sql = connect('postgres://localhost:1/delcampo_risk_test')
     try {
       assert.equal(sql.options.prepare, false)
+    } finally {
+      await sql.end()
+    }
+  })
+
+  it('pide TLS a toda base que no está en este equipo, como la de la app desplegada', async () => {
+    assert.equal(tlsPara('postgres://localhost:5432/delcampo_risk_dev'), false)
+    assert.equal(tlsPara('postgres://127.0.0.1:5432/delcampo_risk_dev'), false)
+    assert.equal(tlsPara('postgres://u:p@aws-0-sa-east-1.pooler.example.com:6543/postgres'), 'require')
+    assert.equal(tlsPara('no es una url'), 'require')
+    const sql = connect('postgres://u:p@db.example.com:1/postgres')
+    try {
+      assert.equal(sql.options.ssl, 'require')
     } finally {
       await sql.end()
     }

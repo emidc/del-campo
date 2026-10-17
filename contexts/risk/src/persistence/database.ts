@@ -15,9 +15,21 @@ export const SCHEMA = 'risk'
  * (D-0068). Contra una conexión directa o de sesión no cambia nada.
  */
 export const connect = (databaseUrl: string): Sql =>
-  postgres(databaseUrl, { max: 5, prepare: false, onnotice: () => undefined })
+  postgres(databaseUrl, { max: 5, prepare: false, ssl: tlsPara(databaseUrl), onnotice: () => undefined })
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+
+/**
+ * TLS obligatorio fuera de este equipo (T-0032): la app desplegada llega a la base por la red, y
+ * postgres.js no lo pide por su cuenta. En localhost, sin TLS, como siempre.
+ */
+export const tlsPara = (databaseUrl: string): 'require' | false => {
+  try {
+    return LOCAL_HOSTS.has(new URL(databaseUrl).hostname) ? false : 'require'
+  } catch {
+    return 'require'
+  }
+}
 
 /** Las únicas bases que el runner y los tests pueden tocar (T-0028, ## Data effects). */
 const LOCAL_DATABASES = /^delcampo_risk_(dev|test)$/

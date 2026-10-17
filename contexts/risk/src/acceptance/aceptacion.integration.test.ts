@@ -13,7 +13,11 @@ import postgres from 'postgres'
 import { connect, notLocalDatabase, type Sql } from '../persistence/database.ts'
 import { migrate } from '../persistence/migrations.ts'
 import { testDatabaseUrl } from '../persistence/testing.ts'
-import { PERSONA } from '../testing/actualizacion.ts'
+import { sesionVigente } from '../application/acceso.ts'
+import { cargarReevaluacion, revisar } from '../application/actualizacion.ts'
+import { armarLista } from '../domain/vistas.ts'
+import { VERSION_METODOLOGIA } from '../domain/modelo.ts'
+import { filasSinCicloS07, PERSONA, reevaluacionNueva } from '../testing/actualizacion.ts'
 import { ensayar } from '../testing/ensayo.ts'
 import { leerParaAceptacion, type LecturaAceptacion } from './lectura.ts'
 import { leerManifiesto, type Manifiesto } from './manifiesto.ts'
@@ -128,5 +132,31 @@ describe('aceptación de RO01 §6 sobre el ensayo con sintéticas', () => {
     const informe = informeAceptacion(r3).join('\n')
     assert.match(informe, /H5: 0 \(—\)/)
     assert.doesNotMatch(informe, /ORG-/)
+  })
+
+  // Último: escribe en la base del ensayo.
+  it('los disparadores comparan con el ranking de cuando R1 registró su orden, no con el de hoy', async () => {
+    const antes = medir(manifiesto, lectura).disparadores
+    const org = manifiesto.empresas.H1.organizacionId
+    const d = lectura.datos.get(org)
+    assert.ok(d !== undefined)
+    const primero = armarLista(VERSION_METODOLOGIA, d).ranking[0]
+    assert.ok(primero !== undefined)
+    // La operadora baja la probabilidad del primero de H1 y acepta esa reevaluación: cambia el ranking de hoy.
+    const [c] = await sql<{ id: string }[]>`select max(id)::text as id from risk.credencial where persona_id = ${PERSONA}`
+    const operadora = await sesionVigente(sql, PERSONA, c?.id ?? '')
+    assert.ok(operadora !== null)
+    const pedido = reevaluacionNueva(filasSinCicloS07(), primero.riskId, { motivo: 'correccion_evaluacion', accionId: null, fecha: '2026-10-16' })
+    const { evaluacionId } = await cargarReevaluacion(sql, operadora, {
+      ...pedido, factores: { ...pedido.factores, p: { estado: 'known', valor: 1, min: null, max: null, observacion: 'Baja en el ensayo.' } },
+    })
+    await revisar(sql, operadora, { evaluacionId }, 'accepted')
+    const despues = await leerParaAceptacion(sql, manifiesto)
+    const hoy = armarLista(VERSION_METODOLOGIA, despues.datos.get(org) ?? d).ranking
+    assert.notEqual(hoy[0]?.riskId, primero.riskId, 'la reevaluación tiene que cambiar el ranking de hoy')
+    const r = medir(manifiesto, despues)
+    assert.deepEqual(r.disparadores, antes)
+    // La evaluación nueva es vigente y R1 no la revisó: A8b de H1 deja de cumplir.
+    assert.equal(r.a8.porEmpresa.find((e) => e.empresa === 'H1')?.cumpleB, false)
   })
 })

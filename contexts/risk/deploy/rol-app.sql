@@ -6,8 +6,8 @@
 -- pone aparte, fuera del repositorio (R-16, R-18).
 --
 -- Lo que deja:
---   - `risk_app` puede entrar y no es superusuario, no crea bases, roles ni esquemas, y no salta
---     RLS;
+--   - `risk_app` puede entrar y no es superusuario, no crea bases, roles ni esquemas, no salta
+--     RLS y no es miembro de ningún rol;
 --   - en el esquema `risk` lee e inserta en todas las tablas, salvo el ledger de migraciones, que
 --     sólo lee; no tiene UPDATE, DELETE, TRUNCATE, REFERENCES ni TRIGGER sobre ninguna, y no es
 --     dueño de nada, así que tampoco puede desactivar el trigger de sólo inserción (R-22);
@@ -25,6 +25,18 @@ begin
 end
 $$;
 alter role risk_app login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+
+-- Ninguna membresía: con NOINHERIT no heredaría privilegios, pero con SET ROLE tomaría los del
+-- rol del que es miembro (por ejemplo, el dueño de las tablas) y podría desactivar el trigger.
+do $$
+declare g record;
+begin
+  for g in select r.rolname from pg_auth_members m join pg_roles r on r.oid = m.roleid
+           where m.member = (select oid from pg_roles where rolname = 'risk_app') loop
+    execute format('revoke %I from risk_app', g.rolname);
+  end loop;
+end
+$$;
 
 revoke all on schema risk from risk_app;
 grant usage on schema risk to risk_app;
