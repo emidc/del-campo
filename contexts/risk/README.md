@@ -3,8 +3,8 @@
 Contexto de D-0063 para Risk OS v1 (`SLICES/RO01.md`). Guarda riesgos, evaluaciones,
 acciones, coberturas y lo que agregaron las decisiones del owner
 (`SLICES/RO01-decisiones.md`), y calcula los derivados de la metodología v1 con funciones
-puras. Lo creó T-0028; el importador es T-0029, la app y el acceso T-0030, el despliegue
-T-0032.
+puras. Lo creó T-0028; el importador es T-0029, la app y el acceso T-0030, la actualización
+e historial T-0031, el despliegue T-0032.
 
 No importa nada de Broker OS (`packages/*`, `apps/*`) ni de otro contexto, y nadie más lo
 importa: no tiene `Party`, `Policy` ni claves foráneas a otro esquema (D-0063, D-0067). Lo
@@ -14,8 +14,8 @@ hace cumplir `pnpm lint` (R-25).
 
 | Carpeta | Qué hay | Puede importar |
 |---|---|---|
-| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). De las vistas (T-0030): lo registrado de una organización (`organizacion.ts`) y el armado de cada vista con las reglas de RO01 §3 (`vistas.ts`). Puro. | Solo `src/domain/` |
-| `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`); lo que leen las vistas (`vistas.ts`) y el acceso (`acceso.ts`, T-0030). | `domain`, `postgres`, `node:*` |
+| `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). De las vistas (T-0030): lo registrado de una organización (`organizacion.ts`) y el armado de cada vista con las reglas de RO01 §3 (`vistas.ts`). De la actualización (T-0031): qué abre y qué cierra una revisión pendiente y por qué se rechaza un pedido (`actualizacion.ts`), el reordenamiento profesional al lado del calculado (`reordenamiento.ts`), el historial de un riesgo armado de todas sus filas (`historial.ts`) y el conteo de ciclos de A7 (`ciclos.ts`). Puro. | Solo `src/domain/` |
+| `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`); lo que leen las vistas (`vistas.ts`) y el acceso (`acceso.ts`, T-0030); el bloqueo por organización, la inserción y las lecturas de la actualización (`actualizacion.ts`, T-0031). | `domain`, `postgres`, `node:*` |
 | `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
 | `src/testing/` | Soporte de los tests: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv` (`sinteticos.ts`, `regresion.ts`), y arma lotes a partir de las sintéticas y de los inválidos de la 15b (`lotes.ts`). El paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
 | `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
@@ -56,6 +56,7 @@ recálculo, es un error y no un dato.
 | `revision_pendiente`, `cierre_revision` | Revisiones abiertas por actividad y su cierre por una persona. |
 | `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
 | `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
+| (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, una reevaluación cierra una sola, y la que cerró una revisión no pasa después a `rejected` ni a `needs_revision`; el orden previo va antes del primer acceso a resultados, sin posiciones repetidas. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
 | `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
 ## Bases locales
@@ -139,6 +140,56 @@ o `C_raw` (lista, escenarios, detalle) registran el acceso en `registro_acceso` 
 devolver nada. `C_raw` sólo sale en el detalle, junto al vector completo y las dos
 banderas (H6).
 
+## Actualización (T-0031)
+
+`src/application/actualizacion.ts` tiene un caso de uso por operación de RO01 §2, cada uno con
+la sesión de la persona que la registra (autor, `actor = human`, `origen = sesion`) y en una
+sola transacción, serializada por organización con un advisory lock:
+
+| Caso de uso | Qué escribe |
+|---|---|
+| `registrarNovedad` | Una novedad. Si es `informacion_nueva` o `cambio_contexto`, abre una revisión pendiente; un comentario no abre nada. |
+| `altaAccion`, `cambiarEstadoAccion`, `registrarEficacia` | La acción con su estado inicial; cada cambio de estado con su comentario (guardado como novedad de la acción). Pasar a `cumplida` exige fecha y evidencia de ejecución y abre una revisión. |
+| `cargarReevaluacion` | Otra evaluación que apunta a la última de la cadena, `pending`. No reemplaza a la vigente hasta que alguien la acepte. |
+| `revisar` | `review_status` de una evaluación, acción o cobertura. |
+| `cerrarConReevaluacion`, `cerrarSinCambio` | El cierre de una revisión: con la reevaluación del motivo (que acepta si hacía falta) o sin cambio, con fundamento. |
+| `altaCobertura`, `registrarEventoPoliza` | Una cobertura y sus eventos como observaciones locales (D-0067). |
+| `reordenar` | Un reordenamiento con causa, fundamento y patrón, la foto del orden calculado y las evaluaciones vigentes con que se calculó. Se aplica mientras esas no cambien. |
+| `pantallaOrdenPrevio`, `registrarOrdenPrevio` | El material ciego de una empresa (sin ranking, bandas ni `C_raw`, no registra acceso) y el orden previo del revisor, que se rechaza si ya vio resultados. |
+| `abrirRevisionesPorCambioDeVersion` | Una revisión por riesgo con evaluación vigente cuando cambian las funciones. |
+
+Un pedido que no cumple una regla se rechaza con `RechazoActualizacion` y su motivo; lo que la
+base rechaza (las restricciones de 0004 y las de siempre) vuelve con el mismo tipo y el nombre
+de la restricción. En los dos casos la transacción se revierte entera.
+
+El detalle trae `cambios`: el historial del riesgo armado de cada fila de cada tabla que lo
+nombra, con quién, cuándo, qué y el estado anterior (`TABLAS_DEL_HISTORIAL` dice por qué las
+que no entran no entran).
+
+```bash
+# Conteo de ciclos de A7: revisiones que una persona abrió y cerró, por empresa y disparador
+RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev \
+  pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,ORG-C,ORG-D,ORG-E
+
+# Lo mismo y, aparte, una línea por ciclo que cuenta
+  pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,ORG-C,ORG-D,ORG-E --detalle
+```
+
+El resumen tiene sólo códigos de empresa, conteos y fechas: es el que puede salir del equipo
+del owner. Sale con 0 si A7 se cumple. `--detalle` no lo cambia: le agrega, abajo, por cada
+ciclo que cuenta, la empresa, la revisión, el disparador y su referencia, la apertura, el
+cierre, el resultado, la evaluación si la hay y el nombre de la persona que cerró. Lleva ids
+y personas, así que es para verificar en ese equipo, no para compartir (decisión del owner,
+2026-10-17).
+
+Una reevaluación materialmente idéntica a la evaluación vigente se rechaza: mismos factores
+(estado, valor, rango y observación) y mismos campos evaluativos (base, evidencia, causa,
+evento, consecuencia, monto, moneda, uncertainty y su nota, necesidad de validación). Sólo
+cambian metadatos: fecha, autor, motivo, acción, justificación, versión. Si la revisión
+concluye que no cambió nada, se cierra «sin cambio» con su fundamento. Con un cambio
+evaluativo real entra aunque la criticidad o el vector den lo mismo (decisión del owner,
+2026-10-17; `cambiosEvaluativos` en `src/domain/actualizacion.ts`).
+
 ## Tests
 
 `pnpm test` incluye los del contexto (R-26):
@@ -149,6 +200,7 @@ banderas (H6).
 | unit | `src/domain/*.test.ts`, `src/application/*.test.ts` | Las funciones v1 (casos PV, bandas, §9.3, banderas, D10, padre, cola), las propiedades 1 a 7 de la metodología §14, las reglas 3 y 5 de RO01 §3 y lo que exporta el paquete. |
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
 | integración, vistas | `src/application/vistas.integration.test.ts`, `acceso.integration.test.ts` | Las reglas 1 a 7 de RO01 §3 sobre las vistas de las 8 sintéticas: `C_raw` sólo en la criticidad del detalle; el ranking contra `rankingOrganizacion` y, en las organizaciones sin filas de la 15b, contra `regresion-emi41.csv`; el techo no mueve posiciones; el filtro por unidad las conserva; `unknown` sin valor; la evaluación usada y su rótulo; versiones; el registro de acceso; login, rotación y baja. |
+| integración, actualización | `src/application/actualizacion.integration.test.ts`, `historial.integration.test.ts`, `ciclos.integration.test.ts` | El ciclo de S07-R06 (15B-A01 cumplida, reevaluación, cierre) da lo mismo que `regresion-emi41.csv`; qué abre y qué no abre una revisión; rechazos; una falla inyectada después de cada escritura de cada operación no deja nada; orden previo, reordenamiento y cambio de versión; el historial contra las filas de la base, tabla por tabla; ninguna tabla sin razón; ningún `UPDATE` ni `DELETE` en el código; el conteo de A7. |
 | integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |
 
 Los de integración corren siempre sobre `delcampo_risk_test`: la crean si no existe y
@@ -170,9 +222,9 @@ node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
   puede saltear (`disable trigger`, `session_replication_role`). El rol con que corra la
   app no debería ser dueño del esquema ni tener `UPDATE`, `DELETE` ni `TRUNCATE` sobre
   `risk` (como pide R-22 para la auditoría de negocio).
-- **T-0031, invariantes de varias filas** que la base no hace cumplir: están en
-  `ops/evidence/T-0028.md`, «Lo que la base no hace cumplir». La importación las hace
-  cumplir con el validador; lo que queda abierto está en `ops/evidence/T-0029.md`.
+- **Invariantes de varias filas.** 0004 suma las que la base puede comprobar al escribir; las
+  que siguen en la aplicación están en el encabezado de la migración y en
+  `ops/evidence/T-0031.md`.
 
 ## Datos
 

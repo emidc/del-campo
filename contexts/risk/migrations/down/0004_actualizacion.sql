@@ -1,0 +1,23 @@
+-- Reversa de 0004.
+alter table risk.orden_previo_item drop constraint orden_previo_item_posicion_unica;
+drop trigger orden_previo_item_en_su_registro on risk.orden_previo_item;
+drop function risk.orden_previo_item_en_su_registro();
+drop trigger orden_previo_antes_de_resultados on risk.orden_previo;
+drop function risk.orden_previo_antes_de_resultados();
+drop trigger revision_humana_cierre_firme on risk.revision_humana;
+drop function risk.revision_humana_cierre_firme();
+drop trigger cierre_revision_reevaluacion_valida on risk.cierre_revision;
+drop function risk.cierre_revision_reevaluacion_valida();
+drop function risk.motivo_cierra(text, text);
+alter table risk.cierre_revision drop constraint cierre_revision_una_por_evaluacion;
+drop trigger revision_pendiente_accion_cumplida on risk.revision_pendiente;
+drop function risk.revision_pendiente_accion_cumplida();
+drop trigger evaluacion_accion_cumplida on risk.evaluacion;
+drop function risk.evaluacion_accion_cumplida();
+drop function risk.estado_vigente_accion(text);
+drop trigger accion_estado_transicion on risk.accion_estado;
+drop function risk.accion_estado_transicion();
+alter table risk.evento_poliza drop constraint evento_poliza_sesion_humana;
+alter table risk.transferencia drop constraint transferencia_sesion_humana;
+alter table risk.accion drop constraint accion_sesion_humana;
+alter table risk.evaluacion drop constraint evaluacion_sesion_humana;

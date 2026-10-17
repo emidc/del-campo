@@ -3,8 +3,10 @@
 App web de Risk OS v1 (`SLICES/RO01.md` §2), creada en T-0030. Muestra lo registrado y lo
 calculado de cada organización con las reglas de presentación de RO01 §3. Es una app
 aparte de `apps/web` y de `apps/communication` (D-0063), con el mismo stack (Next.js,
-D-0058) y sin dependencias nuevas. **Sólo lee:** la única escritura es el registro de
-accesos; actualizar evaluaciones, acciones y revisiones es T-0031.
+D-0058) y sin dependencias nuevas. Desde T-0031 también registra: novedades, acciones y su
+estado, reevaluaciones, revisiones, cierres, coberturas, eventos, reordenamientos y el orden
+previo, siempre con la persona de la sesión como autor y a través de los casos de uso de
+`@del-campo/risk`.
 
 **Importa del workspace sólo `@del-campo/risk`**, y sólo su raíz. No importa
 `packages/*`, otra app, otro contexto, un archivo interno del suyo ni `postgres`. Lo hace
@@ -21,12 +23,22 @@ cumplir `pnpm lint` (R-25).
 | `/o/{org}/plan` | Plan de acción | Sesión |
 | `/o/{org}/transferencia` | Transferencia y feed de actividad | Sesión |
 | `/r/{id}` | Detalle del riesgo con su historial | Sesión; registra el acceso |
+| `/o/{org}/orden-previo` | Material ciego y orden previo del revisor: sin ranking, bandas ni `C_raw` | Sesión; **no** registra el acceso |
 | `GET /api/organizaciones` | Datos de `/` | Sesión |
 | `GET /api/o/{org}/{lista,escenarios,plan,transferencia,actividad}` | Datos de cada vista (`lista` acepta `?unidad=`) | Sesión; lista y escenarios registran el acceso |
 | `GET /api/r/{id}` | Datos del detalle | Sesión; registra el acceso |
+| `POST /api/r/{id}/actualizar` | Los formularios del riesgo (`op`: novedad, alta_accion, estado, eficacia, reevaluacion, revisar, cerrar, sin_cambio, alta_cobertura, evento) | Sesión y mismo origen |
+| `POST /api/o/{org}/reordenar` | Un reordenamiento profesional | Sesión y mismo origen |
+| `POST /api/o/{org}/orden-previo` | El orden previo del revisor | Sesión y mismo origen |
 
 Sin sesión, una página manda a `/login` y un endpoint responde 401 con un cuerpo fijo.
 Una organización, una unidad o un riesgo que no existen son 404 y no registran nada.
+
+Cada formulario vuelve a su página (303) con `?ok=` o `?error=`, que la página muestra arriba.
+Un error es el motivo de la regla que no se cumplió, o un mensaje fijo si falló otra cosa; en
+los dos casos no se guardó nada. `volver` sólo acepta rutas propias (`/r/…`, `/o/…`). Los
+formularios están cerrados por defecto (`<details>`) para que la lectura siga primero, y el
+detalle termina con el historial de cambios del riesgo.
 
 ## Acceso por persona (D-0069)
 
@@ -156,5 +168,5 @@ prioritario se lee y qué evaluación de ese hijo usa su posición.
 
 | Archivo | Qué cubre |
 |---|---|
-| `src/lib/deny.test.ts` | R-28: cada endpoint de datos sin cookie, con una inválida, de otro secreto, adulterada o vencida responde 401 sin tocar la base; sin configuración, 503; login y logout de otro origen, 403; toda página llama primero a `requireSession()` y todo endpoint pasa por `withSesion`. |
-| `src/vistas/paginas.integration.test.ts` | El HTML de cada página con las 8 sintéticas: `C_raw` sólo en la fila de criticidad del detalle, con los 7 factores y las 2 banderas; toda fila con factores los muestra completos; el techo sólo en la cola y el detalle; sólo riesgos de la organización; `unknown`; evaluación usada; versión; sin riesgo neto. Y cada endpoint con una sesión válida, y la baja que lo corta. |
+| `src/lib/deny.test.ts` | R-28: cada endpoint de datos sin cookie, con una inválida, de otro secreto, adulterada o vencida responde 401 sin tocar la base; sin configuración, 503; login y logout de otro origen, 403; toda página llama primero a `requireSession()` y todo endpoint pasa por `withSesion`. Los tres POST de T-0031 sin sesión, 401; de otro origen o sin origen, 403 aun con sesión. |
+| `src/vistas/paginas.integration.test.ts` | El HTML de cada página con las 8 sintéticas: `C_raw` sólo en la fila de criticidad del detalle, con los 7 factores y las 2 banderas; toda fila con factores los muestra completos; el techo sólo en la cola y el detalle; sólo riesgos de la organización; `unknown`; evaluación usada; versión; sin riesgo neto. Y cada endpoint con una sesión válida, y la baja que lo corta. Los formularios de T-0031: el material ciego sin resultados y el orden previo una sola vez; una novedad que abre una revisión y su cierre sin cambio; un pedido incompleto que no escribe nada; `volver` a otro sitio que se ignora; el reordenamiento al lado del orden calculado; el estado de una acción nueva; el historial en la página. |

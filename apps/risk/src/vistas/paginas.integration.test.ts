@@ -5,25 +5,29 @@
 //
 // La app no toca la base sino a través de @del-campo/risk (R-25): migra, importa y lee con lo que
 // exporta su raíz. Los CSV sintéticos se leen en su lugar, en SPIKES/T-0021, sin copiarlos.
+//
+// Los formularios de T-0031 se prueban igual: cada POST llama a su handler con la transacción
+// como base, y lo que cambió se lee en la página que vuelve a renderizarse.
 
 import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
 import {
-  connect, importarLote, leerArchivosDeLote, leerContrato, migrate, organizaciones, sesionVigente, VERSION_METODOLOGIA, vistaActividad,
+  connect, importarLote, pantallaOrdenPrevio, leerArchivosDeLote, leerContrato, migrate, organizaciones, sesionVigente, VERSION_METODOLOGIA, vistaActividad,
   vistaDetalle, vistaEscenarios, vistaLista, vistaPlan, vistaTransferencia, type Sesion, type Sql, type TransactionSql,
 } from '@del-campo/risk'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+import { actualizarRiesgoResponse, ordenPrevioResponse, reordenarResponse } from '../lib/actualizar.ts'
 import { guardRequest } from '../lib/guard.ts'
 import { detalleResponse, organizacionesResponse, VISTAS_DE_ORGANIZACION, vistaDeOrganizacionResponse } from '../lib/handlers.ts'
 import { issueSession, SESSION_COOKIE } from '../lib/sesion.ts'
 import { PaginaDetalle } from './detalle.ts'
 import { PaginaOrganizaciones } from './inicio.ts'
 import { PaginaLista } from './lista.ts'
-import { PaginaEscenarios, PaginaPlan, PaginaTransferencia } from './organizacion.ts'
+import { PaginaEscenarios, PaginaOrdenPrevio, PaginaPlan, PaginaTransferencia } from './organizacion.ts'
 
 const V = VERSION_METODOLOGIA
 const TEST_DATABASE = 'delcampo_risk_test'
@@ -315,6 +319,117 @@ describe('endpoints de datos con una sesión válida (sobre la transacción)', (
       const r = await pedir(`/api/o/${encodeURIComponent(org)}/lista`)
       assert.equal(r.status, 401)
       assert.deepEqual(await r.json(), { error: 'sin credencial válida' })
+    })
+  })
+})
+
+describe('formularios de la actualización (T-0031), sobre la transacción', () => {
+  const ORG_S07 = 'ORG-01M3QSRT00VT0W3XH3JG6NDTEX'
+  const BASE = 'http://localhost:3200'
+  const enviar = (path: string, campos: Record<string, string>): Request =>
+    new Request(`${BASE}${path}`, { method: 'POST', headers: { origin: BASE }, body: new URLSearchParams(campos) })
+  const resultado = (r: Response): { ruta: string; ok: string | null; error: string | null } => {
+    assert.equal(r.status, 303)
+    const u = new URL(r.headers.get('location') ?? '')
+    assert.equal(u.origin, BASE)
+    return { ruta: u.pathname, ok: u.searchParams.get('ok'), error: u.searchParams.get('error') }
+  }
+
+  it('orden previo ciego, novedad con revisión pendiente, cierre sin cambio, reordenamiento e historial en la página', async () => {
+    await conSinteticas(async (tx, sesion) => {
+      const html = (e: ReactElement): string => renderToStaticMarkup(e)
+
+      // El material ciego, antes de ver resultados: los objetos sin ningún resultado.
+      const p = await pantallaOrdenPrevio(tx, sesion, ORG_S07)
+      assert.ok(p !== null && !p.vioResultados && p.registrado === null)
+      const ciego = html(PaginaOrdenPrevio(p, sesion.nombre))
+      assert.equal(cuenta(ciego, /data-objeto-ciego=/g), p.objetos.length)
+      assert.doesNotMatch(ciego, /data-(fila|factor|bandera|c-raw|evaluacion|profesional)=/)
+      assert.doesNotMatch(ciego, /c_?raw/i)
+      const rutaPrevio = `/api/o/${ORG_S07}/orden-previo`
+      const campos: Record<string, string> = Object.fromEntries([['material', 'MAT-S07'], ...p.objetos.map((o, i): [string, string] => [`pos_${o.riskId}`, String(i + 1)])])
+      const incompleto = resultado(await ordenPrevioResponse(enviar(rutaPrevio, { ...campos, [`pos_${p.objetos[0]?.riskId ?? ''}`]: '' }), sesion, tx, ORG_S07))
+      assert.ok(incompleto.error !== null && incompleto.ok === null, JSON.stringify(incompleto))
+      const previo = resultado(await ordenPrevioResponse(enviar(rutaPrevio, campos), sesion, tx, ORG_S07))
+      assert.deepEqual(previo, { ruta: `/o/${ORG_S07}/orden-previo`, ok: 'Orden previo registrado.', error: null })
+      assert.ok(resultado(await ordenPrevioResponse(enviar(rutaPrevio, campos), sesion, tx, ORG_S07)).error !== null)
+      const registrado = await pantallaOrdenPrevio(tx, sesion, ORG_S07)
+      assert.equal(cuenta(html(PaginaOrdenPrevio(registrado ?? p, sesion.nombre)), /data-orden-previo=/g), p.objetos.length)
+
+      // El detalle tiene un formulario por operación y el historial de cambios.
+      const rid = p.objetos.find((o) => o.idOrigen === 'S07-R06')?.riskId ?? ''
+      const detalle = async (): Promise<string> => {
+        const d = await vistaDetalle(tx, sesion, V, rid)
+        assert.ok(d !== null)
+        return html(PaginaDetalle(d, sesion.nombre))
+      }
+      const antes = await detalle()
+      for (const op of ['novedad', 'reevaluacion', 'alta_accion', 'revisar', 'alta_cobertura']) {
+        assert.match(antes, new RegExp(`action="/api/r/${rid}/actualizar"[^>]*>[\\s\\S]*?name="op" value="${op}"`), op)
+      }
+      const cambiosAntes = cuenta(antes, /data-cambio=/g)
+      assert.ok(cambiosAntes > 0)
+
+      // Una novedad incompleta no escribe nada; una completa abre una revisión pendiente.
+      const ruta = `/api/r/${rid}/actualizar`
+      const novedades = async (): Promise<number> => (await tx<{ n: number }[]>`select count(*)::int as n from risk.novedad`)[0]?.n ?? -1
+      const novedadesAntes = await novedades()
+      const mal = resultado(await actualizarRiesgoResponse(enviar(ruta, { op: 'novedad', tipo: 'informacion_nueva', texto: '', evidencia: 'DOC-1' }), sesion, tx, rid))
+      assert.ok(mal.error !== null && mal.ok === null)
+      assert.equal(await novedades(), novedadesAntes)
+      const bien = resultado(await actualizarRiesgoResponse(enviar(ruta, {
+        op: 'novedad', tipo: 'informacion_nueva', texto: 'Informe sintético del fabricante.', evidencia: 'DOC-FAB-1', volver: 'https://otro.example/r/x',
+      }), sesion, tx, rid))
+      assert.deepEqual(bien, { ruta: `/r/${rid}`, ok: 'Novedad registrada; se abrió una revisión pendiente.', error: null })
+      const conRevision = await detalle()
+      const revision = /data-revision="([^"]+)" data-estado="abierta"/.exec(conRevision)?.[1]
+      assert.ok(revision !== undefined, 'la revisión abierta está en el detalle')
+      assert.match(conRevision, /name="op" value="sin_cambio"/)
+
+      // Se cierra sin cambio desde el formulario, y las dos cosas quedan en el historial.
+      const cierre = resultado(await actualizarRiesgoResponse(enviar(ruta, { op: 'sin_cambio', revision, fundamento: 'Confirma la evaluación vigente.' }), sesion, tx, rid))
+      assert.equal(cierre.ok, 'Revisión cerrada sin cambio.')
+      const despues = await detalle()
+      assert.doesNotMatch(despues, new RegExp(`data-revision="${revision}" data-estado="abierta"`))
+      assert.equal(cuenta(despues, /data-cambio=/g), cambiosAntes + 3)
+      for (const t of ['novedad', 'revision_pendiente', 'cierre_revision']) assert.match(despues, new RegExp(`data-cambio="${t}"`), t)
+      assert.match(despues, /Persona de prueba/)
+
+      // Una operación desconocida y un id que no es de riesgo.
+      assert.equal(resultado(await actualizarRiesgoResponse(enviar(ruta, { op: 'borrar' }), sesion, tx, rid)).error, 'operación desconocida')
+      assert.equal((await actualizarRiesgoResponse(enviar(ruta, { op: 'novedad' }), sesion, tx, 'no-es-un-id')).status, 404)
+
+      // Un reordenamiento aparece al lado del orden calculado, que no cambia.
+      const lista = async (): Promise<string> => {
+        const v = await vistaLista(tx, sesion, V, ORG_S07)
+        assert.ok(v !== null)
+        return html(PaginaLista(v, sesion.nombre))
+      }
+      const calculadoAntes = [...(await lista()).matchAll(/data-fila="ranking" data-risk-id="([^"]+)"/g)].map((m) => m[1])
+      const reorden = resultado(await reordenarResponse(enviar(`/api/o/${ORG_S07}/reordenar`, {
+        tipo: 'banda', riesgo: rid, banda: 'Crítica', causa: 'regla_ambigua', fundamento: 'Lectura propia sintética.', patron: 'otro',
+      }), sesion, tx, ORG_S07))
+      assert.deepEqual(reorden, { ruta: `/o/${ORG_S07}`, ok: 'Reordenamiento registrado. El orden calculado no cambió.', error: null })
+      const conReorden = await lista()
+      assert.deepEqual([...conReorden.matchAll(/data-fila="ranking" data-risk-id="([^"]+)"/g)].map((m) => m[1]), calculadoAntes)
+      assert.match(conReorden, /data-profesional="\d+"[^>]*>[^<]*Crítica/)
+
+      // Una acción nueva tiene su formulario de estado; pasarla a en curso exige un comentario.
+      const alta = resultado(await actualizarRiesgoResponse(enviar(ruta, {
+        op: 'alta_accion', tipo_registro: 'accion', descripcion: 'Repuesto sintético en planta', factor_objetivo: 'v_rec',
+        mecanismo_causal: 'v_rec: menos días parado', fecha_alta: '2026-10-15', base: 'assumed', evidencia: 'sin_evidencia', estado: 'planificada',
+      }), sesion, tx, rid))
+      assert.equal(alta.ok, 'Alta registrada.', alta.error ?? '')
+      const conAccion = await detalle()
+      const accion = /name="op" value="estado"\/>(?:<input[^>]*\/>)*?<input type="hidden" name="accion" value="([^"]+)"/.exec(conAccion)?.[1]
+      assert.ok(accion !== undefined, 'la acción nueva tiene su formulario de estado')
+      const sinComentario = resultado(await actualizarRiesgoResponse(enviar(ruta, { op: 'estado', accion, estado: 'en_curso', evidencia: 'sin_evidencia' }), sesion, tx, rid))
+      assert.ok(sinComentario.error !== null)
+      const enCurso = resultado(await actualizarRiesgoResponse(enviar(ruta, {
+        op: 'estado', accion, estado: 'en_curso', evidencia: 'sin_evidencia', comentario: 'Pedido el repuesto.',
+      }), sesion, tx, rid))
+      assert.equal(enCurso.ok, 'Estado registrado.', enCurso.error ?? '')
+      assert.match(await detalle(), new RegExp(`data-cambio="accion_estado" data-objeto="${accion}"[\\s\\S]*?en_curso`))
     })
   })
 })

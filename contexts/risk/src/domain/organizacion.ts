@@ -48,6 +48,10 @@ export interface RiesgoRegistrado {
   readonly consecuenciaComun: string | null
   readonly idOrigen: string | null
   readonly loteOrigen: string | null
+  readonly origen: 'importacion' | 'sesion'
+  /** La persona de la sesión que lo registró; `null` si vino de una importación. */
+  readonly autor: string | null
+  readonly registradoEn: string
 }
 
 export interface EvaluacionRegistrada {
@@ -75,6 +79,7 @@ export interface EvaluacionRegistrada {
   readonly justificacion: string | null
   readonly reglasAplicadas: readonly string[] | null
   readonly idOrigen: string | null
+  readonly loteOrigen: string | null
   readonly origen: 'importacion' | 'sesion'
   readonly registradaEn: string
   /** En el orden en que se registraron; la última decide el `review_status`. */
@@ -107,7 +112,9 @@ export interface AccionRegistrada {
   readonly fechaAlta: string
   readonly procedencia: Procedencia
   readonly idOrigen: string | null
+  readonly loteOrigen: string | null
   readonly origen: 'importacion' | 'sesion'
+  readonly autor: string | null
   readonly registradaEn: string
   /** En el orden en que se registraron; el vigente es el último. Una decisión no tiene. */
   readonly estados: readonly EstadoAccionRegistrado[]
@@ -125,7 +132,9 @@ export interface EventoRegistrado {
   readonly nota: string | null
   readonly procedencia: Procedencia
   readonly idOrigen: string | null
+  readonly loteOrigen: string | null
   readonly origen: 'importacion' | 'sesion'
+  readonly autor: string | null
   readonly registradoEn: string
 }
 
@@ -151,7 +160,9 @@ export interface CoberturaRegistrada {
   readonly uncertainty: Uncertainty
   readonly uncertaintyNota: string | null
   readonly idOrigen: string | null
+  readonly loteOrigen: string | null
   readonly origen: 'importacion' | 'sesion'
+  readonly autor: string | null
   readonly registradaEn: string
   /** Por fecha del evento. */
   readonly eventos: readonly EventoRegistrado[]
@@ -191,6 +202,48 @@ export interface RevisionPendienteRegistrada {
   readonly cierre: CierreRegistrado | null
 }
 
+/** Una fila de la foto del orden calculado que guarda un reordenamiento (decisión 6a). */
+export interface FilaOrdenCalculado {
+  readonly riskId: string
+  readonly posicion: number
+  readonly empate: boolean
+  readonly provisional: boolean
+  readonly banda: string | null
+}
+
+/** Reordenamiento profesional (decisión 5; dossier 15a §6). Lo declara una persona: no es un derivado. */
+export interface ReordenamientoRegistrado {
+  readonly id: string
+  readonly organizacionId: string
+  readonly autor: string
+  readonly tipo: 'par' | 'posicion' | 'banda'
+  readonly riskIdSube: string | null
+  readonly riskIdBaja: string | null
+  readonly riskId: string | null
+  readonly posicionProfesional: number | null
+  readonly bandaProfesional: string | null
+  readonly ordenCalculado: readonly FilaOrdenCalculado[]
+  readonly versionFunciones: string
+  readonly causa: string
+  readonly fundamento: string
+  readonly patron: string
+  readonly ordenPrevioId: string | null
+  readonly registradoEn: string
+  /** Las evaluaciones vigentes con que se calculó el orden (de un padre, la de su hijo prioritario). */
+  readonly vigentes: readonly { readonly riskId: string; readonly evaluacionId: string }[]
+}
+
+/** Orden y bandas del revisor, registrados antes de ver resultados (decisión 6). */
+export interface OrdenPrevioRegistrado {
+  readonly id: string
+  readonly organizacionId: string
+  readonly revisorPersonaId: string
+  readonly revisor: string
+  readonly materialRef: string
+  readonly registradoEn: string
+  readonly items: readonly { readonly riskId: string; readonly posicion: number; readonly banda: string | null }[]
+}
+
 /** Todo lo registrado de **una** organización: ninguna vista mezcla dos (RO01 §3, regla 4). */
 export interface DatosOrganizacion {
   readonly organizacionId: string
@@ -200,6 +253,8 @@ export interface DatosOrganizacion {
   readonly coberturas: readonly CoberturaRegistrada[]
   readonly novedades: readonly NovedadRegistrada[]
   readonly revisionesPendientes: readonly RevisionPendienteRegistrada[]
+  readonly reordenamientos: readonly ReordenamientoRegistrado[]
+  readonly ordenesPrevios: readonly OrdenPrevioRegistrado[]
 }
 
 /** Falla si algún registro es de otra organización: una vista es siempre de una sola. */
@@ -209,6 +264,9 @@ export function exigirUnaOrganizacion(d: DatosOrganizacion): void {
   const ids = new Set(d.riesgos.map((r) => r.id))
   for (const x of [...d.evaluaciones, ...d.acciones, ...d.coberturas, ...d.novedades, ...d.revisionesPendientes]) {
     if (!ids.has(x.riskId)) throw new Error(`${x.id} es de un riesgo que no está en ${d.organizacionId}`)
+  }
+  for (const x of [...d.reordenamientos, ...d.ordenesPrevios]) {
+    if (x.organizacionId !== d.organizacionId) throw new Error(`${x.id} no es de ${d.organizacionId}`)
   }
 }
 

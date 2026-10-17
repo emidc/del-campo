@@ -66,3 +66,21 @@ export { iniciarSesion, sesionVigente, type Sesion } from './acceso.ts'
 // Operación de la base y carga de lotes: los usa la app en sus tests de integración y T-0032.
 export { migrate } from '../persistence/migrations.ts'
 export { importarLote, leerArchivosDeLote, leerContrato } from './importar.ts'
+// T-0031: la actualización. Cada caso de uso pide la sesión de una persona, que es el autor de lo
+// que escribe, y corre en una sola transacción: una operación compuesta no deja estado intermedio
+// (RO01 A5). Una regla que no se cumple termina en `RechazoActualizacion`, sin escribir nada.
+export {
+  abrirRevisionesPorCambioDeVersion, altaAccion, altaCobertura, BASES, cambiarEstadoAccion, cargarReevaluacion, cerrarConReevaluacion,
+  cerrarSinCambio, pantallaOrdenPrevio, RechazoActualizacion, registrarEficacia, registrarEventoPoliza, registrarNovedad,
+  registrarOrdenPrevio, reordenar, revisar, SUFICIENCIAS, TIPOS_EVENTO, UNCERTAINTY,
+  type FactorPedido, type ObjetoCiego, type ObjetoRevisado, type Opciones, type PantallaOrdenPrevio, type PedidoAccion, type PedidoCobertura,
+  type PedidoEficacia, type PedidoEstadoAccion, type PedidoEvento, type PedidoNovedad, type PedidoOrdenPrevio, type PedidoReevaluacion,
+} from './actualizacion.ts'
+export {
+  DISPARADORES, ESTADOS_ACCION, ESTADOS_REVISION, MOTIVOS, TIPOS_NOVEDAD,
+  type Disparador, type EstadoAccion, type EstadoRevisionHumana, type Motivo, type TipoNovedad,
+} from '../domain/actualizacion.ts'
+export { CAUSAS_REORDENAMIENTO, PATRONES_REORDENAMIENTO, TIPOS_REORDENAMIENTO, type PedidoReordenamiento, type PosicionProfesional } from '../domain/reordenamiento.ts'
+export type { EntradaHistorial, TablaHistorial } from '../domain/historial.ts'
+export type { ReordenamientoVista } from '../domain/vistas.ts'
+export { FACTORES } from '../domain/organizacion.ts'

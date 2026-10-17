@@ -11,7 +11,8 @@
     "db:migrate": "node src/persistence/cli.ts migrate",
     "db:down": "node src/persistence/cli.ts down",
     "import": "node src/application/cli-importar.ts",
-    "persona": "node src/application/cli-persona.ts"
+    "persona": "node src/application/cli-persona.ts",
+    "ciclos": "node src/application/cli-ciclos.ts"
   },
   "dependencies": {
     "postgres": "^3.4.9"

@@ -10,6 +10,17 @@ import type { ReactElement } from 'react'
 import type { AccionVista, CoberturaVista, EventoVista } from '@del-campo/risk'
 
 import { corto, h, procedencia, revisiones, tabla, th } from './comun.ts'
+import { formEficacia, formEstadoAccion, formEvento, formRevisar } from './formularios.ts'
+
+/**
+ * Con esto, un bloque lleva sus formularios de actualización (T-0031): a qué página vuelve y, para
+ * la eficacia de una acción, las reevaluaciones de su riesgo (sin ellas, la eficacia se registra
+ * desde el detalle).
+ */
+export interface ConFormularios {
+  readonly volver: string
+  readonly reevaluaciones?: readonly { readonly id: string; readonly fecha: string; readonly accionId: string | null; readonly motivo: string | null }[]
+}
 
 const dato = (etiqueta: string, valor: string | null | ReactElement): ReactElement =>
   h('div', { className: 'dato' }, h('dt', null, etiqueta), h('dd', null, valor ?? '—'))
@@ -18,7 +29,7 @@ const datos = (...xs: ReactElement[]): ReactElement => h('dl', { className: 'dat
 
 const ESTADO: Readonly<Record<string, string>> = { planificada: 'planificada', en_curso: 'en curso', cumplida: 'cumplida', cancelada: 'cancelada' }
 
-export const bloqueAccion = (a: AccionVista): ReactElement =>
+export const bloqueAccion = (a: AccionVista, f?: ConFormularios): ReactElement =>
   h('article', { className: 'registro', 'data-accion': a.id },
     h('h4', null, a.tipoRegistro === 'accion' ? 'Acción' : 'Decisión de tratamiento', ': ', a.descripcion),
     datos(
@@ -45,7 +56,11 @@ export const bloqueAccion = (a: AccionVista): ReactElement =>
         `${ESTADO[s.estado] ?? s.estado}${s.fechaCumplida === null ? '' : ` el ${s.fechaCumplida}`}`,
         s.efecto === null ? '' : `, efecto ${s.efecto}${s.efectoNota === null ? '' : ` (${s.efectoNota})`}`,
         s.evidenciaEjecucion === null ? '' : `; evidencia: ${s.evidenciaEjecucion.join(', ')}`,
-        h('span', { className: 'muted' }, ` · ${s.origen}${s.autor === null ? '' : `, ${s.autor}`}, registrado ${s.registradoEn}`))))))
+        h('span', { className: 'muted' }, ` · ${s.origen}${s.autor === null ? '' : `, ${s.autor}`}, registrado ${s.registradoEn}`))))),
+    f === undefined ? null : h('div', { className: 'formularios' },
+      formEstadoAccion(a, f.volver),
+      f.reevaluaciones === undefined ? null : formEficacia(a, f.reevaluaciones, f.volver),
+      formRevisar(a.riskId, 'accion', a.id, f.volver)))
 
 const monto = (m: string | null, moneda: string | null): string | null => (m === null ? null : `${m}${moneda === null ? '' : ` ${moneda}`}`)
 
@@ -54,7 +69,7 @@ const filaEvento = (e: EventoVista): ReactElement =>
     h('td', null, e.fecha), h('td', null, e.tipo), h('td', null, monto(e.monto, e.moneda) ?? '—'), h('td', null, e.nota ?? '—'),
     h('td', null, procedencia(e.procedencia)))
 
-export const bloqueCobertura = (c: CoberturaVista): ReactElement =>
+export const bloqueCobertura = (c: CoberturaVista, f?: ConFormularios): ReactElement =>
   h('article', { className: 'registro', 'data-cobertura': c.id },
     h('h4', null, `${c.polizaRef} · ${c.cobertura}`),
     datos(
@@ -74,4 +89,5 @@ export const bloqueCobertura = (c: CoberturaVista): ReactElement =>
         h('div', { className: 'muted small' }, `${c.limiteDisponible.regla}; calculado con las funciones de ${c.limiteDisponible.version}.`)))),
     c.eventos.length === 0 ? h('p', { className: 'muted' }, 'Sin eventos de póliza registrados.') : h('div', null,
       h('p', { className: 'muted small', 'data-rotulo-evento': '' }, `Eventos de póliza: ${c.eventos[0]?.rotulo ?? ''}.`),
-      tabla([th('Fecha'), th('Tipo'), th('Monto'), th('Nota'), th('Procedencia')], c.eventos.map(filaEvento))))
+      tabla([th('Fecha'), th('Tipo'), th('Monto'), th('Nota'), th('Procedencia')], c.eventos.map(filaEvento))),
+    f === undefined ? null : h('div', { className: 'formularios' }, formEvento(c, f.volver), formRevisar(c.riskId, 'transferencia', c.id, f.volver)))

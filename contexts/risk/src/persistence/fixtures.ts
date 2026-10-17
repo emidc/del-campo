@@ -30,6 +30,8 @@ export const B = {
   accion: fijo('ACC', 1),
   decision: fijo('ACC', 2),
   accionOrgB: fijo('ACC', 3),
+  // Una acción cumplida: sólo una así abre una revisión (migración 0004).
+  accionCumplida: fijo('ACC', 4),
   inicial: fijo('EVA', 1),
   reevaluacion: fijo('EVA', 2),
   inicialOrgB: fijo('EVA', 3),
@@ -162,6 +164,8 @@ export const base = async (tx: TransactionSql): Promise<void> => {
     decision: 'tratar', fecha_proxima_revision: '2027-01-01',
   })
   await ins('accion', { id: B.accionOrgB, risk_id: B.riesgoOrgB })
+  await ins('accion', { id: B.accionCumplida })
+  await ins('accion_estado', { accion_id: B.accionCumplida, estado: 'cumplida', fecha_cumplida: '2026-10-05', evidencia_ejecucion: ['DOC-SINTETICO-1'] })
   await ins('evaluacion', { id: B.inicial, risk_id: B.riesgo, riesgo_tipo: 'riesgo', lote_origen: LOTE, id_origen: 'S99-E01' })
   await ins('evaluacion', {
     id: B.reevaluacion, risk_id: B.riesgo, riesgo_tipo: 'riesgo', tipo_evaluacion: 'reevaluacion',
@@ -177,7 +181,7 @@ export const base = async (tx: TransactionSql): Promise<void> => {
     id: B.revisionPorNovedad, disparador: 'informacion_nueva', novedad_id: B.novedad, version_metodologia: null,
   })
   await ins('revision_pendiente', {
-    id: B.revisionPorAccion, disparador: 'accion_ejecutada', accion_id: B.accion, version_metodologia: null,
+    id: B.revisionPorAccion, disparador: 'accion_ejecutada', accion_id: B.accionCumplida, version_metodologia: null,
   })
   await ins('orden_previo', { id: B.ordenPrevio, organizacion_id: ORG_A, revisor_persona_id: B.persona })
   await ins('orden_previo', { id: B.ordenPrevioOrgB, organizacion_id: ORG_B, revisor_persona_id: B.persona })

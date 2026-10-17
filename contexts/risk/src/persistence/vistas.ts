@@ -7,8 +7,9 @@ import type { TipoObjeto } from '../domain/modelo.ts'
 import {
   FACTORES,
   type AccionRegistrada, type CoberturaRegistrada, type DatosOrganizacion, type EstadoAccionRegistrado, type EvaluacionRegistrada,
-  type EventoRegistrado, type FactorRegistrado, type NombreFactor, type NovedadRegistrada, type RevisionPendienteRegistrada,
-  type RevisionRegistrada, type RiesgoRegistrado,
+  type EventoRegistrado, type FactorRegistrado, type FilaOrdenCalculado, type NombreFactor, type NovedadRegistrada,
+  type OrdenPrevioRegistrado, type ReordenamientoRegistrado, type RevisionPendienteRegistrada, type RevisionRegistrada,
+  type RiesgoRegistrado,
 } from '../domain/organizacion.ts'
 import type { Sql, TransactionSql } from './database.ts'
 
@@ -88,8 +89,10 @@ function factorDe(f: Fila, x: NombreFactor): FactorRegistrado {
 export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<DatosOrganizacion | null> => {
   const riesgosF = await db<Fila[]>`
     select r.id, r.organizacion_id, r.unidad_id, r.tipo_objeto, r.riesgo_padre_id, r.titulo, r.consecuencia_comun, r.id_origen, r.lote_origen,
+           r.origen, p.nombre as autor, r.registrado_en,
            (select array_agg(m.miembro_id::text order by m.miembro_id) from risk.miembro_escenario m where m.escenario_id = r.id) as miembros
-    from risk.riesgo r where r.organizacion_id = ${organizacionId} order by r.id`
+    from risk.riesgo r left join risk.persona p on p.id = r.autor_persona_id
+    where r.organizacion_id = ${organizacionId} order by r.id`
   if (riesgosF.length === 0) return null
   const ids = riesgosF.map((r) => String(r.id))
 
@@ -97,6 +100,7 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     id: String(r.id), organizacionId: String(r.organizacion_id), unidadId: texto(r.unidad_id), tipoObjeto: r.tipo_objeto as TipoObjeto,
     riesgoPadreId: texto(r.riesgo_padre_id), miembros: lista(r.miembros) ?? [], titulo: String(r.titulo),
     consecuenciaComun: texto(r.consecuencia_comun), idOrigen: texto(r.id_origen), loteOrigen: texto(r.lote_origen),
+    origen: origen(r.origen), autor: texto(r.autor), registradoEn: instante(r.registrado_en),
   }))
 
   const evaluacionesF = await db<Fila[]>`
@@ -113,12 +117,13 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     montoBruto: texto(e.i_econ_monto_bruto), moneda: texto(e.moneda), uncertainty: e.uncertainty as Uncertainty,
     uncertaintyNota: texto(e.uncertainty_nota), necesidadValidacion: texto(e.necesidad_validacion),
     motivoNoEvaluable: texto(e.motivo_no_evaluable), justificacion: texto(e.justificacion), reglasAplicadas: lista(e.reglas_aplicadas),
-    idOrigen: texto(e.id_origen), origen: origen(e.origen), registradaEn: instante(e.registrada_en), revisiones: revEval.get(String(e.id)) ?? [],
+    idOrigen: texto(e.id_origen), loteOrigen: texto(e.lote_origen), origen: origen(e.origen), registradaEn: instante(e.registrada_en),
+    revisiones: revEval.get(String(e.id)) ?? [],
   }))
 
   const accionesF = await db<Fila[]>`
-    select a.*, a.fecha_alta::text as fecha_alta, a.fecha_proxima_revision::text as fecha_proxima_revision
-    from risk.accion a where a.risk_id in ${db(ids)} order by a.id`
+    select a.*, a.fecha_alta::text as fecha_alta, a.fecha_proxima_revision::text as fecha_proxima_revision, p.nombre as autor
+    from risk.accion a left join risk.persona p on p.id = a.autor_persona_id where a.risk_id in ${db(ids)} order by a.id`
   const accionIds = accionesF.map((a) => String(a.id))
   const estadosF = accionIds.length === 0 ? [] : await db<Fila[]>`
     select s.*, s.fecha_cumplida::text as fecha_cumplida, p.nombre as autor
@@ -130,7 +135,8 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     descripcion: String(a.descripcion), factorObjetivo: lista(a.factor_objetivo), mecanismoCausal: texto(a.mecanismo_causal),
     cambioEsperado: texto(a.cambio_esperado), decision: texto(a.decision), fundamento: texto(a.fundamento),
     fechaProximaRevision: texto(a.fecha_proxima_revision), fechaAlta: String(a.fecha_alta), procedencia: procedencia(a),
-    idOrigen: texto(a.id_origen), origen: origen(a.origen), registradaEn: instante(a.registrada_en),
+    idOrigen: texto(a.id_origen), loteOrigen: texto(a.lote_origen), origen: origen(a.origen), autor: texto(a.autor),
+    registradaEn: instante(a.registrada_en),
     estados: estadosF.filter((s) => s.accion_id === a.id).map((s): EstadoAccionRegistrado => ({
       estado: s.estado as EstadoAccionRegistrado['estado'], fechaCumplida: texto(s.fecha_cumplida), evidenciaEjecucion: lista(s.evidencia_ejecucion),
       efecto: texto(s.efecto), efectoNota: texto(s.efecto_nota), evaluacionEfectoId: texto(s.evaluacion_efecto_id), origen: origen(s.origen),
@@ -142,12 +148,13 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
   const coberturasF = await db<Fila[]>`
     select t.*, t.vigencia_desde::text as vigencia_desde, t.vigencia_hasta::text as vigencia_hasta,
            t.limite_monto::text as limite_monto, t.sublimite_aplicable_monto::text as sublimite_aplicable_monto,
-           t.deducible_monto::text as deducible_monto, t.exposicion_retenida_monto::text as exposicion_retenida_monto
-    from risk.transferencia t where t.risk_id in ${db(ids)} order by t.id`
+           t.deducible_monto::text as deducible_monto, t.exposicion_retenida_monto::text as exposicion_retenida_monto, p.nombre as autor
+    from risk.transferencia t left join risk.persona p on p.id = t.autor_persona_id where t.risk_id in ${db(ids)} order by t.id`
   const coberturaIds = coberturasF.map((t) => String(t.id))
   const eventosF = coberturaIds.length === 0 ? [] : await db<Fila[]>`
-    select v.*, v.fecha_evento::text as fecha_evento, v.monto_evento::text as monto_evento
-    from risk.evento_poliza v where v.transferencia_ref in ${db(coberturaIds)} order by v.fecha_evento, v.id`
+    select v.*, v.fecha_evento::text as fecha_evento, v.monto_evento::text as monto_evento, p.nombre as autor
+    from risk.evento_poliza v left join risk.persona p on p.id = v.autor_persona_id
+    where v.transferencia_ref in ${db(coberturaIds)} order by v.fecha_evento, v.id`
   const revTrf = await revisionesDe(db, 'transferencia_id', coberturaIds)
   const coberturas = coberturasF.map((t): CoberturaRegistrada => ({
     id: String(t.id), riskId: String(t.risk_id), polizaRef: String(t.poliza_ref), cobertura: String(t.cobertura),
@@ -156,11 +163,13 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     deducibleTexto: texto(t.deducible_texto), exclusiones: texto(t.exclusiones), exposicionRetenida: texto(t.exposicion_retenida_monto),
     exposicionRetenidaNota: texto(t.exposicion_retenida_nota), suficiencia: String(t.suficiencia), suficienciaNota: texto(t.suficiencia_nota),
     moneda: texto(t.moneda), procedencia: procedencia(t), uncertainty: t.uncertainty as Uncertainty, uncertaintyNota: texto(t.uncertainty_nota),
-    idOrigen: texto(t.id_origen), origen: origen(t.origen), registradaEn: instante(t.registrada_en),
+    idOrigen: texto(t.id_origen), loteOrigen: texto(t.lote_origen), origen: origen(t.origen), autor: texto(t.autor),
+    registradaEn: instante(t.registrada_en),
     eventos: eventosF.filter((v) => v.transferencia_ref === t.id).map((v): EventoRegistrado => ({
       id: String(v.id), riskId: String(v.risk_id), transferenciaId: String(v.transferencia_ref), tipo: String(v.tipo_evento),
       fecha: String(v.fecha_evento), monto: texto(v.monto_evento), moneda: texto(v.moneda), nota: texto(v.nota_evento),
-      procedencia: procedencia(v), idOrigen: texto(v.id_origen), origen: origen(v.origen), registradoEn: instante(v.registrado_en),
+      procedencia: procedencia(v), idOrigen: texto(v.id_origen), loteOrigen: texto(v.lote_origen), origen: origen(v.origen),
+      autor: texto(v.autor), registradoEn: instante(v.registrado_en),
     })),
     revisiones: revTrf.get(String(t.id)) ?? [],
   }))
@@ -191,5 +200,38 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     },
   }))
 
-  return { organizacionId, riesgos, evaluaciones, acciones, coberturas, novedades, revisionesPendientes }
+  const reordenamientosF = await db<Fila[]>`
+    select o.*, p.nombre as autor,
+           (select coalesce(json_agg(json_build_object('riskId', v.risk_id, 'evaluacionId', v.evaluacion_id) order by v.risk_id), '[]'::json)
+            from risk.reordenamiento_vigente v where v.reordenamiento_id = o.id) as vigentes
+    from risk.reordenamiento o join risk.persona p on p.id = o.autor_persona_id
+    where o.organizacion_id = ${organizacionId} order by o.registrado_en, o.id`
+  const reordenamientos = reordenamientosF.map((o): ReordenamientoRegistrado => ({
+    id: String(o.id), organizacionId: String(o.organizacion_id), autor: String(o.autor), tipo: o.tipo as ReordenamientoRegistrado['tipo'],
+    riskIdSube: texto(o.risk_id_sube), riskIdBaja: texto(o.risk_id_baja), riskId: texto(o.risk_id),
+    posicionProfesional: o.posicion_profesional === null ? null : Number(o.posicion_profesional), bandaProfesional: texto(o.banda_profesional),
+    ordenCalculado: ordenCalculado(o.orden_calculado), versionFunciones: String(o.version_funciones), causa: String(o.causa),
+    fundamento: String(o.fundamento), patron: String(o.patron), ordenPrevioId: texto(o.orden_previo_id), registradoEn: instante(o.registrado_en),
+    vigentes: Array.isArray(o.vigentes) ? (o.vigentes as { riskId: string; evaluacionId: string }[]) : [],
+  }))
+
+  const ordenesF = await db<Fila[]>`
+    select o.*, p.nombre as revisor,
+           (select coalesce(json_agg(json_build_object('riskId', i.risk_id, 'posicion', i.posicion, 'banda', i.banda) order by i.posicion, i.risk_id), '[]'::json)
+            from risk.orden_previo_item i where i.orden_previo_id = o.id) as items
+    from risk.orden_previo o join risk.persona p on p.id = o.revisor_persona_id
+    where o.organizacion_id = ${organizacionId} order by o.registrado_en, o.id`
+  const ordenesPrevios = ordenesF.map((o): OrdenPrevioRegistrado => ({
+    id: String(o.id), organizacionId: String(o.organizacion_id), revisorPersonaId: String(o.revisor_persona_id), revisor: String(o.revisor),
+    materialRef: String(o.material_ref), registradoEn: instante(o.registrado_en),
+    items: Array.isArray(o.items) ? (o.items as OrdenPrevioRegistrado['items']) : [],
+  }))
+
+  return { organizacionId, riesgos, evaluaciones, acciones, coberturas, novedades, revisionesPendientes, reordenamientos, ordenesPrevios }
+}
+
+/** La foto `orden_calculado` de un reordenamiento: la escribe `persistence/actualizacion.ts` con esta forma. */
+function ordenCalculado(v: unknown): FilaOrdenCalculado[] {
+  const filas = typeof v === 'object' && v !== null && 'filas' in v ? v.filas : null
+  return Array.isArray(filas) ? (filas as FilaOrdenCalculado[]) : []
 }
