@@ -51,4 +51,7 @@ test('la base del contexto communication pasa por la misma guarda', () => {
     /^RISK_DATABASE_URL: .*no es local/)
   assert.match(motivoDelEntorno({ RISK_DATABASE_URL: 'postgres://localhost:5432/delcampo_risk' }, sinArchivo), /no termina/)
   assert.equal(motivoDelEntorno({}, () => ({ ambiguo: 2 })).includes('valores distintos'), true)
+  assert.match(motivoDelEntorno({ RISK_HOSTED_DATABASE_URL: 'postgres://u@pooler.example.com:5432/postgres' }, sinArchivo),
+    /^RISK_HOSTED_DATABASE_URL está definida/)
+  assert.equal(motivoDelEntorno({ RISK_HOSTED_DATABASE_URL: '' }, sinArchivo), null)
 })

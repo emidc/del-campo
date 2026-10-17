@@ -35,6 +35,7 @@ export const TABLAS_DEL_HISTORIAL: Readonly<Record<string, { readonly entra: Tab
   usuario: { fuera: 'credenciales de acceso (D-0069), no un cambio de un riesgo' },
   credencial: { fuera: 'credenciales de acceso (D-0069), no un cambio de un riesgo' },
   registro_acceso: { fuera: 'quién vio qué (A8a), no un cambio de un riesgo' },
+  login_fallido: { fuera: 'intentos de login fallidos (D-0069, T-0032), no un cambio de un riesgo' },
   lote_importacion: { fuera: 'el lote de cada fila importada ya va en su entrada (`importación <lote>`)' },
   schema_migrations: { fuera: 'el ledger de migraciones del esquema, no un dato de Risk OS' },
 }

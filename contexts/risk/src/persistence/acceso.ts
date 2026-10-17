@@ -54,3 +54,24 @@ export const altaPersona = async (tx: TransactionSql, p: { id: string; nombre: s
 export const nuevaCredencial = async (db: Db, personaId: string, hash: string | null): Promise<void> => {
   await db`insert into risk.credencial ${db({ persona_id: personaId, password_hash: hash })}`
 }
+
+/** Cuántos intentos fallidos tiene esa huella de usuario en los últimos `minutos` (T-0032). */
+export const fallidosRecientes = async (db: Db, usuarioHuella: string, minutos: number): Promise<number> => {
+  const [f] = await db<{ n: number }[]>`
+    select count(*)::int as n from risk.login_fallido
+    where usuario_huella = ${usuarioHuella} and ocurrido_en > now() - make_interval(mins => ${minutos})`
+  return f?.n ?? 0
+}
+
+export const registrarFallido = async (db: Db, usuarioHuella: string): Promise<void> => {
+  await db`insert into risk.login_fallido ${db({ usuario_huella: usuarioHuella })}`
+}
+
+/**
+ * Serializa los intentos de un mismo usuario hasta el final de la transacción: sin esto, una
+ * ráfaga de intentos en paralelo cuenta los fallidos antes de que ninguno se registre y el límite
+ * no corta nada (revisión ciega de T-0032, hallazgo 3).
+ */
+export const bloquearIntentos = async (tx: TransactionSql, usuarioHuella: string): Promise<void> => {
+  await tx`select pg_advisory_xact_lock(hashtextextended(${'risk.login:' + usuarioHuella}, 0))`
+}

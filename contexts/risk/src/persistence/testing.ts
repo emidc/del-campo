@@ -84,3 +84,33 @@ export const enTransaccionRevertida = async (sql: Sql, cuerpo: (tx: TransactionS
     if (!(error instanceof Revertir)) throw error
   }
 }
+
+/**
+ * Una base propia, al lado de delcampo_risk_test en el mismo servidor local, migrada y vacía,
+ * para un test que tiene que confirmar de verdad (varias conexiones, transacciones separadas):
+ * delcampo_risk_test no se vacía. Se borra al terminar.
+ */
+export const conBaseTemporal = async (nombre: string, cuerpo: (sql: Sql) => Promise<void>): Promise<void> => {
+  if (!/^delcampo_risk_[a-z0-9_]+_test$/.test(nombre)) throw new Error('una base temporal se llama delcampo_risk_…_test')
+  const raw = testDatabaseUrl()
+  const refusal = notLocalDatabase(raw)
+  if (refusal !== null) throw new Error(`tests de risk abortados: ${refusal}`)
+  const url = new URL(raw)
+  url.pathname = '/postgres'
+  const admin = postgres(url.href, { max: 1, onnotice: () => undefined })
+  try {
+    await admin.unsafe(`drop database if exists ${nombre} with (force)`)
+    await admin.unsafe(`create database ${nombre}`)
+    url.pathname = `/${nombre}`
+    const sql = connect(url.href)
+    try {
+      await migrate(sql)
+      await cuerpo(sql)
+    } finally {
+      await sql.end()
+    }
+  } finally {
+    await admin.unsafe(`drop database if exists ${nombre} with (force)`)
+    await admin.end()
+  }
+}

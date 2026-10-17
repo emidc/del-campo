@@ -2,7 +2,7 @@
 
 import type { ReactElement } from 'react'
 
-import type { Organizacion } from '@del-campo/risk'
+import { LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, type Organizacion } from '@del-campo/risk'
 
 import { h, marco, tabla, th, vacio } from './comun.ts'
 
@@ -24,7 +24,7 @@ export const PaginaLogin = (configurada: boolean, error: boolean): ReactElement 
     configurada
       ? h('form', { className: 'login', method: 'post', action: '/api/login' },
         h('h1', null, 'Risk OS'),
-        error ? h('p', { className: 'aviso' }, 'Usuario o contraseña incorrectos.') : null,
+        error ? h('p', { className: 'aviso' }, `Usuario o contraseña incorrectos. Después de ${String(LOGIN_MAXIMO_FALLIDOS)} intentos fallidos, ese usuario no puede entrar durante ${String(LOGIN_VENTANA_MINUTOS)} minutos.`) : null,
         h('label', null, 'Usuario', h('input', { name: 'usuario', autoComplete: 'username', required: true })),
         h('label', null, 'Contraseña', h('input', { name: 'contrasena', type: 'password', autoComplete: 'current-password', required: true })),
         h('button', { type: 'submit' }, 'Entrar'))

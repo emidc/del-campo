@@ -5,10 +5,12 @@
 // Sin dependencias: `scrypt`, `randomBytes` y `timingSafeEqual` de `node:crypto`. El formato
 // del hash es el de D-0066 (`scrypt:N:r:p:<sal>:<hash>`), con los mismos límites.
 
-import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 
 import type { Sql, TransactionSql } from '../persistence/database.ts'
-import { credencialDePersona, credencialDeUsuario, registrarAcceso } from '../persistence/acceso.ts'
+import {
+  bloquearIntentos, credencialDePersona, credencialDeUsuario, fallidosRecientes, registrarAcceso, registrarFallido,
+} from '../persistence/acceso.ts'
 
 type Db = Sql | TransactionSql
 
@@ -94,15 +96,41 @@ export interface Sesion {
 }
 
 /**
+ * Límite de intentos (T-0032; D-0069 lo deja para el despliegue): con tantos fallidos de un
+ * mismo usuario dentro de la ventana, ese usuario no entra, ni con la contraseña correcta,
+ * hasta que el más viejo salga de la ventana. Vale igual para un usuario que no existe, así que
+ * no dice cuáles existen. Un intento bloqueado no se registra: el bloqueo vence solo. Con
+ * contraseñas de 20 caracteres o más al azar, 10 intentos cada 15 minutos no alcanzan para
+ * adivinar ninguna; el costo es que alguien que conozca un usuario lo puede bloquear un rato.
+ */
+export const LOGIN_MAXIMO_FALLIDOS = 10
+export const LOGIN_VENTANA_MINUTOS = 15
+
+/** Lo que se guarda del usuario tipeado en un intento fallido: su huella, nunca el texto. */
+export const huellaUsuario = (usuario: string): string => createHash('sha256').update(usuario, 'utf8').digest('hex')
+
+/**
  * Valida usuario y contraseña. Si son válidos, registra el inicio de sesión de la persona
- * (RO01 §2, Acceso; A8a) y devuelve la sesión; si no, `null`, sin decir cuál de los dos falló.
+ * (RO01 §2, Acceso; A8a) y devuelve la sesión; si no, `null`, sin decir cuál de los dos falló ni
+ * si el usuario está bloqueado por intentos fallidos.
  */
 export const iniciarSesion = async (db: Db, usuario: string, contrasena: string): Promise<Sesion | null> => {
-  const c = USUARIO.test(usuario) ? await credencialDeUsuario(db, usuario) : null
-  const ok = await verificarContrasena(c?.hash ?? null, contrasena)
-  if (!ok || c === null) return null
-  await registrarAcceso(db, c.personaId, { tipo: 'inicio_sesion' })
-  return { personaId: c.personaId, nombre: c.nombre, credencialId: c.credencialId }
+  const huella = huellaUsuario(usuario)
+  // Contar, comparar y registrar el fallido en una transacción con el lock del usuario: los
+  // intentos en paralelo de un mismo usuario esperan su turno y ven los fallidos anteriores.
+  const intento = async (tx: TransactionSql): Promise<Sesion | null> => {
+    await bloquearIntentos(tx, huella)
+    if ((await fallidosRecientes(tx, huella, LOGIN_VENTANA_MINUTOS)) >= LOGIN_MAXIMO_FALLIDOS) return null
+    const c = USUARIO.test(usuario) ? await credencialDeUsuario(tx, usuario) : null
+    const ok = await verificarContrasena(c?.hash ?? null, contrasena)
+    if (!ok || c === null) {
+      await registrarFallido(tx, huella)
+      return null
+    }
+    await registrarAcceso(tx, c.personaId, { tipo: 'inicio_sesion' })
+    return { personaId: c.personaId, nombre: c.nombre, credencialId: c.credencialId }
+  }
+  return 'savepoint' in db ? db.savepoint(intento) : db.begin(intento)
 }
 
 /** La sesión de una persona si esa credencial sigue siendo su vigente, o `null`. */

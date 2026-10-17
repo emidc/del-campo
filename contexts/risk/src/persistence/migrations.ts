@@ -16,7 +16,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { SCHEMA, type Sql } from './database.ts'
+import { SCHEMA, type Sql, type TransactionSql } from './database.ts'
 
 // Con `join` y no con `new URL('../../migrations/', import.meta.url)`: el bundler de Next.js
 // trata ese literal como un asset a empaquetar, y `apps/risk` importa este módulo a través de
@@ -112,4 +112,17 @@ export const down = async (sql: Sql, dir = MIGRATIONS_DIR): Promise<string | nul
     await tx.unsafe(`delete from ${LEDGER} where file = $1`, [last])
   })
   return last
+}
+
+/**
+ * Las migraciones que faltan en una base que ya tiene el esquema, sin crear nada: el rol de la
+ * app en la base hosteada no puede crear el esquema ni el ledger, y una línea de comandos que
+ * opera allí no migra sola (T-0032; las migraciones de la hosteada son un paso aparte del owner).
+ */
+export const pendientesSinCrear = async (sql: Sql | TransactionSql, dir = MIGRATIONS_DIR): Promise<string[]> => {
+  const [hay] = await sql<{ existe: boolean }[]>`select to_regclass(${LEDGER}) is not null as existe`
+  const all = migrationFiles(existsSync(dir) ? readdirSync(dir) : [])
+  if (hay?.existe !== true) return all.map((m) => m.file)
+  const rows = await sql.unsafe<{ file: string }[]>(`select file from ${LEDGER} order by file`)
+  return pendingMigrations(all, rows.map((r) => r.file)).map((m) => m.file)
 }
