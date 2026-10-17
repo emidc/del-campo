@@ -135,6 +135,8 @@ export interface A8Empresa {
     readonly registradoEn: string
     readonly items: number
     readonly conBanda: number
+    /** Riesgos y padres de la empresa registrados hasta el orden previo que no tienen posición en él. */
+    readonly sinPosicion: number
   } | null
   /** Primer acceso del revisor a una vista con ranking, bandas o `C_raw` de esta empresa. */
   readonly primerAcceso: string | null
@@ -215,15 +217,19 @@ function medirA8(
     const inicialesDelRevisor = nombreRevisor === '' ? 0
       : (d?.evaluaciones ?? []).filter((e) => e.tipo === 'inicial' && normal(e.evaluador) === nombreRevisor).length
     const previoAntesDelAcceso = op !== null && (primerAcceso === null || op.registradoEn < primerAcceso)
+    // Lo que compite en el orden de la empresa (el material ciego): riesgos y padres, sin hijos ni escenarios.
+    const enPrevio = new Set(op?.items.map((i) => i.riskId) ?? [])
+    const sinPosicion = op === null ? 0 : (d?.riesgos ?? [])
+      .filter((x) => (x.tipoObjeto === 'riesgo' || x.tipoObjeto === 'padre') && antesDe(x.registradoEn, op.registradoEn) && !enPrevio.has(x.id)).length
     porEmpresa.push({
       empresa,
-      ordenPrevio: op === null ? null : { registradoEn: op.registradoEn, items: op.items.length, conBanda: op.items.filter((i) => i.banda !== null).length },
+      ordenPrevio: op === null ? null : { registradoEn: op.registradoEn, items: op.items.length, conBanda: op.items.filter((i) => i.banda !== null).length, sinPosicion },
       primerAcceso, previoAntesDelAcceso, enRanking: ranking.length, vigentes: vigentes.length, vigentesRevisadas: revisadas,
       revisionesPorEstado: porEstado, ultimaRevision: delRevisor.map((h) => h.registradaEn).sort().at(-1) ?? null,
       reordenamientos: reord.length, reordenamientosPorCausa: porCausa, reordenamientosSinFundamento: reord.filter((x) => !x.conFundamento).length,
       inicialesDelRevisor,
-      // RO01 §6, A8a: «su orden profesional y sus bandas»: una banda en cada posición.
-      cumpleA: previoAntesDelAcceso && op.items.length > 0 && op.items.every((i) => i.banda !== null),
+      // RO01 §6, A8a: «su orden profesional y sus bandas»: el orden completo y una banda en cada posición (decisión del owner).
+      cumpleA: previoAntesDelAcceso && op.items.length > 0 && sinPosicion === 0 && op.items.every((i) => i.banda !== null),
       cumpleB: vigentes.length > 0 && revisadas === vigentes.length,
       cumpleC: reord.every((x) => x.conFundamento),
     })
@@ -469,7 +475,7 @@ export function informeAceptacion(r: MedicionAceptacion): string[] {
   l.push('', `A8 revisión profesional (R1): ${si(r.a8.cumple)}`)
   for (const e of r.a8.porEmpresa) {
     const op = e.ordenPrevio
-    l.push(`  ${e.empresa}: (a) ${si(e.cumpleA)}: ${op === null ? 'sin orden previo' : `orden previo del ${dia(op.registradoEn)} con ${String(op.items)} posiciones y ${String(op.conBanda)} con banda`}; ` +
+    l.push(`  ${e.empresa}: (a) ${si(e.cumpleA)}: ${op === null ? 'sin orden previo' : `orden previo del ${dia(op.registradoEn)} con ${String(op.items)} posiciones, ${String(op.conBanda)} con banda y ${String(op.sinPosicion)} riesgos sin posición`}; ` +
       `primer acceso a resultados ${dia(e.primerAcceso)}; ${String(e.enRanking)} objetos en el ranking de Risk OS`)
     l.push(`      (b) ${si(e.cumpleB)}: ${String(e.vigentesRevisadas)} de ${String(e.vigentes)} evaluaciones vigentes con revisión de R1 (${conteo(e.revisionesPorEstado)}); la última el ${dia(e.ultimaRevision)}`)
     l.push(`      (c) ${si(e.cumpleC)}: ${String(e.reordenamientos)} reordenamientos de R1 (${conteo(e.reordenamientosPorCausa)}), ${String(e.reordenamientosSinFundamento)} sin fundamento; ` +

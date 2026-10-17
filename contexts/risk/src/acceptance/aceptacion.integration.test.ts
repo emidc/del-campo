@@ -17,6 +17,7 @@ import { sesionVigente } from '../application/acceso.ts'
 import { cargarReevaluacion, revisar } from '../application/actualizacion.ts'
 import { armarLista } from '../domain/vistas.ts'
 import { VERSION_METODOLOGIA } from '../domain/modelo.ts'
+import type { DatosOrganizacion, OrdenPrevioRegistrado } from '../domain/organizacion.ts'
 import { filasSinCicloS07, PERSONA, reevaluacionNueva } from '../testing/actualizacion.ts'
 import { ensayar } from '../testing/ensayo.ts'
 import { leerParaAceptacion, type LecturaAceptacion } from './lectura.ts'
@@ -115,6 +116,22 @@ describe('aceptación de RO01 §6 sobre el ensayo con sintéticas', () => {
     assert.equal(r1.a8.cumple, false)
     assert.ok(r1.a8.porEmpresa.every((e) => !e.cumpleA))
     assert.equal(r1.a6.cumple && r1.a7.cumple && r1.a9.cumple && r1.a12.cumple, true)
+
+    // A8a pide el orden completo y una banda en cada posición: un riesgo sin posición o una posición sin banda no cumple.
+    const h1 = manifiesto.empresas.H1.organizacionId
+    const d1: DatosOrganizacion | undefined = lectura.datos.get(h1)
+    assert.ok(d1 !== undefined)
+    type Items = OrdenPrevioRegistrado['items']
+    const conPrevio = (cambiar: (items: Items) => Items): LecturaAceptacion => ({
+      ...lectura, datos: new Map([...lectura.datos, [h1, { ...d1, ordenesPrevios: d1.ordenesPrevios.map((o) => ({ ...o, items: cambiar(o.items) })) }]]),
+    })
+    const incompleto = medir(manifiesto, conPrevio((items) => items.slice(1))).a8.porEmpresa.find((e) => e.empresa === 'H1')
+    assert.equal(incompleto?.cumpleA, false)
+    assert.equal(incompleto.ordenPrevio?.sinPosicion, 1)
+    const sinBanda = medir(manifiesto, conPrevio((items) => items.map((i, n) => (n === 0 ? { ...i, banda: null } : i)))).a8.porEmpresa.find((e) => e.empresa === 'H1')
+    assert.equal(sinBanda?.cumpleA, false)
+    assert.equal(sinBanda.ordenPrevio?.sinPosicion, 0)
+    assert.ok(medir(manifiesto, lectura).a8.porEmpresa.every((e) => e.ordenPrevio !== null && e.ordenPrevio.sinPosicion === 0))
 
     // Un lote de la base que el manifiesto no declara.
     const sinLote = leerManifiesto({ ...base, empresas: { ...base.empresas, H3: { ...base.empresas.H3, intentos: [{ fecha: '2026-10-01', estado: 'rechazado', huella: 'a'.repeat(64), rechazos: { 'RV-RSK-01': 1 }, avisos: {} }] } } })

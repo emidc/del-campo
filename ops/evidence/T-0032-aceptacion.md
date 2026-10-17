@@ -10,6 +10,19 @@ excepción explícita del owner, escrita como tal acá. Nada de este archivo lle
 las históricas, URLs ni credenciales (R-18, R-19): sólo códigos (H1 a H5, R1), conteos,
 fechas, `regla_id`, prefijos de huella e ids opacos de riesgo y de revisión.
 
+## Decisiones del owner (2026-10-17)
+
+Tomadas antes de medir; rigen la medición y no se cambian después (CO01 §4):
+
+1. Los disparadores de reapertura comparan el orden previo con el ranking que Risk OS daba
+   cuando R1 lo registró, con lo cargado hasta ese momento.
+2. A8a exige el orden previo completo (todos los riesgos y padres de la empresa) y una banda
+   en cada posición.
+3. A11 se recorre en local con las 8 sintéticas. Preview no es requisito y queda sin
+   variables.
+4. `login_fallido` queda insert-only, sin tope ni purga, durante Q4 de 2026: el owner acepta
+   ese riesgo (cierre de la revisión ciega, hallazgo 11).
+
 ## Resumen
 
 | # | Medida | Cómo se mide | Valor medido | Cumple |
@@ -24,7 +37,7 @@ fechas, `regla_id`, prefijos de huella e ids opacos de riesgo y de revisión.
 | A8 | Revisión profesional | `aceptacion` (a, b, c) + disparadores | | |
 | A9 | `C_raw` nunca solo | Tests en CI + `aceptacion` sobre las históricas + recorrido del owner | | |
 | A10 | Reglas de presentación | Tests en CI + recorrido del owner | | |
-| A11 | Vistas | Recorrido del owner con la lista de `apps/risk/README.md` | | |
+| A11 | Vistas | Recorrido local del owner con las 8 sintéticas y la lista de `apps/risk/README.md` | | |
 | A12 | Historial | `aceptacion` | | |
 | A13 | Sin datos reales fuera de su lugar | Revisión del owner | | |
 
@@ -36,7 +49,7 @@ fechas, `regla_id`, prefijos de huella e ids opacos de riesgo y de revisión.
 - Salida de `db:verificar --hosteada` con `risk_app`: pendiente.
 - `curl` sin credencial y con credencial inválida (`docs/despliegue/vercel-risk.md` §4):
   pendiente.
-- Preview: base sintética aparte o sin variables (§3): pendiente.
+- Preview sin variables (§3, decisión 3): pendiente.
 
 ## A1 a A5, A9 y A10: lo mecánico (protocolo 2)
 
@@ -55,8 +68,7 @@ Pendiente: la salida de CI.
 
 ## A11: vistas con las sintéticas (protocolo 3)
 
-Dónde se recorrió (preview con base sintética, o local como en T-0030) y, por vista, si
-muestra lo de la lista: pendiente.
+En local, como en T-0030 (decisión 3). Por vista, si muestra lo de la lista: pendiente.
 
 ## A6: históricas (protocolo 4)
 

@@ -48,7 +48,16 @@ ciega: la escribe quien implementó.
   `--borra-datos`, y sin eso se niega y manda a hacer la copia (§8). `--borra-datos` en
   cualquier otro comando se rechaza.
 - **10. Personas en la base sintética de Preview. Arreglado.** Una línea en §3.
-- **11. `login_fallido` crece sin tope.** Queda como está. Con 10 filas por usuario y
+- **11. `login_fallido` crece sin tope.** Queda como está: el owner decidió el 2026-10-17 que
+  la tabla queda insert-only durante Q4, aceptando ese riesgo (acta, decisión 4). Con 10 filas por usuario y
   ventana, un barrido de usuarios inventados crece despacio frente al espacio del plan Free, y un tope global dejaría que cualquiera bloquee a todos. La huella sin sal de un
   texto tipeado en el campo de usuario no es explotable con contraseñas de 20 caracteres al
-  azar. Si el owner quiere, se agrega una línea a D-0069; no cambia el código.
+  azar.
+
+## Después, por decisión del owner (2026-10-17)
+
+- **A8a exige el orden previo completo.** Además de una banda en cada posición, no cumple si
+  un riesgo o padre registrado hasta el orden previo quedó sin posición, y el informe dice
+  cuántos. Test: `aceptacion.integration.test.ts` («lo que falta en el manifiesto o en la
+  base no cumple…»): un orden sin un riesgo y otro con una posición sin banda no cumplen; sin
+  la regla, el test falla.

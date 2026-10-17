@@ -101,14 +101,10 @@ Variables, **sólo en Production** (la lista canónica está en el
 | `RISK_DATABASE_URL` | Transaction pooler con el usuario `risk_app`. La app exige TLS con toda base que no está en `localhost`; se puede agregar `?sslmode=require` igual. |
 | `RISK_UI_SESSION_SECRET` | 32 caracteres o más al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. |
 
-Ninguna con prefijo `NEXT_PUBLIC_`. **Las previews nunca ven la base real.** Para A11 (RO01
-§6, protocolo 3: el owner recorre las vistas con las 8 sintéticas en el despliegue), un
-segundo proyecto de Supabase, **sintético**, con los mismos pasos 1 y 2 y las sintéticas
-importadas (`import SPIKES/T-0021/v0/fase-15/sinteticos --hosteada --corte 2026-10-14`), las
-personas que van a recorrerla dadas de alta en esa base (§5, con su cadena), y sus dos variables cargadas sólo en **Preview**, con otro `RISK_UI_SESSION_SECRET`. Si el
-límite de proyectos gratuitos no lo permite, Preview queda sin variables (los endpoints
-responden 503 y no se puede entrar) y A11 se recorre en local como en T-0030, dicho así en
-el acta. Development queda sin variables.
+Ninguna con prefijo `NEXT_PUBLIC_`. **Las previews nunca ven la base real.** Preview y
+Development quedan sin variables: los endpoints responden 503 y no se puede entrar. A11 (RO01
+§6, protocolo 3) se recorre **en local** con las 8 sintéticas, como en T-0030, con la lista de
+`apps/risk/README.md`; Preview no es requisito (decisión del owner, 2026-10-17).
 
 Cargar las variables y volver a desplegar para que entren en vigencia. Registrar el SHA del
 deployment de Production que se promueve.
@@ -252,8 +248,10 @@ qué persona es el revisor:
 }
 ```
 
-El revisor da una banda a **cada** posición del orden previo: A8a pide «su orden profesional
-y sus bandas», y el script no lo da por cumplido con bandas faltantes. Los disparadores comparan
+El orden previo es **completo**: el revisor ordena todos los riesgos y padres de la empresa y
+da una banda a **cada** posición. A8a pide «su orden profesional y sus bandas», y el script no
+lo da por cumplido con un riesgo sin posición ni con una banda faltante (decisión del owner,
+2026-10-17). La pantalla del orden previo ya rechaza un orden incompleto. Los disparadores comparan
 ese orden con el ranking que Risk OS daba cuando se registró, con lo cargado hasta ese momento.
 
 Sólo acepta ids, fechas, estados, huellas y conteos por `regla_id`; cualquier otro campo lo
