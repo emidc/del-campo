@@ -21,16 +21,16 @@
 // los niveles que ella decidió, y queda `pending` hasta que una persona la acepta (D18).
 
 import {
-  abreRevision, ESTADOS_ACCION, ESTADOS_REVISION, evidenciaDeEjecucion, exigirFundamento, exigirRevisor, exigirTexto, fecha, MOTIVOS,
+  abreRevision, ESTADOS_ACCION, exigirCambioEvaluativo, ESTADOS_REVISION, evidenciaDeEjecucion, exigirFundamento, exigirRevisor, exigirTexto, fecha, MOTIVOS,
   opcional, porQueNoCambia, porQueNoCierra, rechazar, RechazoActualizacion, referencias, TIPOS_NOVEDAD,
-  type Disparador, type EstadoAccion, type EstadoRevisionHumana, type TipoNovedad,
+  type ContenidoEvaluativo, type Disparador, type EstadoAccion, type EstadoRevisionHumana, type TipoNovedad,
 } from '../domain/actualizacion.ts'
-import { historia, rankingOrganizacion } from '../domain/lectura.ts'
+import { historia, rankingOrganizacion, vigente as evaluacionVigente } from '../domain/lectura.ts'
 import { BANDAS, NIVELES } from '../domain/metodologia.ts'
 import { VERSION_METODOLOGIA, exigirVersion, type VersionFunciones } from '../domain/modelo.ts'
 import {
   aEvaluacion, aRiesgo, FACTORES, reviewStatusDe,
-  type DatosOrganizacion, type FactorRegistrado, type NombreFactor, type RiesgoRegistrado,
+  type DatosOrganizacion, type EvaluacionRegistrada, type FactorRegistrado, type NombreFactor, type RiesgoRegistrado,
 } from '../domain/organizacion.ts'
 import { exigirReordenamiento, fotoOrdenCalculado, type PedidoReordenamiento } from '../domain/reordenamiento.ts'
 import {
@@ -379,6 +379,13 @@ function factorDePedido(nombre: NombreFactor, f: FactorPedido): FactorRegistrado
  * la cadena, con su motivo (metodología §11.1). Queda `pending`: no reemplaza a una vigente
  * aceptada hasta que una persona la acepte (decisión 8a), y no cierra ninguna revisión sola.
  */
+/** Lo evaluativo de una evaluación registrada, para compararla con una reevaluación. */
+const contenidoDe = (e: EvaluacionRegistrada): ContenidoEvaluativo => ({
+  factores: e.factores, base: e.procedencia.base, evidencia: e.procedencia.evidencia, riesgoCausa: e.riesgoCausa, riesgoEvento: e.riesgoEvento,
+  riesgoConsecuencia: e.riesgoConsecuencia, montoBruto: e.montoBruto, moneda: e.moneda, uncertainty: e.uncertainty, uncertaintyNota: e.uncertaintyNota,
+  necesidadValidacion: e.necesidadValidacion,
+})
+
 export async function cargarReevaluacion(db: Db, sesion: Sesion, p: PedidoReevaluacion, op: Opciones = {}): Promise<{ evaluacionId: string }> {
   const motivo = enLista(p.motivo, MOTIVOS, 'motivo')
   const accionId = opcional(p.accionId)
@@ -399,6 +406,14 @@ export async function cargarReevaluacion(db: Db, sesion: Sesion, p: PedidoReeval
     const cadena = historia(o.d.evaluaciones.map(aEvaluacion), r.id)
     const anterior = cadena.at(-1)
     if (anterior === undefined) rechazar('el riesgo no tiene evaluación inicial: la inicial llega con la importación')
+    // Igual a la vigente en todo lo evaluativo, es un «sin cambio» (decisión del owner, 2026-10-17).
+    const usada = o.d.evaluaciones.find((e) => e.id === (evaluacionVigente(cadena) ?? anterior).id)
+    if (usada !== undefined) {
+      exigirCambioEvaluativo(contenidoDe(usada), {
+        factores, base, evidencia, riesgoCausa: opcional(p.riesgoCausa), riesgoEvento, riesgoConsecuencia: opcional(p.riesgoConsecuencia),
+        montoBruto, moneda, uncertainty, uncertaintyNota, necesidadValidacion: opcional(p.necesidadValidacion),
+      })
+    }
     if (accionId !== null) {
       const a = o.d.acciones.find((x) => x.id === accionId && x.riskId === r.id && x.tipoRegistro === 'accion')
       if (a === undefined) rechazar(`${accionId} no es una acción de este riesgo`)

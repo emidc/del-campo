@@ -4,14 +4,14 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { contarCiclos, informeCiclos, type RevisionParaContar } from './ciclos.ts'
+import { ciclosDetallados, contarCiclos, informeCiclos, informeDetalle, type RevisionParaContar } from './ciclos.ts'
 
 const EMPRESAS = ['ORG-A', 'ORG-B', 'ORG-C', 'ORG-D', 'ORG-E']
 const TIPOS = ['accion_ejecutada', 'informacion_nueva', 'cambio_contexto']
 const ciclo = (n: number, x: Partial<RevisionParaContar> = {}): RevisionParaContar => ({
   id: `REV-${String(n)}`, organizacionId: EMPRESAS[n % 5] ?? '', disparador: TIPOS[n % 3] ?? '', referencia: null, origen: 'sesion',
   abiertaEn: '2026-10-20T10:00:00Z',
-  cierre: { resultado: 'sin_cambio', evaluacionId: null, cerradaPor: 'PER-1', cerradaEn: `2026-10-${String(20 + n)}T12:00:00Z` }, ...x,
+  cierre: { resultado: 'sin_cambio', evaluacionId: null, cerradaPor: 'PER-1', cerradaPorNombre: 'Persona Sintética', cerradaEn: `2026-10-${String(20 + n)}T12:00:00Z` }, ...x,
 })
 const diez = Array.from({ length: 10 }, (_, n) => ciclo(n))
 
@@ -59,7 +59,22 @@ describe('A7', () => {
   })
   it('el informe tiene sólo códigos de empresa, conteos y fechas', () => {
     const texto = informeCiclos(contarCiclos(diez, EMPRESAS)).join('\n')
-    assert.doesNotMatch(texto, /REV-|PER-/)
+    assert.doesNotMatch(texto, /REV-|PER-|Persona Sintética/)
     assert.match(texto, /A7: cumplido/)
+  })
+  it('el detalle lista sólo los ciclos que cuentan, por empresa, con revisión, referencia, fechas, resultado, evaluación y quién cerró', () => {
+    const revisiones = [
+      ...diez.map((x, n) => (n === 0 && x.cierre !== null
+        ? { ...x, referencia: 'ACC-1', cierre: { ...x.cierre, resultado: 'reevaluacion_aceptada' as const, evaluacionId: 'EVA-1' } } : x)),
+      ciclo(10, { cierre: null }), ciclo(11, { origen: 'importacion' }),
+    ]
+    const ciclos = ciclosDetallados(revisiones)
+    assert.equal(ciclos.length, 10)
+    assert.deepEqual(ciclos.map((c) => c.revisionId).slice(0, 2), ['REV-0', 'REV-5'])
+    const lineas = informeDetalle(ciclos)
+    assert.match(lineas[0] ?? '', /detalle por ciclo \(10;/)
+    assert.equal(lineas[1], '  ORG-A | revisión REV-0 | accion_ejecutada ACC-1 | abierta 2026-10-20T10:00:00Z | cerrada 2026-10-20T12:00:00Z | reevaluacion_aceptada | evaluación EVA-1 | cerró Persona Sintética')
+    assert.match(lineas[2] ?? '', /revisión REV-5 \| cambio_contexto — .* \| sin_cambio \| evaluación — \| cerró Persona Sintética$/)
+    assert.doesNotMatch(lineas.join('\n'), /REV-10|REV-11/)
   })
 })

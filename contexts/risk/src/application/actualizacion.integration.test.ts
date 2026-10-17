@@ -21,7 +21,7 @@ import { aEvaluacion, aRiesgo } from '../domain/organizacion.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import { openTestDatabase } from '../persistence/testing.ts'
 import { leerOrganizacion } from '../persistence/vistas.ts'
-import { conEscenario, conteos, filaR01, filasSinteticas, id, reevaluacionDeFila, ultimaFila } from '../testing/actualizacion.ts'
+import { conEscenario, conteos, filaR01, filasSinteticas, id, reevaluacionDeFila, reevaluacionNueva, ultimaFila } from '../testing/actualizacion.ts'
 import { resultado } from '../testing/regresion.ts'
 import { leerArchivo, REGRESION_EMI41 } from '../testing/sinteticos.ts'
 import type { Sesion } from './acceso.ts'
@@ -188,12 +188,14 @@ describe('qué cierra una revisión y qué no', () => {
       const rid = id('S36-R01')
       const revisionId = await abrirInformacionNueva(tx, sesion, rid)
       for (const estado of ['rejected', 'needs_revision'] as const) {
-        const { evaluacionId } = await cargarReevaluacion(tx, sesion, reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
+        const { evaluacionId } = await cargarReevaluacion(tx, sesion, reevaluacionNueva(F, rid, { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
         await revisar(tx, sesion, { evaluacionId }, estado)
         await rechaza(cerrarConReevaluacion(tx, sesion, { revisionId, evaluacionId }), new RegExp(`está ${estado}: la revisión sigue abierta`))
         assert.deepEqual((await revisionesDe(tx, rid)).map((r) => r.cerrada), [false])
       }
-      const { evaluacionId } = await cargarReevaluacion(tx, sesion, reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'correccion_evaluacion', accionId: null, fecha: '2026-10-15' }))
+      // La corrección cambia algo respecto de la que quedó needs_revision (que es la vigente).
+      const corregida = reevaluacionNueva(F, rid, { motivo: 'correccion_evaluacion', accionId: null, fecha: '2026-10-15' })
+      const { evaluacionId } = await cargarReevaluacion(tx, sesion, { ...corregida, evidencia: `${corregida.evidencia}, DOC-SINT-CORREGIDA` })
       await cerrarConReevaluacion(tx, sesion, { revisionId, evaluacionId })
       assert.deepEqual((await revisionesDe(tx, rid)).map((r) => r.cerrada), [true])
       // La cadena siguió lineal: tres reevaluaciones, cada una sobre la anterior.
@@ -208,11 +210,30 @@ describe('qué cierra una revisión y qué no', () => {
       assert.equal((await vistaDetalle(tx, sesion, V, rid))?.evaluacionUsada?.id, evaluacionId)
     }))
 
+  it('una reevaluación materialmente idéntica a la vigente se rechaza; con un cambio evaluativo real entra aunque el vector sea igual', () =>
+    conEscenario(sql, async ({ tx, sesion }) => {
+      const rid = id('S36-R01')
+      const revisionId = await abrirInformacionNueva(tx, sesion, rid)
+      // Cambian sólo metadatos y la justificación: fecha, motivo, acción, texto que explica.
+      const igual = reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-16', justificacion: 'Otra justificación.' })
+      const antes = await conteos(tx)
+      await rechaza(cargarReevaluacion(tx, sesion, igual), /igual a la evaluación vigente: .*«sin cambio»/)
+      // La misma evidencia en otro orden y con otros espacios sigue siendo la misma.
+      await rechaza(cargarReevaluacion(tx, sesion, { ...igual, evidencia: igual.evidencia.split(',').reverse().join(' ,  ') }), /igual a la evaluación vigente/)
+      assert.deepEqual(await conteos(tx), antes)
+      // Los mismos factores con un supuesto nuevo en la incertidumbre: es una evaluación nueva.
+      const { evaluacionId } = await cargarReevaluacion(tx, sesion, { ...igual, uncertaintyNota: 'Supuesto nuevo sobre el plazo de reposición.' })
+      await cerrarConReevaluacion(tx, sesion, { revisionId, evaluacionId })
+      assert.deepEqual((await revisionesDe(tx, rid)).map((r) => r.cerrada), [true])
+      // Ahora la vigente es esa: repetirla tal cual también se rechaza.
+      await rechaza(cargarReevaluacion(tx, sesion, { ...igual, uncertaintyNota: 'Supuesto nuevo sobre el plazo de reposición.', fecha: '2026-10-17' }), /igual a la evaluación vigente/)
+    }))
+
   it('un motivo que no responde al disparador no cierra; un «sin cambio» sin fundamento se rechaza y con fundamento cierra', () =>
     conEscenario(sql, async ({ tx, sesion }) => {
       const rid = id('S36-R01')
       const revisionId = await abrirInformacionNueva(tx, sesion, rid)
-      const { evaluacionId } = await cargarReevaluacion(tx, sesion, reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'cambio_contexto', accionId: null, fecha: '2026-10-15' }))
+      const { evaluacionId } = await cargarReevaluacion(tx, sesion, reevaluacionNueva(F, rid, { motivo: 'cambio_contexto', accionId: null, fecha: '2026-10-15' }))
       await rechaza(cerrarConReevaluacion(tx, sesion, { revisionId, evaluacionId }), /no responde a una revisión abierta por informacion_nueva/)
       await rechaza(cerrarSinCambio(tx, sesion, { revisionId, fundamento: '   ' }), /necesita su fundamento/)
       assert.deepEqual((await revisionesDe(tx, rid)).map((r) => r.cerrada), [false])
@@ -278,7 +299,7 @@ describe('una falla a mitad de cada operación deja la base como estaba (RO01 A5
         }, o),
         'cierre que acepta la reevaluación': (o) => cerrarConReevaluacion(tx, sesion, { revisionId, evaluacionId }, o),
         'cierre sin cambio': (o) => cerrarSinCambio(tx, sesion, { revisionId, fundamento: 'nada cambió' }, o),
-        'reevaluación': (o) => cargarReevaluacion(tx, sesion, reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }), o),
+        'reevaluación': (o) => cargarReevaluacion(tx, sesion, reevaluacionNueva(F, rid, { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }), o),
         'revisión humana': (o) => revisar(tx, sesion, { evaluacionId }, 'accepted', o),
         'cobertura': (o) => altaCobertura(tx, sesion, {
           riskId: rid, polizaRef: 'POL-SINT-9', cobertura: 'Daños', vigenciaDesde: '2026-01-01', vigenciaHasta: '2026-12-31', suficiencia: 'no_evaluada',
@@ -379,7 +400,7 @@ describe('reordenamiento profesional (decisión 5)', () => {
       // Si cambia la vigente de uno de los dos, el reordenamiento queda en el historial y deja de aplicarse.
       const rid = segundo.tipoObjeto === 'padre' ? undefined : segundo.riskId
       assert.ok(rid !== undefined)
-      const { evaluacionId } = await cargarReevaluacion(tx, revisor, reevaluacionDeFila(ultimaFila(F, rid), { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
+      const { evaluacionId } = await cargarReevaluacion(tx, revisor, reevaluacionNueva(F, rid, { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
       await revisar(tx, revisor, { evaluacionId }, 'accepted')
       const caduco = await vistaLista(tx, sesion, V, ORG_S07)
       assert.deepEqual(caduco?.reordenamientos.map((r) => r.enPie), [false])

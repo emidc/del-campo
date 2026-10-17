@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 
-import { contarCiclos, informeCiclos } from '../domain/ciclos.ts'
+import { ciclosDetallados, contarCiclos, informeCiclos, informeDetalle } from '../domain/ciclos.ts'
 import { revisionesParaContar } from '../persistence/actualizacion.ts'
 import type { Sql } from '../persistence/database.ts'
 import { openTestDatabase } from '../persistence/testing.ts'
@@ -71,5 +71,19 @@ describe('conteo de ciclos (A7)', () => {
       const salida = informeCiclos(c).join('\n')
       assert.doesNotMatch(salida, /Novedad sintética|Operadora|DOC-SINT|RSK-|EVA-|REV-|ACC-/)
       for (const e of empresas) assert.match(salida, new RegExp(e))
+
+      // El detalle (`--detalle`) es aparte: una línea por ciclo que cuenta, con ids y quién cerró.
+      const [persona] = await tx<{ nombre: string }[]>`select nombre from risk.persona where id = ${sesion.personaId}`
+      assert.doesNotMatch(salida, new RegExp(persona?.nombre ?? '-'))
+      const ciclos = ciclosDetallados(await revisionesParaContar(tx))
+      assert.equal(ciclos.length, 10)
+      assert.ok(ciclos.every((x) => x.cerradaPor === persona?.nombre))
+      const conAccion = ciclos.find((x) => x.disparador === 'accion_ejecutada')
+      assert.deepEqual([conAccion?.referencia, conAccion?.resultado, conAccion?.evaluacionId], [id('15B-A01'), 'reevaluacion_aceptada', evaluacionId])
+      assert.ok(ciclos.filter((x) => x !== conAccion).every((x) => x.resultado === 'sin_cambio' && x.evaluacionId === null))
+      const detalle = informeDetalle(ciclos).join('\n')
+      assert.doesNotMatch(detalle, /REV-01M50T00000000000000000099/)
+      assert.match(detalle, new RegExp(`revisión ${r.revisionId}`))
+      assert.match(detalle, new RegExp(`evaluación ${evaluacionId}`))
     }))
 })

@@ -5,8 +5,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
-  abreRevision, evidenciaDeEjecucion, exigirFundamento, exigirRevisor, fecha, porQueNoCambia, porQueNoCierra, RechazoActualizacion, referencias,
-  type Cambio, type RevisionAbierta,
+  abreRevision, cambiosEvaluativos, evidenciaDeEjecucion, exigirCambioEvaluativo, exigirFundamento, exigirRevisor, fecha, porQueNoCambia, porQueNoCierra, RechazoActualizacion, referencias,
+  type Cambio, type ContenidoEvaluativo, type RevisionAbierta,
 } from './actualizacion.ts'
 import { vigente } from './lectura.ts'
 import type { Factores } from './metodologia.ts'
@@ -110,5 +110,35 @@ describe('la vigente después de cada revisión (decisión 8a)', () => {
   it('sin ninguna aceptada, la última no rechazada', () => {
     assert.equal(cadena('pending', 'pending'), 'E1')
     assert.equal(cadena('pending', 'rejected'), 'E0')
+  })
+})
+
+describe('reevaluación materialmente idéntica (decisión del owner, 2026-10-17)', () => {
+  const factor = { estado: 'known', valor: 3, min: null, max: null, observacion: 'Sin cambios.' }
+  const vigente: ContenidoEvaluativo = {
+    factores: { p: factor, i_econ: { ...factor, valor: 4 } }, base: 'reported', evidencia: ['DOC-1', 'DOC-2'], riesgoCausa: 'Causa.',
+    riesgoEvento: 'Evento.', riesgoConsecuencia: null, montoBruto: '1000', moneda: 'USD', uncertainty: 'medium', uncertaintyNota: 'Plazo.',
+    necesidadValidacion: null,
+  }
+  it('igual en todo lo evaluativo: se rechaza, aunque cambien espacios, el orden de la evidencia o la forma del monto', () => {
+    const igual = { ...vigente, evidencia: ['DOC-2', ' DOC-1'], montoBruto: '1000.00', moneda: 'usd', riesgoCausa: ' Causa. ' }
+    assert.deepEqual(cambiosEvaluativos(vigente, igual), [])
+    assert.throws(() => { exigirCambioEvaluativo(vigente, igual) }, /«sin cambio»/)
+  })
+  it('un cambio en un factor, su rango o su observación, la evidencia, la incertidumbre o el texto del riesgo es material', () => {
+    const casos: [Partial<ContenidoEvaluativo>, string][] = [
+      [{ factores: { ...vigente.factores, p: { ...factor, max: 4 } } }, 'p'],
+      [{ factores: { ...vigente.factores, p: { ...factor, observacion: 'Supuesto nuevo.' } } }, 'p'],
+      [{ evidencia: ['DOC-1', 'DOC-2', 'DOC-3'] }, 'evidencia'],
+      [{ uncertainty: 'high' }, 'uncertainty'],
+      [{ uncertaintyNota: 'Otro supuesto.' }, 'nota de uncertainty'],
+      [{ riesgoEvento: 'Otro evento.' }, 'evento'],
+      [{ montoBruto: '2000' }, 'monto bruto'],
+      [{ base: 'observed' }, 'base'],
+    ]
+    for (const [cambio, campo] of casos) {
+      assert.deepEqual(cambiosEvaluativos(vigente, { ...vigente, ...cambio }), [campo], campo)
+      exigirCambioEvaluativo(vigente, { ...vigente, ...cambio })
+    }
   })
 })

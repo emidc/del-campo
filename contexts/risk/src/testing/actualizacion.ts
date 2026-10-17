@@ -119,7 +119,7 @@ export function reevaluacionDeFila(f: Fila, cambios: Partial<PedidoReevaluacion>
   }
 }
 
-/** La última evaluación de la cadena de un riesgo, como fila de risks.csv, para reevaluarlo sin cambiar nada. */
+/** La última evaluación de la cadena de un riesgo, como fila de risks.csv. */
 export function ultimaFila(f: Filas, riskId: string): Fila {
   const propias = f['risks.csv'].filter((r) => r.risk_id === riskId && (r.evaluacion_id ?? '') !== '')
   const ultima = propias.find((r) => !propias.some((o) => o.evaluacion_anterior_id === r.evaluacion_id))
@@ -127,3 +127,12 @@ export function ultimaFila(f: Filas, riskId: string): Fila {
   return ultima
 }
 
+
+/**
+ * Una reevaluación de la última evaluación de un riesgo con una evidencia más: un cambio evaluativo
+ * mínimo, porque una reevaluación materialmente idéntica a la vigente se rechaza.
+ */
+export function reevaluacionNueva(f: Filas, riskId: string, cambios: Partial<PedidoReevaluacion> = {}): PedidoReevaluacion {
+  const fila = ultimaFila(f, riskId)
+  return reevaluacionDeFila(fila, { evidencia: `${fila.evidencia ?? ''}, DOC-SINT-NUEVA`, ...cambios })
+}

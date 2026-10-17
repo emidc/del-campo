@@ -170,9 +170,25 @@ que no entran no entran).
 # Conteo de ciclos de A7: revisiones que una persona abrió y cerró, por empresa y disparador
 RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_dev \
   pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,ORG-C,ORG-D,ORG-E
+
+# Lo mismo y, aparte, una línea por ciclo que cuenta
+  pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,ORG-C,ORG-D,ORG-E --detalle
 ```
 
-La salida tiene sólo códigos de empresa, conteos y fechas; sale con 0 si A7 se cumple.
+El resumen tiene sólo códigos de empresa, conteos y fechas: es el que puede salir del equipo
+del owner. Sale con 0 si A7 se cumple. `--detalle` no lo cambia: le agrega, abajo, por cada
+ciclo que cuenta, la empresa, la revisión, el disparador y su referencia, la apertura, el
+cierre, el resultado, la evaluación si la hay y el nombre de la persona que cerró. Lleva ids
+y personas, así que es para verificar en ese equipo, no para compartir (decisión del owner,
+2026-10-17).
+
+Una reevaluación materialmente idéntica a la evaluación vigente se rechaza: mismos factores
+(estado, valor, rango y observación) y mismos campos evaluativos (base, evidencia, causa,
+evento, consecuencia, monto, moneda, uncertainty y su nota, necesidad de validación). Sólo
+cambian metadatos: fecha, autor, motivo, acción, justificación, versión. Si la revisión
+concluye que no cambió nada, se cierra «sin cambio» con su fundamento. Con un cambio
+evaluativo real entra aunque la criticidad o el vector den lo mismo (decisión del owner,
+2026-10-17; `cambiosEvaluativos` en `src/domain/actualizacion.ts`).
 
 ## Tests
 

@@ -92,20 +92,21 @@ export const ordenPrevioDe = async (tx: Db, personaId: string, organizacionId: s
 export const revisionesParaContar = async (db: Db): Promise<RevisionParaContar[]> => {
   const filas = await db<{
     id: string; organizacion_id: string; disparador: string; referencia: string | null; origen: string; abierta_en: Date
-    resultado: string | null; evaluacion_id: string | null; cerrada_por: string | null; cerrada_en: Date | null
+    resultado: string | null; evaluacion_id: string | null; cerrada_por: string | null; cerrada_por_nombre: string | null; cerrada_en: Date | null
   }[]>`
     select r.id, g.organizacion_id, r.disparador, coalesce(r.accion_id, r.novedad_id, r.version_metodologia) as referencia, r.origen,
-           r.abierta_en, c.resultado, c.evaluacion_id, c.cerrada_por, c.cerrada_en
+           r.abierta_en, c.resultado, c.evaluacion_id, c.cerrada_por, pc.nombre as cerrada_por_nombre, c.cerrada_en
     from risk.revision_pendiente r
     join risk.riesgo g on g.id = r.risk_id
     left join risk.cierre_revision c on c.revision_id = r.id
+    left join risk.persona pc on pc.id = c.cerrada_por
     order by r.abierta_en, r.id`
   return filas.map((f): RevisionParaContar => ({
     id: f.id, organizacionId: f.organizacion_id, disparador: f.disparador, referencia: f.referencia,
     origen: f.origen === 'sesion' ? 'sesion' : 'importacion', abiertaEn: f.abierta_en.toISOString(),
     cierre: f.resultado === null || f.cerrada_en === null ? null : {
       resultado: f.resultado === 'sin_cambio' ? 'sin_cambio' : 'reevaluacion_aceptada',
-      evaluacionId: f.evaluacion_id, cerradaPor: f.cerrada_por ?? '', cerradaEn: f.cerrada_en.toISOString(),
+      evaluacionId: f.evaluacion_id, cerradaPor: f.cerrada_por ?? '', cerradaPorNombre: f.cerrada_por_nombre ?? '', cerradaEn: f.cerrada_en.toISOString(),
     },
   }))
 }

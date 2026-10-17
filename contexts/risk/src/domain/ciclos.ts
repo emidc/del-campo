@@ -4,7 +4,9 @@
 //
 // A7 se cumple con al menos 10, al menos una en cada empresa histórica y al menos tres tipos de
 // disparador entre `accion_ejecutada`, `informacion_nueva` y `cambio_contexto`. La salida tiene
-// sólo códigos de empresa, conteos y fechas: ni títulos, ni textos, ni nombres (R-19).
+// sólo códigos de empresa, conteos y fechas: ni títulos, ni textos, ni nombres (R-19). El
+// detalle por ciclo (`--detalle`, decisión del owner del 2026-10-17) es aparte y lleva ids y
+// personas: es para verificar en el equipo del owner, no para que salga de él.
 
 export const MINIMO_CICLOS = 10
 export const DISPARADORES_A7 = ['accion_ejecutada', 'informacion_nueva', 'cambio_contexto'] as const
@@ -24,7 +26,10 @@ export interface RevisionParaContar {
   readonly cierre: {
     readonly resultado: 'reevaluacion_aceptada' | 'sin_cambio'
     readonly evaluacionId: string | null
+    /** El id de la persona. */
     readonly cerradaPor: string
+    /** Su nombre, sólo para el detalle local. */
+    readonly cerradaPorNombre: string
     readonly cerradaEn: string
   } | null
 }
@@ -107,5 +112,39 @@ export function informeCiclos(c: ConteoCiclos): string[] {
       `  ${e.organizacionId}: ${String(e.ciclos)} (${tipos(e.porDisparador)})${e.primerCierre === null ? '' : `, cierres del ${e.primerCierre} al ${e.ultimoCierre ?? ''}`}`),
     c.cumpleA7 ? 'A7: cumplido' : 'A7: no cumplido',
     ...c.faltas.map((f) => `  - ${f}`),
+  ]
+}
+
+/** Un ciclo que cuenta para A7, con lo que hace falta para auditarlo. */
+export interface CicloDetallado {
+  readonly organizacionId: string
+  readonly revisionId: string
+  readonly disparador: string
+  readonly referencia: string | null
+  readonly abiertaEn: string
+  readonly cerradaEn: string
+  readonly resultado: 'reevaluacion_aceptada' | 'sin_cambio'
+  readonly evaluacionId: string | null
+  readonly cerradaPor: string
+}
+
+/** Los ciclos que cuentan, por empresa y en el orden en que se cerraron. */
+export function ciclosDetallados(revisiones: readonly RevisionParaContar[]): CicloDetallado[] {
+  return revisiones
+    .flatMap((r): CicloDetallado[] => (r.origen !== 'sesion' || r.cierre === null ? [] : [{
+      organizacionId: r.organizacionId, revisionId: r.id, disparador: r.disparador, referencia: r.referencia, abiertaEn: r.abiertaEn,
+      cerradaEn: r.cierre.cerradaEn, resultado: r.cierre.resultado, evaluacionId: r.cierre.evaluacionId, cerradaPor: r.cierre.cerradaPorNombre,
+    }]))
+    .sort((a, b) => a.organizacionId.localeCompare(b.organizacionId) || a.cerradaEn.localeCompare(b.cerradaEn) || a.revisionId.localeCompare(b.revisionId))
+}
+
+/** El detalle de `--detalle`: una línea por ciclo. Lleva ids y personas: sólo local. */
+export function informeDetalle(ciclos: readonly CicloDetallado[]): string[] {
+  return [
+    `detalle por ciclo (${String(ciclos.length)}; lleva ids y personas: para verificar en este equipo, no para compartir)`,
+    ...ciclos.map((c) => [
+      `  ${c.organizacionId}`, `revisión ${c.revisionId}`, `${c.disparador} ${c.referencia ?? '—'}`, `abierta ${c.abiertaEn}`,
+      `cerrada ${c.cerradaEn}`, c.resultado, `evaluación ${c.evaluacionId ?? '—'}`, `cerró ${c.cerradaPor}`,
+    ].join(' | ')),
   ]
 }

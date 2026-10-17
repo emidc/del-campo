@@ -191,3 +191,68 @@ export function fecha(valor: string, que: string): string {
   if (d === null || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) rechazar(`${que}: se espera una fecha AAAA-MM-DD`)
   return v
 }
+
+// ── Reevaluación materialmente idéntica (decisión del owner, 2026-10-17) ─────
+
+/**
+ * Lo evaluativo de una evaluación: lo que, si cambia, hace de una reevaluación una evaluación
+ * nueva. Quedan fuera los metadatos del registro (id, fecha, autor, motivo, acción, versión) y
+ * la justificación, que explica la reevaluación pero no es parte de lo evaluado: si sólo cambia
+ * ella, la conclusión es «sin cambio» con ese fundamento. Tampoco entran la base y la evidencia
+ * por factor, que el formulario no edita.
+ */
+export interface ContenidoEvaluativo {
+  readonly factores: Readonly<Record<string, {
+    readonly estado: string
+    readonly valor: number | null
+    readonly min: number | null
+    readonly max: number | null
+    readonly observacion: string | null
+  }>>
+  readonly base: string
+  readonly evidencia: readonly string[]
+  readonly riesgoCausa: string | null
+  readonly riesgoEvento: string
+  readonly riesgoConsecuencia: string | null
+  readonly montoBruto: string | null
+  readonly moneda: string | null
+  readonly uncertainty: string
+  readonly uncertaintyNota: string | null
+  readonly necesidadValidacion: string | null
+}
+
+const texto = (x: string | null): string => (x ?? '').trim().replace(/\s+/g, ' ')
+const cantidad = (x: string | null): string => (x === null || x.trim() === '' ? '' : Number.isFinite(Number(x)) ? String(Number(x)) : x.trim())
+const conjunto = (xs: readonly string[]): string => [...new Set(xs.map((x) => x.trim()))].sort().join('|')
+
+/** Qué campos evaluativos cambian de `antes` a `nueva`; vacío si es materialmente idéntica. */
+export function cambiosEvaluativos(antes: ContenidoEvaluativo, nueva: ContenidoEvaluativo): string[] {
+  const cambios: string[] = []
+  for (const f of Object.keys({ ...antes.factores, ...nueva.factores }).sort()) {
+    const a = antes.factores[f]
+    const n = nueva.factores[f]
+    if (a === undefined || n === undefined) { cambios.push(f); continue }
+    if (a.estado !== n.estado || a.valor !== n.valor || a.min !== n.min || a.max !== n.max || texto(a.observacion) !== texto(n.observacion)) cambios.push(f)
+  }
+  const campos: [string, string, string][] = [
+    ['base', antes.base, nueva.base],
+    ['evidencia', conjunto(antes.evidencia), conjunto(nueva.evidencia)],
+    ['causa', texto(antes.riesgoCausa), texto(nueva.riesgoCausa)],
+    ['evento', texto(antes.riesgoEvento), texto(nueva.riesgoEvento)],
+    ['consecuencia', texto(antes.riesgoConsecuencia), texto(nueva.riesgoConsecuencia)],
+    ['monto bruto', cantidad(antes.montoBruto), cantidad(nueva.montoBruto)],
+    ['moneda', texto(antes.moneda).toUpperCase(), texto(nueva.moneda).toUpperCase()],
+    ['uncertainty', antes.uncertainty, nueva.uncertainty],
+    ['nota de uncertainty', texto(antes.uncertaintyNota), texto(nueva.uncertaintyNota)],
+    ['necesidad de validación', texto(antes.necesidadValidacion), texto(nueva.necesidadValidacion)],
+  ]
+  for (const [nombre, a, n] of campos) if (a !== n) cambios.push(nombre)
+  return cambios
+}
+
+/** Rechaza una reevaluación materialmente idéntica a la vigente: eso es un «sin cambio». */
+export function exigirCambioEvaluativo(vigente: ContenidoEvaluativo, nueva: ContenidoEvaluativo): void {
+  if (cambiosEvaluativos(vigente, nueva).length === 0) {
+    rechazar('la reevaluación es igual a la evaluación vigente: si el análisis confirma que el riesgo no cambió, cerrá la revisión «sin cambio» con su fundamento')
+  }
+}

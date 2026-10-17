@@ -29,18 +29,24 @@ desarrollo no tiene datos que no se puedan reimportar. Las filas de la sonda ya 
 
 ## Consider
 
-- **C1. El script de ciclos. Arreglado en parte.** `--empresas` con menos de cinco empresas
+- **C1. El script de ciclos. Arreglado.** `--empresas` con menos de cinco empresas
   distintas ya no da A7 por cumplido («A7 pide las 5 empresas históricas; se indicaron N»), y
-  el informe separa los cierres con reevaluación aceptada de los sin cambio. **No** agregué
-  el detalle de cada ciclo (referencia, quién, evaluación): el contrato limita la salida a
-  códigos, conteos y fechas porque es la que sale del equipo del owner con datos reales, y
-  ese detalle lleva ids y personas. Queda para el owner decidir si quiere una salida
-  detallada local además de la resumida.
-- **C2. La reevaluación precargada se puede enviar sin cambios. Sin cambio, para el owner.**
-  Precargar los valores vigentes es a propósito (la persona cambia sólo lo que decidió
-  cambiar). Rechazar una reevaluación idéntica a la anterior sería una regla nueva sobre la
-  metodología (¿una reevaluación que confirma todos los niveles con otra evidencia es
-  válida?), y no la invento.
+  el informe separa los cierres con reevaluación aceptada de los sin cambio. El detalle de
+  cada ciclo lo decidió el owner el 2026-10-17: va como salida local aparte, con
+  `--detalle`, y el resumen no cambia (sigue sin ids ni personas, porque es el que puede
+  salir de su equipo). El detalle muestra, por ciclo que cuenta, empresa, revisión,
+  disparador y referencia, apertura, cierre, resultado, evaluación si la hay y la persona
+  que cerró (`ciclosDetallados` e `informeDetalle` en `domain/ciclos.ts`).
+- **C2. La reevaluación precargada se podía enviar sin cambios. Arreglado con la regla que
+  fijó el owner el 2026-10-17.** Una reevaluación materialmente idéntica a la evaluación
+  vigente se rechaza: mismos factores y mismos campos evaluativos, cambiando sólo metadatos
+  (fecha, autor, motivo, acción, justificación, versión). Si la revisión concluye que no
+  cambió nada, se cierra «sin cambio» con fundamento. Con un cambio evaluativo real (por
+  ejemplo, evidencia o nota de uncertainty) entra aunque P, I y V den lo mismo. Lo decide
+  `cambiosEvaluativos` (`domain/actualizacion.ts`) y lo aplica `cargarReevaluacion`. Es una
+  regla del caso de uso, no de la base: compararlo en un trigger obligaría a repetir allí la
+  lista de campos evaluativos. Casos: `domain/actualizacion.test.ts` y
+  `actualizacion.integration.test.ts` («una reevaluación materialmente idéntica…»).
 - **C3. Las fallas inyectadas sólo corren dentro de un savepoint. Sin cambio.** `operar` usa
   la misma función para los dos caminos (`'savepoint' in db ? db.savepoint : db.begin`) y el
   test no puede usar `db.begin` sin confirmar datos en la base de tests. El recorrido por la
