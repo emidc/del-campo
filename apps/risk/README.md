@@ -60,8 +60,9 @@ detalle termina con el historial de cambios del riesgo.
 - **Sin configuración, se niega todo:** sin `RISK_UI_SESSION_SECRET` (32 caracteres o
   más) o sin `RISK_DATABASE_URL`, las páginas mandan a `/login`, que lo dice, y los
   endpoints responden 503.
-- **Sin límite de intentos de login:** la UI corre en local hasta T-0032. Riesgo aceptado
-  en D-0069.
+- **Límite de intentos:** 10 logins fallidos de un mismo usuario en 15 minutos lo dejan
+  sin entrar durante 15 minutos, con la contraseña correcta o no (T-0032). Se guarda sólo
+  la huella sha256 del usuario, nunca el usuario ni la IP, y la pantalla dice la regla.
 
 ## Variables de entorno
 
@@ -72,6 +73,9 @@ de esta carpeta, que está gitignored.
 |---|---|
 | `RISK_DATABASE_URL` | La base de Risk OS. En local, `postgres://localhost:5432/delcampo_risk_dev`. |
 | `RISK_UI_SESSION_SECRET` | Secreto de la firma de la cookie, al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. |
+
+En Vercel van sólo en Production, con el rol `risk_app` en `RISK_DATABASE_URL`; las previews
+quedan sin base. El despliegue está en `docs/despliegue/vercel-risk.md`.
 
 ## Reglas de presentación (RO01 §3)
 

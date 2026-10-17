@@ -12,7 +12,10 @@
     "db:down": "node src/persistence/cli.ts down",
     "import": "node src/application/cli-importar.ts",
     "persona": "node src/application/cli-persona.ts",
-    "ciclos": "node src/application/cli-ciclos.ts"
+    "ciclos": "node src/application/cli-ciclos.ts",
+    "db:verificar": "node src/persistence/cli.ts verificar",
+    "aceptacion": "node src/acceptance/cli.ts",
+    "ensayo": "node src/testing/cli-ensayo.ts"
   },
   "dependencies": {
     "postgres": "^3.4.9"

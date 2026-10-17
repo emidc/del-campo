@@ -2,7 +2,7 @@
 id: T-0032
 title: Desplegar Risk OS y ejecutar la aceptación de RO01
 kind: FEATURE
-status: DRAFT
+status: ACTIVE
 workstream: BOS
 riskClass: HIGH
 size: L

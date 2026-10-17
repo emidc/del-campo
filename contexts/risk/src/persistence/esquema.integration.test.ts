@@ -310,13 +310,14 @@ const CASOS: Caso[] = [
   ['usuario_persona_id_fkey', 'usuario', { persona_id: PERSONA_INEXISTENTE }],
   ['credencial_de_un_usuario', 'credencial', { persona_id: B.otraPersona }],
   ['credencial_hash_scrypt', 'credencial', { password_hash: 'contraseña-en-claro' }],
+  ['login_fallido_huella_sha256', 'login_fallido', { usuario_huella: 'usuario-en-claro' }],
 ]
 
 const TABLAS: Tabla[] = [
   'persona', 'registro_acceso', 'riesgo', 'miembro_escenario', 'accion', 'evaluacion', 'accion_estado',
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
-  'usuario', 'credencial',
+  'usuario', 'credencial', 'login_fallido',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */

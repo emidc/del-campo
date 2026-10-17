@@ -15,39 +15,44 @@
 // resultado, evaluación y la persona que cerró. Lleva ids y nombres: es para verificar en el
 // equipo del owner, no para compartir.
 //
-// Sin la variable, apunta a delcampo_risk_dev. Como el importador, sólo lee delcampo_risk_dev y
-// delcampo_risk_test en localhost (T-0031, ## Data effects).
+// Sin `--hosteada`, apunta a RISK_DATABASE_URL o a delcampo_risk_dev y, como el importador, sólo
+// lee delcampo_risk_dev y delcampo_risk_test en localhost (T-0031, ## Data effects). Con
+// `--hosteada`, lee la base de RISK_HOSTED_DATABASE_URL: lo corre el owner (T-0032). El script de
+// aceptación (`pnpm --filter @del-campo/risk run aceptacion`) trae este mismo conteo con los
+// códigos H1 a H5 en lugar de los ids de organización.
 
 import { ciclosDetallados, contarCiclos, informeCiclos, informeDetalle } from '../domain/ciclos.ts'
 import { revisionesParaContar } from '../persistence/actualizacion.ts'
-import { connect, notLocalDatabase } from '../persistence/database.ts'
+import { conectar, destinoDe, errorSinDatos, HOSTED_FLAG, type Destino } from '../persistence/database.ts'
 
 const DEFAULT_URL = 'postgres://localhost:5432/delcampo_risk_dev'
-const USO = 'uso: pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,… [--detalle]'
+const USO = `uso: pnpm --filter @del-campo/risk run ciclos --empresas ORG-A,ORG-B,… [--detalle] [${HOSTED_FLAG}]`
 
 const die = (message: string): never => {
   process.stderr.write(`✗ ${message}\n`)
   process.exit(2)
 }
 
-const args = process.argv.slice(2)
+const d = destinoDe(process.argv.slice(2), process.env, DEFAULT_URL)
+if ('error' in d) die(d.error)
+const { destino, args } = d as { destino: Destino; args: string[] }
 const detalle = args.includes('--detalle')
 const resto = args.filter((a) => a !== '--detalle')
 if (resto.length !== 2 || resto[0] !== '--empresas' || args.length - resto.length > 1) die(USO)
 const empresas = (resto[1] ?? '').split(',').map((e) => e.trim()).filter((e) => e !== '')
 if (empresas.length === 0) die(`--empresas necesita al menos un código. ${USO}`)
 
-const raw = process.env.RISK_DATABASE_URL ?? DEFAULT_URL
-const refusal = notLocalDatabase(raw)
-if (refusal !== null) die(`${refusal}. El conteo sólo lee bases locales del contexto.`)
-
-const sql = connect(raw)
+const sql = conectar(destino)
 try {
   const revisiones = await revisionesParaContar(sql)
   const conteo = contarCiclos(revisiones, empresas)
   process.stdout.write(`${informeCiclos(conteo).join('\n')}\n`)
   if (detalle) process.stdout.write(`\n${informeDetalle(ciclosDetallados(revisiones)).join('\n')}\n`)
   process.exitCode = conteo.cumpleA7 ? 0 : 1
+} catch (e) {
+  if (!destino.hosteada) throw e
+  process.stderr.write(`✗ ${errorSinDatos(e)}\n`)
+  process.exitCode = 2
 } finally {
   await sql.end()
 }

@@ -7,7 +7,10 @@ import { after, before, describe, it } from 'node:test'
 import { altaPersona, nuevaCredencial } from '../persistence/acceso.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
-import { hashContrasena, iniciarSesion, leerHash, LARGO_MINIMO_CONTRASENA, sesionVigente, verificarContrasena } from './acceso.ts'
+import {
+  hashContrasena, huellaUsuario, iniciarSesion, leerHash, LARGO_MINIMO_CONTRASENA, LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, sesionVigente,
+  verificarContrasena,
+} from './acceso.ts'
 
 const PERSONA = 'PER-01M50T00000000000000000001'
 const CLAVE = 'una contraseña de prueba larga'
@@ -87,6 +90,53 @@ describe('inicio de sesión (D-0069; RO01 §2, Acceso)', () => {
       await nuevaCredencial(tx, PERSONA, null)
       assert.equal(await sesionVigente(tx, PERSONA, s.credencialId), null)
       assert.equal(await iniciarSesion(tx, 'prueba', CLAVE), null)
+    })
+  })
+})
+
+describe('límite de intentos de login (D-0069, T-0032)', () => {
+  const fallidos = async (tx: TransactionSql): Promise<{ usuario_huella: string }[]> =>
+    tx<{ usuario_huella: string }[]>`select usuario_huella from risk.login_fallido order by id`
+
+  it('cada fallido deja la huella del usuario tipeado y nunca el texto; un login válido no deja nada', async () => {
+    await conPersona(async (tx) => {
+      assert.ok(await iniciarSesion(tx, 'prueba', CLAVE))
+      assert.equal((await fallidos(tx)).length, 0)
+      await iniciarSesion(tx, 'prueba', 'otra contraseña cualquiera')
+      await iniciarSesion(tx, CLAVE, CLAVE)
+      const f = await fallidos(tx)
+      assert.deepEqual(f.map((x) => x.usuario_huella), [huellaUsuario('prueba'), huellaUsuario(CLAVE)])
+      const [todo] = await tx<{ t: string }[]>`select string_agg(t::text, ' ') as t from risk.login_fallido t`
+      assert.ok(!(todo?.t ?? '').includes('prueba') && !(todo?.t ?? '').includes(CLAVE))
+    })
+  })
+
+  it(`con ${String(LOGIN_MAXIMO_FALLIDOS)} fallidos en la ventana, el usuario no entra ni con la contraseña correcta, y el bloqueado no suma`, async () => {
+    await conPersona(async (tx) => {
+      for (let i = 0; i < LOGIN_MAXIMO_FALLIDOS; i++) assert.equal(await iniciarSesion(tx, 'prueba', `intento ${String(i)} equivocado`), null)
+      assert.equal(await iniciarSesion(tx, 'prueba', CLAVE), null)
+      assert.equal(await inicios(tx), 0)
+      assert.equal((await fallidos(tx)).length, LOGIN_MAXIMO_FALLIDOS, 'un intento bloqueado no se registra')
+      // Otro usuario, existente o no, sigue igual.
+      await altaPersona(tx, { id: 'PER-01M50T00000000000000000002', nombre: 'Otra persona', usuario: 'otra', hash: await hashContrasena(CLAVE) })
+      assert.ok(await iniciarSesion(tx, 'otra', CLAVE))
+    })
+  })
+
+  it('los fallidos más viejos que la ventana no cuentan', async () => {
+    await conPersona(async (tx) => {
+      for (let i = 0; i < LOGIN_MAXIMO_FALLIDOS; i++) {
+        await tx`insert into risk.login_fallido (usuario_huella, ocurrido_en)
+                 values (${huellaUsuario('prueba')}, now() - make_interval(mins => ${LOGIN_VENTANA_MINUTOS + 1}))`
+      }
+      assert.ok(await iniciarSesion(tx, 'prueba', CLAVE))
+    })
+  })
+
+  it('un usuario que no existe también se bloquea: el bloqueo no dice cuáles existen', async () => {
+    await conPersona(async (tx) => {
+      for (let i = 0; i < LOGIN_MAXIMO_FALLIDOS + 3; i++) await iniciarSesion(tx, 'nadie', CLAVE)
+      assert.equal((await fallidos(tx)).length, LOGIN_MAXIMO_FALLIDOS)
     })
   })
 })

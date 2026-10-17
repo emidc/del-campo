@@ -17,6 +17,8 @@ it('el paquete exporta las lecturas por organización y los casos de uso de la a
     'ESTADOS_ACCION',
     'ESTADOS_REVISION',
     'FACTORES',
+    'LOGIN_MAXIMO_FALLIDOS',
+    'LOGIN_VENTANA_MINUTOS',
     'MOTIVOS',
     'NIVELES',
     'PATRONES_REORDENAMIENTO',

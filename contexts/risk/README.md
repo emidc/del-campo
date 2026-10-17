@@ -16,9 +16,11 @@ hace cumplir `pnpm lint` (R-25).
 |---|---|---|
 | `src/domain/` | Metodología v1 portada de `SPIKES/T-0021/regresion-ejecutable/metodologia.ts` sin cambiar reglas (`metodologia.ts`), el modelo mínimo (`modelo.ts`) y las lecturas de una organización: historia, vigente (8a), derivados, ranking, posición del padre, cola (`lectura.ts`). Del importador (T-0029): el lector de CSV de la 15b (`csv.ts`), el contrato leído de `contrato/` (`contrato.ts`), las 71 reglas contra el lote y lo que ya existe en la base (`validador.ts`), el paso de filas del CSV a filas del esquema (`importacion.ts`) y el informe en sus dos modos (`informe.ts`). De las vistas (T-0030): lo registrado de una organización (`organizacion.ts`) y el armado de cada vista con las reglas de RO01 §3 (`vistas.ts`). De la actualización (T-0031): qué abre y qué cierra una revisión pendiente y por qué se rechaza un pedido (`actualizacion.ts`), el reordenamiento profesional al lado del calculado (`reordenamiento.ts`), el historial de un riesgo armado de todas sus filas (`historial.ts`) y el conteo de ciclos de A7 (`ciclos.ts`). Puro. | Solo `src/domain/` |
 | `src/persistence/` | Conexión, runner de migraciones y su CLI; lo que la importación lee y escribe (`importacion.ts`); lo que leen las vistas (`vistas.ts`) y el acceso (`acceso.ts`, T-0030); el bloqueo por organización, la inserción y las lecturas de la actualización (`actualizacion.ts`, T-0031). | `domain`, `postgres`, `node:*` |
+| `src/acceptance/` | El script de aceptación de RO01 §6 (T-0032): el manifiesto privado del owner (`manifiesto.ts`), una lectura de sólo lectura que no registra accesos (`lectura.ts`), la medición de A6, A7, A8, A9 y A12 con los disparadores de reapertura y su informe sin valores (`medicion.ts`) y su línea de comandos (`cli.ts`). El paquete no lo exporta. | `domain`, `persistence`, `node:*` |
 | `src/application/` | **Lo único que exporta el paquete**: una lista cerrada, sin funciones que comparen o agreguen `C_raw` entre riesgos sueltos u organizaciones (RO01 §3). | `domain`, `persistence` |
-| `src/testing/` | Soporte de los tests: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv` (`sinteticos.ts`, `regresion.ts`), y arma lotes a partir de las sintéticas y de los inválidos de la 15b (`lotes.ts`). El paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
+| `src/testing/` | Soporte de los tests: lee los CSV sintéticos de `SPIKES/T-0021/v0/` y compara con `regresion-emi41.csv` (`sinteticos.ts`, `regresion.ts`), y arma lotes a partir de las sintéticas y de los inválidos de la 15b (`lotes.ts`); el ensayo de la aceptación sobre una base vacía (`ensayo.ts`, `cli-ensayo.ts`, T-0032). El paquete no lo exporta. | Lo que el lint permite a todo el contexto: nada de Broker ni de otro contexto. Hoy importa `domain` y `node:*`. |
 | `migrations/` | SQL del esquema `risk`, con su reversa en `down/`. | — |
+| `deploy/` | `rol-app.sql`: el rol `risk_app` con que corre la app en la base hosteada (T-0032). | — |
 | `contrato/` | Copia byte a byte de `SPIKES/T-0021/v0/fase-15/contrato/`: columnas de los tres CSV y las 71 reglas. Un test falla si se aparta del spike. | — |
 
 Cada derivado lleva la versión de las funciones que lo calcularon (`metodologia v1`):
@@ -57,6 +59,7 @@ recálculo, es un error y no un dato.
 | `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
 | `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
 | (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, una reevaluación cierra una sola, y la que cerró una revisión no pasa después a `rejected` ni a `needs_revision`; el orden previo va antes del primer acceso a resultados, sin posiciones repetidas. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
+| `login_fallido` | Cada login fallido con la huella sha256 del usuario, para el límite de intentos (D-0069, T-0032). |
 | `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
 ## Bases locales
@@ -190,6 +193,38 @@ concluye que no cambió nada, se cierra «sin cambio» con su fundamento. Con un
 evaluativo real entra aunque la criticidad o el vector den lo mismo (decisión del owner,
 2026-10-17; `cambiosEvaluativos` en `src/domain/actualizacion.ts`).
 
+## Base hosteada y aceptación (T-0032)
+
+Los scripts de arriba operan sobre la base hosteada sólo con `--hosteada`, que lee
+`RISK_HOSTED_DATABASE_URL` e ignora `RISK_DATABASE_URL`; sin la opción, ignoran la hosteada y
+sólo tocan `delcampo_risk_dev` y `delcampo_risk_test` en localhost. Con `--hosteada` no
+migran salvo `db:migrate`, el importador es sin valores por defecto y ningún mensaje repite la
+URL ni el texto de un error de la base (sólo su código). Los tests se niegan a correr con
+`RISK_HOSTED_DATABASE_URL` definida. Los pasos, en orden, están en
+`docs/despliegue/vercel-risk.md`.
+
+```bash
+pnpm --filter @del-campo/risk run db:migrate --hosteada        # owner, rol administrativo
+psql "$RISK_HOSTED_DATABASE_URL" -f contexts/risk/deploy/rol-app.sql
+pnpm --filter @del-campo/risk run db:verificar --hosteada      # con risk_app: sale con 2 si algo no cumple
+pnpm --filter @del-campo/risk run aceptacion <manifiesto.json> --hosteada
+
+# El ensayo con las sintéticas, en local y sobre delcampo_risk_dev vacía
+pnpm --filter @del-campo/risk run ensayo /tmp/manifiesto.json
+pnpm --filter @del-campo/risk run aceptacion /tmp/manifiesto.json
+```
+
+`risk_app` lee e inserta en `risk` y nada más: no es dueño de ninguna tabla, así que no puede
+desactivar el trigger de sólo inserción (R-22). `aceptacion` lee una foto en una transacción
+de sólo lectura y devuelve A6, A7, A8, A9 sobre las históricas, A12 y los disparadores de
+reapertura con códigos H1 a H5 y R1, conteos, fechas, `regla_id`, prefijos de huella e ids
+de riesgo y de revisión: ningún título, texto, monto, nombre ni id de organización. Sale con
+0 si todo cumple, con 1 si algo no y con 2 si falla el manifiesto o la base.
+
+**Límite de intentos de login:** 10 fallidos de un usuario en 15 minutos lo bloquean 15
+minutos (`LOGIN_MAXIMO_FALLIDOS`, `LOGIN_VENTANA_MINUTOS`); se guarda sólo la huella del
+usuario.
+
 ## Tests
 
 `pnpm test` incluye los del contexto (R-26):
@@ -201,6 +236,7 @@ evaluativo real entra aunque la criticidad o el vector den lo mismo (decisión d
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
 | integración, vistas | `src/application/vistas.integration.test.ts`, `acceso.integration.test.ts` | Las reglas 1 a 7 de RO01 §3 sobre las vistas de las 8 sintéticas: `C_raw` sólo en la criticidad del detalle; el ranking contra `rankingOrganizacion` y, en las organizaciones sin filas de la 15b, contra `regresion-emi41.csv`; el techo no mueve posiciones; el filtro por unidad las conserva; `unknown` sin valor; la evaluación usada y su rótulo; versiones; el registro de acceso; login, rotación y baja. |
 | integración, actualización | `src/application/actualizacion.integration.test.ts`, `historial.integration.test.ts`, `ciclos.integration.test.ts` | El ciclo de S07-R06 (15B-A01 cumplida, reevaluación, cierre) da lo mismo que `regresion-emi41.csv`; qué abre y qué no abre una revisión; rechazos; una falla inyectada después de cada escritura de cada operación no deja nada; orden previo, reordenamiento y cambio de versión; el historial contra las filas de la base, tabla por tabla; ninguna tabla sin razón; ningún `UPDATE` ni `DELETE` en el código; el conteo de A7. |
+| integración, despliegue y aceptación | `src/application/rol-app.integration.test.ts`, `src/acceptance/*.test.ts`, `src/persistence/database.test.ts` | `risk_app` hace lo que la app necesita y nada más (UPDATE, DELETE, TRUNCATE, desactivar el trigger, crear, leer fuera de `risk`: 42501) y `db:verificar` lo distingue del administrativo; el modo hosteado; el ensayo completo cumple los criterios, lo que falta no, y el informe no tiene ningún texto de la base; el manifiesto y su línea de comandos no repiten contenido. |
 | integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |
 
 Los de integración corren siempre sobre `delcampo_risk_test`: la crean si no existe y
@@ -218,10 +254,6 @@ node --import ./scripts/guard-db-tests.mjs --test --test-concurrency=1 \
 
 ## Pendiente para otras tareas
 
-- **T-0032, rol de la app.** El sólo inserción es por trigger, y el dueño de las tablas lo
-  puede saltear (`disable trigger`, `session_replication_role`). El rol con que corra la
-  app no debería ser dueño del esquema ni tener `UPDATE`, `DELETE` ni `TRUNCATE` sobre
-  `risk` (como pide R-22 para la auditoría de negocio).
 - **Invariantes de varias filas.** 0004 suma las que la base puede comprobar al escribir; las
   que siguen en la aplicación están en el encabezado de la migración y en
   `ops/evidence/T-0031.md`.
