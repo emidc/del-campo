@@ -11,9 +11,9 @@ import { openTestDatabase } from './testing.ts'
 const TABLES = [
   'accion', 'accion_estado', 'cierre_revision', 'credencial', 'evaluacion', 'evento_poliza', 'lote_importacion', 'miembro_escenario', 'novedad',
   'orden_previo', 'orden_previo_item', 'persona', 'registro_acceso', 'reordenamiento', 'reordenamiento_vigente',
-  'revision_humana', 'revision_pendiente', 'riesgo', 'transferencia', 'usuario',
-]
-const FILES = ['0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql', '0004_actualizacion.sql']
+  'revision_humana', 'revision_pendiente', 'riesgo', 'transferencia', 'usuario', 'login_fallido',
+].sort()
+const FILES = ['0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql', '0004_actualizacion.sql', '0005_login_fallido.sql']
 
 let sql: Sql
 before(async () => {

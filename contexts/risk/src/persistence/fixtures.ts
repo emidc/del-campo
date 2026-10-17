@@ -57,6 +57,7 @@ export type Tabla =
   | 'accion_estado' | 'transferencia' | 'evento_poliza' | 'revision_humana' | 'novedad'
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
   | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion' | 'usuario' | 'credencial'
+  | 'login_fallido'
 
 export type Fila = Record<string, unknown>
 
@@ -126,6 +127,7 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
   // T-0030 (D-0069). El hash es de prueba: no es la de ninguna contraseña que alguien use.
   usuario: () => ({ usuario: `usuario-${String(siguiente++)}`, persona_id: B.otraPersona }),
   credencial: () => ({ persona_id: B.persona, password_hash: HASH_SINTETICO }),
+  login_fallido: () => ({ usuario_huella: 'a'.repeat(64) }),
 }
 
 /** Una fila válida de `tabla` sobre los registros de `base`, con `cambios` encima. */

@@ -62,7 +62,7 @@ export {
   VISTAS_CON_RESULTADOS, type VistaConResultados,
 } from './vistas.ts'
 // Acceso por persona (D-0069): la sesión es la identidad que la app pasa a todo lo demás.
-export { iniciarSesion, sesionVigente, type Sesion } from './acceso.ts'
+export { iniciarSesion, LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, sesionVigente, type Sesion } from './acceso.ts'
 // Operación de la base y carga de lotes: los usa la app en sus tests de integración y T-0032.
 export { migrate } from '../persistence/migrations.ts'
 export { importarLote, leerArchivosDeLote, leerContrato } from './importar.ts'

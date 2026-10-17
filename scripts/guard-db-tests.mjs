@@ -58,6 +58,7 @@ const leerEnv = () => {
 // (COMMUNICATION_DATABASE_URL, RISK_DATABASE_URL) o, si falta, de DATABASE_URL con otro
 // nombre de base (contexts/*/src/persistence/testing.ts). Todas pasan por la misma guarda.
 const VARIABLES_DE_CONTEXTOS = ['COMMUNICATION_DATABASE_URL', 'RISK_DATABASE_URL']
+const VARIABLES_HOSTEADAS = ['RISK_HOSTED_DATABASE_URL']
 
 export function motivoDelEntorno(env, envDelArchivo) {
   const delEnv = env.DATABASE_URL === undefined ? envDelArchivo() : { valor: env.DATABASE_URL }
@@ -70,6 +71,12 @@ export function motivoDelEntorno(env, envDelArchivo) {
     const delContexto = motivoDeRechazo(env[variable])
     if (delContexto) return `${variable}: ${delContexto}`
   }
+  // La base hosteada de Risk OS (T-0032) tiene su propia variable, que ningún test lee. Si está
+  // exportada en esta terminal, alguien está por operar sobre los datos reales: no es momento de
+  // correr pruebas que migran y escriben.
+  for (const variable of VARIABLES_HOSTEADAS) {
+    if (env[variable] !== undefined && env[variable] !== '') return `${variable} está definida en el entorno`
+  }
   return null
 }
 
@@ -77,6 +84,6 @@ const motivo = motivoDelEntorno(process.env, leerEnv)
 if (motivo) {
   console.error(`✗ Pruebas abortadas: ${motivo}. Las pruebas de integración sólo corren contra ` +
     'un Postgres local terminado en _dev o _test. Si exportaste la cadena de Supabase, ' +
-    'ejecutá `unset DATABASE_URL`.')
+    'ejecutá `unset DATABASE_URL` (o `unset RISK_HOSTED_DATABASE_URL`).')
   process.exit(1)
 }
