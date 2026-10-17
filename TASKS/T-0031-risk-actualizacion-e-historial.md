@@ -2,7 +2,7 @@
 id: T-0031
 title: Actualizar riesgos, acciones y transferencias en Risk OS con revisión pendiente e historial
 kind: FEATURE
-status: DRAFT
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: L
