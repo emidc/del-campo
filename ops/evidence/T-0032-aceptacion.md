@@ -39,7 +39,7 @@ Tomadas antes de medir; rigen la medición y no se cambian después (CO01 §4):
 | A10 | Reglas de presentación | Tests en CI + recorrido del owner | | |
 | A11 | Vistas | Recorrido local del owner con las 8 sintéticas y la lista de `apps/risk/README.md` | | |
 | A12 | Historial | `aceptacion` | | |
-| A13 | Sin datos reales fuera de su lugar | Revisión del owner | | |
+| A13 | Datos y procesamiento dentro del alcance autorizado | Revisión del owner | | |
 
 **Resultado:** pendiente.
 

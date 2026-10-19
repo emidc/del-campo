@@ -1166,6 +1166,9 @@ decisions:
       autoriza datos reales; R-19; refinamiento de preparación por el owner del
       2026-10-19, D-0070.
     adr: DECISIONS/0068-datos-reales-risk-os.md
+    superseded_in_part_by:
+      - clause: Preparación de las históricas exclusivamente por el owner sin asistencia de agentes
+        by: D-0070
     statement: >
       Los datos de las cinco empresas históricas se alojan en infraestructura hosteada
       y dedicada a Risk OS, sin compartir base ni
@@ -1265,4 +1268,4 @@ decisions:
       con alcance de lectura/escritura de preparación de Risk OS. Hasta entonces el
       procesamiento de datos reales está bloqueado. No se infiere el modelo del nombre
       Codex ni de una familia de modelos; futuros modelos o proveedores requieren su
-      propia aprobación previa. Esta sesión sólo modifica documentación, sin datos reales.
+      propia aprobación previa.
