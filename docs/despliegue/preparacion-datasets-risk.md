@@ -11,9 +11,11 @@ está en `decisions.yaml`; el despliegue y la importación en [vercel-risk.md](v
    congelamiento), `contexts/risk/README.md` y los contratos y reglas de
    `contexts/risk/contrato/`, contrastados con `SPIKES/T-0021/v0/fase-15/contrato/`.
 2. Comprobar la aprobación explícita en `decisions.yaml` del proveedor y modelo
-   exactos de la sesión para preparación de Risk OS. **Está pendiente al 2026-10-19:**
-   Codex/OpenAI no identifica por sí solo el modelo. Sin esa aprobación, detenerse
-   antes de recibir o leer evidencia real. Un cambio de modelo exige volver a comprobar.
+   exactos de la sesión para preparación de Risk OS. Desde el 2026-10-19 está aprobado
+   Anthropic `claude-opus-5-5` en Claude Code (D-0070); el modelo se acredita con los
+   metadatos de la sesión, no con el nombre de la herramienta. Con otro modelo, incluido
+   un respaldo automático, detenerse antes de recibir o leer evidencia real. Un cambio
+   de modelo exige volver a comprobar.
 3. Registrar privadamente la función autorizada, usuario/owner, código de dataset,
    recursos permitidos de lectura y escritura, proveedor, modelo, categorías y fecha.
    No basta ser el agente que desarrolla Risk OS. Trabajar en una carpeta privada

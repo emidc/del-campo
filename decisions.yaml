@@ -1224,7 +1224,10 @@ decisions:
     date: 2026-10-19
     source: >
       Decisión explícita del owner del 2026-10-19 para T-0032, H1–H5 y futuros
-      datasets de Risk OS; refina D-0039 y D-0068; R-16, R-18 y R-19.
+      datasets de Risk OS; refina D-0039 y D-0068; R-16, R-18 y R-19. Pareja
+      proveedor/modelo cambiada por el owner el 2026-10-19, en el hilo de H1 del
+      proyecto, de Codex de OpenAI (sin modelo identificado) a Anthropic
+      claude-opus-5-5.
     adr: DECISIONS/0070-preparacion-asistida-datasets-risk-os.md
     statement: >
       Risk OS admite una tercera clase, agente de preparación/análisis de datos,
@@ -1262,10 +1265,15 @@ decisions:
       reales y registros privados de preparación quedan fuera del repositorio público;
       sólo vuelven informes sin valores. R-19 conserva auditoría por función, usuario,
       recurso, proveedor, modelo, categoría y timestamp, sin prompts completos en logs.
-      Esta decisión no autoriza todavía una pareja proveedor/modelo: el owner eligió
-      Codex de OpenAI para H1–H5, pero falta identificar inequívocamente el modelo exacto
-      de esas sesiones y registrar su aprobación explícita previa en decisions.yaml,
-      con alcance de lectura/escritura de preparación de Risk OS. Hasta entonces el
-      procesamiento de datos reales está bloqueado. No se infiere el modelo del nombre
-      Codex ni de una familia de modelos; futuros modelos o proveedores requieren su
-      propia aprobación previa.
+      Pareja proveedor/modelo autorizada: proveedor Anthropic, modelo claude-opus-5-5
+      (incluida su variante de contexto extendido claude-opus-5-5[1m]), en sesiones de
+      Claude Code bajo la cuenta del owner, para la función de preparación de D-0070
+      sobre H1–H5 y futuros datasets de Risk OS. Alcance: leer la evidencia que el
+      owner aporte o la carpeta privada que el owner designe fuera del repositorio, y
+      escribir sólo en esa carpeta privada (candidatos CSV, trazabilidad, salida del
+      validador local); leer el repositorio sin modificarlo. El modelo se acredita con
+      los metadatos de la sesión, no con el nombre de la herramienta ni de la familia;
+      si un turno lo atiende otro modelo, incluido un respaldo automático, el
+      procesamiento de datos reales se detiene hasta que ese modelo tenga su propia
+      aprobación. No se autoriza Codex de OpenAI ni ningún otro modelo o proveedor;
+      cada uno requiere su propia aprobación previa.
