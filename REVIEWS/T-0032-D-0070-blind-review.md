@@ -136,3 +136,48 @@ operable sobre archivos privados. No acredita cumplimiento real de minimización
 auditoría, backup, aprobación humana, importación ni aceptación de H1–H5, que no se
 ejecutaron. No valida la identidad del modelo de futuras sesiones ni condiciones
 comerciales de proveedores. No ejecuta merge ni concede autorización de datos.
+
+## Adenda — cierre independiente del 2026-10-19
+
+Head del cierre revisado: `1e1b835f7402c2e607d92133f244e81ff830f615`.
+Base del delta: `b9da1d32656f9657e325bcca3d21cc68973f44f9`.
+El árbol estaba limpio antes de agregar esta adenda. Esta adenda es posterior a ese SHA.
+
+Antes de leer la nueva evidencia ejecuté, en este orden, con `env -i PATH="$PATH"`
+para los scripts:
+
+```text
+$ node scripts/check-docs.mjs
+✓ 70 decisiones, 33 ADRs, 32 tareas, 0 aviso(s)
+$ node scripts/check-task-contract.mjs
+✓ contrato de tarea intacto
+$ git diff --check b9da1d3
+```
+
+Los tres terminaron con 0. El checker de contrato emitió además un warning de Git
+sobre `DARWIN_USER_TEMP_DIR` y uso de `/tmp`, sin impedir la comprobación.
+Después leí el delta completo: correcciones en `decisions.yaml` y el acta, evidencia
+nueva, paquete R-33 y la incorporación de este reporte inicial. No repetí las suites
+funcionales: el delta es documental y la comparación de `apps`, `packages`, código,
+migraciones y contrato Risk, Communication, scripts y dependencias contra main dio
+exit 0 con `git diff --quiet`.
+
+**Act on: ninguno pendiente en el cambio documental.** A1 está atendido: D-0068
+declara la cláusula reemplazada y `by: D-0070`. Los dos Consider también están
+atendidos: A13 tiene el rótulo actualizado y el statement permanente ya no contiene
+la oración sobre esta sesión. El archivo de evidencia antes ausente existe y distingue
+extractos de logs completos, fallo ambiental, historia previa y operaciones no realizadas.
+
+Contrasté directamente `/tmp/t0032-d0070-main-test-node.log` con mi propio
+`/tmp/d0070-review-test.log`, sin asumir la comparación del implementador. Coinciden
+las 121 ubicaciones `test at`, las 142 líneas de fallos (incluyen suites y el resumen,
+quitando sólo duraciones) y las 109 apariciones de `Error [PostgresError]`, cuyo único
+mensaje es `database "delcampo_test" does not exist`. La evidencia informa correctamente
+que en el árbol exportado se ejecutó el comando Node del script, después de fallar la
+invocación de pnpm; no presenta esa ejecución como `pnpm test` exitoso.
+
+La comparación de logs respalda que estos fallos también aparecen en la base; no
+sustituye una suite verde ni convierte esta revisión en aceptación de RO01. No observé
+la ejecución del baseline por el implementador, sólo inspeccioné y comparé sus logs.
+Persisten los límites del dictamen inicial: proveedor/modelo sin aprobación exacta,
+sin procesamiento real, sin validación operativa de A6–A8/A13 y sin autorización de merge.
