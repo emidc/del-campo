@@ -25,7 +25,11 @@ está en `decisions.yaml`; el despliegue y la importación en [vercel-risk.md](v
    innecesarios, salud, vida, información médica o bancaria personal. Separar los
    incidentes operacionales de los datos sensibles de personas. Nunca aportar
    credenciales, secretos, tokens, variables productivas ni backups. No abrir
-   conectores externos ni Production; la evidencia la aporta el owner.
+   Production ni conectores externos; la evidencia la aporta el owner. Única
+   excepción (D-0070): el conector de Google Drive, limitado a la carpeta privada
+   que el owner designe como workspace. Fuera de esa carpeta no se busca ni se abre
+   nada; dentro, el agente crea archivos nuevos y no modifica los que no creó. Las
+   copias para el validador viven sólo en el almacenamiento efímero de la sesión.
 
 ## Preparar e iterar
 
