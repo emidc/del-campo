@@ -78,3 +78,9 @@ Reemplaza los planes pagos de arriba: Supabase Free y Vercel Hobby, en proyectos
 nuevos y dedicados a Risk OS, hasta que Broker OS quede operativo. La región sigue en
 sa-east-1 y el estado de D-0068 no cambia. Se aplicó a `decisions.yaml`, al ADR 0068,
 a RO01 §5, §7 y §8, y a T-0032.
+
+## Preparación asistida — 2026-10-19
+
+La decisión posterior del owner se registra en D-0070 y refina D-0068. El flujo
+vigente está en `docs/despliegue/preparacion-datasets-risk.md`. Las citas y tablas
+anteriores conservan su fecha y no acreditan preparación ni aceptación realizada.

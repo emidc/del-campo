@@ -39,7 +39,7 @@ Tomadas antes de medir; rigen la medición y no se cambian después (CO01 §4):
 | A10 | Reglas de presentación | Tests en CI + recorrido del owner | | |
 | A11 | Vistas | Recorrido local del owner con las 8 sintéticas y la lista de `apps/risk/README.md` | | |
 | A12 | Historial | `aceptacion` | | |
-| A13 | Sin datos reales fuera de su lugar | Revisión del owner | | |
+| A13 | Datos y procesamiento dentro del alcance autorizado | Revisión del owner | | |
 
 **Resultado:** pendiente.
 
@@ -72,6 +72,10 @@ En local, como en T-0030 (decisión 3). Por vista, si muestra lo de la lista: pe
 
 ## A6: históricas (protocolo 4)
 
+Preparación según `docs/despliegue/preparacion-datasets-risk.md`: revisión y aprobación
+del dataset por el owner, validación local y backup antes de importar: pendiente.
+La trazabilidad y aprobación de cada lote se conservan privadamente, sin valores aquí.
+
 El informe sin valores de **cada** intento de cada empresa, rechazados incluidos, tal como lo
 imprime `import … --hosteada`:
 
@@ -101,8 +105,19 @@ de cada par invertido (si es tercer caso o no) la hace el owner y va acá: pendi
 
 ## A13
 
-Confirmación del owner de que el repositorio, este acta y las evidencias no tienen valores
-de las históricas ni credenciales: pendiente.
+Criterio actualizado por D-0070 el 2026-10-19; no es evidencia retroactiva.
+Confirmaciones del owner, todavía sin medir:
+
+- Secretos y credenciales sólo en su almacenamiento autorizado: pendiente.
+- Repositorio, acta, informes y evidencias públicas sin documentos, CSV ni valores
+  reales; outputs versionados sin valores de las históricas: pendiente.
+- Procesamiento IA dentro de la función y categorías autorizadas por D-0070, con
+  proveedor y modelo aprobados previamente y auditoría privada de R-19: pendiente.
+- Sin PII personal innecesaria ni datos personales especialmente sensibles prohibidos
+  en lo enviado al modelo; incidentes tratados como hechos operacionales: pendiente.
+
+La autorización exacta de proveedor/modelo sigue bloqueante según D-0070. La firma
+no se deduce de haber agregado este criterio ni de haber pasado los checks.
 
 ## Firma
 

@@ -5,9 +5,10 @@ primer despliegue: el owner la sigue de punta a punta y lo que no coincida se co
 (T-0032, ## Verification). Decisiones: D-0068 (Supabase Free en sa-east-1 y Vercel Hobby,
 dedicados), D-0069 (credencial por persona) y D-0063 (un proyecto y una base por contexto).
 
-**Lo ejecuta todo el owner** (R-13, R-16). Ningún agente se conecta a la base con datos
-reales, recibe sus credenciales o las de Vercel, ni ve valores de las históricas (R-19): ve
-sólo lo que el owner pega, que son las salidas sin valores de los scripts de esta guía.
+**Las operaciones hosteadas las ejecuta el owner** (R-13, R-16). Ningún agente se
+conecta a Production ni recibe sus credenciales o las de Vercel. La preparación
+previa de datasets se rige por D-0070 y el [protocolo](preparacion-datasets-risk.md);
+los agentes de desarrollo siguen trabajando con sintéticos e informes sin valores.
 Ninguna URL de base, contraseña ni secreto va al repositorio, a un acta, a un mensaje ni a
 una captura (R-18).
 
@@ -171,7 +172,14 @@ dice. Cuenta por usuario y guarda sólo su huella (sha256), nunca el usuario en 
 
 ## 6. Importar las históricas
 
-Por empresa, en el equipo del owner, con la carpeta de los tres CSV fuera del repositorio:
+Antes de este paso: reunir evidencia → agente autorizado prepara e identifica
+faltantes → humano responde o consigue evidencia adicional → CSV candidatos →
+validación local → revisión y aprobación del owner → backup (§8). El
+[protocolo de preparación](preparacion-datasets-risk.md) concreta esos pasos y el
+requisito pendiente de proveedor/modelo.
+
+Después, **el owner** importa por empresa con `risk_app`, desde su equipo, con la
+carpeta de los tres CSV fuera del repositorio:
 
 ```bash
 # RISK_HOSTED_DATABASE_URL = Session pooler con risk_app
@@ -183,7 +191,9 @@ informe es **sin valores** por defecto: estado, huella del lote, conteos de fila
 por `regla_id`, sin mensajes ni celdas. **Ese informe, el de cada intento, rechazados
 incluidos, se pega en el acta** (`ops/evidence/T-0032-aceptacion.md`, A6) y sus datos van al
 manifiesto (§9). `--con-valores` muestra los mensajes con celdas para corregir el origen: es
-para leerlo el owner y no se pega en ningún lado.
+para revisión privada del owner; cualquier fragmento necesario para corregir con un
+agente de preparación exige minimización y autorización según D-0070. Nunca se pega
+en Git, evidencia pública ni sesiones de desarrollo.
 
 Un intento rechazado no escribe nada. Se corrige el CSV en el origen y se vuelve a intentar;
 el rechazo queda contado (un fallo no se borra del acta). Un lote ya importado devuelve

@@ -563,8 +563,13 @@ decisions:
     date: 2026-09-19
     source: T-0015; respuestas humanas definitivas del 2026-09-19; ENGINEERING_RULES.md R-19
     adr: DECISIONS/0039-clases-de-agente-y-datos-de-cliente.md
+    superseded_in_part_by:
+      - clause: Distinción limitada a dos clases y prohibición de información económica empresarial e incidentes operacionales para preparación de Risk OS
+        by: D-0070
     statement: >
-      Se distinguen dos clases de agente. Los agentes de desarrollo no reciben PII real
+      Se distinguen agentes de desarrollo y de producto; D-0070 agrega la clase de
+      preparación/análisis de datos de Risk OS y refina sólo para ella el alcance de
+      las categorías especialmente sensibles descritas abajo. Los agentes de desarrollo no reciben PII real
       de clientes salvo excepción explícita y justificada, y trabajan con identificadores
       internos, datos sintéticos o anonimizados. Los agentes de producto de Broker OS
       pueden procesar datos reales cuando sean necesarios para ejecutar una función
@@ -1158,14 +1163,22 @@ decisions:
       SLICES/RO01-decisiones.md, punto 1 (opción b), proveedor, región y estado
       elegidos por el owner el 2026-10-15 y su corrección de plan del mismo día;
       SLICES/RO01.md §5 y §7; D-0062, que no se extiende (D-0063); D-0067, que no
-      autoriza datos reales; R-19.
+      autoriza datos reales; R-19; refinamiento de preparación por el owner del
+      2026-10-19, D-0070.
     adr: DECISIONS/0068-datos-reales-risk-os.md
+    superseded_in_part_by:
+      - clause: Preparación de las históricas exclusivamente por el owner sin asistencia de agentes
+        by: D-0070
     statement: >
       Los datos de las cinco empresas históricas se alojan en infraestructura hosteada
       y dedicada a Risk OS, sin compartir base ni
       despliegue con Broker OS ni Communication OS; los sintéticos y las previews no
-      usan datos reales. Carga el owner, desde su máquina, y ningún agente de
-      desarrollo los ve (R-19). Proveedor: un proyecto nuevo de Supabase en plan Free,
+      usan datos reales. H1–H5 y futuros datasets pueden prepararse y actualizarse con
+      agentes autorizados según D-0070; el owner conserva la responsabilidad de aprobar
+      el dataset y de importarlo desde su máquina. Los agentes de preparación no reciben
+      credenciales productivas ni se conectan a Production; Production no es su entorno
+      de trabajo. Los agentes de desarrollo conservan los límites de R-19. Los datos
+      reales y los artefactos privados quedan fuera del repositorio público. Proveedor: un proyecto nuevo de Supabase en plan Free,
       región sa-east-1 (São Paulo), y un proyecto nuevo de Vercel en plan Hobby, los
       dos propios de Risk OS, hasta que Broker OS quede operativo; entonces se pasan a
       planes pagos, que contrata el owner (R-14). Se aceptan los riesgos del plan
@@ -1202,3 +1215,57 @@ decisions:
       filtren; o que el despliegue muestre intentos de acceso repetidos que el costo de
       scrypt no alcanza a frenar. Cualquiera de esos casos exige el login de VS01
       (D-0059) u otro mecanismo con proveedor de identidad.
+
+  # ── Preparación asistida de datasets de Risk OS (T-0032) ────────────────
+
+  - id: D-0070
+    title: La preparación de datasets de Risk OS es asistida por agentes
+    status: ACCEPTED
+    date: 2026-10-19
+    source: >
+      Decisión explícita del owner del 2026-10-19 para T-0032, H1–H5 y futuros
+      datasets de Risk OS; refina D-0039 y D-0068; R-16, R-18 y R-19.
+    adr: DECISIONS/0070-preparacion-asistida-datasets-risk-os.md
+    statement: >
+      Risk OS admite una tercera clase, agente de preparación/análisis de datos,
+      para construir y mantener datasets con asistencia IA por diseño. Para una función
+      explícitamente autorizada por el owner puede procesar el mínimo necesario de
+      evidencia real empresarial aportada y generar o actualizar material de importación:
+      fotografías de instalaciones, informes y análisis técnicos, pólizas y anexos,
+      coberturas, sumas aseguradas, límites y sublímites, deducibles, valores expuestos,
+      pérdidas, incidentes operacionales, controles, continuidad, acciones, respuestas
+      de la empresa o del owner y otra información empresarial necesaria para evaluar
+      riesgos y transferencia. La información económica y aseguradora empresarial está
+      autorizada en este alcance; no habilita a cualquier agente de desarrollo ni
+      extiende permisos a Broker OS o Communication OS (D-0063, D-0067).
+      Se minimizan los datos enviados al modelo. Quedan excluidas por defecto la PII
+      personal innecesaria y las categorías especialmente sensibles de individuos,
+      particularmente salud individual, vida, información médica y datos bancarios
+      personales. Un accidente laboral relevante se trata prioritariamente como hecho
+      operacional sin nombres, datos médicos ni otra PII sensible de la persona; se
+      redacta o separa ese contenido antes de enviarlo. Credenciales, secretos y tokens
+      están totalmente prohibidos (R-16, R-18).
+      Cada dato o afirmación relevante conserva procedencia y, cuando corresponda,
+      distingue DOCUMENTADO (respaldo directo en fuente aportada), CONFIRMADO
+      (confirmación humana explícita durante la preparación), INFERIDO (inferencia
+      defendible y visible como tal) y UNKNOWN (evidencia insuficiente). Una fuente
+      existente no garantiza veracidad. No se inventan faltantes ni se transforma un
+      valor plausible o una inferencia en hecho documentado. El agente puede extraer,
+      estructurar, relacionar, detectar contradicciones, proponer riesgos y evaluaciones
+      según la metodología vigente, preguntar al humano, generar CSV candidatos,
+      ejecutar validadores locales e iterar sobre errores. Sus salidas no adquieren
+      autoridad por ser generadas por IA: requieren validación mecánica y aprobación
+      humana del dataset antes de importar; la revisión profesional posterior subsiste.
+      La aprobación no convierte inferencias en hechos documentados. El owner hace el
+      backup y la importación con risk_app (D-0068). El agente no recibe credenciales
+      productivas, no se conecta ni importa autónomamente a Production. Documentos, CSV
+      reales y registros privados de preparación quedan fuera del repositorio público;
+      sólo vuelven informes sin valores. R-19 conserva auditoría por función, usuario,
+      recurso, proveedor, modelo, categoría y timestamp, sin prompts completos en logs.
+      Esta decisión no autoriza todavía una pareja proveedor/modelo: el owner eligió
+      Codex de OpenAI para H1–H5, pero falta identificar inequívocamente el modelo exacto
+      de esas sesiones y registrar su aprobación explícita previa en decisions.yaml,
+      con alcance de lectura/escritura de preparación de Risk OS. Hasta entonces el
+      procesamiento de datos reales está bloqueado. No se infiere el modelo del nombre
+      Codex ni de una familia de modelos; futuros modelos o proveedores requieren su
+      propia aprobación previa.

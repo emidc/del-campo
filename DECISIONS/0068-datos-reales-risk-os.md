@@ -16,7 +16,8 @@ La aceptación de Risk OS v1 (`SLICES/RO01.md` §6, A6 a A8) se mide sobre cinco
 históricas reales, con ciclos posteriores y revisión profesional. Esos datos tienen que
 vivir en algún lugar donde Risk OS los lea, y hoy no hay ninguno autorizado.
 
-Hechos que restringen la elección:
+Hechos que restringían la elección al 2026-10-15 (la preparación del punto 3
+fue refinada por D-0070 el 2026-10-19):
 
 1. **D-0062 no se extiende** (D-0063). Autoriza las tablas de VS01 en un proyecto de
    Supabase y nada más. Los datos de otro laboratorio necesitan su propia autorización.
@@ -106,3 +107,11 @@ No tiene. El owner eligió la decisión firme, sin criterio de revisión. El cam
 planes pagos cuando Broker OS quede operativo es parte de lo decidido, no una
 reapertura. Al cierre de Q4 se decide igual si los datos se conservan o se borran
 (D-0063).
+
+## Refinamiento de preparación — 2026-10-19
+
+D-0070 separa la preparación asistida de la aprobación e importación del owner.
+El punto 3 del contexto conserva la situación anterior; ya no describe por sí solo
+el flujo vigente. La actualización canónica de D-0068 referencia D-0070 y conserva
+el aislamiento, la infraestructura elegida y la operación productiva exclusiva del
+owner. El protocolo operativo está en `docs/despliegue/preparacion-datasets-risk.md`.
