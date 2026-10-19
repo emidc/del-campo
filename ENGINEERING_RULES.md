@@ -166,15 +166,17 @@ Los hooks protegen la máquina donde están configurados. Todo lo que realmente 
 
 ### R-19 · Datos de clientes según la clase de agente — ACTIVA
 
-Hay dos clases de agente y no tienen las mismas reglas. Confundirlas fue el origen de esta regla: la versión anterior prohibía, sin quererlo, la capacidad central del producto. → `D-0039`
+Hay tres clases conceptuales de agente, según su función autorizada, no según la herramienta que use. La distinción original de `D-0039` se refina para Risk OS en `D-0070`. Un agente de desarrollo no adquiere permisos de preparación por trabajar en este repositorio.
 
 **Agentes de desarrollo** — los que trabajan sobre este repositorio. No reciben PII real de clientes salvo excepción explícita y justificada. Una excepción se registra en `decisions.yaml` antes de ejercerse, y nombra la tarea, el proveedor, el modelo, qué puede leer y escribir, y qué no. Una excepción sin alcance escrito deja de ser una excepción y pasa a ser la regla nueva. Un agente que pega un DNI en el contexto de un proveedor de IA es una divulgación. Se usan identificadores internos, datos sintéticos o anonimizados; para lo demás, redacción. Tampoco hay PII en logs de aplicación ni en el texto de las tareas.
 
+**Agentes de preparación/análisis de datos** — preparan datasets de Risk OS bajo `D-0070`, con función explícitamente autorizada y mínimo necesario. Pueden tratar información empresarial de riesgo y seguros dentro de ese alcance, conservar procedencia y hacer visibles inferencias y faltantes. La PII personal innecesaria y los datos personales especialmente sensibles siguen excluidos por defecto; nunca secretos. Sus resultados requieren revisión y aprobación humana antes de adquirir autoridad. No reciben acceso a Production.
+
 **Agentes de producto** — los que Broker OS ejecuta para un usuario. Pueden procesar datos reales cuando sean necesarios para una función explícita y autorizada, enviando **únicamente los datos mínimos necesarios** para esa finalidad.
 
-Cuatro límites que no se mueven:
+Límites comunes y alcance de la clasificación:
 
-- Las categorías especialmente sensibles que clasifica `DOMAIN.md` —salud, accidentes, vida, información financiera— están prohibidas para modelos externos en v1. Un documento que las contenga se rechaza, se redacta o se deriva a revisión humana.
+- Las categorías especialmente sensibles que clasifica `DOMAIN.md` —salud, accidentes, vida, información financiera— siguen prohibidas para modelos externos en v1 fuera del refinamiento empresarial acotado de `D-0070`. Este distingue economía/seguros e incidentes operacionales de empresas de datos sensibles de individuos; no habilita datos médicos o bancarios personales. El contenido excluido se rechaza, se redacta o se deriva a revisión humana antes de enviarlo.
 - **Ningún proveedor ni modelo queda autorizado por esta regla.** Cada uno requiere aprobación explícita previa antes de procesar datos reales.
 - Nunca se envían credenciales, secretos ni tokens. → `R-16`, `R-18`
 - Toda operación sobre datos reales queda auditable por función, usuario, recurso, proveedor y modelo, categoría de datos y timestamp, sin duplicar PII innecesariamente ni guardar prompts completos en logs.

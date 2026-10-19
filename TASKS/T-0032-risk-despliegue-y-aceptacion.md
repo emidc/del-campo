@@ -12,11 +12,13 @@ contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0068-datos-reales-risk-os.md,
+              DECISIONS/0070-preparacion-asistida-datasets-risk-os.md,
+              docs/despliegue/preparacion-datasets-risk.md,
               DECISIONS/0058-nextjs-en-vercel.md,
               docs/despliegue/vercel-communication.md, docs/despliegue/vercel-vs01.md,
               ops/evidence/T-0026-aceptacion.md, contexts/risk/README.md,
               SPIKES/T-0021/v0/fase-13/dossier-cierre-emi15.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068]
+decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068, D-0070]
 ---
 
 ## Why
@@ -25,7 +27,7 @@ T-0028 a T-0031 dejan a Risk OS importando, mostrando y actualizando riesgos, pe
 en local y con sintéticos. El hito "v1 accepted" (2026-11-25) se mide sobre las cinco
 empresas históricas reales, con al menos diez ciclos y revisión profesional
 (`SLICES/RO01.md` §6). Esta tarea pone Risk OS donde decidió D-0068, deja que el owner
-cargue las históricas sin que un agente vea sus valores y ejecuta el protocolo de
+apruebe e importe las históricas preparadas con agentes autorizados según D-0070 y ejecuta el protocolo de
 aceptación. Su resultado decide si Risk OS v1 se acepta y alimenta la decisión de
 cierre de Q4 sobre el laboratorio (D-0063).
 
@@ -38,7 +40,9 @@ cierre de Q4 sobre el laboratorio (D-0063).
   - la configuración del proyecto y las variables de entorno, sin valores;
   - cómo crear la base y aplicar y revertir las migraciones del contexto. Las ejecuta
     el owner (R-13); ningún agente se conecta a la base con datos reales;
-  - cómo importar un lote con el modo sin valores y dónde pegar su informe;
+  - cómo preparar candidatos según D-0070 y el protocolo de preparación, validar
+    localmente, revisar y aprobar el dataset, hacer backup e importar con `risk_app`,
+    conservar los informes sin valores de cada intento para A6;
   - cómo hacer y guardar la copia manual de la base fuera del repositorio, cómo
     restaurarla, cómo reactivar el proyecto si se pausa por inactividad, cómo volver a
     la versión anterior y cómo apagar todo (pausar el proyecto, borrar la base);
@@ -61,15 +65,17 @@ cierre de Q4 sobre el laboratorio (D-0063).
 
 ## Non-scope
 
-- Leer, copiar o recibir valores de las históricas (R-19). El agente ve sólo conteos,
-  códigos de empresa y los informes sin valores que el owner pega.
+- Recibir datos reales como agente de desarrollo o preparar datasets sin cumplir
+  D-0070 y la autorización previa por proveedor/modelo de R-19. La sesión documental
+  del 2026-10-19 no procesa datos reales ni importa H1–H5.
 - Conectarse a la base con datos reales, recibir sus credenciales o las de Vercel
   (R-13, R-16).
 - Contratar planes pagos o aceptar condiciones comerciales en nombre de Del Campo.
 - Revisar, aceptar o cerrar algo en nombre del owner o del revisor.
 - Cambios en el proyecto, la base o el despliegue de VS01 o de Communication OS.
 - Monitoreo y alertas.
-- IA, integración con Broker OS y las reglas de la v1.1.
+- IA integrada en la app (la preparación externa se rige por D-0070), integración
+  con Broker OS y las reglas de la v1.1.
 
 ## Verification
 
@@ -96,7 +102,8 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 - [ ] `ops/evidence/T-0032-aceptacion.md` tiene los trece criterios de RO01 §6 con su
       valor medido.
 - [ ] El repositorio, el acta y la evidencia no contienen valores de las históricas ni
-      credenciales, revisado por el owner.
+      credenciales, revisado por el owner; A13 también comprueba el alcance autorizado
+      del procesamiento IA y la exclusión de PII sensible prohibida.
 - [ ] Revisión ciega por subagente aislado (R-33), registrada en `REVIEWS/T-0032-*.md`.
 
 ## Data effects
@@ -105,7 +112,8 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
   nueva: Vercel Hobby y Supabase Free en sa-east-1 (D-0068). Los
   crea y configura el owner (R-13, R-14).
 - **Datos reales:** los de las cinco empresas históricas, cargados por el owner desde
-  su máquina en la base que autorice D-0068. Ningún agente los ve (R-19).
+  su máquina en la base de D-0068, tras preparación y aprobación conforme D-0070.
+  La sesión documental no tiene efectos sobre esos datos.
 - **Credenciales:** las del acceso a la UI y la cadena de conexión. Las genera y carga
   el owner como variables del despliegue (R-16).
 - **Reversión:** pausar el proyecto de Vercel y borrar la base hosteada. Al cierre de Q4

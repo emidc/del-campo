@@ -111,7 +111,9 @@ Hace falta `run`: `pnpm import` es un comando propio de pnpm. Apunta a
 `RISK_DATABASE_URL` o, si falta, a `delcampo_risk_dev`, y aplica las migraciones
 pendientes antes. `--corte` es la fecha contra la que se miran vencimientos (por defecto,
 hoy). `--sin-valores` deja el informe sin mensajes ni celdas, sólo conteos, líneas e ids:
-es el único que sale del equipo del owner con datos reales. Sale con 0 si el lote quedó
+es el único informe que puede versionarse o publicarse con datos reales. La preparación
+privada con agentes autorizados se rige por D-0070 y
+`docs/despliegue/preparacion-datasets-risk.md`. Sale con 0 si el lote quedó
 importado (ahora o antes), con 1 si no se escribió nada y con 2 si la carpeta o las
 opciones no sirven.
 

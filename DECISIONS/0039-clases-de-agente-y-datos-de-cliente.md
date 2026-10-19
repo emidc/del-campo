@@ -5,6 +5,11 @@
 - **Fecha:** 2026-09-19
 - **Supersede:** —
 
+> **Refinamiento del 2026-10-19:** D-0070 amplía las clases para preparación de Risk OS
+> y acota allí la clasificación empresarial. El contexto y los límites descritos abajo
+> documentan la decisión original; el alcance vigente está en `decisions.yaml`.
+> D-0039 sigue válida para desarrollo y producto; no se borra su historia.
+
 ## Contexto
 
 `R-19` es una regla ACTIVA y prohíbe PII de clientes en prompts de agentes. Las capacidades
