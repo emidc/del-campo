@@ -64,23 +64,24 @@ A8 siguen siendo independientes de la preparación asistida. A13 pasa a verifica
 alcance autorizado y la ausencia de divulgaciones prohibidas, sin fingir que ninguna
 IA intervino. Las evidencias del 2026-10-17 se conservan como históricas.
 
-## Proveedor/modelo: requisito pendiente
+## Proveedor/modelo autorizado
 
-El owner eligió Codex de OpenAI para H1–H5. No se pudo acreditar el identificador exacto
-del modelo efectivo de esas futuras sesiones. El entorno de esta sesión identifica
-Codex y una familia GPT-6, pero no aporta un identificador inequívoco que autorice
-esas sesiones. No existe `.codex/` en el repo inspeccionado; `ops/AGENTRUN.md` describe
-captura de Claude Code, no metadatos de esta sesión. No se leyeron configuración
-privada, secretos ni variables de entorno.
+La primera versión de esta decisión dejaba pendiente la pareja: el owner había elegido
+Codex de OpenAI para H1–H5, pero no se pudo acreditar el identificador exacto del modelo
+efectivo de esas sesiones, y la preparación quedó bloqueada.
 
-La [documentación oficial de comandos](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
-permite inspeccionar información de sesión mediante `/status` en CLI; una página de
-documentación o un listado de modelos disponibles no acredita el modelo de un hilo.
-Falta que el owner obtenga de la interfaz o metadatos confiables de la sesión prevista
-el identificador exacto, y registre en `decisions.yaml` la aprobación explícita de
-OpenAI + ese modelo para el alcance de preparación de D-0070. Hasta entonces no se
-inicia H1–H5 ni otro procesamiento real. Elegir una categoría estable no elimina esa
-condición previa ni autoriza todos los modelos de un proveedor.
+El 2026-10-19 el owner cambió la elección a Anthropic `claude-opus-5-5`. La sesión de
+Claude Code que corrió el gate de H1 acreditó el modelo con sus metadatos: modelo
+configurado `claude-opus-5-5[1m]` (la variante de contexto extendido del mismo modelo)
+y modelo efectivamente servido `claude-opus-5-5`. Con eso se registra la aprobación
+explícita en `decisions.yaml`, con alcance de lectura de la evidencia aportada y de
+escritura sólo en la carpeta privada designada por el owner, fuera del repositorio.
+
+La aprobación nombra un modelo, no una familia ni una herramienta. Las sesiones pueden
+tener modelos de respaldo configurados que el runtime usa ante indisponibilidad; esos
+modelos no quedan autorizados. Cada sesión de preparación comprueba el modelo servido
+antes de recibir evidencia, y se detiene si cambia. Codex de OpenAI u otro proveedor
+vuelve a requerir su propia aprobación previa.
 
 ## Alternativas consideradas
 
