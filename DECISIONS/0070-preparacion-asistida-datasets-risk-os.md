@@ -83,6 +83,18 @@ modelos no quedan autorizados. Cada sesión de preparación comprueba el modelo 
 antes de recibir evidencia, y se detiene si cambia. Codex de OpenAI u otro proveedor
 vuelve a requerir su propia aprobación previa.
 
+## Workspace en Google Drive
+
+El owner eligió el 2026-10-19 una carpeta propia de Google Drive como workspace privado
+de H1, accedida con el conector de Google Drive de claude.ai, en lugar de una carpeta
+sincronizada en su equipo. La guía de preparación prohibía abrir conectores externos;
+la excepción queda acotada a esa carpeta. El agente no busca ni abre otro contenido de
+Drive, crea archivos nuevos y no modifica archivos que no creó, en línea con la
+aprobación humana que `AGENTS.md` exige para modificar archivos existentes en Drive.
+El validador corre sobre archivos locales, así que el agente descarga los candidatos a
+una copia efímera de la sesión, fuera del repositorio, y la borra al terminar. El
+identificador de la carpeta vive en el registro privado, no en el repositorio.
+
 ## Alternativas consideradas
 
 | Alternativa | Evaluación |
