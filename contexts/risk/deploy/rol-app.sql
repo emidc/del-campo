@@ -24,7 +24,30 @@ begin
   end if;
 end
 $$;
-alter role risk_app login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+
+alter role risk_app login noinherit;
+
+-- En Supabase, el rol administrativo no es superusuario y no puede modificar
+-- SUPERUSER / REPLICATION / BYPASSRLS. Los defaults de CREATE ROLE ya son
+-- restrictivos; si un risk_app preexistente tiene privilegios administrativos,
+-- fallamos en vez de intentar corregirlos silenciosamente.
+do $$
+declare r record;
+begin
+  select rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+    into r
+    from pg_roles
+   where rolname = 'risk_app';
+
+  if r.rolsuper
+     or r.rolcreatedb
+     or r.rolcreaterole
+     or r.rolreplication
+     or r.rolbypassrls then
+    raise exception 'risk_app tiene atributos administrativos; corregir antes de continuar';
+  end if;
+end
+$$;
 
 -- Ninguna membresía: con NOINHERIT no heredaría privilegios, pero con SET ROLE tomaría los del
 -- rol del que es miembro (por ejemplo, el dueño de las tablas) y podría desactivar el trigger.
