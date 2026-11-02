@@ -1,0 +1,84 @@
+// R4 · Lucía (caución), R5 · Jimena (facturación), R6 · Pilar (siniestro).
+const { iniciar, ok, informe } = require('./lib');
+const toast = P => P.evaluate(() => UI.toast && UI.toast.msg);
+(async () => {
+  for (const movil of [false, true]) {
+    const sfx = movil ? '-movil' : '';
+    const T = await iniciar({ movil }); const P = T.page;
+    // ---------- R4 ----------
+    await T.perfil('luc'); await T.ir('#/inicio');
+    ok('R4.1' + sfx, '«Hoy» de Lucía muestra la solicitud de caución de Constructora Piedemonte', /caución/i.test(await T.texto('main')) && /Piedemonte/.test(await T.texto('main')));
+    const k14a = await T.kpi('K-14', 'luc');
+    await P.evaluate(() => { UI_HANDLERS.panel({ p: 'gemini', cmd: 'cotizar' }); render(); });
+    await T.boton('Ejecutar para Constructora Piedemonte', '[data-gemini]');
+    let g = await T.texto('[data-gemini]');
+    ok('R4.2' + sfx, 'La skill muestra qué datos usó y de dónde (MCP)', /buscar_empresa/.test(g) && /30-70987654-3/.test(g) && /Fuente: Broker OS/.test(g));
+    ok('R4.3a' + sfx, 'Falta el monto: la skill se detiene y lo pide', /se detuvo/.test(g) && /falta el monto/i.test(g));
+    ok('R4.k14a' + sfx, 'K-14 cuenta la cotización pedida', (await T.kpi('K-14', 'luc')).pedida === k14a.pedida + 1);
+    await P.fill('#r4-monto', '185000000'); await P.locator('form[data-form="r4Monto"] button').click(); await P.waitForTimeout(40);
+    await T.boton('Simular error de la compañía', '[data-gemini]');
+    g = await T.texto('[data-gemini]');
+    ok('R4.4a' + sfx, 'Error de la compañía: no se generó cotización, se puede reintentar', /La compañía no respondió; no se generó cotización/.test(g) && /Reintentar/.test(g) && (await T.estado()).cotizaciones[0].estado === 'pedida');
+    ok('R4.4b' + sfx, 'Rótulo «No se hace scraping real»', /No se hace scraping real/.test(g));
+    await T.boton('Reintentar', '[data-gemini]');
+    let d = await T.estado(); ok('R4.4c' + sfx, 'Cotización obtenida tras reintentar, todavía no guardada', d.cotizaciones[0].estado === 'obtenida' && d.cotizaciones[0].prima === Math.round(185000000 * 0.009));
+    await T.boton('Guardar en Drive y Broker OS', '[data-gemini]');
+    d = await T.estado(); const c = d.cotizaciones[0];
+    ok('R4.5a' + sfx, 'Guardada con procedencia y confirmada por Lucía', c.estado === 'guardada' && c.procedencia.length >= 4 && c.confirmadaPor === 'luc');
+    await T.ir('#/empresa/e2/gestiones'); const ge = await T.texto('main');
+    ok('R4.5b' + sfx, 'Visible en Gestiones de la empresa con estado y documento', /Caución · garantía de contrato/.test(ge) && (await P.locator('[data-cotizacion] .etapas li.actual').innerText()).includes('Guardada'));
+    await T.foto('R4-5-cotizacion');
+    await P.keyboard.press('Escape');
+    // ---------- R5 ----------
+    await T.perfil('jim'); await T.ir('#/gestiones/facturacion');
+    ok('R5.0' + sfx, 'K-13 antes: 1 emitida (FAC-0)', JSON.stringify(await T.kpi('K-13', 'jim')) === JSON.stringify({ borrador: 0, emitida: 1, guardada: 0, enviada: 0 }));
+    await T.boton('Abrir /facturar'); await T.boton('Ejecutar /facturar', '[data-gemini]');
+    d = await T.estado();
+    ok('R5.1' + sfx, 'La skill arma 3 borradores «a confirmar» de 3 compañías', d.facturas.filter(f => f.estado === 'borrador').length === 3);
+    await P.keyboard.press('Escape');
+    ok('R5.2a' + sfx, 'Duplicado de Altomira detectado; no emite', (await P.locator('[data-dup-factura]').count()) === 1);
+    const rEm = await T.act('r5Emitir'); ok('R5.2b' + sfx, 'No se puede emitir sin decidir el duplicado', !rEm.ok);
+    await T.boton('Omitir este borrador', '[data-dup-factura]');
+    await T.boton('Confirmar y emitir en ARCA');
+    d = await T.estado(); const em = d.facturas.filter(f => f.estado === 'emitida' && f.id !== 'FAC-0');
+    ok('R5.3' + sfx, 'Comprobantes con «COMPROBANTE FICTICIO · SIN VALIDEZ FISCAL»', em.length === 2 && em.every(f => /COMPROBANTE FICTICIO · SIN VALIDEZ FISCAL/.test(f.comprobante)));
+    await T.boton('Guardar en Drive y Broker OS'); await T.boton('Enviar a cada compañía');
+    d = await T.estado(); const pir = d.facturas.find(f => f.compania === 'Pircas Cauciones' && f.id !== 'FAC-0');
+    ok('R5.4a' + sfx, 'Un envío falla con «dirección rechazada» y queda con «Reintentar»', /Dirección rechazada/.test(pir.envioError) && (await P.locator(`[data-factura="${pir.id}"] button`, { hasText: 'Reintentar' }).count()) === 1);
+    const k13 = await T.kpi('K-13', 'jim');
+    ok('R5.efecto' + sfx, 'K-13 refleja estados por factura', k13.enviada === 1 && k13.guardada === 1 && k13.emitida === 1, JSON.stringify(k13));
+    await P.fill(`#mail-${pir.id}`, 'facturacion@pircas.ejemplo'); await P.locator(`[data-factura="${pir.id}"] button`, { hasText: 'Reintentar' }).click(); await P.waitForTimeout(40);
+    ok('R5.4b' + sfx, 'Reintento con dirección corregida: enviada', (await T.estado()).facturas.find(f => f.id === pir.id).estado === 'enviada');
+    await T.foto('R5-facturacion');
+    await T.perfil('man'); await T.ir('#/gestiones/facturacion');
+    ok('R5.perm' + sfx, 'Manuel ve facturación en lectura', /Solo Jimena confirma/.test(await T.texto('main')));
+    // ---------- R6 ----------
+    await T.perfil('pil'); await T.ir('#/gestiones/siniestros'); await T.enlace('SIN-2026-014');
+    let s = await T.texto('main');
+    ok('R6.1' + sfx, 'Etapas con requisitos (fotos ✓, presupuesto ✗)', /Fotos del daño[\s\S]*Cumplido/.test(s) && /Presupuesto del taller[\s\S]*Falta/.test(s));
+    ok('R6.2' + sfx, 'Seis interlocutores con responsable, último contacto y pendiente', (await P.locator('[data-interlocutores] tbody tr').count()) === 6 && /Sin intervención/.test(s));
+    ok('R6.3a' + sfx, '«Avanzar a inspección» bloqueado con motivo', /bloqueado: falta presupuesto del taller/.test(s));
+    const rAv = await T.act('avanzarEtapa', { sin: 'sin1' }); ok('R6.3b' + sfx, 'La acción de avanzar se rechaza', !rAv.ok && /falta presupuesto del taller/.test(rAv.error));
+    await T.boton('Redactar pedido al taller');
+    const br = await P.inputValue('[data-borrador] textarea');
+    ok('R6.3c' + sfx, 'Borrador con datos requeridos', /AD456EF/.test(br) && /presupuesto/.test(br) && (await T.estado()).siniestros[0].borradores[0].estado === 'borrador');
+    await P.fill('[data-borrador] textarea', br + '\nSaludos, Pilar.'); await T.boton('Enviar (simulado)');
+    d = await T.estado(); const b0 = d.siniestros[0].borradores[0];
+    ok('R6.3d' + sfx, 'Enviado por Pilar con el texto editado', b0.estado === 'enviado' && b0.enviadoPor === 'pil' && /Saludos, Pilar\./.test(b0.texto));
+    await T.boton('Simular llegada del presupuesto');
+    d = await T.estado(); ok('R6.4a' + sfx, 'Requisito cumplido y notificación a Pilar (atiende al taller)', d.siniestros[0].etapas[1].requisitos.every(r => r.ok) && d.notificaciones.some(n => n.para === 'pil' && n.regla === 2));
+    await T.boton('Avanzar a inspección');
+    d = await T.estado(); ok('R6.4b' + sfx, 'La etapa avanza y queda el evento', d.siniestros[0].etapa === 'inspeccion' && d.eventos.some(e => /Avanzó el siniestro/.test(e.accion)));
+    await T.foto('R6-siniestro');
+    await T.ir('#/comunicacion/sinidentificar');
+    ok('R6.adv-perito' + sfx, 'El correo del perito desde dirección desconocida está en «Sin identificar»', /peritajes\.sur@ejemplo\.com/.test(await T.texto('main')));
+    const form = P.locator('form[data-form="vincularSinIdentificar"]').filter({ hasText: '' }).nth(1);
+    await P.evaluate(() => { const f = [...document.querySelectorAll('form[data-form="vincularSinIdentificar"]')].find(x => x.dataset.p.includes('u02')); f.querySelector('select').value = 'p09'; f.requestSubmit(); });
+    await P.waitForTimeout(40);
+    d = await T.estado(); const u2 = d.sinIdentificar.find(u => u.id === 'u02');
+    ok('R6.adv-perito-b' + sfx, 'Pilar lo vincula a Gabriel Ortiz', !!u2.vinculado && d.conversaciones.some(c => c.persona === 'p09' && c.mensajes.some(m => /nuevo estudio/.test(m.texto))));
+    ok('R456.err' + sfx, 'Sin errores de JavaScript', T.errores.length === 0, T.errores.join(' | '));
+    await T.cerrar();
+  }
+  informe('r4-r5-r6');
+})();

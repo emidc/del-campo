@@ -152,6 +152,9 @@ export default tseslint.config(
       // Código descartable de spikes, fuera del workspace y del tsconfig raíz: no es
       // código del producto y R-25 no lo alcanza. Se chequea con `tsc -p SPIKES/<id>`.
       'SPIKES/**',
+      // Pruebas del prototipo congelado de la north star v25: copia byte a byte que no se
+      // modifica ni se porta (T-0033). No es código del producto.
+      'docs/north-star/prototipo/**',
       // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
       // workspace: no están en el programa de TypeScript y R-25 no los alcanza.
       '**/*.mjs',

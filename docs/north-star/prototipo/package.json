@@ -1,0 +1,8 @@
+{
+  "name": "brokeros-prototipo-pruebas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas §14.6 del prototipo de Broker OS (fase 4). Playwright con Chromium + axe-core.",
+  "scripts": { "test": "bash pruebas/correr-todo.sh" },
+  "dependencies": { "axe-core": "4.10.2" }
+}

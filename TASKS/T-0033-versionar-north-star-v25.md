@@ -2,7 +2,7 @@
 id: T-0033
 title: Versionar la north star v25 de Broker OS en el repositorio
 kind: CHORE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: LOW
 size: S
