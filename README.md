@@ -43,6 +43,11 @@ Tres ideas que deja el recorrido:
 | Aceptación | Aceptada por Emiliano el 02/11/2026 |
 | Pruebas | 38 scripts de Playwright y axe, 5318 de 5318 aserciones en verde |
 
+La referencia completa está versionada en [`docs/north-star/`](docs/north-star/README.md):
+el `index.html` congelado y sus pruebas, las decisiones DA-1 a DA-9, los contratos CSV y
+MCP, lo implementado frente a lo simulado y el plan por cortes con sus criterios de
+aceptación.
+
 El prototipo no se modifica: cualquier cambio va al sistema real. Las observaciones que
 dejó la grabación del video quedan como entrada para ese desarrollo.
 
