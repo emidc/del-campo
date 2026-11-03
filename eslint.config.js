@@ -64,16 +64,17 @@ const brokerNoImportaContextos = [
 
 /**
  * La app de un contexto (D-0063, T-0025) importa del workspace solo la raíz de su
- * contexto. Lo demás se prohíbe por especificador: otro `@del-campo/*` —Broker, otro
- * contexto o un archivo interno del suyo—, el driver de la base, y rutas que nombren
+ * contexto y la capa común de identidad (`@del-campo/identidad`, D-0077; excepción
+ * aprobada por el owner el 2026-11-03 en T-0035). Lo demás se prohíbe por
+ * especificador: otro `@del-campo/*` —Broker, otro contexto o un archivo interno del suyo—, el driver de la base, y rutas que nombren
  * `packages/`, `apps/` o `contexts/`. Que un relativo no salga de la carpeta de la app
  * lo cubre la regla local `sin-salir-de`, porque la profundidad de las rutas de Next
  * hace imposible contarlo con una regex.
  */
 const appDeContexto = (contexto) => [
   ...prohibirImports(
-    `/^@del-campo\\x2F(?!${contexto}$)/`,
-    `apps/${contexto} importa del workspace solo @del-campo/${contexto} (R-25, D-0063).`,
+    `/^@del-campo\\x2F(?!(${contexto}|identidad)$)/`,
+    `apps/${contexto} importa del workspace solo @del-campo/${contexto} y @del-campo/identidad (R-25, D-0063, D-0077).`,
   ),
   ...prohibirImports('/^postgres(\\x2F|$)/', `apps/${contexto} no toca la base: pasa por @del-campo/${contexto} (R-25, D-0063).`),
   ...prohibirImports('/(^|\\x2F)(packages|apps|contexts)\\x2F/', `apps/${contexto} no importa por ruta otro paquete (R-25, D-0063).`),
@@ -223,6 +224,24 @@ export default tseslint.config(
     files: ['packages/domain/src/**/*.ts'],
     rules: {
       'no-restricted-syntax': ['error', ...noBareImports('packages/domain'), ...brokerNoImportaContextos],
+    },
+  },
+
+  // ── R-25, D-0077 · packages/identidad no importa nada del workspace ──────
+  // La capa común de identidad la importan las apps de los tres contextos. Se limita a
+  // autenticación, identidad, sesiones y tokens entre contextos (decisión del owner,
+  // T-0035): no conoce a Broker ni a ningún contexto, ni la base. La autorización de
+  // negocio, los permisos y la auditoría son de cada contexto.
+  {
+    files: ['packages/identidad/src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...brokerNoImportaContextos,
+        ...prohibirImports('/^@del-campo\\x2F/', 'identidad no importa otros paquetes del workspace (R-25, D-0077).'),
+        ...prohibirImports('/^postgres(\\x2F|$)/', 'identidad no toca la base: la admisión en la base es de cada contexto (R-25, D-0077).'),
+        ...prohibirImports('/(^|\\x2F)(packages|apps|contexts)\\x2F/', 'identidad no importa por ruta otro paquete (R-25, D-0077).'),
+      ],
     },
   },
 
