@@ -1,10 +1,11 @@
 # ADR-0022 — La autorización es híbrida: RLS decide las filas y la aplicación la acción
 
 - **Id en `decisions.yaml`:** D-0022
-- **Estado:** propuesta del spike `T-0002`, pendiente de aprobación del owner. Hasta
-  entonces `decisions.yaml` mantiene la decisión sin resolver.
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-11-03
 - **Supersede:** —
+- **Aprobación:** el owner, el 2026-11-03, en el hilo de T-0035 («D-0022 — APROBADO:
+  autorización híbrida»), sobre la propuesta del spike `T-0002`.
 
 ## Contexto
 
@@ -35,10 +36,9 @@ y datos sintéticos. Evidencia completa en `SPIKES/T-0002-enforcement-autorizaci
 
 ## Referencia canónica
 
-La decisión y su estado viven en `decisions.yaml`, D-0022. Al aprobarse, el `statement`
-de esa entrada recoge la división de responsabilidades de este ADR.
+La decisión y su estado viven en `decisions.yaml`, D-0022.
 
-## Decisión propuesta
+## Cómo se aplica
 
 - **Filas, en Postgres.** Cada contexto hace cumplir con RLS qué empresas, qué contenido
   del portal y qué evaluaciones ve cada principal. Las políticas llaman a funciones de
@@ -57,6 +57,34 @@ de esa entrada recoge la división de responsabilidades de este ADR.
 - **Entre contextos.** Broker OS reenvía la identidad de la persona al llamar a la API de
   Risk OS o de Communication OS; cada contexto resuelve admisión y alcance con sus
   propias tablas y su propio rol.
+
+### Decisiones funcionales del owner
+
+Tomadas con la aprobación, sobre los supuestos que el spike dejó abiertos:
+
+- El Revisor profesional no accede por defecto a pólizas ni a notas internas.
+- El portal de empresas (C12) no muestra pólizas completas al inicio.
+- El predicado de aseguradora con vínculo de póliza vigente sale del alcance: la north
+  star no tiene portal de aseguradoras.
+
+### Condiciones de implementación y aceptación de C1 (`T-0035`)
+
+El owner las fijó como criterios de C1, no como investigación pendiente:
+
+1. **Autenticación real.** El principal que la app declara a la base sale de una sesión
+   verificada; RLS no autentica (prueba 6 del spike).
+2. **Propagación segura de la identidad.** Entre contextos viaja la identidad de la
+   persona, y el contexto que la recibe la verifica y aplica su propia admisión y
+   alcance.
+3. **Uso del pooler.** El principal se fija sólo local a la transacción, en un único
+   helper; nada de `SET` de sesión (prueba 7).
+4. **Restricciones de ejecución sobre funciones privilegiadas.** Las funciones
+   `SECURITY DEFINER` tienen `search_path` fijo, `EXECUTE` revocado a `PUBLIC` y
+   concedido sólo a los roles que las necesitan.
+5. **Cobertura de RLS.** Toda tabla de datos tiene RLS habilitado y sus políticas; un
+   chequeo lo exige para cada migración nueva.
+6. **Revocación inmediata.** La baja corta el acceso en el request siguiente, también
+   con un token todavía vigente (prueba 2 y prueba 8).
 
 ## Alternativas consideradas
 

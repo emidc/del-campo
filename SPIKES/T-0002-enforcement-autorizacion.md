@@ -4,8 +4,9 @@
   actualizado en el PR #99 (persona con empresas asignadas, contacto de empresa en el
   portal, regla de autor, cruce entre contextos).
 - **Fecha:** 2026-11-03
-- **Estado:** borrador para revisión del owner. `D-0022` no se resuelve hasta su
-  aprobación.
+- **Estado:** aprobado por el owner el 2026-11-03. `D-0022` quedó aceptada con la
+  recomendación de §1, las decisiones funcionales que cierran los supuestos de §2 y las
+  condiciones de §5 como criterios de `T-0035`. El ADR las registra.
 - **Decisión que alimenta:** `D-0022`; habilita `D-0027` y los permisos de `T-0035`.
 - **Prueba de concepto:** [`T-0002/`](T-0002/README.md). Postgres 16.15 local, datos
   sintéticos, sin red ni servicios externos.
