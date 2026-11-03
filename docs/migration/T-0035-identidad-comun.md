@@ -80,6 +80,9 @@ atrás de Broker OS.
 
 ### Fase 2 — Broker OS pasa a `oidc`
 
+0. Las migraciones 0007 y 0008 de Broker OS están aplicadas en la base de producción
+   (`pnpm db:migrate` con aprobación del owner). La 0008 es la que deja a la conexión de
+   la app asumir `broker_app`: sin ella, `AUTH_MODE=oidc` rechazaría todo request.
 1. El owner carga las invitaciones de las personas que hoy están en
    `VS01_ADMITTED_ACCOUNTS`, con su rol, mediante el script (stdin, sin archivos en el
    repo). Si una entrada de la lista ya tiene `sub` fijado, la credencial se crea
