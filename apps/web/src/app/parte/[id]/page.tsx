@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
-import { requireAdmitted } from '@/lib/sesion'
+import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +16,10 @@ export default async function PartePage({
   const principal = await requireAdmitted()
   const { id } = await params
   const asOf = fechaDeHoy()
-  const [lote, vista] = await Promise.all([
+  const [lote, vista] = await consultar(Promise.all([
     latestBatch(principal),
     party(principal, id, asOf, `${asOf}T12:00:00Z`),
-  ])
+  ]))
   if (vista === null) notFound()
 
   return (

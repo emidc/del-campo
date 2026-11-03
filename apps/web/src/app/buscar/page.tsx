@@ -6,7 +6,7 @@ import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import type { ValorDeParametro, Valores } from '@/lib/criterios'
 import { CAMPOS, fechaDeHoy, leerCriterios } from '@/lib/criterios'
-import { requireAdmitted } from '@/lib/sesion'
+import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,10 +133,10 @@ export default async function BuscarPage({
   const params = await searchParams
   const asOf = fechaDeHoy()
   const { valores, criterios } = leerCriterios(params, asOf)
-  const [lote, resultado] = await Promise.all([
+  const [lote, resultado] = await consultar(Promise.all([
     latestBatch(principal),
     criterios === null ? Promise.resolve(null) : search(principal, criterios),
-  ])
+  ]))
 
   return (
     <main className="envoltorio">
