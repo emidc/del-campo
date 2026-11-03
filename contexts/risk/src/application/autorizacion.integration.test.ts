@@ -208,6 +208,40 @@ describe('independencia del orden previo (RO01 §6, A8a)', () => {
       assert.equal(ev2?.n, ev?.n)
     }))
 
+  it('material ciego en la base: antes de su orden previo, el Revisor no lee nada evaluado de la organización', () =>
+    conEquipo(async (e) => {
+      // Una novedad con su revisión pendiente, para que no quede ninguna tabla vacía.
+      await como(e.tx, e.operador, informacionNueva)
+      const contar = (t: TransactionSql) => t<Record<string, number>[]>`
+        select (select count(*)::int from risk.riesgo where organizacion_id = ${ORG}) as riesgo,
+               (select count(*)::int from risk.accion a join risk.riesgo r on r.id = a.risk_id where r.organizacion_id = ${ORG}) as accion,
+               (select count(*)::int from risk.accion_estado s join risk.accion a on a.id = s.accion_id
+                  join risk.riesgo r on r.id = a.risk_id where r.organizacion_id = ${ORG}) as accion_estado,
+               (select count(*)::int from risk.transferencia x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}) as transferencia,
+               (select count(*)::int from risk.evento_poliza x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}) as evento_poliza,
+               (select count(*)::int from risk.novedad x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}) as novedad,
+               (select count(*)::int from risk.revision_pendiente x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}) as revision_pendiente,
+               (select count(*)::int from risk.evaluacion x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}) as evaluacion`
+      const [admin] = await como(e.tx, e.admin, contar)
+      for (const [tabla, n] of Object.entries(admin ?? {})) assert.ok(n > 0, `sin filas sintéticas de ${tabla}: la prueba no probaría nada`)
+
+      // Ni `suficiencia`, ni `exposicion_retenida_monto`, ni `efecto`, ni nada más que el material ciego.
+      const [antes] = await como(e.tx, e.revisor, contar)
+      assert.deepEqual({ ...antes }, {
+        riesgo: admin?.riesgo, accion: 0, accion_estado: 0, transferencia: 0, evento_poliza: 0, novedad: 0, revision_pendiente: 0, evaluacion: 0,
+      })
+      const [campos] = await como(e.tx, e.revisor, (t) => t<{ suficiencia: number; efecto: number }[]>`
+        select (select count(*)::int from risk.transferencia where suficiencia is not null or exposicion_retenida_monto is not null) as suficiencia,
+               (select count(*)::int from risk.accion_estado where efecto is not null) as efecto`)
+      assert.deepEqual({ ...campos }, { suficiencia: 0, efecto: 0 })
+
+      // Con su orden previo registrado, ve lo mismo que el Operador.
+      await como(e.tx, e.revisor, ordenPrevio)
+      const [despues] = await como(e.tx, e.revisor, contar)
+      const [operador] = await como(e.tx, e.operador, contar)
+      assert.deepEqual({ ...despues }, { ...operador })
+    }))
+
   it('el orden previo es sólo del Revisor, y de nadie más el de otro antes del propio', () =>
     conEquipo(async (e) => {
       await assert.rejects(como(e.tx, e.operador, ordenPrevio), sinPermiso(/Revisor profesional/))
@@ -225,6 +259,37 @@ describe('independencia del orden previo (RO01 §6, A8a)', () => {
         insert into risk.novedad (id, risk_id, tipo, texto, evidencia, autor_persona_id)
         values ('NOV-00000000000000000000000078', ${RIESGO}, 'comentario', 'x', '{sin_evidencia}', ${e.revisor})`))
       assert.equal(directo, '42501')
+    }))
+})
+
+describe('personas: cada una ve a quienes escribieron lo que ella ve, no a todas', () => {
+  it('ni una persona de otra organización ni una compañera sin nada escrito; sí la propia, y el Administrador ve todas', () =>
+    conEquipo(async (e) => {
+      const riesgoAjeno = id('S07-R06')
+      const orgAjena = F['risks.csv'].find((r) => r.risk_id === riesgoAjeno)?.organizacion_id ?? ''
+      assert.ok(orgAjena !== '' && orgAjena !== ORG)
+      const x = await invitar(e.tx, { actor: e.admin, email: 'ajena@ejemplo.invalid', rol: 'OPERADOR', nombre: 'Operadora de otra organización' })
+      assert.ok(x.ok)
+      const ajena = x.valor.personaId
+      assert.equal((await ingresar(e.tx, { proveedor: 'google', sujeto: sujeto(ajena), email: 'ajena@ejemplo.invalid' }, decidir)).tipo, 'VINCULA')
+      assert.ok((await asignar(e.tx, { actor: e.admin, personaId: ajena, organizacionId: orgAjena, vigente: true })).ok)
+      await como(e.tx, ajena, (t, s) => registrarNovedad(t, s, { riskId: riesgoAjeno, tipo: 'comentario', texto: 'Comentario sintético.', evidencia: 'DOC-SINTETICO-3' }))
+
+      const ve = (quien: string) => async (personaId: string): Promise<boolean> =>
+        (await como(e.tx, quien, (t) => t`select 1 from risk.persona where id = ${personaId}`)).length === 1
+
+      const operadorVe = ve(e.operador)
+      assert.equal(await operadorVe(e.operador), true, 'la propia')
+      assert.equal(await operadorVe(ajena), false, 'escribió sólo en una organización que la Operadora no ve')
+      assert.equal(await operadorVe(e.operador2), false, 'misma organización, pero nada escrito todavía')
+      assert.equal(await operadorVe(e.admin), false)
+      assert.equal(await ve(ajena)(ajena), true)
+      assert.equal(await ve(ajena)(e.operador), false, 'y al revés: tampoco ve a quien trabaja sólo en otra organización')
+      for (const p of [e.operador, e.operador2, e.revisor, ajena]) assert.equal(await ve(e.admin)(p), true)
+
+      // En cuanto escribe algo visible, aparece con su nombre en el historial.
+      await como(e.tx, e.operador2, informacionNueva)
+      assert.equal(await operadorVe(e.operador2), true)
     }))
 })
 

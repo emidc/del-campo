@@ -16,7 +16,7 @@ const TABLES = [
 ].sort()
 const FILES = [
   '0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql', '0004_actualizacion.sql', '0005_login_fallido.sql',
-  '0006_identidad_y_autorizacion.sql',
+  '0006_identidad_y_autorizacion.sql', '0007_material_ciego_y_personas.sql',
 ]
 
 let sql: Sql

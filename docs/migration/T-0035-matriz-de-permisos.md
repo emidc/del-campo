@@ -36,7 +36,7 @@ Los roles son tres en los tres contextos: **Administrador**, **Operador Del Camp
 | Broker OS | `cliente.desasignar` | Sí | No | No | — | ídem |
 | Communication OS | `conversacion.consultar` | Sí | Sí | No | todas las conversaciones | `apps/communication/src/lib/acceso.integration.test.ts`, `permisos.test.ts` |
 | Communication OS | `conversacion.responder` | Sí | Sí | No | todas las conversaciones | ídem |
-| Risk OS | `riesgo.consultar` | Sí | Sí | Sí | Administrador: todas; Operador y Revisor: organizaciones asignadas | `apps/risk/src/lib/acceso.integration.test.ts`, `contexts/risk/src/application/autorizacion.integration.test.ts` |
+| Risk OS | `riesgo.consultar` | Sí | Sí | Sí | Administrador: todas; Operador y Revisor: organizaciones asignadas. El Revisor, antes de su orden previo, sólo el material ciego | `apps/risk/src/lib/acceso.integration.test.ts`, `contexts/risk/src/application/autorizacion.integration.test.ts` |
 | Risk OS | `riesgo.ver_resultados` | Sí | Sí | Sí, después de su orden previo ciego | ídem | ídem |
 | Risk OS | `riesgo.cargar` | Sí | Sí | No | ídem | ídem |
 | Risk OS | `riesgo.revisar` | Sí | Sí | Sí | ídem; nunca lo propio, tampoco un Administrador | ídem |
@@ -86,6 +86,17 @@ aplicación y en Postgres. La aprobación comercial (cotizaciones) y la aprobaci
 son acciones separadas y **pendientes**: no hay endpoint que las haga, así que no hay forma
 de confundirlas con la aceptación profesional. Sus pruebas quedan para cuando se
 implementen y no se dan por verificadas acá.
+
+**Material ciego (Risk OS).** Es lo único que el Revisor profesional ve de una organización
+antes de registrar su orden previo: los riesgos con su identidad y su estructura (`riesgo`,
+`miembro_escenario`) y su propio orden previo. Nada evaluado ni calculado. Plan de acción y
+su estado (`efecto`), coberturas (`suficiencia`, `exposicion_retenida_monto`) y sus eventos,
+novedades, revisiones pendientes, evaluaciones, revisiones humanas y reordenamientos quedan
+detrás de `authz_ve_resultados`, en la base (migración 0007).
+
+**Personas (Risk OS).** Cada persona ve su propia fila de `risk.persona` y la de quienes
+escribieron algo que ella puede leer; el Administrador ve todas. Antes de 0007 se veían
+todas.
 
 **Aislamiento (`aislamiento.js`).** El Revisor profesional sólo ve las organizaciones que
 tiene asignadas en Risk OS, no ve clientes en Broker OS ni conversaciones en Communication
