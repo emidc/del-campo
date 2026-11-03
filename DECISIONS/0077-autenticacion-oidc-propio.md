@@ -1,9 +1,11 @@
 # ADR-0077 — La identidad de C1 se obtiene con OIDC propio, no con Supabase Auth
 
 - **Id en `decisions.yaml`:** D-0077
-- **Estado:** OPEN (propuesta, pendiente de la elección del owner)
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-11-03
 - **Supersede:** — (precisa D-0072 y extiende D-0060 a los tres contextos)
+- **Aprobación:** el owner, el 2026-11-03, en el hilo de T-0035 («Elijo A: extender
+  D-0060 con OIDC existente»).
 
 ## Contexto
 
@@ -46,7 +48,23 @@ precios antes de contratar):
 
 La decisión y su estado viven en `decisions.yaml`, D-0077.
 
-## Decisión propuesta
+## Decisión
+
+### Lo que fijó el owner
+
+- Se reutilizan `openid-client` y `jose`, ya usados en VS01, sin contratar servicios
+  nuevos.
+- No se desarrolla un proveedor de identidad propio. Se reutiliza Google OIDC con una
+  capa común y mínima de sesión y de gestión de usuarios.
+- La implementación admite usuarios externos de Google por invitación, mantiene una
+  identidad común entre los tres contextos, garantiza la revocación inmediata y respeta
+  la autorización híbrida de `D-0022`.
+- El enlace por correo (magic link) puede quedar para una etapa posterior, pero la
+  arquitectura no debe impedir incorporarlo.
+- Supabase Auth sigue como alternativa futura, si mantener la autenticación propia llega
+  a justificar una migración.
+
+### Cómo se aplica
 
 Los tres contextos autentican con OIDC de Google implementado con `openid-client` y
 `jose`, la misma pila de `D-0060`, sin Supabase Auth.
@@ -55,23 +73,30 @@ Los tres contextos autentican con OIDC de Google implementado con `openid-client
   y una URI de redirección por contexto. Con scopes básicos Google no exige verificar la
   app. Sin verificación de marca, la pantalla de consentimiento no muestra nombre ni
   logo.
-- **La identidad es el `sub` de Google,** con `email_verified` obligatorio. El email se
-  guarda para mostrar e invitar, no como clave, porque una cuenta puede cambiarlo.
+- **La identidad común es el par (`proveedor`, `sujeto`)**, hoy (`google`, `sub`), con
+  `email_verified` obligatorio. Es lo único que los tres contextos comparten: cada uno
+  la vincula a su propio usuario interno en una tabla de credenciales, separada de la de
+  usuarios. El email se guarda para mostrar e invitar, no como clave, porque una cuenta
+  puede cambiarlo.
 - **Admisión en cada contexto.** Cada contexto tiene su tabla de usuarios con estado
   `INVITADO`, `ACTIVO` o `BAJA`. Un administrador invita por email. El primer login con
-  ese email verificado vincula el `sub` y activa al usuario. Sin invitación no hay
+  ese email verificado crea la credencial y activa al usuario. Sin invitación no hay
   usuario, aunque Google autentique. La admisión es una función pura propia, como en
   VS01, y `authz.usuario()` la vuelve a exigir en la base en cada request.
 - **Sesión** en cookie cifrada con `jose` (JWE), como hoy, con vencimiento corto y
   renovación. La sesión no autoriza nada por sí sola: el principal se resuelve en la base
   en cada request y se fija local a la transacción (condiciones 3 y 6 de `D-0022`).
 - **Entre contextos** (condición 2 de `D-0022`). Broker OS firma un token de corta
-  duración (ES256, 60 segundos) con el `sub` de la persona, `aud` igual al contexto
+  duración (ES256, 60 segundos) con el par (`proveedor`, `sujeto`) de la persona, `aud` igual al contexto
   destino y `jti` único. Publica su clave pública por JWKS. El contexto destino verifica
   firma, `aud` y vencimiento con `jose`, y después resuelve la admisión y el alcance con
   sus propias tablas. Nunca se reenvía la cookie ni el ID token de Google.
-- **El enlace por correo** para personas sin cuenta de Google queda fuera de C1. Cuando
-  haga falta, se decide con su propio ADR y un SMTP propio.
+- **El enlace por correo** para personas sin cuenta de Google queda fuera de C1. La
+  arquitectura no lo impide: la admisión y los permisos cuelgan del usuario interno, no
+  de Google, así que otro método se agrega como otro `proveedor` en la tabla de
+  credenciales (por ejemplo `email`, con el email verificado como `sujeto`) sin tocar
+  roles, asignaciones ni políticas. Cuando haga falta, se decide con su propio ADR y un
+  SMTP propio.
 
 ## Alternativas consideradas
 

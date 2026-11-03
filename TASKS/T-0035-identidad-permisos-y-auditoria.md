@@ -7,14 +7,15 @@ workstream: BOS
 riskClass: HIGH
 size: L
 created: 2026-11-02
-blockedBy: [T-0002, T-0034]
+blockedBy: []
 contextRefs: [PROJECT.md, DOMAIN.md, ENGINEERING_RULES.md, SLICES/VS01.md, SLICES/CO01.md,
               SLICES/RO01.md, DECISIONS/0059-sesion-y-admision-vs01.md,
               DECISIONS/0066-credencial-compartida-co01.md,
               DECISIONS/0069-acceso-por-persona-risk-os.md,
               DECISIONS/0022-punto-de-enforcement-de-autorizacion.md,
-              SPIKES/T-0002-enforcement-autorizacion.md]
-decisionRefs: [D-0013, D-0022, D-0027, D-0059, D-0060, D-0066, D-0069, D-0072]
+              SPIKES/T-0002-enforcement-autorizacion.md,
+              DECISIONS/0077-autenticacion-oidc-propio.md]
+decisionRefs: [D-0013, D-0022, D-0027, D-0059, D-0060, D-0066, D-0069, D-0072, D-0077]
 ---
 
 ## Why
@@ -28,8 +29,9 @@ portal, MCP) se puede construir así. Este corte es la compuerta de la etapa 1.
 
 Cada persona del equipo entra a los tres contextos con la misma identidad, según D-0072:
 Google con cualquier cuenta, sólo por invitación de un administrador, con revocación
-inmediata comprobada en el servidor. Un ADR (R-05) confirma Supabase Auth u otra opción
-frente a D-0013 y D-0060 antes de implementar. Los roles Administrador, Operador Del
+inmediata comprobada en el servidor. La autenticación es el OIDC de Google propio de
+D-0060 extendido a los tres contextos, con una capa común y mínima de sesión y de
+usuarios, sin Supabase Auth (D-0077). Los roles Administrador, Operador Del
 Campo y Revisor profesional, y el alcance por empresa, se hacen cumplir en el servidor
 con la autorización híbrida de D-0022: RLS decide las filas en cada contexto, la
 aplicación decide la acción y la explica, y la regla de autor vive en las dos capas.
