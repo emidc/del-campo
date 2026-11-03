@@ -200,10 +200,21 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
       }
       const sinCredencial = await motivo(conDatos(tx, principal('sub-desconocido'), consulta, 'oidc'))
       const baja = await motivo(conDatos(tx, principal('sub-baja'), consulta, 'oidc'))
-      return { sinCredencial, baja, corrio }
+      const auditados = [
+        ...(await tx<{ outcome: string; reason_code: string; origin: string }[]>`
+          select outcome, reason_code, origin from audit_event
+          where action = 'acceso.consultar' order by id
+        `),
+      ]
+      return { sinCredencial, baja, corrio, auditados }
     })
     assert.equal(r.sinCredencial, 'SIN_CREDENCIAL')
     assert.equal(r.baja, 'SIN_ACCESO')
     assert.equal(r.corrio, false)
+    // El motivo queda registrado en el servidor, no en la respuesta.
+    assert.deepEqual(r.auditados, [
+      { outcome: 'denied', reason_code: 'SIN_CREDENCIAL', origin: 'app' },
+      { outcome: 'denied', reason_code: 'SIN_ACCESO', origin: 'app' },
+    ])
   })
 })

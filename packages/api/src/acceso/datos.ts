@@ -14,7 +14,7 @@ import type postgres from 'postgres'
 
 import type { Principal } from '../session/admission.ts'
 import type { Conexion } from './base.ts'
-import { afirmarRestringida, conPrincipal } from './base.ts'
+import { afirmarRestringida, auditar, conPrincipal } from './base.ts'
 import type { ModoAcceso } from './modo.ts'
 import { modoAcceso } from './modo.ts'
 
@@ -58,6 +58,19 @@ export const conDatos = async <T>(
     await afirmarRestringida(tx)
     return consulta(tx)
   })
-  if (!resultado.ok) throw new AccesoDenegado(resultado.motivo)
+  if (!resultado.ok) {
+    // El motivo queda en el servidor, en la auditoría; hacia afuera la respuesta es la
+    // misma que para cualquier cuenta no admitida (ver `guarded`).
+    await auditar(conexion, {
+      actor: null,
+      origen: 'app',
+      accion: 'acceso.consultar',
+      tipoObjeto: null,
+      idObjeto: null,
+      resultado: 'denied',
+      motivo: resultado.motivo,
+    })
+    throw new AccesoDenegado(resultado.motivo)
+  }
   return resultado.valor
 }

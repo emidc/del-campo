@@ -117,14 +117,19 @@ describe('consultas directas de datos — deny by default', () => {
 })
 
 describe('T-0035: la base también admite en oidc', () => {
-  it('AccesoDenegado de la consulta es un 403 sin cuerpo, como cualquier negativa', async () => {
+  it('AccesoDenegado es idéntico a una cuenta no admitida: no revela el motivo', async () => {
     const cookie = await sealSession(claims(), SECRET)
+    const noAdmitida = await guarded(
+      requestWith(await sealSession(claims({ email: `otra@${WORKSPACE}`, sub: 'sub-otra' }), SECRET)),
+      config,
+      handler,
+    )
     for (const motivo of ['SIN_CREDENCIAL', 'SIN_ACCESO'] as const) {
       const response = await guarded(requestWith(cookie), config, () => Promise.reject(new AccesoDenegado(motivo)))
-      assert.equal(response.status, 403)
+      assert.equal(response.status, noAdmitida.status)
       assert.equal(await response.text(), '')
-      assert.equal(response.headers.get('x-vs01-denial'), motivo)
-      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.deepEqual([...response.headers], [...noAdmitida.headers])
+      assert.ok(![...response.headers].some(([, valor]) => valor.includes(motivo)))
     }
   })
 

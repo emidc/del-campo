@@ -177,6 +177,11 @@ Tienen que estar probadas, con evidencia en `ops/evidence/T-0035.md`:
   firma, `aud`, vencimiento y admisión del destino;
 - la rotación de las claves de firma entre contextos, sin cortar a quien está usando el
   sistema.
+- que `staging_import_batch.notes` en la base de producción no contenga información
+  confidencial, porque la 0010 la deja leer a `broker_app` para mostrar el lote (revisión
+  del owner del #107). Si la contiene, se quita `notes` del grant antes de activar `oidc`;
+- que una negativa de la base (sin credencial, de baja o sin rol) responda igual que una
+  cuenta no admitida, con el motivo sólo en `audit_event` (`acceso.consultar`).
 
 ### Lo que esta aprobación no autoriza
 

@@ -45,12 +45,10 @@ export const guarded = async (
   try {
     return await handler(outcome.principal, request)
   } catch (error) {
-    // En `oidc`, la base también admite (T-0035): una persona sin credencial vinculada, de
-    // baja o sin rol recibe el mismo 403 vacío que quien no pasa el guard.
-    if (error instanceof AccesoDenegado) return accesoDenegadoResponse(error.motivo)
+    // En `oidc`, la base también admite (T-0035). Sin credencial vinculada, de baja o sin
+    // rol, la respuesta es idéntica a la de una cuenta que no está en la lista: el motivo
+    // específico no sale del servidor; `conDatos` lo dejó en la auditoría.
+    if (error instanceof AccesoDenegado) return deniedResponse('NOT_ADMITTED')
     throw error
   }
 }
-
-const accesoDenegadoResponse = (motivo: AccesoDenegado['motivo']): Response =>
-  new Response(null, { status: 403, headers: { 'x-vs01-denial': motivo, 'cache-control': 'no-store' } })
