@@ -2,7 +2,7 @@
 id: T-0034
 title: Registrar las decisiones del owner que habilitan la etapa 1 de Broker OS
 kind: REVIEW
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
