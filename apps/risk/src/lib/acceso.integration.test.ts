@@ -12,11 +12,14 @@ import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
-import { sellarHandshake, type Identidad } from '@del-campo/identidad'
 import {
-  asignar, cambiarRol, connect, darDeBaja, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
+  emitirToken, generarParDeClaves, jwksDe, registroJtiEnMemoria, sellarHandshake, type Identidad, type ParDeClaves, type Verificacion,
+} from '@del-campo/identidad'
+import {
+  asignar, cambiarRol, connect, darDeBaja, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
   SinPermiso, VERSION_METODOLOGIA, vistaDetalle, vistaLista, pantallaOrdenPrevio, type RolInterno, type Sql, type TransactionSql,
 } from '@del-campo/risk'
+import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { PaginaSinAcceso, permisosDe } from '../vistas/comun.ts'
@@ -24,6 +27,7 @@ import { PaginaDetalle } from '../vistas/detalle.ts'
 import { PaginaOrdenPrevio } from '../vistas/organizacion.ts'
 import { actualizarRiesgoResponse, ordenPrevioResponse } from './actualizar.ts'
 import { callbackResponse } from './entrada.ts'
+import { admitirLlamada, AUDIENCIA_RISK } from './entre-contextos.ts'
 import { withSesion, type Deps } from './guard.ts'
 import { detalleResponse, loginResponse, logoutResponse, organizacionesResponse, vistaDeOrganizacionResponse } from './handlers.ts'
 import { COOKIE_HANDSHAKE, COOKIE_IDENTIDAD, PROPOSITO } from './identidad.ts'
@@ -299,6 +303,38 @@ describe('escrituras según la matriz, con autoría y auditoría', () => {
     })
   })
 
+  it('ni el texto de una novedad ni un dato bancario que traiga llegan a la auditoría (AM-10b)', async () => {
+    await conEquipo(async (e) => {
+      const [riesgo] = await e.tx<{ id: string }[]>`select id from risk.riesgo where organizacion_id = ${ORG} limit 1`
+      const ruta = `/api/r/${riesgo?.id ?? ''}/actualizar`
+      const novedad = { op: 'novedad', tipo: 'informacion_nueva', texto: TEXTO_CON_DATOS_BANCARIOS, evidencia: 'DOC-T0035' }
+      // La negada y la que entra: las dos dejan evento.
+      assert.ok((await e.post(e.cookies.revisor, ruta, novedad)).error !== null)
+      assert.ok((await e.post(e.cookies.operadora, ruta, novedad)).ok !== null)
+      const [guardada] = await e.tx<{ texto: string }[]>`select texto from risk.novedad order by id desc limit 1`
+      assert.equal(guardada?.texto, TEXTO_CON_DATOS_BANCARIOS, 'la novedad sí lo guarda: es el dato del negocio')
+
+      const eventos = await e.tx<Record<string, unknown>[]>`
+        select id, actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado, motivo from risk.evento_auditoria`
+      assert.ok(eventos.length > 0)
+      const volcado = JSON.stringify(eventos)
+      assert.ok(!volcado.includes(TEXTO_CON_DATOS_BANCARIOS))
+      assert.deepEqual(datosBancariosEn(volcado), [])
+    })
+  })
+
+  it('la auditoría no tiene dónde guardar un payload: sólo estas columnas, todas acotadas', async () => {
+    const columnas = await sql<{ c: string }[]>`
+      select column_name as c from information_schema.columns
+      where table_schema = 'risk' and table_name = 'evento_auditoria' order by ordinal_position`
+    assert.deepEqual(columnas.map((x) => x.c), [
+      'id', 'ocurrido_en', 'actor_persona_id', 'origen', 'accion', 'tipo_objeto', 'id_objeto', 'resultado', 'motivo',
+    ])
+    await conEquipo(async (e) => {
+      await assert.rejects(e.tx`insert into risk.evento_auditoria (origen, accion, resultado, motivo) values ('app', 'riesgo.novedad', 'denied', ${'4539 1488 0343 6467'})`)
+    })
+  })
+
   it('la UI muestra a cada rol sólo los formularios que puede usar', async () => {
     await conEquipo(async (e) => {
       const [riesgo] = await e.tx<{ id: string }[]>`select id from risk.riesgo where organizacion_id = ${ORG} and tipo_objeto <> 'padre' limit 1`
@@ -362,6 +398,75 @@ describe('revocación y modo legacy', () => {
       const p = await sesionDePagina({ env: LEGACY, cookie: (n) => (n === SESSION_COOKIE ? cookie.split('=').slice(1).join('=') : undefined), db: () => e.tx, alLogin: () => { throw new Error('al login') } })
       assert.equal(p?.rol, undefined)
       assert.equal(p?.nombre, 'Persona de siempre')
+    })
+  })
+})
+
+describe('token entre contextos: verificado en Risk OS y con la admisión de Risk OS', () => {
+  const EMISOR = 'broker-os'
+  const AHORA = Math.floor(Date.now() / 1000)
+  let vieja: ParDeClaves
+  let nueva: ParDeClaves
+  let ajena: ParDeClaves
+  before(async () => {
+    vieja = await generarParDeClaves()
+    nueva = await generarParDeClaves()
+    ajena = await generarParDeClaves()
+  })
+  const token = (quien: string, clave: ParDeClaves = vieja, cambios: { audiencia?: string; emisor?: string; ahora?: number } = {}): Promise<string> =>
+    emitirToken(clave.privada, { emisor: cambios.emisor ?? EMISOR, audiencia: cambios.audiencia ?? AUDIENCIA_RISK, proveedor: 'google', sujeto: `sub-${quien}`, ahora: cambios.ahora ?? AHORA })
+  const verificacion = (claves: ParDeClaves[] = [vieja], registro = registroJtiEnMemoria()): Verificacion =>
+    ({ jwks: jwksDe(claves.map((c) => c.publica)), emisor: EMISOR, audiencia: AUDIENCIA_RISK, registroJti: registro, ahora: AHORA })
+  const orgs = (e: Equipo, t: string, v: Verificacion = verificacion()) =>
+    admitirLlamada(e.tx, t, v, async (tx, s) => (await organizaciones(tx, s)).map((o) => o.organizacionId))
+
+  it('un token válido corre como la persona, con su rol y su alcance en Risk OS', async () => {
+    await conEquipo(async (e) => {
+      assert.deepEqual(await orgs(e, await token('operadora')), { ok: true, valor: [ORG] })
+      const admin = await orgs(e, await token('admin'))
+      assert.ok(admin.ok && admin.valor.length === 8)
+      // Las reglas de Risk OS siguen valiendo: el Revisor sin orden previo no ve resultados.
+      const r = await admitirLlamada(e.tx, await token('revisor'), verificacion(), (tx, s) => vistaLista(tx, s, VERSION_METODOLOGIA, ORG))
+      assert.ok(!r.ok && 'sinPermiso' in r && r.sinPermiso.message === SIN_ORDEN_PREVIO)
+    })
+  })
+
+  it('se rechaza por firma, emisor, audiencia, vencimiento y reutilización, sin tocar los datos y con su motivo auditado', async () => {
+    await conEquipo(async (e) => {
+      const motivo = async (t: string, v: Verificacion = verificacion()): Promise<string> => {
+        const r = await orgs(e, t, v)
+        return r.ok ? 'OK' : 'token' in r ? r.token : 'denegado' in r ? r.denegado : 'SIN_PERMISO'
+      }
+      assert.equal(await motivo(await token('operadora', ajena)), 'KID_DESCONOCIDO')
+      assert.equal(await motivo(await token('operadora', vieja, { emisor: 'communication-os' })), 'EMISOR')
+      assert.equal(await motivo(await token('operadora', vieja, { audiencia: 'communication-os' })), 'AUDIENCIA')
+      assert.equal(await motivo(await token('operadora', vieja, { ahora: AHORA - 120 })), 'VENCIDO')
+      const t = await token('operadora')
+      const v = verificacion()
+      assert.equal(await motivo(t, v), 'OK')
+      assert.equal(await motivo(t, v), 'REUTILIZADO')
+      assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
+      // Un token con otra audiencia no se puede verificar acá como si fuera de Risk OS.
+      await assert.rejects(admitirLlamada(e.tx, t, { ...v, audiencia: 'communication-os' }, () => Promise.resolve(null)))
+    })
+  })
+
+  it('la admisión es la de Risk OS: sin credencial vinculada o dada de baja, un token válido no entra', async () => {
+    await conEquipo(async (e) => {
+      assert.deepEqual(await orgs(e, await token('nadie')), { ok: false, denegado: 'SIN_CREDENCIAL' })
+      assert.ok((await darDeBaja(e.tx, { actor: e.ids.admin, personaId: e.ids.operadora })).ok)
+      assert.deepEqual(await orgs(e, await token('operadora')), { ok: false, denegado: 'SIN_ACCESO' })
+    })
+  })
+
+  it('rotación: con las dos claves publicadas valen las dos; al retirar la vieja, sólo la nueva', async () => {
+    await conEquipo(async (e) => {
+      const registro = registroJtiEnMemoria()
+      assert.ok((await orgs(e, await token('operadora', vieja), verificacion([vieja, nueva], registro))).ok)
+      assert.ok((await orgs(e, await token('operadora', nueva), verificacion([vieja, nueva], registro))).ok)
+      const retirada = await orgs(e, await token('operadora', vieja), verificacion([nueva], registro))
+      assert.deepEqual(retirada, { ok: false, token: 'KID_DESCONOCIDO' })
+      assert.ok((await orgs(e, await token('operadora', nueva), verificacion([nueva], registro))).ok)
     })
   })
 })

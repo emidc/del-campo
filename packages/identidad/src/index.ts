@@ -45,3 +45,6 @@ export {
   registroJtiEnMemoria,
   verificarToken,
 } from './token.ts'
+
+// Sólo para tests: los formatos bancarios de `bancarios.js` y su detector (T-0035).
+export { datosBancariosEn, FORMATOS_BANCARIOS, TEXTO_CON_DATOS_BANCARIOS } from './pruebas/bancarios.ts'
