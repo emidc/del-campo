@@ -1495,3 +1495,26 @@ decisions:
       aislamiento, seguridad, backups y continuidad. Cualquier aumento del presupuesto
       requiere aprobación explícita. Contratar servicios, migrar bases y cambiar
       permisos de producción requieren autorización específica del owner (R-13, R-14).
+
+  - id: D-0077
+    title: Los tres contextos autentican con el OIDC de Google propio de D-0060, sin Supabase Auth
+    status: ACCEPTED
+    date: 2026-11-03
+    source: >
+      Elección del owner del 2026-11-03 en el hilo de T-0035 («Elijo A: extender D-0060
+      con OIDC existente»); D-0072 delega la confirmación de Supabase Auth a un ADR de
+      T-0035; D-0013, D-0022, D-0060, D-0076; R-05.
+    adr: DECISIONS/0077-autenticacion-oidc-propio.md
+    statement: >
+      Broker OS, Risk OS y Communication OS autentican con Google OIDC reutilizando
+      openid-client y jose (D-0060), sin contratar servicios nuevos ni construir un
+      proveedor de identidad propio: una capa común y mínima de sesión y de gestión de
+      usuarios. Clientes de Google de audiencia External admiten cuentas externas sólo
+      por invitación. La identidad común entre contextos es el par (proveedor, sujeto),
+      vinculado en cada contexto a su usuario interno; la admisión se resuelve en la base
+      en cada request, con revocación inmediata y la autorización híbrida de D-0022.
+      Entre contextos viaja un token firmado de corta duración que el destino verifica y
+      somete a su propia admisión. El enlace por correo queda para una etapa posterior y
+      la arquitectura no lo impide. Supabase Auth sigue como alternativa futura si
+      mantener la autenticación propia llega a justificar una migración. Reemplaza la
+      cláusula de D-0072 que prioriza Supabase Auth.
