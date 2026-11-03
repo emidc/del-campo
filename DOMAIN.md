@@ -1571,14 +1571,20 @@ valid           intervalo [desde, hasta)
 ```
 
 - Un mismo User no tiene dos asignaciones superpuestas al mismo cliente.
-- Asignar una empresa da acceso también a sus miembros vigentes
-  (`OrganizationMembership`, §17), no a los que dejaron de serlo.
+- Asignar un cliente da su alcance completo: perfil, roles, contactos, documentos y las
+  pólizas de las que es tomador vigente.
+- Asignar una empresa da además la identificación mínima de sus miembros vigentes
+  (`OrganizationMembership`, §17): la Party, la pertenencia y el nombre. No da su perfil
+  personal, sus contactos, sus documentos ni sus pólizas personales; eso exige asignar a
+  la persona. Un ex miembro deja de aparecer.
+- Una póliza la ve completa quien tiene asignado al tomador de la versión vigente, o de
+  la última si ninguna lo está. Quien tenía asignado a un tomador anterior conserva la
+  cabecera y las versiones de su época, nada posterior.
 - Una carga masiva se registra como asignaciones individuales. No hay un "ve todo"
   permanente fuera del rol Administrador.
 - El Revisor no ve clientes por asignación: opera sobre evaluaciones, en Risk OS.
 
-Si asignar sólo empresas o también clientes particulares lo decide el owner al cerrar
-`D-0027`; la estructura admite las dos cosas.
+La estructura y el alcance los fija `D-0027`.
 
 ---
 
