@@ -375,10 +375,13 @@ decisions:
     status: OPEN
     date: 2026-09-07
     source: DOMAIN.md §55, §69
+    adr: DECISIONS/0078-asignacion-de-clientes.md
     statement: >
       La asignación de cartera a un productor debe conservar historia. Estructura
       física a definir a partir de la evidencia de D-0022 y antes de implementar
-      autorización productiva para productores.
+      autorización productiva para productores. ADR-0078 propone la estructura
+      (asignación explícita de usuario a cliente con intervalo de validez); sigue OPEN
+      hasta que el owner confirme el alcance y apruebe el PR.
     unblocked_by: T-0035
 
   - id: D-0028

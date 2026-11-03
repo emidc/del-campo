@@ -1496,9 +1496,11 @@ WhatsApp no permite releer mensajes. La superficie y la aceptación de Q4 están
 
 # 53. User
 
-**Estado: MODELED NOW**
+**Estado: MODELED NOW** (`app_user`; rol, invitación y credencial desde la migración
+0007 de `T-0035`)
 
-Principal autenticable.
+Principal autenticable de un contexto. Autenticarse no otorga permisos: el acceso es
+sólo por invitación (`D-0072`).
 
 Conceptualmente:
 
@@ -1508,10 +1510,21 @@ User
 id
 email
 partyId?
-status
+status          INVITED | ACTIVE | INACTIVE
+role?           ver §54
 authProvider
 createdAt
 ```
+
+La identidad común entre contextos es el par `(proveedor, sujeto)` que entrega el
+proveedor de identidad, hoy `(google, sub)` (`D-0077`). Cada contexto la vincula a su
+propio User mediante una credencial (`user_credential`). El email sirve para invitar y
+mostrar, no para identificar: puede cambiar y no es único entre proveedores.
+
+Una invitación (`user_invitation`) queda pendiente hasta el primer ingreso con esa
+dirección verificada, que la consume y crea la credencial. La baja (`INACTIVE`) corta
+el acceso en la transacción siguiente: se resuelve en la base en cada request, no al
+vencer un token.
 
 No se modelan permisos mediante subtipos rígidos de User.
 
@@ -1519,42 +1532,53 @@ No se modelan permisos mediante subtipos rígidos de User.
 
 # 54. Internal roles
 
-Conceptos iniciales:
+**Estado: MODELED NOW** (`D-0072`; columna `app_user.role` desde `T-0035`)
 
 ```text id="xoo3xh"
-ADMINISTRATOR
-PRODUCER
-RISK_ANALYST
-READ_ONLY
+ADMINISTRADOR   usuarios, organizaciones, permisos y configuración
+OPERADOR        empresas, información comercial y evaluaciones, según su asignación
+REVISOR         consulta evaluaciones, registra observaciones, validaciones autorizadas
 ```
 
-**Estado: CONCEPT DECIDED / IMPLEMENTATION OPEN**
+Un User sin rol no ve nada aunque esté `ACTIVE`. Los roles conceptuales previos
+(`ADMINISTRATOR`, `PRODUCER`, `RISK_ANALYST`, `READ_ONLY`) quedan reemplazados por los
+de `D-0072`: el productor de cartera no es un rol del programa hoy, y lo que hacía el
+analista de riesgo lo cubren Operador y Revisor en Risk OS. La matriz de acciones por
+rol, con su alcance, vive en cada contexto (`T-0035`).
+
+La autenticación futura de clientes es otro principal, con permisos propios: no es un
+rol más de esta lista.
 
 ---
 
-# 55. PortfolioAssignment
+# 55. ClientAssignment
 
-**Estado: NAMED, NOT MODELED**
+**Estado: MODELED NOW** (`client_assignment`, `T-0035`; estructura en `D-0027`).
+Reemplaza a PortfolioAssignment.
 
-El requisito:
+El requisito de `D-0072`:
 
-> Producer accede a su cartera
+> Los permisos también limitan sobre qué empresas y evaluaciones opera cada persona.
 
-implica una asignación con historia.
-
-Conceptualmente:
+implica una asignación explícita, con historia, de un User a un cliente.
 
 ```text id="0s47lk"
-party/account
-producerUser
-validFrom
-validTo
+ClientAssignment
+
+userId
+clientPartyId   Party de tipo ORGANIZATION (empresa) o PERSON (cliente particular)
+valid           intervalo [desde, hasta)
 ```
 
-La semántica mínima —principal, cartera e intervalo de validez— debe estar explícita
-antes de comparar mecanismos en `T-0002`. El schema sintético del spike no cierra la
-decisión de estructura física. `D-0027` se resuelve después de `D-0022` y antes de
-implementar enforcement productivo para productores.
+- Un mismo User no tiene dos asignaciones superpuestas al mismo cliente.
+- Asignar una empresa da acceso también a sus miembros vigentes
+  (`OrganizationMembership`, §17), no a los que dejaron de serlo.
+- Una carga masiva se registra como asignaciones individuales. No hay un "ve todo"
+  permanente fuera del rol Administrador.
+- El Revisor no ve clientes por asignación: opera sobre evaluaciones, en Risk OS.
+
+Si asignar sólo empresas o también clientes particulares lo decide el owner al cerrar
+`D-0027`; la estructura admite las dos cosas.
 
 ---
 
@@ -2007,7 +2031,7 @@ reproduce ni los afirma. Referencia sus IDs estables:
 - `D-0024` — Unicidad física de ContactPoint.
 - `D-0025` — Representación de la cobertura en PolicyVersion.
 - `D-0026` — Representación de InsuranceProduct.
-- `D-0027` — Estructura de PortfolioAssignment.
+- `D-0027` — Estructura de la asignación de clientes (antes PortfolioAssignment).
 - `D-0028` — Persistencia de comunicaciones, Gmail vs WhatsApp.
 - `D-0065` — WhatsApp en Communication OS: Cloud API oficial y copia del contenido.
 - `D-0029` — Abstracción RiskObject.
