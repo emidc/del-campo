@@ -20,20 +20,28 @@ Los arreglos van en el PR #112, antes de su merge.
 
 ## Consider
 
-Ninguno se corrige en este PR. El owner decidió (2026-11-03) que el 2, el 3 y el 6 se
-corrigen en un PR aparte antes de la fase 4. El 4 y el 5 quedan como condiciones antes de la
-fase que los activa.
+Ninguno se corrige en el #112. El owner decidió (2026-11-03) que el 2, el 3 y el 6 se
+corrigen en un PR aparte antes de la fase 4: los corrige la migración `0008` de Risk OS. El
+4 y el 5 quedan como condiciones antes de la fase que los activa.
 
 - **2. Orden previo vacío.** La base exige que exista el orden previo, no que cubra los
-  riesgos. Sólo se explota con SQL directo como `risk_persona`. Antes de la fase 4.
+  riesgos. Sólo se explota con SQL directo como `risk_persona`. **Corregido en `0008`:**
+  `authz_ve_resultados` exige que el orden previo cubra cada riesgo y cada padre de la
+  organización registrados hasta él, y el Revisor ya no elige `registrado_en`.
 - **3. `authz_*` invocables con cualquier argumento.** Dejan ver el rol de cualquier
   persona y el riesgo de una evaluación ajena. Mismo vector: SQL directo como
-  `risk_persona`. Antes de la fase 4.
+  `risk_persona`. **Corregido en `0008`:** `authz_rol_de`, `authz_organizaciones_asignadas` y
+  `authz_autor_de` dejan de ser ejecutables por `risk_persona`; `authz_riesgo_de` devuelve el
+  riesgo sólo si quien consulta lo ve, y las de autor o revisor, el id sólo si es el suyo.
 - **4. `legado_risk_app` abierta con `oidc`.** Falta en el plan de migración el paso que la
   retira después de la fase 4.
 - **5. `jti` sin registro persistente.** Ya era condición de la primera llamada real entre
   contextos; el revisor agrega que el verificador hoy acepta `registroJti: null`.
 - **6. Eventos de auditoría arbitrarios a nombre propio.** Mismo vector que 2 y 3.
+  **Corregido en `0008` para Risk OS:** `risk_persona` sólo escribe acciones `riesgo.*`. Una
+  persona todavía puede escribir a su nombre un `riesgo.*` que no hizo; lo que ya no puede es
+  fingir una acción administrativa o de acceso. Communication OS y Broker OS tienen la misma
+  política (`0005:235-236`, `0007:271-272`) y no entran en este cambio.
 
 ## Noted
 
