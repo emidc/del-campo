@@ -391,12 +391,23 @@ describe('T-0023 — catálogo: toda función propia fija su search_path', () =>
     })
 
     assert.deepEqual(despues, antes)
-    assert.deepEqual(sinSearchPath(revertida), revertida.map((fila) => fila.firma))
+    // Revertir 0006 sólo saca el SET de las funciones que 0006 fijó. Las que crea 0007
+    // (T-0035) traen su search_path en la definición y lo conservan.
+    const de0007 = (firma: string): boolean => firma.startsWith('authz.') || firma === 'audit_event_solo_insercion()'
+    assert.deepEqual(
+      sinSearchPath(revertida),
+      revertida.map((fila) => fila.firma).filter((firma) => !de0007(firma)),
+    )
     // La 0006 no reescribe ningún cuerpo: mismas condiciones, mismos mensajes.
     assert.deepEqual(
       revertida.map((fila) => [fila.firma, fila.cuerpo]),
       antes.map((fila) => [fila.firma, fila.cuerpo]),
     )
-    for (const fila of antes) assert.deepEqual(fila.config, ['search_path=public, pg_temp'], fila.firma)
+    // Las funciones de predicado de `authz` (0007, T-0035) son SECURITY DEFINER y fijan un
+    // search_path vacío, más estricto: califican cada nombre (D-0022, condición 4).
+    for (const fila of antes) {
+      const esperado = fila.firma.startsWith('authz.') ? ['search_path=""'] : ['search_path=public, pg_temp']
+      assert.deepEqual(fila.config, esperado, fila.firma)
+    }
   })
 })
