@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-10-14
+updated: 2026-11-02
 
 decisions:
 
@@ -987,7 +987,8 @@ decisions:
       actividad, no hay backups automáticos (el owner guarda una copia manual fuera del
       repositorio), los logs son cortos y el procesamiento implica transferencia
       internacional de datos personales. Los planes pagos se contratarán cuando el sistema
-      esté listo para reemplazar al CRM de Zoho.
+      esté listo para reemplazar al CRM de Zoho, sólo con una configuración concreta que
+      el owner apruebe dentro del presupuesto de D-0076.
     falsified_by: >
       Que Vercel o Supabase suspendan el proyecto durante el piloto, que se pierdan datos
       sin copia recuperable, que una revisión legal objete la transferencia o el
@@ -995,22 +996,29 @@ decisions:
       planes pagos.
 
   - id: D-0063
-    title: Aislamiento por contexto dentro del monolito modular durante Q4 2026
-    status: PROVISIONAL
+    title: Aislamiento por contexto dentro del monolito modular
+    status: ACCEPTED
     date: 2026-09-29
     source: >
       Q4 Operating Plan (Risk OS v1 y Communication OS, sin integración exigida en Q4);
       revisión de arquitectura del 2026-09-29 con dos opiniones independientes, aprobada
       por el owner el mismo día; D-0012,
-      D-0014, D-0028, D-0045, D-0062; DOMAIN.md §52 y §76; R-01, R-19, R-25.
+      D-0014, D-0028, D-0045, D-0062; DOMAIN.md §52 y §76; R-01, R-19, R-25. Pasa de
+      PROVISIONAL a ACCEPTED con la decisión de cierre de Q4 del owner del 2026-11-02
+      (D-0071, T-0034).
     adr: DECISIONS/0063-aislamiento-por-contexto-q4.md
+    superseded_in_part_by:
+      - clause: Vigencia limitada a Q4 2026 y prohibición de que Broker OS (packages/* y apps/web) importe un contexto
+        by: D-0071
     statement: >
       Dentro del monolito modular de D-0012, el código y los datos se organizan también
-      por contexto de negocio. Durante Q4 2026 hay tres contextos: Broker (packages/* y
-      apps/web actuales, sin moverse), Risk y Communication. Cada uno de los dos últimos
+      por contexto de negocio. Hay tres contextos: Broker (packages/* y apps/web
+      actuales, sin moverse), Risk y Communication. Cada uno de los dos últimos
       es un paquete del workspace bajo contexts/, con dominio, persistencia y aplicación
-      propios. Ningún contexto importa código de otro ni lee o escribe su esquema de
-      Postgres, y R-25 lo hace cumplir por lint desde el primer código de cada contexto.
+      propios. Ningún contexto lee ni escribe el esquema de Postgres de otro. Ningún
+      contexto importa código de otro, salvo que Broker OS consume la API de aplicación
+      de Risk y Communication según D-0071; R-25 lo hace cumplir por lint desde el
+      primer código de cada contexto.
       Cada contexto es dueño de su esquema, con sus migraciones. No se crea un núcleo
       compartido en Q4: una referencia a Party, si se agrega, es opaca y sin clave
       foránea. El trabajo largo o continuo corre en un worker propio del contexto, cuyo
@@ -1020,12 +1028,6 @@ decisions:
       Colas genéricas, outbox, bus de eventos y adapters genéricos esperan al segundo
       caso (R-01). Extraer un contexto a un servicio independiente requiere evidencia
       operacional, organizacional o de clasificación de datos.
-    falsified_by: >
-      Que un laboratorio no pueda cumplir su aceptación de Q4 sin leer o escribir datos de
-      Broker; que mantener los límites genere más retrabajo medible del que evita; que un
-      contexto necesite escalar, desplegarse o recuperarse de forma independiente, o que
-      la clasificación de datos exija una frontera de infraestructura; o la decisión de
-      cierre de Q4 sobre integrar, mantener separado o descartar cada laboratorio.
 
   # ── Enlaces de Drive informados por Zoho (Q4, S1) ─────────────────────────
 
@@ -1114,14 +1116,18 @@ decisions:
 
   - id: D-0067
     title: Propiedad de datos entre Broker OS y Risk OS
-    status: PROVISIONAL
+    status: ACCEPTED
     date: 2026-10-14
     source: >
       EMI-18 (Linear, proyecto Risk OS); decisiones del owner del 2026-10-14 en el hilo de
       EMI-18 sobre la propuesta de cuatro puntos; contratos de T-0021
       (SPIKES/T-0021/v0/fase-15/contrato/ y decisiones-15a.md, EMI-16), EMI-17; D-0025,
-      D-0050, D-0063; DOMAIN.md §25-37, §46 y §76; R-19.
+      D-0050, D-0063; DOMAIN.md §25-37, §46 y §76; R-19. Pasa de PROVISIONAL a ACCEPTED
+      con la decisión de cierre de Q4 del owner del 2026-11-02 (D-0071, T-0034).
     adr: DECISIONS/0067-propiedad-de-datos-broker-risk.md
+    superseded_in_part_by:
+      - clause: En Q4 no se copian identificadores internos de Broker OS ni hay flujos automáticos entre los dos contextos
+        by: D-0071
     statement: >
       Cada concepto tiene un único contexto autoritativo. Otro contexto conserva sólo
       referencias, proyecciones, snapshots o datos derivados que necesita para sus propias
@@ -1140,18 +1146,12 @@ decisions:
       no son hechos autoritativos de Policy ni resuelven D-0025; en una integración, esos
       hechos vienen de Broker OS. organizacion_id es una identidad propia de Risk OS
       (ORG-<ULID>) y poliza_ref una referencia documental local, que no es Policy.id ni
-      clave foránea y se interpreta dentro de su organización. En Q4 no se copian
-      identificadores internos de Broker OS ni hay flujos automáticos entre los dos
-      contextos; si se integran, la correspondencia con Party y Policy se establece
-      explícitamente sin reemplazar las identidades locales. Esta decisión no autoriza
+      clave foránea y se interpreta dentro de su organización. La correspondencia
+      entre la organización evaluada y la empresa de Broker OS, y la lectura de Risk OS
+      desde Broker OS, se rigen por D-0071, sin reemplazar las identidades locales; no
+      hay sincronización ni escritura de regreso. Esta decisión no autoriza
       usar ni almacenar datos reales en Risk OS, que requiere su propia autorización
       bajo R-19.
-    falsified_by: >
-      Que Risk OS no pueda cumplir su aceptación de Q4 sin la vigencia o la cobertura
-      autoritativas de Broker OS; que las observaciones locales de hechos de póliza
-      diverjan de Broker OS al punto de cambiar una evaluación de transferencia aceptada;
-      que un tercer contexto necesite la misma proyección; o la decisión de cierre de Q4
-      sobre integrar, mantener separados o descartar los laboratorios.
 
   # ── Datos reales de Risk OS v1 (Q4, RO01) ────────────────────────────────
 
@@ -1169,6 +1169,8 @@ decisions:
     superseded_in_part_by:
       - clause: Preparación de las históricas exclusivamente por el owner sin asistencia de agentes
         by: D-0070
+      - clause: Paso de los proyectos propios de Risk OS a planes pagos cuando Broker OS quede operativo
+        by: D-0076
     statement: >
       Los datos de las cinco empresas históricas se alojan en infraestructura hosteada
       y dedicada a Risk OS, sin compartir base ni
@@ -1180,8 +1182,10 @@ decisions:
       de trabajo. Los agentes de desarrollo conservan los límites de R-19. Los datos
       reales y los artefactos privados quedan fuera del repositorio público. Proveedor: un proyecto nuevo de Supabase en plan Free,
       región sa-east-1 (São Paulo), y un proyecto nuevo de Vercel en plan Hobby, los
-      dos propios de Risk OS, hasta que Broker OS quede operativo; entonces se pasan a
-      planes pagos, que contrata el owner (R-14). Se aceptan los riesgos del plan
+      dos propios de Risk OS. No se aprueba infraestructura paga propia de Risk OS ni la
+      migración automática de su despliegue: cualquier cambio entra en el presupuesto
+      conjunto de D-0076 y se evalúa antes su aislamiento, seguridad, backups y
+      continuidad. Se aceptan los riesgos del plan
       gratuito de D-0062: pausa por inactividad, sin backups automáticos (copia manual
       del owner fuera del repositorio), logs cortos y condiciones de uso de Vercel
       Hobby.
@@ -1283,3 +1287,194 @@ decisions:
       procesamiento de datos reales se detiene hasta que ese modelo tenga su propia
       aprobación. No se autoriza Codex de OpenAI ni ningún otro modelo o proveedor;
       cada uno requiere su propia aprobación previa.
+
+  # ── Cierre de Q4 y etapa 1 del paso a producción (T-0034, EMI-47) ────────
+
+  - id: D-0071
+    title: Los contextos se integran por API de aplicación y la organización evaluada se vincula a mano con una empresa
+    status: ACCEPTED
+    date: 2026-11-02
+    source: >
+      Decisión de cierre de Q4 del owner del 2026-11-02 («Decisiones de cierre Q4 — Del
+      Campo OS», punto 0), tomada sin esperar a diciembre, en el hilo de T-0034;
+      docs/north-star/09-plan-de-produccion.md (decisiones del owner); DA-9; D-0063,
+      D-0067; T-0036.
+    adr: DECISIONS/0071-integracion-por-api-y-correspondencia-de-empresas.md
+    statement: >
+      Broker OS, Risk OS y Communication OS siguen siendo contextos funcionales
+      separados, con la propiedad de datos de D-0067: Broker OS administra empresas,
+      clientes, pólizas y relaciones comerciales; Risk OS, el conocimiento de riesgos,
+      las evaluaciones, las evidencias y las decisiones profesionales; Communication OS,
+      las comunicaciones y conversaciones. Los contextos se comunican sólo por la API de
+      aplicación que cada uno exporta, nunca leyendo ni escribiendo tablas de otro
+      esquema. Broker OS puede consultar esa API de Risk OS y de Communication OS, al
+      principio sólo con operaciones de lectura. Una escritura controlada entre
+      contextos se incorpora sólo ante una necesidad funcional concreta y con su propia
+      decisión. La separación lógica no exige infraestructura física separada; compartir
+      base o despliegue se rige por D-0076. Cada organización evaluada de Risk OS se
+      vincula como mucho con una única empresa de Broker OS. La vinculación la registra
+      y verifica a mano una persona autorizada; guarda el id de la empresa como
+      referencia opaca, sin clave foránea entre contextos, y puede quedar pendiente
+      mientras no haya una correspondencia confirmada. organizacion_id sigue siendo la
+      identidad propia de Risk OS. Una empresa puede contener varios establecimientos,
+      actividades y evaluaciones de riesgo. La revisión de diciembre de 2026 evalúa la
+      implementación y el uso; no posterga ni reabre esta decisión.
+
+  - id: D-0072
+    title: Acceso individual con Google por invitación y roles administrados en las aplicaciones
+    status: ACCEPTED
+    date: 2026-11-02
+    source: >
+      Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
+      1, C1) en el hilo de T-0034; docs/north-star/09-plan-de-produccion.md (C1);
+      D-0013, D-0022, D-0027, D-0059, D-0060, D-0066, D-0069; R-05; T-0035.
+    adr: DECISIONS/0072-acceso-individual-y-roles.md
+    statement: >
+      Broker OS, Risk OS y Communication OS pasan a autenticación individual y
+      autorización por roles, y las credenciales compartidas se eliminan
+      progresivamente. Autenticación y autorización son responsabilidades separadas.
+      Google es el proveedor principal de autenticación y se admiten cuentas de Google
+      externas, personales o profesionales: no se exige pertenecer al Google Workspace
+      de Del Campo. Para personas sin cuenta de Google se puede ofrecer un mecanismo
+      alternativo seguro, como un enlace por correo. Se prioriza Supabase Auth con Google
+      OAuth y, cuando corresponda, enlace por correo; su adopción, que D-0013 pide
+      justificar por separado, y su relación con D-0060 se confirman en un ADR de T-0035
+      (R-05). El acceso es sólo por invitación o aprobación de un administrador:
+      autenticarse no otorga permisos. Roles y permisos se administran dentro de las
+      aplicaciones; cada persona tiene identidad individual, permisos específicos y
+      trazabilidad de sus acciones, y su acceso se puede revocar de inmediato. Roles
+      iniciales: Administrador (usuarios, organizaciones, permisos y configuración),
+      Operador Del Campo (empresas, información comercial y evaluaciones según sus
+      permisos) y Revisor profesional (consulta evaluaciones, registra observaciones y
+      hace validaciones autorizadas). El revisor profesional puede usar una cuenta de
+      Google externa autorizada individualmente. Los permisos también limitan sobre qué
+      empresas y evaluaciones opera cada persona; dónde se hace cumplir sigue en D-0022
+      y la estructura de asignación en D-0027. La autenticación futura de clientes tiene
+      permisos y reglas de acceso independientes de los usuarios internos. Al entrar en
+      servicio en cada contexto, esta decisión reemplaza a D-0066 y D-0069, y a las
+      cláusulas de D-0059 sobre audiencia Internal, pertenencia al Workspace y no uso de
+      Supabase Auth; hasta entonces esas decisiones siguen rigiendo sus despliegues.
+
+  - id: D-0073
+    title: Communication OS atiende clientes reales como piloto supervisado, después de C1
+    status: PROVISIONAL
+    date: 2026-11-02
+    source: >
+      Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
+      2, U1) en el hilo de T-0034; respuesta U1 del owner en la fase 1 del proyecto de la
+      north star (el número ya recibe mensajes de clientes); SLICES/CO01.md §3;
+      PROJECT.md §4; D-0065, D-0066, D-0072, D-0074; R-13, R-14, R-19.
+    adr: DECISIONS/0073-clientes-en-communication-os.md
+    statement: >
+      El owner autoriza usar el número de Communication OS para atender clientes
+      reales como piloto supervisado, una vez completados C1 (D-0072) y los controles
+      mínimos de seguridad. Antes de incorporar clientes hay que verificar cuánto
+      tiempo se conserva hoy el texto de los mensajes, definir y documentar una política
+      de retención y eliminación, verificar los controles de acceso y seguridad, y
+      confirmar la fecha efectiva de incorporación de los primeros clientes, que no está
+      fijada. Alcance inicial: recibir consultas y mensajes de clientes, identificarlos
+      y vincular la conversación cuando corresponda, registrar las comunicaciones
+      relevantes, facilitar el trabajo de los operadores y asistir con IA la preparación
+      y clasificación de respuestas bajo control humano, dentro de D-0074. No se
+      autorizan decisiones automáticas sobre coberturas, aceptación de riesgos,
+      siniestros ni compromisos contractuales sin validación humana. Se recopila sólo la
+      información necesaria, con acceso individual y trazabilidad. Los mensajes
+      operativos se almacenan separados de los documentos o registros incorporados
+      formalmente al expediente comercial. El payload crudo se sigue borrando a los 30
+      días (D-0065), salvo revisión justificada. Esta decisión amplía el alcance de
+      CO01, que se aceptó sólo con el equipo, y es la autorización propia que PROJECT.md
+      §4 exige para conversaciones con clientes.
+    falsified_by: >
+      Que una conversación de cliente quede expuesta a alguien sin permiso; que la
+      política de retención no se pueda cumplir con la copia que exige D-0065; que el
+      piloto necesite decisiones automáticas para ser útil; o que el volumen o la
+      sensibilidad de los mensajes exijan una frontera de infraestructura (D-0063).
+
+  - id: D-0074
+    title: Qué información de clientes puede enviarse a interfaces externas de IA en la gestión de riesgos
+    status: ACCEPTED
+    date: 2026-11-02
+    source: >
+      Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
+      3, política de información) en el hilo de T-0034; refina R-19 para el uso de
+      interfaces externas de IA por el equipo; DA-2, DA-5; D-0039, D-0070.
+    adr: DECISIONS/0074-informacion-en-ia-externa.md
+    statement: >
+      El equipo de Del Campo puede usar interfaces externas de IA, como ChatGPT,
+      Claude, Gemini y Codex, como herramientas de razonamiento, investigación, análisis
+      y asistencia en la gestión de riesgos. Los sistemas de Del Campo siguen siendo la
+      fuente de la información estructurada, las evidencias y las decisiones
+      profesionales. La información se clasifica en tres niveles. Los datos
+      empresariales generales y el conocimiento sectorial están permitidos. Las
+      fotografías, los planos, la información interna y las vulnerabilidades
+      específicas de una empresa, y cualquier otra información confidencial de
+      clientes, sólo se envían por cuentas registradas antes en decisions.yaml con
+      proveedor, cuenta, tipo de plan, condiciones de tratamiento de datos y modelos.
+      Quedan excluidos los datos personales innecesarios, la información de salud, los
+      datos bancarios y los secretos y credenciales (R-16, R-18). Al 2026-11-02 no hay
+      ninguna cuenta registrada para el segundo nivel; la pareja de D-0070 sigue valiendo
+      sólo para la preparación de datasets de Risk OS. No se fija un proveedor ni un
+      modelo permanente: se priorizan calidad, protección de datos, costo y facilidad de
+      uso. Los agentes de desarrollo conservan R-19 sin cambios.
+
+  - id: D-0075
+    title: Un servidor MCP propio y skills de metodología son la dirección de integración con IA
+    status: ACCEPTED
+    date: 2026-11-02
+    source: >
+      Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
+      3, MCP Server y skills) en el hilo de T-0034; DA-2, DA-4, DA-5;
+      docs/north-star/05-contratos-de-integracion.md (contrato B); D-0071, D-0072, D-0074.
+    adr: DECISIONS/0075-servidor-mcp-y-skills.md
+    statement: >
+      La dirección técnica para usar IA es un servidor MCP propio de Del Campo,
+      compatible con distintos clientes de IA, más skills basadas en la metodología
+      profesional de Del Campo, sin construir un sistema de agentes dentro de Broker OS.
+      El servidor ofrece herramientas de consulta y, más adelante, operaciones
+      controladas sobre Broker OS, Risk OS y Communication OS. Respeta los límites entre
+      contextos y consume sus API de aplicación (D-0071); autentica a la persona y
+      verifica sus permisos (D-0072); restringe el acceso a las empresas y evaluaciones
+      autorizadas; deja traza de cada operación; y empieza sólo con herramientas de
+      lectura. Las escrituras se incorporan de a poco, con autorización y validación
+      humana según su criticidad. No es obligatorio para la primera versión en
+      producción. Se priorizan tres skills: identificación preliminar de riesgos a partir
+      del rubro, la actividad y las características de la empresa, con la base de
+      conocimiento sectorial; análisis de inspecciones presenciales o virtuales contra la
+      identificación preliminar; y refinamiento y tratamiento de riesgos con la
+      metodología, que estima probabilidad e impacto cuando hay información suficiente y
+      propone eliminar, mitigar, aceptar o transferir. Las recomendaciones no reemplazan
+      las decisiones profesionales. Se busca reutilizar las mismas definiciones de skills
+      y herramientas entre Claude, Gemini, Codex y ChatGPT, verificando la compatibilidad
+      real por producto, interfaz y tipo de cuenta. El personal operativo no usa línea de
+      comandos. Orden: definir las primeras skills y validarlas contra el proceso manual;
+      un MCP mínimo de lectura cuando aporte valor concreto; probar la interoperabilidad;
+      borradores estructurados; y otras operaciones según necesidades reales. El envío
+      de información a cada proveedor se rige por D-0074.
+
+  - id: D-0076
+    title: La infraestructura de los tres contextos tiene un tope de USD 45 mensuales
+    status: ACCEPTED
+    date: 2026-11-02
+    source: >
+      Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
+      4, D-0062 y D-0068) en el hilo de T-0034; precios base de Vercel Pro y Supabase Pro
+      informados por el owner; D-0062, D-0063, D-0068, D-0071; R-13, R-14; T-0037.
+    adr: DECISIONS/0076-presupuesto-de-infraestructura.md
+    statement: >
+      El gasto mensual total de infraestructura de Broker OS, Risk OS y Communication
+      OS, incluidos impuestos y consumos variables, no supera USD 45. Los planes pagos se
+      activan sólo ante una necesidad concreta y después de que el owner apruebe una
+      configuración concreta que respete el tope; si no es viable, se proponen
+      alternativas para su aprobación. Vercel Pro (USD 20) y Supabase Pro (USD 25)
+      suman USD 45 antes de impuestos y cargos variables, así que esa combinación no
+      queda autorizada por sí sola. Se aprovecha la infraestructura existente, se usan
+      planes gratuitos cuando son adecuados a la criticidad y la disponibilidad que se
+      necesitan, se comparte infraestructura cuando es técnica y operativamente
+      conveniente manteniendo la separación lógica y los controles entre contextos
+      (D-0063, D-0071), no se agregan servicios ni instancias que no sean
+      indispensables y se monitorean consumos y costos. Risk OS entra en el mismo
+      presupuesto: no se aprueba una infraestructura paga propia ni la migración
+      automática de su despliegue actual, y antes de modificarlo se evalúan su
+      aislamiento, seguridad, backups y continuidad. Cualquier aumento del presupuesto
+      requiere aprobación explícita. Contratar servicios, migrar bases y cambiar
+      permisos de producción requieren autorización específica del owner (R-13, R-14).

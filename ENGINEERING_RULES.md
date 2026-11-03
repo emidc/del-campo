@@ -178,6 +178,7 @@ Límites comunes y alcance de la clasificación:
 
 - Las categorías especialmente sensibles que clasifica `DOMAIN.md` —salud, accidentes, vida, información financiera— siguen prohibidas para modelos externos en v1 fuera del refinamiento empresarial acotado de `D-0070`. Este distingue economía/seguros e incidentes operacionales de empresas de datos sensibles de individuos; no habilita datos médicos o bancarios personales. El contenido excluido se rechaza, se redacta o se deriva a revisión humana antes de enviarlo.
 - **Ningún proveedor ni modelo queda autorizado por esta regla.** Cada uno requiere aprobación explícita previa antes de procesar datos reales.
+- El uso de interfaces externas de IA por el equipo en la gestión de riesgos se rige por `D-0074`: datos empresariales generales y conocimiento sectorial permitidos; información confidencial de clientes sólo por cuentas registradas antes en `decisions.yaml`; datos personales innecesarios, salud, datos bancarios y secretos, excluidos.
 - Nunca se envían credenciales, secretos ni tokens. → `R-16`, `R-18`
 - Toda operación sobre datos reales queda auditable por función, usuario, recurso, proveedor y modelo, categoría de datos y timestamp, sin duplicar PII innecesariamente ni guardar prompts completos en logs.
 

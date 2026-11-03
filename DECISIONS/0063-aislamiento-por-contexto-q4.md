@@ -4,6 +4,11 @@
 - **Fecha:** 2026-09-29
 - **Supersede:** — (complementa D-0012; no la reemplaza)
 
+> **Vigencia (2026-11-02).** La decisión de cierre de Q4 del owner la pasó a ACCEPTED sin
+> límite de trimestre, y `D-0071` reemplazó la prohibición de que Broker OS importe un
+> contexto: Broker OS lee la API de aplicación de Risk y Communication. El resto de este
+> ADR sigue vigente; donde dice «durante Q4», se lee sin plazo.
+
 ## Contexto
 
 El Q4 Operating Plan agrega dos laboratorios a Broker OS: Risk OS v1 y Communication OS.

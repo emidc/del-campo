@@ -12,7 +12,7 @@ contextRefs: [PROJECT.md, DOMAIN.md, ENGINEERING_RULES.md, SLICES/VS01.md, SLICE
               SLICES/RO01.md, DECISIONS/0059-sesion-y-admision-vs01.md,
               DECISIONS/0066-credencial-compartida-co01.md,
               DECISIONS/0069-acceso-por-persona-risk-os.md]
-decisionRefs: [D-0022, D-0059, D-0066, D-0069]
+decisionRefs: [D-0013, D-0022, D-0027, D-0059, D-0060, D-0066, D-0069, D-0072]
 ---
 
 ## Why
@@ -24,8 +24,12 @@ portal, MCP) se puede construir así. Este corte es la compuerta de la etapa 1.
 
 ## Outcome
 
-Cada persona del equipo entra a los tres contextos con la misma identidad. Los permisos
-por rol se hacen cumplir en el servidor según la decisión de D-0022. Cada acción que
+Cada persona del equipo entra a los tres contextos con la misma identidad, según D-0072:
+Google con cualquier cuenta, sólo por invitación de un administrador, con revocación
+inmediata comprobada en el servidor. Un ADR (R-05) confirma Supabase Auth u otra opción
+frente a D-0013 y D-0060 antes de implementar. Los roles Administrador, Operador Del
+Campo y Revisor profesional, y el alcance por empresa, se hacen cumplir en el servidor
+según la decisión de D-0022. Cada acción que
 cambia estado queda en un registro de auditoría con actor, origen, entrada resumida,
 salida y efecto, sin datos bancarios. La credencial compartida de CO01 deja de existir.
 
@@ -34,6 +38,7 @@ salida y efecto, sin datos bancarios. La credencial compartida de CO01 deja de e
 - Cuentas para contactos de empresas (portal, corte C12).
 - Interfaz unificada (corte C4).
 - Herramientas MCP (corte C13).
+- Contratar servicios o cambiar de plan (D-0076).
 
 ## Verification
 

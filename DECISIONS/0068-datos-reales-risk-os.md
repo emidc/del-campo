@@ -4,6 +4,10 @@
 - **Fecha:** 2026-10-14
 - **Supersede:** —
 
+> **Vigencia (2026-11-02).** `D-0076` reemplazó el paso a planes pagos cuando Broker OS
+> quede operativo: Risk OS entra en el tope conjunto de USD 45 mensuales y su despliegue no
+> se migra sin evaluar antes aislamiento, seguridad, backups y continuidad.
+
 > **Decidido por el owner el 2026-10-15:** base y despliegue hosteados y dedicados a
 > Risk OS (opción b, `SLICES/RO01-decisiones.md`, punto 1), en Supabase de plan
 > gratuito, región sa-east-1, y Vercel Hobby hasta que Broker OS quede operativo, por

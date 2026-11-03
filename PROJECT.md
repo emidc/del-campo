@@ -122,12 +122,15 @@ Enunciado explícitamente para que no reaparezca por la ventana:
 - Kanban, Gantt, dependency graph visual.
 - Adapters para más de un execution provider. → `D-0016`
 - Diseño del framework de evaluación de modelos.
-- Integración entre Broker, Risk OS y Communication OS durante Q4: ni código ni
-  esquemas compartidos. Se decide al cierre del trimestre. → `D-0063`
-- Flujos de datos entre Broker OS y Risk OS, o copia de ids internos de Broker OS hacia
-  Risk OS. Cada dato tiene un único contexto dueño. → `D-0067`
+- Esquemas compartidos entre Broker, Risk OS y Communication OS, o lecturas de tablas
+  de otro contexto. Se integran sólo por API de aplicación, y Broker OS lee a los otros
+  dos sin escribir. → `D-0063`, `D-0071`
+- Sincronización o escritura de regreso entre Broker OS y Risk OS. Cada dato tiene un
+  único contexto dueño; la correspondencia empresa ↔ organización evaluada es manual.
+  → `D-0067`, `D-0071`
 - En WhatsApp, cualquier cosa fuera del alcance de Communication OS: grupos, adjuntos,
-  el número corporativo y conversaciones con clientes sin autorización propia (R-19).
+  el número corporativo y conversaciones con clientes antes de cumplir las condiciones
+  de `D-0073` (R-19).
 - Cotización, emisión, Gmail, portal externo, agentes con efectos externos.
 
 ---

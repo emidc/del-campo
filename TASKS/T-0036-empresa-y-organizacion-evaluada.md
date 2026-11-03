@@ -9,8 +9,9 @@ size: M
 created: 2026-11-02
 blockedBy: [T-0032, T-0034]
 contextRefs: [DOMAIN.md, SLICES/RO01.md, DECISIONS/0063-aislamiento-por-contexto-q4.md,
-              DECISIONS/0067-propiedad-de-datos-broker-risk.md]
-decisionRefs: [D-0063, D-0067]
+              DECISIONS/0067-propiedad-de-datos-broker-risk.md,
+              DECISIONS/0071-integracion-por-api-y-correspondencia-de-empresas.md]
+decisionRefs: [D-0063, D-0067, D-0071]
 ---
 
 ## Why
@@ -24,8 +25,10 @@ puede proyectar los riesgos en la empresa de Broker OS.
 ## Outcome
 
 Risk OS tiene una entidad de organización evaluada con sector, tamaño y zonas, y existe
-una correspondencia explícita empresa ↔ organización según la regla registrada en
-T-0034, sin copiar identidades internas en contra de D-0067.
+una correspondencia explícita empresa ↔ organización según D-0071: cada organización
+evaluada se vincula como mucho con una empresa, a mano, por una persona autorizada, con el
+id de la empresa como referencia opaca sin clave foránea, y puede quedar pendiente. Antes
+del esquema, el owner confirma si una empresa admite más de una organización evaluada.
 
 ## Non-scope
 
