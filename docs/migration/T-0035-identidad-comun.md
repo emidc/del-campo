@@ -1,7 +1,7 @@
 # Plan de migración a la identidad común (T-0035)
 
-**Estado:** propuesta, 2026-11-03. Es la condición de `## Data effects` de `T-0035` para
-pasar a READY. La autenticación la fija D-0077 y la autorización D-0022.
+**Estado:** aprobado por el owner el 2026-11-03 como base para pasar `T-0035` a READY
+(§5). Es la condición de `## Data effects` de `T-0035`. La autenticación la fija D-0077 y la autorización D-0022.
 
 Este plan no ejecuta nada. Cada paso contra producción lo hace o lo aprueba el owner
 (R-13, R-14). Ningún email, nombre ni contraseña de personas reales entra en el
@@ -68,11 +68,15 @@ de ser inmediata.
 
 ### Fase 1 — Cliente de Google External (owner)
 
-El owner, o quien administre el proyecto de Google Cloud, crea un **cliente OAuth nuevo**
-de audiencia External, con scopes `openid email profile` y las tres URIs de redirección.
-No se cambia el cliente Internal de VS01, que sigue siendo la vuelta atrás de Broker OS.
+El owner coordina y aprueba la creación; la ejecuta quien tenga permisos de
+administración en el proyecto de Google Cloud. Se crean clientes OAuth **nuevos** de
+audiencia External, con scopes `openid email profile`. La implementación evalúa usar un
+cliente por app (Broker OS, Communication OS y Risk OS) dentro del mismo proyecto, en
+lugar de uno con tres URIs de redirección; la elección queda en el PR de la fase 0. El
+cliente Internal de VS01 se mantiene disponible durante toda la migración, como vuelta
+atrás de Broker OS.
 
-**Vuelta atrás:** borrar el cliente nuevo. Nadie lo usa todavía.
+**Vuelta atrás:** borrar los clientes nuevos. Nadie los usa todavía.
 
 ### Fase 2 — Broker OS pasa a `oidc`
 
@@ -136,15 +140,41 @@ días y la aprobación explícita del owner.
 | Variables de Vercel y despliegues a producción | Owner |
 | Borrar la credencial compartida y cerrar el modo legacy (fases 3 y 5) | Owner, con aprobación explícita |
 
-## 5. Preguntas abiertas para el owner
+## 5. Decisiones del owner (2026-11-03)
 
-1. **Rol inicial de cada persona.** Hace falta la lista de quién es Administrador,
-   Operador Del Campo o Revisor profesional. Se carga con el script y no se escribe en el
-   repo.
-2. **Alcance inicial por empresa (D-0027).** ¿Los Operadores existentes empiezan
-   asignados a todas las empresas, o a una lista explícita? Lo primero es más simple de
-   migrar. Lo segundo es lo que pide D-0072.
-3. **Quién administra el proyecto de Google Cloud** para crear el cliente External de la
-   fase 1. D-0059 menciona que Manuel administra el Workspace.
-4. **Orden de las fases 3 y 4.** El plan propone Communication OS antes que Risk OS,
-   porque la credencial compartida es el riesgo mayor y no tiene autoría que preservar.
+Respondidas en el hilo de T-0035 al aprobar este plan.
+
+1. **Roles iniciales.** El owner es el Administrador inicial y Manuel el Revisor
+   profesional. El resto del equipo entra como Operador Del Campo, sujeto a la validación
+   individual de permisos. La nómina definitiva y las cuentas se validan y se entregan
+   fuera del repositorio antes de cargar invitaciones en producción.
+2. **Alcance por empresa (D-0027).** Asignaciones explícitas por empresa. Se permite una
+   carga masiva inicial de todas las empresas existentes para los Operadores que necesiten
+   la cartera completa, materializada como una asignación individual por empresa y nunca
+   como un privilegio universal permanente. Los clientes nuevos se asignan según las
+   responsabilidades de cada Operador.
+3. **Cliente OAuth External.** Lo coordina y aprueba el owner y lo ejecuta quien
+   administre Google Cloud. Se evalúan clientes separados por app (fase 1).
+4. **Orden.** Broker OS, Communication OS y Risk OS. Se prioriza eliminar la credencial
+   compartida y Risk OS va último para proteger la identidad y la autoría históricas.
+
+### Condiciones antes de ejecutar la fase 2
+
+Tienen que estar probadas, con evidencia en `ops/evidence/T-0035.md`:
+
+- la vuelta atrás de la autenticación (`AUTH_MODE` de `oidc` a `legacy` y de vuelta, en
+  cada contexto);
+- la revocación de sesiones: una baja corta una sesión ya abierta en el request
+  siguiente;
+- la propagación segura de la identidad entre contextos, incluidos los rechazos por
+  firma, `aud`, vencimiento y admisión del destino;
+- la rotación de las claves de firma entre contextos, sin cortar a quien está usando el
+  sistema.
+
+### Lo que esta aprobación no autoriza
+
+- El borrado de la credencial compartida (fase 3, paso 4).
+- El cierre de los mecanismos anteriores (fase 5).
+
+Los dos requieren una aprobación específica del owner, después de los siete y catorce
+días de observación. Nada de C1 agrega infraestructura ni supera el tope de `D-0076`.

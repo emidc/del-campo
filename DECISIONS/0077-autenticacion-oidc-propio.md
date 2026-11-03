@@ -69,10 +69,11 @@ La decisión y su estado viven en `decisions.yaml`, D-0077.
 Los tres contextos autentican con OIDC de Google implementado con `openid-client` y
 `jose`, la misma pila de `D-0060`, sin Supabase Auth.
 
-- **Un cliente OAuth de Google, audiencia External,** con scopes `openid email profile`
-  y una URI de redirección por contexto. Con scopes básicos Google no exige verificar la
-  app. Sin verificación de marca, la pantalla de consentimiento no muestra nombre ni
-  logo.
+- **Clientes OAuth de Google de audiencia External,** con scopes `openid email profile`,
+  en un mismo proyecto de Google Cloud. La implementación evalúa uno por app en lugar de
+  uno compartido con tres URIs de redirección. Con scopes básicos Google no exige
+  verificar la app. Sin verificación de marca, la pantalla de consentimiento no muestra
+  nombre ni logo.
 - **La identidad común es el par (`proveedor`, `sujeto`)**, hoy (`google`, `sub`), con
   `email_verified` obligatorio. Es lo único que los tres contextos comparten: cada uno
   la vincula a su propio usuario interno en una tabla de credenciales, separada de la de

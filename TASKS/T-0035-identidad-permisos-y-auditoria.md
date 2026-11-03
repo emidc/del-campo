@@ -2,7 +2,7 @@
 id: T-0035
 title: Unificar identidad, permisos por rol y auditoría en los tres contextos (C1)
 kind: FEATURE
-status: DRAFT
+status: READY
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -36,7 +36,10 @@ usuarios, sin Supabase Auth (D-0077). Los roles Administrador, Operador Del
 Campo y Revisor profesional, y el alcance por empresa, se hacen cumplir en el servidor
 con la autorización híbrida de D-0022: RLS decide las filas en cada contexto, la
 aplicación decide la acción y la explica, y la regla de autor vive en las dos capas.
-La estructura física de la asignación de empresas a personas (D-0027) se decide acá.
+La estructura física de la asignación de empresas a personas (D-0027) se decide acá,
+con asignaciones explícitas por empresa: la carga inicial de toda la cartera para un
+Operador se materializa como una asignación por empresa, nunca como un privilegio
+universal.
 Cada acción que
 cambia estado queda en un registro de auditoría con actor, origen, entrada resumida,
 salida y efecto, sin datos bancarios. La credencial compartida de CO01 deja de existir.
@@ -63,6 +66,12 @@ pnpm check
       - toda tabla de datos con RLS habilitado y sus políticas, exigido por un chequeo;
       - revocación inmediata: la baja corta el acceso en el request siguiente, también con un token vigente;
       - ningún rol de app, worker o agente con `BYPASSRLS`.
+- [ ] Antes de la fase 2 del plan de migración, probados y con evidencia en
+      `ops/evidence/T-0035.md`: la vuelta atrás de la autenticación en cada contexto, la
+      revocación de sesiones abiertas, la propagación segura de la identidad entre
+      contextos y la rotación de las claves de firma entre contextos.
+- [ ] Ningún rol tiene acceso universal a empresas: toda lectura de un Operador pasa por
+      una asignación explícita.
 - [ ] Revisión ciega del diff (D-0052).
 
 ## Data effects
@@ -71,4 +80,6 @@ Migra usuarios y credenciales de los tres contextos a una identidad común, con
 migraciones sólo aditivas. El plan por fases, con su vuelta atrás en cada una, está en
 `docs/migration/T-0035-identidad-comun.md`. Los pasos contra producción, la carga de
 invitaciones con datos reales y el borrado de la credencial compartida los hace o los
-aprueba el owner (R-13, R-14).
+aprueba el owner (R-13, R-14). La aprobación del plan (2026-11-03) no autoriza el borrado
+de la credencial compartida ni el cierre de los mecanismos anteriores: cada uno requiere
+una aprobación específica.

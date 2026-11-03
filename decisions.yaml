@@ -1509,7 +1509,7 @@ decisions:
       Broker OS, Risk OS y Communication OS autentican con Google OIDC reutilizando
       openid-client y jose (D-0060), sin contratar servicios nuevos ni construir un
       proveedor de identidad propio: una capa común y mínima de sesión y de gestión de
-      usuarios. Un cliente de Google de audiencia External admite cuentas externas sólo
+      usuarios. Clientes de Google de audiencia External admiten cuentas externas sólo
       por invitación. La identidad común entre contextos es el par (proveedor, sujeto),
       vinculado en cada contexto a su usuario interno; la admisión se resuelve en la base
       en cada request, con revocación inmediata y la autorización híbrida de D-0022.
