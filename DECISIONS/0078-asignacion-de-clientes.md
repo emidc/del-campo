@@ -37,9 +37,9 @@ universal permanente".
    el nombre, por la vista `miembro_de_empresa_asignada`), pero no su perfil personal,
    sus contactos, sus documentos ni sus pólizas personales. Para eso hace falta asignar a
    la persona. Un ex miembro deja de aparecer.
-   - `ContactPoint` no distingue contacto profesional de personal. Hasta que lo haga,
-     ningún contacto de un miembro se expone por la empresa. Si hace falta, la
-     distinción se agrega al modelo con su propia decisión.
+   - `ContactPoint` no distingue contacto profesional de personal, y ningún contacto de
+     un miembro se expone por la empresa. El owner confirmó este comportamiento para C1
+     (2026-11-03); ver «Necesidad futura» abajo.
    - **Pólizas y cambios de tomador.** La póliza completa (versiones, endosos y
      documentos) la ve quien tiene asignado al tomador de la versión vigente hoy, o de
      la última si ninguna está vigente (`authz.tomador_vigente()`). Quien tenía asignado
@@ -71,6 +71,20 @@ universal permanente".
   del punto 4 sin reescribir la 0007, que ya estaba en `main`.
 - Las evaluaciones de Risk OS tendrán su propio alcance: `T-0035` decide en su
   incremento de Risk OS si se derivan de la empresa evaluada o se asignan aparte.
+
+## Necesidad futura: contactos profesionales (C4)
+
+Registrada por el owner el 2026-11-03. No se implementa en C1 ni bloquea `T-0035`.
+
+- En C4, un Operador podrá consultar los medios de contacto **explícitamente vinculados
+  a la función profesional** de una persona dentro de una empresa asignada.
+- La clasificación considera el contexto de uso y la relación persona-organización
+  (`OrganizationMembership`), no una etiqueta global personal/profesional del contacto.
+- Un contacto cuyo uso profesional no esté identificado sigue restringido. No se infiere
+  el carácter profesional por el dominio del correo, por la pertenencia a una empresa ni
+  por otras señales ambiguas.
+- Si antes de C4 aparece una necesidad operativa concreta, se evalúa una implementación
+  mínima y específica, sin dar acceso completo al perfil personal.
 
 ## Evidencia
 
