@@ -9,7 +9,7 @@ import type { ReactElement } from 'react'
 
 import type { AccionVista, CoberturaVista, EventoVista } from '@del-campo/risk'
 
-import { corto, h, procedencia, revisiones, tabla, th } from './comun.ts'
+import { corto, h, procedencia, revisiones, tabla, th, TODO_PERMITIDO, type Permisos } from './comun.ts'
 import { formEficacia, formEstadoAccion, formEvento, formRevisar } from './formularios.ts'
 
 /**
@@ -19,6 +19,8 @@ import { formEficacia, formEstadoAccion, formEvento, formRevisar } from './formu
  */
 export interface ConFormularios {
   readonly volver: string
+  /** Sin permisos, todos (`legacy`). */
+  readonly permisos?: Permisos
   readonly reevaluaciones?: readonly { readonly id: string; readonly fecha: string; readonly accionId: string | null; readonly motivo: string | null }[]
 }
 
@@ -58,9 +60,9 @@ export const bloqueAccion = (a: AccionVista, f?: ConFormularios): ReactElement =
         s.evidenciaEjecucion === null ? '' : `; evidencia: ${s.evidenciaEjecucion.join(', ')}`,
         h('span', { className: 'muted' }, ` · ${s.origen}${s.autor === null ? '' : `, ${s.autor}`}, registrado ${s.registradoEn}`))))),
     f === undefined ? null : h('div', { className: 'formularios' },
-      formEstadoAccion(a, f.volver),
-      f.reevaluaciones === undefined ? null : formEficacia(a, f.reevaluaciones, f.volver),
-      formRevisar(a.riskId, 'accion', a.id, f.volver)))
+      (f.permisos ?? TODO_PERMITIDO).cargar ? formEstadoAccion(a, f.volver) : null,
+      f.reevaluaciones === undefined || !(f.permisos ?? TODO_PERMITIDO).cargar ? null : formEficacia(a, f.reevaluaciones, f.volver),
+      (f.permisos ?? TODO_PERMITIDO).revisar ? formRevisar(a.riskId, 'accion', a.id, f.volver) : null))
 
 const monto = (m: string | null, moneda: string | null): string | null => (m === null ? null : `${m}${moneda === null ? '' : ` ${moneda}`}`)
 
@@ -90,4 +92,6 @@ export const bloqueCobertura = (c: CoberturaVista, f?: ConFormularios): ReactEle
     c.eventos.length === 0 ? h('p', { className: 'muted' }, 'Sin eventos de póliza registrados.') : h('div', null,
       h('p', { className: 'muted small', 'data-rotulo-evento': '' }, `Eventos de póliza: ${c.eventos[0]?.rotulo ?? ''}.`),
       tabla([th('Fecha'), th('Tipo'), th('Monto'), th('Nota'), th('Procedencia')], c.eventos.map(filaEvento))),
-    f === undefined ? null : h('div', { className: 'formularios' }, formEvento(c, f.volver), formRevisar(c.riskId, 'transferencia', c.id, f.volver)))
+    f === undefined ? null : h('div', { className: 'formularios' },
+      (f.permisos ?? TODO_PERMITIDO).cargar ? formEvento(c, f.volver) : null,
+      (f.permisos ?? TODO_PERMITIDO).revisar ? formRevisar(c.riskId, 'transferencia', c.id, f.volver) : null))

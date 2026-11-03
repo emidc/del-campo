@@ -5,13 +5,19 @@
 // el autor de lo que se registra. Vuelve a la página con `?ok=` o `?error=`: una regla que no se
 // cumple trae su motivo; cualquier otra falla, un mensaje fijo. En los dos casos el caso de uso
 // revirtió su transacción y no quedó nada escrito.
+//
+// Con AUTH_MODE=oidc (la sesión trae rol) cada operación deja además su evento en
+// `evento_auditoria`, dentro de la transacción de la persona: la acción, el riesgo o la
+// organización y el resultado, sin el contenido. Un rechazo de la matriz queda como `denied`
+// con su motivo. En `legacy` no se escribe nada nuevo.
 
 import {
   altaAccion, altaCobertura, cambiarEstadoAccion, cargarReevaluacion, cerrarConReevaluacion, cerrarSinCambio, FACTORES, RechazoActualizacion,
-  registrarEficacia, registrarEventoPoliza, registrarNovedad, registrarOrdenPrevio, reordenar, revisar, VERSION_METODOLOGIA,
+  auditar, registrarEficacia, registrarEventoPoliza, registrarNovedad, registrarOrdenPrevio, reordenar, revisar, SinPermiso, VERSION_METODOLOGIA,
   type FactorPedido, type NombreFactor, type ObjetoRevisado, type Sesion,
 } from '@del-campo/risk'
 
+import { auditarSinPermiso } from './acceso.ts'
 import { NOT_FOUND, type Db } from './guard.ts'
 import { parseOrganizacion, parseRiesgo } from './handlers.ts'
 
@@ -57,11 +63,30 @@ const volver = (request: Request, ruta: string, aviso: { ok: string } | { error:
 
 const FALLA = 'la operación falló y se revirtió entera'
 
+/** Qué se audita de una operación en `oidc`: quién, qué y sobre qué; nunca el contenido. */
+interface Registro {
+  readonly db: Db
+  readonly sesion: Sesion
+  readonly accion: string
+  readonly tipoObjeto: 'riesgo' | 'organizacion'
+  readonly idObjeto: string
+}
+
 /** Corre la operación y vuelve a la página con su resultado. */
-const responder = async (request: Request, ruta: string, op: () => Promise<string>): Promise<Response> => {
+const responder = async (request: Request, ruta: string, registro: Registro, op: () => Promise<string>): Promise<Response> => {
+  const { db, sesion } = registro
+  const conRol = sesion.rol !== undefined
   try {
-    return volver(request, ruta, { ok: await op() })
+    const mensaje = await op()
+    if (conRol) {
+      await auditar(db, {
+        actor: sesion.personaId, origen: 'app', accion: registro.accion, tipoObjeto: registro.tipoObjeto, idObjeto: registro.idObjeto,
+        resultado: 'ok', motivo: null,
+      })
+    }
+    return volver(request, ruta, { ok: mensaje })
   } catch (e) {
+    if (e instanceof SinPermiso && conRol) await auditarSinPermiso(db, sesion.personaId, e)
     if (e instanceof RechazoActualizacion) return volver(request, ruta, { error: e.message })
     console.error('risk: actualización fallida', e instanceof Error ? e.name : typeof e)
     return volver(request, ruta, { error: FALLA })
@@ -92,10 +117,11 @@ export const actualizarRiesgoResponse = async (request: Request, sesion: Sesion,
   const ruta = volverA(c?.texto('volver') ?? '', `/r/${riskId}`)
   if (c === null) return volver(request, ruta, { error: 'el formulario no se pudo leer' })
   const t = c.texto
+  const registro: Registro = { db, sesion, accion: `riesgo.${t('op')}`, tipoObjeto: 'riesgo', idObjeto: riskId }
   switch (t('op')) {
     case 'novedad': {
       const destino = t('destino')
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         const r = await registrarNovedad(db, sesion, {
           riskId, tipo: t('tipo'), texto: t('texto'), evidencia: t('evidencia'),
           accionId: destino.startsWith('ACC-') ? destino : null, transferenciaId: destino.startsWith('TRF-') ? destino : null,
@@ -104,7 +130,7 @@ export const actualizarRiesgoResponse = async (request: Request, sesion: Sesion,
       })
     }
     case 'alta_accion':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await altaAccion(db, sesion, {
           riskId, tipoRegistro: t('tipo_registro'), descripcion: t('descripcion'), factorObjetivo: c.todos('factor_objetivo'),
           mecanismoCausal: t('mecanismo_causal'), cambioEsperado: t('cambio_esperado'), decision: opcional(t('decision')), fundamento: t('fundamento'),
@@ -113,19 +139,19 @@ export const actualizarRiesgoResponse = async (request: Request, sesion: Sesion,
         return 'Alta registrada.'
       })
     case 'estado':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         const r = await cambiarEstadoAccion(db, sesion, {
           accionId: t('accion'), estado: t('estado'), comentario: t('comentario'), evidencia: t('evidencia'), fechaCumplida: t('fecha_cumplida'),
         })
         return r.revisionId === null ? 'Estado registrado.' : 'Acción cumplida; se abrió una revisión pendiente.'
       })
     case 'eficacia':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await registrarEficacia(db, sesion, { accionId: t('accion'), efecto: t('efecto'), nota: t('nota'), evaluacionId: t('evaluacion') })
         return 'Eficacia registrada.'
       })
     case 'reevaluacion':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await cargarReevaluacion(db, sesion, {
           riskId, motivo: t('motivo'), accionId: opcional(t('accion')), fecha: t('fecha'), factores: factores(c), base: t('base'), evidencia: t('evidencia'),
           uncertainty: t('uncertainty'), uncertaintyNota: t('uncertainty_nota'), necesidadValidacion: t('necesidad_validacion'),
@@ -137,23 +163,23 @@ export const actualizarRiesgoResponse = async (request: Request, sesion: Sesion,
     case 'revisar': {
       const objeto = OBJETO[t('objeto')]
       if (objeto === undefined) return volver(request, ruta, { error: 'no se sabe qué revisar' })
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await revisar(db, sesion, objeto(t('id')), t('estado'))
         return 'Revisión registrada.'
       })
     }
     case 'cerrar':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         const r = await cerrarConReevaluacion(db, sesion, { revisionId: t('revision'), evaluacionId: t('evaluacion') })
         return r.aceptada ? 'Reevaluación aceptada y revisión cerrada.' : 'Revisión cerrada.'
       })
     case 'sin_cambio':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await cerrarSinCambio(db, sesion, { revisionId: t('revision'), fundamento: t('fundamento') })
         return 'Revisión cerrada sin cambio.'
       })
     case 'alta_cobertura':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await altaCobertura(db, sesion, {
           riskId, polizaRef: t('poliza_ref'), cobertura: t('cobertura'), vigenciaDesde: t('vigencia_desde'), vigenciaHasta: t('vigencia_hasta'),
           limite: t('limite'), sublimite: t('sublimite'), sublimitesTexto: t('sublimites_texto'), deducible: t('deducible'),
@@ -164,7 +190,7 @@ export const actualizarRiesgoResponse = async (request: Request, sesion: Sesion,
         return 'Cobertura registrada.'
       })
     case 'evento':
-      return responder(request, ruta, async () => {
+      return responder(request, ruta, registro, async () => {
         await registrarEventoPoliza(db, sesion, {
           transferenciaId: t('transferencia'), tipo: t('tipo'), fecha: t('fecha'), monto: t('monto'), moneda: t('moneda'), nota: t('nota'),
           base: t('base'), evidencia: t('evidencia'),
@@ -184,7 +210,7 @@ export const reordenarResponse = async (request: Request, sesion: Sesion, db: Db
   const ruta = volverA(c?.texto('volver') ?? '', `/o/${encodeURIComponent(org)}`)
   if (c === null) return volver(request, ruta, { error: 'el formulario no se pudo leer' })
   const t = c.texto
-  return responder(request, ruta, async () => {
+  return responder(request, ruta, { db, sesion, accion: 'riesgo.reordenar', tipoObjeto: 'organizacion', idObjeto: org }, async () => {
     await reordenar(db, sesion, VERSION_METODOLOGIA, org, {
       tipo: t('tipo'), riskIdSube: opcional(t('sube')), riskIdBaja: opcional(t('baja')), riskId: opcional(t('riesgo')),
       posicion: numero(t('posicion')), banda: opcional(t('banda')), causa: t('causa'), fundamento: t('fundamento'), patron: t('patron'),
@@ -204,7 +230,7 @@ export const ordenPrevioResponse = async (request: Request, sesion: Sesion, db: 
     const riskId = n.slice(4)
     return { riskId, posicion: numero(c.texto(n)) ?? 0, banda: opcional(c.texto(`banda_${riskId}`)) }
   })
-  return responder(request, ruta, async () => {
+  return responder(request, ruta, { db, sesion, accion: 'riesgo.orden_previo', tipoObjeto: 'organizacion', idObjeto: org }, async () => {
     await registrarOrdenPrevio(db, sesion, org, { materialRef: c.texto('material'), items })
     return 'Orden previo registrado.'
   })

@@ -311,13 +311,54 @@ const CASOS: Caso[] = [
   ['credencial_de_un_usuario', 'credencial', { persona_id: B.otraPersona }],
   ['credencial_hash_scrypt', 'credencial', { password_hash: 'contraseña-en-claro' }],
   ['login_fallido_huella_sha256', 'login_fallido', { usuario_huella: 'usuario-en-claro' }],
+
+  // Identidad, asignaciones y auditoría (T-0035, migración 0006).
+  ['rol_persona_persona_id_fkey', 'rol_persona', { persona_id: PERSONA_INEXISTENTE }],
+  ['rol_persona_rol', 'rol_persona', { rol: 'DIRECTOR' }],
+  ['rol_persona_autor_persona_id_fkey', 'rol_persona', { autor_persona_id: PERSONA_INEXISTENTE }],
+  ['invitacion_persona_id_fkey', 'invitacion', { persona_id: PERSONA_INEXISTENTE }],
+  ['invitacion_email', 'invitacion', { email: 'Con Mayúsculas@ejemplo.invalid' }],
+  ['invitacion_autor_persona_id_fkey', 'invitacion', { autor_persona_id: PERSONA_INEXISTENTE }],
+  ['invitacion_vence_despues', 'invitacion', { vence_en: '2000-01-01T00:00:00Z' }],
+  ['credencial_externa_proveedor', 'credencial_externa', { proveedor: 'github' }],
+  ['credencial_externa_sujeto', 'credencial_externa', { sujeto: '  ' }],
+  ['credencial_externa_identidad_unica', 'credencial_externa', { sujeto: 'sujeto-de-la-base' }],
+  ['credencial_externa_una_por_invitacion', 'credencial_externa', async (tx) => {
+    // La invitación de `otraPersona` ya la consumió su credencial: otra persona no la reusa.
+    const tercera = nuevoId('PER')
+    await insertar(tx, 'persona', fila('persona', { id: tercera }))
+    const f = fila('credencial_externa')
+    await insertar(tx, 'credencial_externa', f)
+    await insertar(tx, 'credencial_externa', { ...f, persona_id: tercera, sujeto: 'otro-sujeto' })
+  }],
+  ['credencial_externa_una_por_persona', 'credencial_externa', async (tx) => {
+    // `persona` ya entra con Google: una invitación nueva no le agrega otra cuenta.
+    await insertar(tx, 'invitacion', fila('invitacion', { persona_id: B.persona }))
+    const [i] = await tx<{ id: string }[]>`select max(id)::text as id from risk.invitacion`
+    await insertar(tx, 'credencial_externa', fila('credencial_externa', { persona_id: B.persona, invitacion_id: Number(i?.id) }))
+  }],
+  ['credencial_externa_de_su_invitacion', 'credencial_externa', async (tx) => {
+    // La invitación es de `otraPersona`: no vincula a una tercera.
+    const tercera = nuevoId('PER')
+    await insertar(tx, 'persona', fila('persona', { id: tercera }))
+    await insertar(tx, 'credencial_externa', fila('credencial_externa', { persona_id: tercera }))
+  }],
+  ['asignacion_persona_id_fkey', 'asignacion', { persona_id: PERSONA_INEXISTENTE }],
+  ['asignacion_autor_persona_id_fkey', 'asignacion', { autor_persona_id: PERSONA_INEXISTENTE }],
+  ['evento_auditoria_actor_persona_id_fkey', 'evento_auditoria', { actor_persona_id: PERSONA_INEXISTENTE }],
+  ['evento_auditoria_origen', 'evento_auditoria', { origen: 'web' }],
+  ['evento_auditoria_accion', 'evento_auditoria', { accion: 'Riesgo consultado con el texto de la novedad' }],
+  ['evento_auditoria_tipo_objeto', 'evento_auditoria', { tipo_objeto: 'Riesgo' }],
+  ['evento_auditoria_id_objeto', 'evento_auditoria', { id_objeto: '' }],
+  ['evento_auditoria_resultado', 'evento_auditoria', { resultado: 'tal vez' }],
+  ['evento_auditoria_motivo', 'evento_auditoria', { resultado: 'denied', motivo: 'no tenía permiso' }],
 ]
 
 const TABLAS: Tabla[] = [
   'persona', 'registro_acceso', 'riesgo', 'miembro_escenario', 'accion', 'evaluacion', 'accion_estado',
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
-  'usuario', 'credencial', 'login_fallido',
+  'usuario', 'credencial', 'login_fallido', 'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */

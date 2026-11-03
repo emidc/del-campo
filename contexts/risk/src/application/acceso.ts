@@ -7,6 +7,7 @@
 
 import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 
+import type { RolInterno } from '../domain/permisos.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import {
   bloquearIntentos, credencialDePersona, credencialDeUsuario, fallidosRecientes, registrarAcceso, registrarFallido,
@@ -93,6 +94,11 @@ export interface Sesion {
   readonly nombre: string
   /** La credencial con que entró: si deja de ser la vigente, la sesión deja de valer. */
   readonly credencialId: string
+  /**
+   * El rol, sólo con AUTH_MODE=oidc (T-0035): lo resuelve la base en cada request y con él los
+   * casos de uso aplican la matriz de `domain/permisos.ts`. Sin rol (`legacy`), todo como antes.
+   */
+  readonly rol?: RolInterno
 }
 
 /**

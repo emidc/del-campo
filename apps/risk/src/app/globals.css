@@ -87,9 +87,10 @@ dl.datos dt { font-size: 0.75rem; color: var(--muted); }
 dl.datos dd { margin: 0; }
 .hipotesis .rotulo { font-size: 0.75rem; color: var(--warn); background: var(--warn-bg); padding: 0 4px; border-radius: 4px; }
 
-form.login { max-width: 360px; margin: 64px auto; display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+form.login, div.login { max-width: 360px; margin: 64px auto; display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
 form.login label { display: flex; flex-direction: column; gap: 4px; }
 input, select, button { font: inherit; padding: 6px 8px; }
+a.boton { align-self: flex-start; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); text-decoration: none; }
 
 /* Formularios de la actualización (T-0031): cerrados por defecto, para que la lectura siga primero. */
 details.formulario { margin: 8px 0; }

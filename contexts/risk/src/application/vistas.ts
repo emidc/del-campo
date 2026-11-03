@@ -5,6 +5,11 @@
 //
 // El plan de acción, la transferencia y la actividad no muestran ranking, bandas ni `C_raw`, y
 // no se registran como vistas con resultados.
+//
+// Con AUTH_MODE=oidc (T-0035) la sesión trae un rol: todas las vistas de una organización piden
+// `riesgo.ver_resultados` y, a un Revisor, su orden previo de esa organización. Sin él, la base
+// tampoco le entrega las evaluaciones (`authz_ve_resultados`, 0006): sin este chequeo, la vista
+// se armaría incompleta en vez de explicar por qué no se muestra.
 
 import {
   armarActividad, armarDetalle, armarEscenarios, armarLista, armarPlan, armarTransferencia,
@@ -14,7 +19,9 @@ import type { VersionFunciones } from '../domain/modelo.ts'
 import { registrarAcceso } from '../persistence/acceso.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import { leerOrganizacion, leerOrganizaciones, organizacionDeRiesgo, type Organizacion } from '../persistence/vistas.ts'
+import { exigirPermiso } from '../domain/permisos.ts'
 import type { Sesion } from './acceso.ts'
+import { exigirResultados } from './actualizacion.ts'
 
 type Db = Sql | TransactionSql
 
@@ -27,7 +34,10 @@ const conResultados = async (db: Db, sesion: Sesion, organizacionId: string, vis
 }
 
 /** Las organizaciones con riesgos y cuántos objetos tiene cada una. No es una vista con resultados. */
-export const organizaciones = async (db: Db, _sesion: Sesion): Promise<Organizacion[]> => leerOrganizaciones(db)
+export const organizaciones = async (db: Db, sesion: Sesion): Promise<Organizacion[]> => {
+  exigirPermiso(sesion.rol, 'riesgo.consultar')
+  return leerOrganizaciones(db)
+}
 
 /** Lista por organización con seguridad, no evaluables y cola; `null` si la organización o la unidad no existen. */
 export const vistaLista = async (
@@ -36,6 +46,7 @@ export const vistaLista = async (
   const d = await leerOrganizacion(db, organizacionId)
   if (d === null) return null
   if (unidad !== null && !d.riesgos.some((r) => r.unidadId === unidad)) return null
+  await exigirResultados(db, sesion, organizacionId)
   const vista = armarLista(version, d, unidad)
   await conResultados(db, sesion, organizacionId, 'lista')
   return vista
@@ -44,6 +55,7 @@ export const vistaLista = async (
 export const vistaEscenarios = async (db: Db, sesion: Sesion, version: VersionFunciones, organizacionId: string): Promise<VistaEscenarios | null> => {
   const d = await leerOrganizacion(db, organizacionId)
   if (d === null) return null
+  await exigirResultados(db, sesion, organizacionId)
   const vista = armarEscenarios(version, d)
   await conResultados(db, sesion, organizacionId, 'escenarios')
   return vista
@@ -55,24 +67,31 @@ export const vistaDetalle = async (db: Db, sesion: Sesion, version: VersionFunci
   if (organizacionId === null) return null
   const d = await leerOrganizacion(db, organizacionId)
   if (d === null) return null
+  await exigirResultados(db, sesion, organizacionId)
   const vista = armarDetalle(version, d, riskId)
   await conResultados(db, sesion, organizacionId, 'detalle')
   return vista
 }
 
-export const vistaPlan = async (db: Db, _sesion: Sesion, organizacionId: string): Promise<VistaPlan | null> => {
+export const vistaPlan = async (db: Db, sesion: Sesion, organizacionId: string): Promise<VistaPlan | null> => {
   const d = await leerOrganizacion(db, organizacionId)
-  return d === null ? null : armarPlan(d)
+  if (d === null) return null
+  await exigirResultados(db, sesion, organizacionId)
+  return armarPlan(d)
 }
 
 export const vistaTransferencia = async (
-  db: Db, _sesion: Sesion, version: VersionFunciones, organizacionId: string,
+  db: Db, sesion: Sesion, version: VersionFunciones, organizacionId: string,
 ): Promise<VistaTransferencia | null> => {
   const d = await leerOrganizacion(db, organizacionId)
-  return d === null ? null : armarTransferencia(version, d)
+  if (d === null) return null
+  await exigirResultados(db, sesion, organizacionId)
+  return armarTransferencia(version, d)
 }
 
-export const vistaActividad = async (db: Db, _sesion: Sesion, organizacionId: string): Promise<VistaActividad | null> => {
+export const vistaActividad = async (db: Db, sesion: Sesion, organizacionId: string): Promise<VistaActividad | null> => {
   const d = await leerOrganizacion(db, organizacionId)
-  return d === null ? null : armarActividad(d)
+  if (d === null) return null
+  await exigirResultados(db, sesion, organizacionId)
+  return armarActividad(d)
 }

@@ -12,7 +12,9 @@ import {
   vistaTransferencia, type Sesion,
 } from '@del-campo/risk'
 
+import { cookiesDeSalida } from './entrada.ts'
 import { FOREIGN_ORIGIN, json, NOT_CONFIGURED, NOT_FOUND, sameOrigin, type Db } from './guard.ts'
+import { modoAcceso } from './modo.ts'
 import { configFromEnv, issueSession, SESSION_COOKIE, sessionCookieHeader, type Env } from './sesion.ts'
 
 /** Un id de organización o de unidad es opaco (D-0067): texto corto, sin controles. */
@@ -81,6 +83,8 @@ const redirectTo = (request: Request, path: string, cookie?: string): Response =
 
 /** Formulario de login. Sin configuración, 503: no hay modo abierto. */
 export const loginResponse = async (request: Request, env: Env, db: () => Db): Promise<Response> => {
+  // Con AUTH_MODE=oidc la contraseña no entra: un solo método vivo (T-0035).
+  if (modoAcceso(env.AUTH_MODE) === 'oidc') return json({ error: 'no disponible' }, 404)
   const result = configFromEnv(env)
   if (!result.ok) return NOT_CONFIGURED()
   if (!sameOrigin(request)) return FOREIGN_ORIGIN()
@@ -102,7 +106,10 @@ export const loginResponse = async (request: Request, env: Env, db: () => Db): P
   return redirectTo(request, '/', sessionCookieHeader(cookie, request.url))
 }
 
-export const logoutResponse = (request: Request): Response => {
+/** Borra la cookie de usuario y contraseña y, si el modo `oidc` está configurado, la de Google. */
+export const logoutResponse = (request: Request, env: Env = process.env): Response => {
   if (!sameOrigin(request)) return FOREIGN_ORIGIN()
-  return redirectTo(request, '/login', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`)
+  const response = redirectTo(request, '/login', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`)
+  for (const cookie of cookiesDeSalida(env)) response.headers.append('set-cookie', cookie)
+  return response
 }

@@ -16,8 +16,16 @@ export interface Verificacion {
   readonly atributos: readonly string[]
   /** Tablas de `risk` de las que el rol es dueño, o miembro del dueño: puede desactivar los triggers. */
   readonly duenoDe: number
-  /** Roles de los que es miembro, aun sin heredar: con `SET ROLE` tendría sus privilegios. */
+  /**
+   * Roles de los que es miembro, aun sin heredar: con `SET ROLE` tendría sus privilegios. No
+   * cuenta `risk_persona` (T-0035) si es seguro asumirlo: ver `restringidoInseguro`.
+   */
   readonly miembroDe: readonly string[]
+  /**
+   * `risk_persona`, el rol de AUTH_MODE=oidc, tiene que estar sujeto a RLS y no ser dueño de
+   * nada; si no, ser su miembro sería como ser miembro de cualquier otro rol.
+   */
+  readonly restringidoInseguro: readonly string[]
   /** `tabla privilegio` que el rol no debería tener: UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER. */
   readonly privilegiosDeMas: readonly string[]
   /** Tablas de `risk` (salvo el ledger) en las que el rol no puede leer o insertar. */
@@ -32,6 +40,8 @@ export interface Verificacion {
 }
 
 const CATALOGO = ['pg_catalog', 'information_schema', 'pg_toast']
+/** El rol restringido de AUTH_MODE=oidc (T-0035, migración 0006). */
+const ROL_RESTRINGIDO = 'risk_persona'
 
 export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificacion> => {
   const [r] = await db<{ rol: string; atributos: string[] }[]>`
@@ -54,7 +64,17 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
   // 'member' y no 'usage': un rol NOINHERIT no hereda los privilegios, pero con SET ROLE los toma.
   const miembro = await db<{ rol: string }[]>`
     select rolname as rol from pg_roles
-    where rolname <> current_user and pg_has_role(current_user, oid, 'member') order by rolname`
+    where rolname <> current_user and rolname <> ${ROL_RESTRINGIDO} and pg_has_role(current_user, oid, 'member') order by rolname`
+  const restringido = await db<{ problema: string }[]>`
+    select unnest(array_remove(array[
+      case when r.rolsuper or r.rolbypassrls then 'salta RLS' end,
+      case when r.rolcanlogin then 'puede entrar' end,
+      case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                        where n.nspname = 'risk' and c.relowner = r.oid) then 'es dueño de tablas de risk' end,
+      case when exists (select 1 from pg_auth_members m where m.member = r.oid) then 'es miembro de otro rol' end,
+      case when exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                        where n.nspname = 'risk' and c.relkind = 'r' and not c.relrowsecurity) then 'hay tablas de risk sin RLS' end], null)) as problema
+    from pg_roles r where r.rolname = ${ROL_RESTRINGIDO}`
   const [crea] = await db<{ crea: boolean }[]>`select coalesce(has_schema_privilege('risk', 'create'), false) as crea`
   const fuera = await db<{ esquema: string; n: number }[]>`
     select n.nspname as esquema, count(*)::int as n
@@ -74,6 +94,7 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
     atributos: r?.atributos ?? [],
     duenoDe: tablas.filter((t) => t.dueno).length,
     miembroDe: miembro.map((m) => m.rol),
+    restringidoInseguro: restringido.map((r) => r.problema),
     privilegiosDeMas: tablas.flatMap((t) => t.demas.map((p) => `${t.tabla} ${p}`)),
     faltan: tablas.filter((t) => t.tabla !== 'schema_migrations' && !(t.sel && t.ins)).map((t) => t.tabla),
     creaEnRisk: crea?.crea ?? false,
@@ -93,6 +114,7 @@ export const puntosVerificacion = (v: Verificacion): { readonly punto: string; r
     { punto: 'sin atributos de administración', cumple: v.atributos.length === 0, detalle: lista(v.atributos) },
     { punto: 'no es dueño de ninguna tabla de risk', cumple: v.duenoDe === 0, detalle: `dueño de ${String(v.duenoDe)}` },
     { punto: 'no es miembro de ningún otro rol', cumple: v.miembroDe.length === 0, detalle: lista(v.miembroDe) },
+    { punto: 'risk_persona, si existe, está sujeto a RLS y no es dueño de nada', cumple: v.restringidoInseguro.length === 0, detalle: lista(v.restringidoInseguro) },
     { punto: 'sin UPDATE, DELETE, TRUNCATE, REFERENCES ni TRIGGER en risk', cumple: v.privilegiosDeMas.length === 0, detalle: lista(v.privilegiosDeMas) },
     { punto: 'lee e inserta en cada tabla de risk', cumple: v.faltan.length === 0, detalle: `le falta: ${lista(v.faltan)}` },
     { punto: 'no crea objetos en risk', cumple: !v.creaEnRisk, detalle: v.creaEnRisk ? 'puede crear' : 'no puede' },

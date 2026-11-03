@@ -1,10 +1,9 @@
-import { vistaPlan } from '@del-campo/risk'
+import { SinPermiso, vistaPlan } from '@del-campo/risk'
 import { notFound } from 'next/navigation'
 
 import { parseOrganizacion } from '../../../../lib/handlers.ts'
 import { requireSession } from '../../../../lib/page-guard.ts'
-import { database } from '../../../../lib/server.ts'
-import { avisoDe } from '../../../../vistas/comun.ts'
+import { avisoDe, PaginaSinAcceso, permisosDe } from '../../../../vistas/comun.ts'
 import { PaginaPlan } from '../../../../vistas/organizacion.ts'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +15,8 @@ export default async function Plan({ params, searchParams }: {
   const sesion = await requireSession()
   const org = parseOrganizacion((await params).org)
   if (org === null) notFound()
-  const vista = await vistaPlan(database(), sesion, org)
+  const vista = await sesion.datos((db, s) => vistaPlan(db, s, org))
+  if (vista instanceof SinPermiso) return PaginaSinAcceso(vista.message, sesion.nombre, org)
   if (vista === null) notFound()
-  return PaginaPlan(vista, sesion.nombre, avisoDe(await searchParams))
+  return PaginaPlan(vista, sesion.nombre, avisoDe(await searchParams), permisosDe(sesion.rol))
 }

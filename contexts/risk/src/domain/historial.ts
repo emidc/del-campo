@@ -37,6 +37,11 @@ export const TABLAS_DEL_HISTORIAL: Readonly<Record<string, { readonly entra: Tab
   registro_acceso: { fuera: 'quién vio qué (A8a), no un cambio de un riesgo' },
   login_fallido: { fuera: 'intentos de login fallidos (D-0069, T-0032), no un cambio de un riesgo' },
   lote_importacion: { fuera: 'el lote de cada fila importada ya va en su entrada (`importación <lote>`)' },
+  rol_persona: { fuera: 'el rol de una persona en AUTH_MODE=oidc (T-0035), no un cambio de un riesgo' },
+  invitacion: { fuera: 'invitaciones de acceso (D-0072), no un cambio de un riesgo' },
+  credencial_externa: { fuera: 'credenciales de acceso (D-0077), no un cambio de un riesgo' },
+  asignacion: { fuera: 'qué organizaciones ve cada persona (D-0027), no un cambio de un riesgo' },
+  evento_auditoria: { fuera: 'la auditoría de T-0035 registra quién intentó qué; el cambio de un riesgo ya está en su tabla' },
   schema_migrations: { fuera: 'el ledger de migraciones del esquema, no un dato de Risk OS' },
 }
 

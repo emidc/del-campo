@@ -10,6 +10,8 @@ import type {
 import {
   cabeceraBanderas, cabeceraVector, calculado, celdasBanderas, celdasVector, corto, enlaceRiesgo, evaluacionUsada, h, marco, seccion, tabla,
   th, vacio, type Aviso,
+  TODO_PERMITIDO,
+  type Permisos,
 } from './comun.ts'
 import { bloqueAccion, bloqueCobertura } from './registros.ts'
 
@@ -40,18 +42,18 @@ export const PaginaEscenarios = (v: VistaEscenarios, persona: string): ReactElem
 
 const conAviso = (a: Aviso | undefined): { aviso?: Aviso } => (a === undefined ? {} : { aviso: a })
 
-const riesgoEnPlan = (volver: string) => (r: RiesgoEnPlan): ReactElement =>
+const riesgoEnPlan = (volver: string, permisos: Permisos) => (r: RiesgoEnPlan): ReactElement =>
   h('section', { className: 'riesgo', 'data-risk-id': r.riskId },
     h('h3', null, enlaceRiesgo(r.riskId, r.titulo, r.idOrigen)),
-    ...r.acciones.map((a) => bloqueAccion(a, { volver })))
+    ...r.acciones.map((a) => bloqueAccion(a, { volver, permisos })))
 
-export const PaginaPlan = (v: VistaPlan, persona: string, avisoDePagina?: Aviso): ReactElement => {
+export const PaginaPlan = (v: VistaPlan, persona: string, avisoDePagina?: Aviso, permisos: Permisos = TODO_PERMITIDO): ReactElement => {
   const conAcciones = v.riesgos.filter((r) => r.acciones.length > 0)
   const volver = `/o/${encodeURIComponent(v.organizacionId)}/plan`
   return marco('Plan de acción', { organizacionId: v.organizacionId, activa: 'plan', persona, ...conAviso(avisoDePagina) },
     h('p', { className: 'muted' }, 'Muestra las acciones y decisiones de tratamiento registradas. No usa ninguna evaluación ni calcula nada: el cambio esperado es una hipótesis y la eficacia es la que observó una reevaluación.'),
     h('p', { className: 'muted' }, 'Una acción nueva y la eficacia de una cumplida se registran desde el detalle del riesgo, junto a sus reevaluaciones.'),
-    conAcciones.length === 0 ? vacio('No hay acciones ni decisiones registradas.') : h('div', null, ...conAcciones.map(riesgoEnPlan(volver))))
+    conAcciones.length === 0 ? vacio('No hay acciones ni decisiones registradas.') : h('div', null, ...conAcciones.map(riesgoEnPlan(volver, permisos))))
 }
 
 // ── Transferencia y actividad (§12, §13) ─────────────────────────────────────
@@ -61,7 +63,9 @@ const ACTIVIDAD: Readonly<Record<string, string>> = {
   revision_pendiente: 'Revisión pendiente', cierre_revision: 'Cierre de revisión', novedad: 'Novedad',
 }
 
-export const PaginaTransferencia = (t: VistaTransferencia, a: VistaActividad, persona: string, avisoDePagina?: Aviso): ReactElement =>
+export const PaginaTransferencia = (
+  t: VistaTransferencia, a: VistaActividad, persona: string, avisoDePagina?: Aviso, permisos: Permisos = TODO_PERMITIDO,
+): ReactElement =>
   marco('Transferencia y actividad', { organizacionId: t.organizacionId, activa: 'transferencia', persona, ...conAviso(avisoDePagina) },
     seccion('Transferencia',
       calculado(t.version, 'Límite disponible'),
@@ -69,7 +73,7 @@ export const PaginaTransferencia = (t: VistaTransferencia, a: VistaActividad, pe
       t.riesgos.length === 0 ? vacio('No hay coberturas registradas.') : h('div', null, ...t.riesgos.map((r) =>
         h('section', { className: 'riesgo', 'data-risk-id': r.riskId },
           h('h3', null, enlaceRiesgo(r.riskId, r.titulo, r.idOrigen)),
-          ...r.coberturas.map((c) => bloqueCobertura(c, { volver: `/o/${encodeURIComponent(t.organizacionId)}/transferencia` })))))),
+          ...r.coberturas.map((c) => bloqueCobertura(c, { volver: `/o/${encodeURIComponent(t.organizacionId)}/transferencia`, permisos })))))),
     seccion('Actividad',
       h('p', { className: 'muted' }, 'Lo registrado en la organización, de lo más nuevo a lo más viejo. No calcula nada.'),
       a.items.length === 0 ? vacio('Sin actividad registrada.') :
@@ -86,7 +90,7 @@ const BANDAS_PREVIO = ['Baja', 'Media', 'Alta', 'Crítica']
  * El material ciego: los riesgos y padres de la empresa con su identidad, en orden de origen, sin
  * ranking, bandas, `C_raw` ni factores. La persona escribe su posición y, si quiere, su banda.
  */
-export const PaginaOrdenPrevio = (p: PantallaOrdenPrevio, persona: string, avisoDePagina?: Aviso): ReactElement =>
+export const PaginaOrdenPrevio = (p: PantallaOrdenPrevio, persona: string, avisoDePagina?: Aviso, permisos: Permisos = TODO_PERMITIDO): ReactElement =>
   marco('Orden previo del revisor', { organizacionId: p.organizacionId, activa: 'orden-previo', persona, ...conAviso(avisoDePagina) },
     h('p', { className: 'muted' }, 'Tu orden profesional de esta empresa, escrito antes de ver resultados. Esta pantalla no muestra ranking, bandas ni criticidad, y no cuenta como acceso a resultados.'),
     p.registrado !== null
@@ -96,6 +100,8 @@ export const PaginaOrdenPrevio = (p: PantallaOrdenPrevio, persona: string, aviso
           const o = p.objetos.find((x) => x.riskId === i.riskId)
           return h('tr', { 'data-orden-previo': i.riskId }, h('td', null, String(i.posicion)), h('td', null, o === undefined ? i.riskId : `${o.idOrigen ?? ''} ${o.titulo}`.trim()), h('td', null, i.banda ?? '—'))
         })))
+      : !permisos.ordenPrevio
+        ? h('p', { className: 'muted', 'data-orden-previo-ajeno': '' }, 'El orden previo ciego lo registra el Revisor profesional.')
       : p.vioResultados
         ? h('p', { className: 'aviso', 'data-orden-previo-cerrado': '' }, 'Ya accediste a resultados de esta empresa: un orden registrado ahora no sería previo (A8a).')
         : h('form', { method: 'post', action: `/api/o/${encodeURIComponent(p.organizacionId)}/orden-previo`, 'data-formulario': 'orden-previo' },

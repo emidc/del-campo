@@ -59,6 +59,12 @@ export const insertar = async (tx: TransactionSql, tabla: TablaActualizacion, fi
   await tx`insert into ${tx(`risk.${tabla}`)} ${tx(parametros)}`
 }
 
+/** Quién escribió una evaluación, una acción o una cobertura desde una sesión; `null` si vino de una importación. */
+export const autorDe = async (tx: Db, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string): Promise<string | null> => {
+  const [f] = await tx<{ autor: string | null }[]>`select autor_persona_id as autor from ${tx(`risk.${tabla}`)} where id = ${id}`
+  return f?.autor ?? null
+}
+
 /** La organización de un riesgo, su tipo y si existe. */
 export const riesgo = async (tx: Db, riskId: string): Promise<{ organizacionId: string; tipoObjeto: string } | null> => {
   const [f] = await tx<{ organizacion_id: string; tipo_objeto: string }[]>`select organizacion_id, tipo_objeto from risk.riesgo where id = ${riskId}`

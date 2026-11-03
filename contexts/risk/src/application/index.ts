@@ -63,6 +63,19 @@ export {
 } from './vistas.ts'
 // Acceso por persona (D-0069): la sesión es la identidad que la app pasa a todo lo demás.
 export { iniciarSesion, LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, sesionVigente, type Sesion } from './acceso.ts'
+// T-0035: identidad común con AUTH_MODE=oidc. La matriz de permisos y sus explicaciones; la
+// admisión en la base (`ingresar` al volver de Google, `conPrincipal` en cada request) y la
+// auditoría. La regla de login la decide la app con `@del-campo/identidad`.
+export {
+  ACCIONES, EXPLICACION, exigirPermiso, puede, ROLES, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO,
+  type AccionRisk, type RolInterno,
+} from '../domain/permisos.ts'
+export {
+  afirmarRestringida, auditar, conPrincipal, ingresar, ROL_RESTRINGIDO,
+  type CredencialEncontrada, type DecisionLogin, type EventoDeAuditoria, type IdentidadDeLogin, type InvitacionEncontrada,
+  type MotivoDenegado, type PrincipalRisk, type ResultadoPrincipal,
+} from '../persistence/identidad.ts'
+export { asignar, cambiarRol, darDeBaja, invitar, type Invitacion, type RechazoAdmin, type ResultadoAdmin } from './accesos.ts'
 // Operación de la base y carga de lotes: los usa la app en sus tests de integración y T-0032.
 export { migrate } from '../persistence/migrations.ts'
 export { importarLote, leerArchivosDeLote, leerContrato } from './importar.ts'

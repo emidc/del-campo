@@ -10,7 +10,7 @@
 
 import { createElement, type ReactElement, type ReactNode } from 'react'
 
-import type { Banderas, EvaluacionUsada, FactorVista, NombreFactor, Procedencia, RevisionRegistrada } from '@del-campo/risk'
+import { puede, type Banderas, type EvaluacionUsada, type FactorVista, type NombreFactor, type Procedencia, type RevisionRegistrada, type RolInterno } from '@del-campo/risk'
 
 type Props = Record<string, string | number | boolean | undefined | null>
 
@@ -101,6 +101,33 @@ export const avisoDe = (q: { ok?: string | string[] | undefined; error?: string 
   ok: typeof q.ok === 'string' ? q.ok.slice(0, 300) : undefined,
   error: typeof q.error === 'string' ? q.error.slice(0, 300) : undefined,
 })
+
+/**
+ * Qué formularios ve la persona (T-0035): sólo los de las acciones que su rol puede hacer. Con
+ * `legacy` no hay rol y se ven todos, como antes. Es la explicación de la interfaz: el servidor
+ * rechaza igual la acción, en la app y en la base.
+ */
+export interface Permisos {
+  readonly cargar: boolean
+  readonly revisar: boolean
+  readonly reordenar: boolean
+  readonly ordenPrevio: boolean
+}
+
+export const TODO_PERMITIDO: Permisos = { cargar: true, revisar: true, reordenar: true, ordenPrevio: true }
+
+export const permisosDe = (rol: RolInterno | undefined): Permisos =>
+  rol === undefined ? TODO_PERMITIDO : {
+    cargar: puede(rol, 'riesgo.cargar'),
+    revisar: puede(rol, 'riesgo.revisar'),
+    reordenar: puede(rol, 'riesgo.reordenar'),
+    ordenPrevio: puede(rol, 'riesgo.orden_previo'),
+  }
+
+/** Una página sin datos para una acción o una vista que el rol no puede ver: dice quién sí. */
+export const PaginaSinAcceso = (motivo: string, persona: string, organizacionId?: string): ReactElement =>
+  marco('Sin acceso', { persona, ...(organizacionId === undefined ? {} : { organizacionId }) },
+    h('p', { className: 'aviso', 'data-sin-acceso': '' }, motivo))
 
 export interface Navegacion {
   readonly organizacionId?: string

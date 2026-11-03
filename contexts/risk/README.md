@@ -59,6 +59,8 @@ recálculo, es un error y no un dato.
 | `orden_previo`, `orden_previo_item` | Orden y bandas del revisor por empresa, antes de ver resultados (decisión 6). |
 | `reordenamiento`, `reordenamiento_vigente` | Reordenamiento profesional con causa y las evaluaciones con que se calculó el orden (decisión 5). |
 | (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, una reevaluación cierra una sola, y la que cerró una revisión no pasa después a `rejected` ni a `needs_revision`; el orden previo va antes del primer acceso a resultados, sin posiciones repetidas. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
+| `rol_persona`, `invitacion`, `credencial_externa`, `asignacion` | T-0035, sólo con `AUTH_MODE=oidc`: el rol vigente de cada persona (el último; nulo es la baja), las invitaciones, la identidad de Google vinculada a una persona y las organizaciones asignadas a cada una (D-0027). |
+| `evento_auditoria` | T-0035: quién hizo qué sobre qué y con qué resultado, sin contenido. |
 | `login_fallido` | Cada login fallido con la huella sha256 del usuario, para el límite de intentos (D-0069, T-0032). |
 | `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
@@ -134,6 +136,29 @@ Como el importador, apunta a `RISK_DATABASE_URL` o a `delcampo_risk_dev`, y sól
 sobre las dos bases locales. Una contraseña nueva o la baja dejan sin valor las sesiones
 abiertas: el guard de la app compara la credencial de la cookie con la vigente en cada
 request.
+
+### Con Google (T-0035, AUTH_MODE=oidc)
+
+Con `AUTH_MODE=oidc` la app no acepta contraseñas: entra con Google quien tiene una invitación,
+y los permisos salen de su rol y de sus organizaciones asignadas (matriz en
+`src/domain/permisos.ts`, aprobada por el owner el 2026-11-03; la misma regla en la base,
+migración 0006). Los administra el owner con otra CLI, también sin pantalla en la app:
+
+```bash
+# La primera Administradora, sin --actor; después, cada operación nombra a una Administradora activa
+pnpm --filter @del-campo/risk run acceso invitar --email x@… --rol ADMINISTRADOR --nombre "Nombre Apellido"
+# Una persona que ya usa Risk OS: por su id, para que conserve su autoría
+pnpm --filter @del-campo/risk run acceso invitar --actor PER-… --email y@… --rol OPERADOR --persona PER-…
+pnpm --filter @del-campo/risk run acceso asignar    --actor PER-… --persona PER-… --org <organización>
+pnpm --filter @del-campo/risk run acceso desasignar --actor PER-… --persona PER-… --org <organización>
+pnpm --filter @del-campo/risk run acceso rol        --actor PER-… --persona PER-… --rol REVISOR
+pnpm --filter @del-campo/risk run acceso baja       --actor PER-… --persona PER-…
+```
+
+Invitar no avisa a nadie: avisarle a la persona es una comunicación que hace un humano. Nunca
+queda sin Administrador activo. Cada operación queda en `evento_auditoria`, también si se
+rechaza, y la salida imprime ids y motivos, no emails ni nombres. Con `--hosteada` opera
+sobre la base de `RISK_HOSTED_DATABASE_URL`, con la aprobación del owner.
 
 ## Vistas
 
@@ -238,6 +263,7 @@ usuario.
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
 | integración, vistas | `src/application/vistas.integration.test.ts`, `acceso.integration.test.ts` | Las reglas 1 a 7 de RO01 §3 sobre las vistas de las 8 sintéticas: `C_raw` sólo en la criticidad del detalle; el ranking contra `rankingOrganizacion` y, en las organizaciones sin filas de la 15b, contra `regresion-emi41.csv`; el techo no mueve posiciones; el filtro por unidad las conserva; `unknown` sin valor; la evaluación usada y su rótulo; versiones; el registro de acceso; login, rotación y baja. |
 | integración, actualización | `src/application/actualizacion.integration.test.ts`, `historial.integration.test.ts`, `ciclos.integration.test.ts` | El ciclo de S07-R06 (15B-A01 cumplida, reevaluación, cierre) da lo mismo que `regresion-emi41.csv`; qué abre y qué no abre una revisión; rechazos; una falla inyectada después de cada escritura de cada operación no deja nada; orden previo, reordenamiento y cambio de versión; el historial contra las filas de la base, tabla por tabla; ninguna tabla sin razón; ningún `UPDATE` ni `DELETE` en el código; el conteo de A7. |
+| integración, autorización | `src/application/autorizacion.integration.test.ts` | T-0035: la matriz igual en la app y en la base, rol por rol; alcance por organización asignada; el Revisor sin resultados antes de su orden previo, en las dos capas; nadie revisa ni acepta lo propio, tampoco un Administrador; la persona de siempre conserva su id y su autoría; baja, cambio de rol y último Administrador; invitación usada una sola vez; auditoría; RLS en toda tabla y `risk_persona` sin BYPASSRLS ni login. |
 | integración, despliegue y aceptación | `src/application/rol-app.integration.test.ts`, `src/acceptance/*.test.ts`, `src/persistence/database.test.ts` | `risk_app` hace lo que la app necesita y nada más (UPDATE, DELETE, TRUNCATE, desactivar el trigger, crear, leer fuera de `risk`: 42501) y `db:verificar` lo distingue del administrativo; el modo hosteado; el ensayo completo cumple los criterios, lo que falta no, y el informe no tiene ningún texto de la base; el manifiesto y su línea de comandos no repiten contenido. |
 | integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |
 

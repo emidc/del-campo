@@ -33,8 +33,9 @@ import {
   type DatosOrganizacion, type EvaluacionRegistrada, type FactorRegistrado, type NombreFactor, type RiesgoRegistrado,
 } from '../domain/organizacion.ts'
 import { exigirReordenamiento, fotoOrdenCalculado, type PedidoReordenamiento } from '../domain/reordenamiento.ts'
+import { exigirPermiso, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO } from '../domain/permisos.ts'
 import {
-  ahora, bloquearOrganizacion, hoy, insertar, ordenPrevioDe, riesgo, riesgoDe, vioResultados,
+  ahora, autorDe, bloquearOrganizacion, hoy, insertar, ordenPrevioDe, riesgo, riesgoDe, vioResultados,
   type FilaNueva, type TablaActualizacion,
 } from '../persistence/actualizacion.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
@@ -102,7 +103,27 @@ async function operar<T>(db: Db, sesion: Sesion, organizacionId: string, op: Opc
 function restriccion(e: unknown): string | null {
   if (typeof e !== 'object' || e === null) return null
   const x = e as { code?: unknown; constraint_name?: unknown }
-  return typeof x.code === 'string' && x.code.startsWith('23') ? (typeof x.constraint_name === 'string' ? x.constraint_name : x.code) : null
+  if (typeof x.code !== 'string') return null
+  // 42501: una política de RLS rechazó la fila (T-0035). Se informa sin el detalle de la base.
+  if (x.code === '42501') return 'sin permiso'
+  return x.code.startsWith('23') ? (typeof x.constraint_name === 'string' ? x.constraint_name : x.code) : null
+}
+
+/**
+ * Un Revisor no ve ni opera sobre resultados de una organización hasta registrar su orden
+ * previo ciego de esa organización (RO01 §6, A8a; decisión del owner del 2026-11-03). La base
+ * lo exige igual (`authz_ve_resultados`, migración 0006): esto lo explica.
+ */
+export async function exigirResultados(db: Db, sesion: Sesion, organizacionId: string): Promise<void> {
+  exigirPermiso(sesion.rol, 'riesgo.ver_resultados')
+  if (sesion.rol === 'REVISOR' && (await ordenPrevioDe(db, sesion.personaId, organizacionId)) === null) {
+    throw new SinPermiso('riesgo.ver_resultados', SIN_ORDEN_PREVIO)
+  }
+}
+
+/** Nadie revisa ni acepta lo que escribió (T-0035). Con rol, es decir en `oidc`; la base lo exige igual. */
+async function exigirAjeno(tx: Db, sesion: Sesion, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string): Promise<void> {
+  if (sesion.rol !== undefined && (await autorDe(tx, tabla, id)) === sesion.personaId) throw new SinPermiso('riesgo.revisar', TRABAJO_PROPIO)
 }
 
 const organizacionDe = async (db: Db, riskId: string): Promise<string> => {
@@ -170,6 +191,7 @@ export interface PedidoNovedad {
 export async function registrarNovedad(
   db: Db, sesion: Sesion, p: PedidoNovedad, op: Opciones = {},
 ): Promise<{ novedadId: string; revisionId: string | null }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const tipo = enLista<TipoNovedad>(p.tipo, TIPOS_NOVEDAD, 'tipo de novedad')
   const texto = exigirTexto(p.texto, 'el texto de la novedad')
   const evidencia = referencias(p.evidencia)
@@ -215,6 +237,7 @@ export interface PedidoAccion {
 
 /** Alta de una acción (con su estado inicial) o de una decisión de tratamiento. No abre revisión. */
 export async function altaAccion(db: Db, sesion: Sesion, p: PedidoAccion, op: Opciones = {}): Promise<{ accionId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const tipo = enLista(p.tipoRegistro, ['accion', 'decision_tratamiento'] as const, 'tipo de registro')
   const descripcion = exigirTexto(p.descripcion, 'la descripción')
   const fechaAlta = fecha(p.fechaAlta, 'fecha de alta')
@@ -269,6 +292,7 @@ export interface PedidoEstadoAccion {
 export async function cambiarEstadoAccion(
   db: Db, sesion: Sesion, p: PedidoEstadoAccion, op: Opciones = {},
 ): Promise<{ novedadId: string; revisionId: string | null }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const estado = enLista<EstadoAccion>(p.estado, ESTADOS_ACCION, 'estado')
   const comentario = exigirTexto(p.comentario, 'el comentario del cambio')
   const cumplida = estado === 'cumplida'
@@ -306,6 +330,7 @@ export interface PedidoEficacia {
 
 /** Registra la eficacia de una acción cumplida, una vez, con la reevaluación que la midió. No abre revisión. */
 export async function registrarEficacia(db: Db, sesion: Sesion, p: PedidoEficacia, op: Opciones = {}): Promise<void> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const efecto = enLista(p.efecto, ['efecto_total', 'efecto_parcial', 'sin_efecto_medible'] as const, 'efecto')
   const nota = opcional(p.nota)
   if (efecto !== 'efecto_total' && nota === null) rechazar('un efecto parcial o sin efecto medible necesita su nota (RV-ACC-09)')
@@ -387,6 +412,7 @@ const contenidoDe = (e: EvaluacionRegistrada): ContenidoEvaluativo => ({
 })
 
 export async function cargarReevaluacion(db: Db, sesion: Sesion, p: PedidoReevaluacion, op: Opciones = {}): Promise<{ evaluacionId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const motivo = enLista(p.motivo, MOTIVOS, 'motivo')
   const accionId = opcional(p.accionId)
   if ((motivo === 'accion_ejecutada') !== (accionId !== null)) rechazar('una reevaluación por accion_ejecutada nombra su acción, y sólo esa (RV-EVA-04)')
@@ -451,12 +477,15 @@ export type ObjetoRevisado =
 export async function revisar(
   db: Db, sesion: Sesion, objeto: ObjetoRevisado, estado: string, op: Opciones = {},
 ): Promise<void> {
+  exigirPermiso(sesion.rol, 'riesgo.revisar')
   const e = enLista<EstadoRevisionHumana>(estado, ESTADOS_REVISION, 'estado de la revisión')
   exigirRevisor('human', e)
   const [tabla, id, columna] = 'evaluacionId' in objeto
     ? (['evaluacion', objeto.evaluacionId, 'evaluacion_id'] as const)
     : 'accionId' in objeto ? (['accion', objeto.accionId, 'accion_id'] as const) : (['transferencia', objeto.transferenciaId, 'transferencia_id'] as const)
   await operar(db, sesion, await organizacionDeObjeto(db, tabla, id), op, async (o) => {
+    await exigirResultados(o.tx, sesion, o.d.organizacionId)
+    await exigirAjeno(o.tx, sesion, tabla, id)
     // Lo que cerró una revisión no se desdice (migración 0004): se corrige con otra reevaluación.
     if (tabla === 'evaluacion' && e !== 'accepted' && o.d.revisionesPendientes.some((r) => r.cierre?.evaluacionId === id)) {
       rechazar('esta reevaluación cerró una revisión: para corregirla, cargá otra reevaluación')
@@ -486,10 +515,13 @@ const revisionAbierta = (d: DatosOrganizacion, revisionId: string) => {
 export async function cerrarConReevaluacion(
   db: Db, sesion: Sesion, p: { readonly revisionId: string; readonly evaluacionId: string }, op: Opciones = {},
 ): Promise<{ aceptada: boolean }> {
+  exigirPermiso(sesion.rol, 'riesgo.revisar')
   return operar(db, sesion, await organizacionDeObjeto(db, 'revision_pendiente', p.revisionId), op, async (o) => {
     const r = revisionAbierta(o.d, p.revisionId)
     const e = o.d.evaluaciones.find((x) => x.id === p.evaluacionId && x.riskId === r.riskId)
     if (e === undefined) rechazar(`${p.evaluacionId} no es una evaluación de este riesgo`)
+    await exigirResultados(o.tx, sesion, o.d.organizacionId)
+    await exigirAjeno(o.tx, sesion, 'evaluacion', e.id)
     const status = reviewStatusDe(e.revisiones)
     const motivo = porQueNoCierra(
       { disparador: r.disparador as Disparador, accionId: r.accionId, abiertaEn: r.abiertaEn },
@@ -516,9 +548,11 @@ export async function cerrarConReevaluacion(
 export async function cerrarSinCambio(
   db: Db, sesion: Sesion, p: { readonly revisionId: string; readonly fundamento: string }, op: Opciones = {},
 ): Promise<void> {
+  exigirPermiso(sesion.rol, 'riesgo.revisar')
   const fundamento = exigirFundamento(p.fundamento)
   await operar(db, sesion, await organizacionDeObjeto(db, 'revision_pendiente', p.revisionId), op, async (o) => {
     const r = revisionAbierta(o.d, p.revisionId)
+    await exigirResultados(o.tx, sesion, o.d.organizacionId)
     await o.escribir('cierre_revision', {
       revision_id: r.id, risk_id: r.riskId, resultado: 'sin_cambio', fundamento, cerrada_por: sesion.personaId, cerrada_en: await o.ahora(),
     })
@@ -554,6 +588,7 @@ const SUFICIENCIAS = ['suficiente', 'parcial', 'insuficiente', 'sin_cobertura', 
 
 /** Alta de una cobertura sobre un riesgo. Ninguna columna entra al cálculo (D17); no abre revisión. */
 export async function altaCobertura(db: Db, sesion: Sesion, p: PedidoCobertura, op: Opciones = {}): Promise<{ transferenciaId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const desde = fecha(p.vigenciaDesde, 'vigencia desde')
   const hasta = fecha(p.vigenciaHasta, 'vigencia hasta')
   if (hasta < desde) rechazar('la vigencia termina antes de empezar (RV-TRF-02)')
@@ -603,6 +638,7 @@ const TIPOS_EVENTO = ['firma', 'ampliacion', 'renovacion', 'consumo_limite', 've
  * No crea una reevaluación, no abre una revisión y no cambia ningún derivado del riesgo (D17).
  */
 export async function registrarEventoPoliza(db: Db, sesion: Sesion, p: PedidoEvento, op: Opciones = {}): Promise<{ eventoId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.cargar')
   const tipo = enLista(p.tipo, TIPOS_EVENTO, 'tipo de evento')
   const m = monto(p.monto, 'monto del evento')
   if (tipo === 'consumo_limite' && m === null) rechazar('un consumo del límite trae su monto (RV-TRF-05)')
@@ -635,8 +671,10 @@ export async function registrarEventoPoliza(db: Db, sesion: Sesion, p: PedidoEve
 export async function reordenar(
   db: Db, sesion: Sesion, version: VersionFunciones, organizacionId: string, p: PedidoReordenamiento, op: Opciones = {},
 ): Promise<{ reordenamientoId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.reordenar')
   exigirVersion(version)
   return operar(db, sesion, organizacionId, op, async (o) => {
+    await exigirResultados(o.tx, sesion, organizacionId)
     const ranking = rankingOrganizacion(version, o.d.riesgos.map(aRiesgo), o.d.evaluaciones.map(aEvaluacion))
     const calculado = fotoOrdenCalculado(ranking)
     exigirReordenamiento(p, calculado)
@@ -695,6 +733,7 @@ const objetosCiegos = (d: DatosOrganizacion): ObjetoCiego[] =>
  * empresa, con su identidad y nada calculado. No es una vista con resultados: no registra acceso.
  */
 export async function pantallaOrdenPrevio(db: Db, sesion: Sesion, organizacionId: string): Promise<PantallaOrdenPrevio | null> {
+  exigirPermiso(sesion.rol, 'riesgo.consultar')
   return enTransaccion(db, async (tx) => {
     const d = await leerOrganizacion(tx, organizacionId)
     if (d === null) return null
@@ -721,6 +760,7 @@ export interface PedidoOrdenPrevio {
 export async function registrarOrdenPrevio(
   db: Db, sesion: Sesion, organizacionId: string, p: PedidoOrdenPrevio, op: Opciones = {},
 ): Promise<{ ordenPrevioId: string }> {
+  exigirPermiso(sesion.rol, 'riesgo.orden_previo')
   const materialRef = exigirTexto(p.materialRef, 'la referencia del material ciego')
   return operar(db, sesion, organizacionId, op, async (o) => {
     if (await vioResultados(o.tx, sesion.personaId, organizacionId)) {
