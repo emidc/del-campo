@@ -63,7 +63,10 @@ locales viven en un `.env.local` de esta carpeta, que está gitignored.
 | `COMMUNICATION_DATABASE_URL` | Base del contexto | Sí |
 | `COMMUNICATION_UI_USER` | Usuario compartido | Sí, o la UI se niega |
 | `COMMUNICATION_UI_PASSWORD_HASH` | Hash de la contraseña (ver arriba) | Sí, o la UI se niega |
-| `COMMUNICATION_UI_SESSION_SECRET` | Clave de la firma de la cookie, de 32 caracteres o más | Sí, o la UI se niega |
+| `COMMUNICATION_UI_SESSION_SECRET` | Clave de la firma de la cookie, de 32 caracteres o más. En `oidc` también cifra la sesión de Google, con otra clave derivada | Sí, o la UI se niega |
+| `AUTH_MODE` | `legacy` (credencial compartida) u `oidc` (Google por invitación, T-0035). Sin valor, `legacy`; un valor desconocido falla | No |
+| `COMMUNICATION_BASE_URL` | Origen público de la app, por ejemplo `https://…vercel.app`. La URI de redirección es este origen más `/api/auth/google/callback` | Sólo en `oidc` |
+| `COMMUNICATION_GOOGLE_CLIENT_ID`, `COMMUNICATION_GOOGLE_CLIENT_SECRET` | Cliente OAuth External de Google (fase 1 del plan de T-0035) | Sólo en `oidc` |
 | `WHATSAPP_ACCESS_TOKEN` | Token de usuario del sistema de Meta | Para enviar |
 | `WHATSAPP_PHONE_NUMBER_ID` | Número desde el que se envía, y el único cuyos webhooks se persisten (CO01 §3) | Para enviar, recibir y reprocesar |
 | `WHATSAPP_GRAPH_API_VERSION` | Versión de la Graph API, por ejemplo `v23.0` | Para enviar |
@@ -75,6 +78,26 @@ locales viven en un `.env.local` de esta carpeta, que está gitignored.
 Sin la configuración de envío, la UI muestra las conversaciones y deshabilita la
 respuesta. Sin la del webhook (incluido `WHATSAPP_PHONE_NUMBER_ID`), `/webhook` responde
 503 y Meta reintenta. Sin `CRON_SECRET`, las tareas responden 503.
+
+## Acceso por persona (T-0035, AUTH_MODE=oidc)
+
+Con `AUTH_MODE=oidc` no entra la credencial compartida: se entra con Google, sólo con
+una invitación de un Administrador (D-0072), y la identidad es el `sub` de Google
+(D-0077). En cada request, la base vuelve a admitir a la persona y las consultas corren
+como `communication_app` con RLS (migración 0005, D-0022): una baja corta el acceso en
+el request siguiente. El Administrador y el Operador Del Campo ven y responden las
+conversaciones (decisión del owner del 2026-11-03); el Revisor profesional no ve
+Comunicación, y a quien no puede responder la UI no le muestra el formulario. Cada envío queda a
+nombre de quien lo hizo y en `audit_event`, sin texto ni teléfono.
+
+Las invitaciones se cargan con la CLI del contexto
+(`pnpm --filter @del-campo/communication acceso`, ver
+`contexts/communication/src/application/acceso-cli.ts`). Activar `oidc` en producción e
+invitar a personas reales es la fase 3 del plan (`docs/migration/T-0035-identidad-comun.md`)
+y la hace o la aprueba el owner.
+
+El webhook y las tareas programadas no cambian con el modo: los protegen la firma de
+Meta y `CRON_SECRET`, y no actúan en nombre de una persona.
 
 ## Entregas sin procesar y tareas programadas (T-0026)
 

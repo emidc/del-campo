@@ -8,12 +8,23 @@ import type { Sql } from './database.ts'
 import { appliedMigrations, down, migrate } from './migrations.ts'
 import { openTestDatabase } from './testing.ts'
 
-const TABLES = ['webhook_delivery', 'message', 'outbound_status', 'unsupported_message', 'outbound_attempt']
+const TABLES = [
+  'webhook_delivery',
+  'message',
+  'outbound_status',
+  'unsupported_message',
+  'outbound_attempt',
+  'app_user',
+  'user_credential',
+  'user_invitation',
+  'audit_event',
+]
 const FILES = [
   '0001_communication_schema.sql',
   '0002_outbound_attempt.sql',
   '0003_delivery_reprocessing.sql',
   '0004_delivery_phone_filter.sql',
+  '0005_identidad_y_autorizacion.sql',
 ]
 
 let sql: Sql
@@ -58,10 +69,15 @@ describe('migraciones del contexto', () => {
     }
     await sql`insert into communication.webhook_delivery (signature, body_raw) values ('valid', '{}')`
     assert.deepEqual(await columns(), ['last_reprocessed_at', 'reprocess_count'])
+    assert.equal(await down(sql), '0005_identidad_y_autorizacion.sql')
     assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
     assert.equal(await down(sql), '0003_delivery_reprocessing.sql')
     assert.deepEqual(await columns(), [])
-    assert.deepEqual(await migrate(sql), ['0003_delivery_reprocessing.sql', '0004_delivery_phone_filter.sql'])
+    assert.deepEqual(await migrate(sql), [
+      '0003_delivery_reprocessing.sql',
+      '0004_delivery_phone_filter.sql',
+      '0005_identidad_y_autorizacion.sql',
+    ])
     const [row] = await sql<{ n: number; c: number }[]>`
       select count(*)::int as n, min(reprocess_count) as c from communication.webhook_delivery`
     assert.deepEqual({ ...row }, { n: 1, c: 0 })
@@ -73,6 +89,7 @@ describe('migraciones del contexto', () => {
       insert into communication.webhook_delivery
         (signature, body_raw, processing, processed_at, ignored_count, phone_number_filter)
       values ('valid', '{}', 'ignored', now(), 1, '800000000000001'), ('valid', '{}', 'processed', now(), 0, null)`
+    assert.equal(await down(sql), '0005_identidad_y_autorizacion.sql')
     assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
     const rows = await sql<{ processing: string; error: string | null }[]>`
       select processing, processing_error as error from communication.webhook_delivery order by id`
@@ -80,7 +97,7 @@ describe('migraciones del contexto', () => {
       ['failed', 'ignorada: todo su contenido era de otro número'],
       ['processed', null],
     ])
-    assert.deepEqual(await migrate(sql), ['0004_delivery_phone_filter.sql'])
+    assert.deepEqual(await migrate(sql), ['0004_delivery_phone_filter.sql', '0005_identidad_y_autorizacion.sql'])
     await sql`delete from communication.webhook_delivery`
   })
 

@@ -9,10 +9,14 @@ import {
   type ConversationList,
   type ConversationThread,
   type DeliveryHealth,
+  type Phase,
   type ReplyResult,
   type Sql,
 } from '@del-campo/communication'
 
+import { actorPuede, type Datos } from './acceso.ts'
+import { cookiesDeSalida } from './entrada.ts'
+import { modoAcceso } from './modo.ts'
 import { authConfigFromEnv, issueSession, SESSION_COOKIE, sessionCookieHeader, verifyCredentials } from './auth.ts'
 import { FOREIGN_ORIGIN, json, NOT_CONFIGURED, sameOrigin, type Env } from './guard.ts'
 import type { SendSetup } from './server.ts'
@@ -44,13 +48,17 @@ export const listBody = (list: ConversationList) => ({
   })),
 })
 
-export const threadBody = (thread: ConversationThread, canSend: boolean) => ({
+export const threadBody = (thread: ConversationThread, canSend: boolean, mayReply = true) => ({
   id: thread.id,
   label: thread.label,
   deliveries: deliveriesBody(thread.deliveries),
   window: { open: thread.window.open, closesAt: iso(thread.window.closesAt) },
-  canReply: thread.canReply && canSend,
-  replyBlockedReason: !thread.canReply
+  // Sin el permiso de responder, la UI no muestra el formulario (decisión del owner, T-0035).
+  mayReply,
+  canReply: mayReply && thread.canReply && canSend,
+  replyBlockedReason: !mayReply
+    ? null
+    : !thread.canReply
     ? 'El participante no tiene teléfono: Cloud API envía a un wa_id.'
     : !canSend
       ? 'El envío no está configurado en este entorno.'
@@ -58,15 +66,18 @@ export const threadBody = (thread: ConversationThread, canSend: boolean) => ({
   items: thread.items.map((i) => ({ ...i, at: i.at.toISOString() })),
 })
 
-export const listConversationsResponse = async (sql: Sql): Promise<Response> =>
-  json(listBody(await conversationList(sql)))
+export const listConversationsResponse = async (datos: Datos): Promise<Response> =>
+  json(listBody(await datos('conversacion.consultar', (sql) => conversationList(sql))))
 
-export const threadResponse = async (sql: Sql, rawId: string, canSend: boolean): Promise<Response> => {
+export const threadResponse = async (datos: Datos, rawId: string, canSend: boolean): Promise<Response> => {
   const id = parseConversationId(rawId)
   if (id === null) return json({ error: 'conversación inexistente' }, 404)
-  const thread = await conversationThread(sql, id)
-  if (thread === null) return json({ error: 'conversación inexistente' }, 404)
-  return json(threadBody(thread, canSend))
+  const found = await datos('conversacion.consultar', async (sql, actor) => ({
+    thread: await conversationThread(sql, id),
+    mayReply: actorPuede(actor, 'conversacion.responder'),
+  }))
+  if (found.thread === null) return json({ error: 'conversación inexistente' }, 404)
+  return json(threadBody(found.thread, canSend, found.mayReply))
 }
 
 const MAX_REPLY_REQUEST_BYTES = 64 * 1024
@@ -96,7 +107,9 @@ const REPLY_MESSAGE: Record<ReplyResult['kind'], string> = {
 }
 
 export interface ReplyHandlerDeps {
-  readonly sql: Sql
+  /** La conexión de la app: el contexto la usa sólo en `legacy` (ver `phase`). */
+  readonly sql: () => Sql
+  readonly datos: Datos
   readonly setup: SendSetup | null
   readonly log?: (line: string) => void
 }
@@ -123,8 +136,20 @@ export const replyResponse = async (request: Request, rawId: string, deps: Reply
     return json({ kind: 'invalid', message: REPLY_MESSAGE.invalid }, 400)
   }
 
+  // Primero, si quien pide puede responder: así un rol sin permiso recibe su explicación
+  // antes de que se escriba nada. Cada fase del envío vuelve a pasar por la base, así que
+  // una baja durante el envío se respeta igual (ver `sendReply`).
+  const author = await deps.datos('conversacion.responder', (_sql, actor) => Promise.resolve(actor.autor))
+  const phase: Phase = (op) => deps.datos('conversacion.responder', (sql) => op(sql))
   const result = await sendReply(
-    { sql: deps.sql, send: deps.setup.send, phoneNumberId: deps.setup.phoneNumberId, ...(deps.log ? { log: deps.log } : {}) },
+    {
+      sql: deps.sql(),
+      phase,
+      author,
+      send: deps.setup.send,
+      phoneNumberId: deps.setup.phoneNumberId,
+      ...(deps.log ? { log: deps.log } : {}),
+    },
     { idempotencyKey: key, conversationId: id, body },
   )
   const detail =
@@ -147,6 +172,8 @@ const redirectTo = (request: Request, path: string, cookie?: string): Response =
 
 /** Formulario de login. Sin configuración, 503: no hay modo abierto. */
 export const loginResponse = async (request: Request, env: Env): Promise<Response> => {
+  // Con AUTH_MODE=oidc la contraseña compartida no entra: un solo método vivo (T-0035).
+  if (modoAcceso(env.AUTH_MODE) === 'oidc') return json({ error: 'no disponible' }, 404)
   const result = authConfigFromEnv(env)
   if (!result.ok) return NOT_CONFIGURED()
   if (!sameOrigin(request)) return FOREIGN_ORIGIN()
@@ -167,7 +194,10 @@ export const loginResponse = async (request: Request, env: Env): Promise<Respons
   return redirectTo(request, '/', sessionCookieHeader(issueSession(result.config), request.url))
 }
 
-export const logoutResponse = (request: Request): Response => {
+/** Borra la cookie de la credencial compartida y, si el modo `oidc` está configurado, la de Google. */
+export const logoutResponse = (request: Request, env: Env = process.env): Response => {
   if (!sameOrigin(request)) return FOREIGN_ORIGIN()
-  return redirectTo(request, '/login', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`)
+  const response = redirectTo(request, '/login', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`)
+  for (const cookie of cookiesDeSalida(env)) response.headers.append('set-cookie', cookie)
+  return response
 }

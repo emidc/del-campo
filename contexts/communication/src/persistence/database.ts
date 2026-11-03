@@ -5,6 +5,8 @@ import postgres from 'postgres'
 
 export type Sql = postgres.Sql
 export type TransactionSql = postgres.TransactionSql
+/** Una conexión, o una transacción ya abierta (la restringida de `conPrincipal`, T-0035). */
+export type Conexion = Sql | TransactionSql
 
 export const SCHEMA = 'communication'
 

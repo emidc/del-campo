@@ -14,7 +14,7 @@
 // dígitos.
 
 import type { Participant } from '../domain/payload.ts'
-import type { Sql } from './database.ts'
+import type { Conexion } from './database.ts'
 
 export interface ConversationRow {
   readonly id: number
@@ -27,7 +27,7 @@ export interface ConversationRow {
   readonly lastInboundAt: Date | null
 }
 
-export const listConversations = async (sql: Sql): Promise<ConversationRow[]> => {
+export const listConversations = async (sql: Conexion): Promise<ConversationRow[]> => {
   const rows = await sql<(Omit<ConversationRow, 'id'> & { id: string })[]>`
     with activity as (
       select coalesce(wa_id, 'bsuid:' || bsuid) as k, id, wa_id, bsuid, profile_name,
@@ -60,7 +60,7 @@ export interface ConversationParticipant {
  * El participante de una conversación por su id opaco. Solo un id que sea el primero de
  * su grupo es una conversación: cualquier otro id devuelve `null`.
  */
-export const conversationParticipant = async (sql: Sql, id: number): Promise<ConversationParticipant | null> => {
+export const conversationParticipant = async (sql: Conexion, id: number): Promise<ConversationParticipant | null> => {
   if (!Number.isSafeInteger(id) || id <= 0) return null
   const [row] = await sql<{ waId: string | null; bsuid: string | null }[]>`
     with rows as (
@@ -85,7 +85,7 @@ export const conversationParticipant = async (sql: Sql, id: number): Promise<Con
 }
 
 /** El último entrante del participante, de cualquier tipo. */
-export const lastInboundAt = async (sql: Sql, participant: Participant): Promise<Date | null> => {
+export const lastInboundAt = async (sql: Conexion, participant: Participant): Promise<Date | null> => {
   const [row] = await sql<{ at: Date | null }[]>`
     select max(wa_timestamp) as at from (
       select wa_timestamp, wa_id, bsuid from communication.message where direction = 'inbound'
@@ -103,7 +103,7 @@ export interface UnsupportedRow {
 }
 
 /** Los entrantes fuera de alcance del participante: tipo y hora, sin contenido ni `wamid`. */
-export const listUnsupported = async (sql: Sql, participant: Participant): Promise<UnsupportedRow[]> =>
+export const listUnsupported = async (sql: Conexion, participant: Participant): Promise<UnsupportedRow[]> =>
   sql<UnsupportedRow[]>`
     select type, wa_timestamp as "waTimestamp"
     from communication.unsupported_message

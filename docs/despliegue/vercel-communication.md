@@ -56,6 +56,10 @@ Configurar para el entorno Production:
 - `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_API_VERSION`,
   `WHATSAPP_APP_SECRET` y `WHATSAPP_VERIFY_TOKEN`.
 - `CRON_SECRET`.
+- `AUTH_MODE`: no configurarla, o `legacy`, hasta la fase 3 del plan de T-0035. Con
+  `oidc` hacen falta además `COMMUNICATION_BASE_URL`, `COMMUNICATION_GOOGLE_CLIENT_ID` y
+  `COMMUNICATION_GOOGLE_CLIENT_SECRET`, y la migración 0005 aplicada; la contraseña
+  compartida deja de entrar.
 
 No configurar `WHATSAPP_GRAPH_BASE_URL` en producción: es exclusivamente para el
 simulador local. El hash es scrypt, generado con el script de la app; el secreto de

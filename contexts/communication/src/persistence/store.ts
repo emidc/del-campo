@@ -3,7 +3,7 @@
 
 import { appliedCount, deliveryOutcome, type InboundText, type ParsedDelivery, type Participant, type StatusUpdate } from '../domain/payload.ts'
 import { outranks, type OutboundStatus } from '../domain/status.ts'
-import type { Sql, TransactionSql } from './database.ts'
+import type { Conexion, Sql, TransactionSql } from './database.ts'
 
 export interface Delivery {
   readonly id: number
@@ -242,7 +242,7 @@ export interface DeliveryBacklog {
   readonly ignored: number
 }
 
-export const deliveryBacklog = async (sql: Sql, stalledBefore: Date, ignoredSince: Date): Promise<DeliveryBacklog> => {
+export const deliveryBacklog = async (sql: Conexion, stalledBefore: Date, ignoredSince: Date): Promise<DeliveryBacklog> => {
   const [row] = await sql<DeliveryBacklog[]>`
     select
       (select max(received_at) from communication.webhook_delivery) as "lastReceivedAt",
@@ -275,7 +275,7 @@ export interface ThreadMessage {
  * Los mensajes de un participante, en orden de WhatsApp. Los empates del mismo segundo
  * se resuelven por orden de inserción, no por `wamid` (hallazgo 7 de T-0020).
  */
-export const listThread = async (sql: Sql, participant: Participant): Promise<ThreadMessage[]> => {
+export const listThread = async (sql: Conexion, participant: Participant): Promise<ThreadMessage[]> => {
   if (participant.waId === null && participant.bsuid === null) return []
   const rows = await sql<(Omit<ThreadMessage, 'id'> & { id: string })[]>`
     select m.id, m.wamid, m.direction, m.body,
