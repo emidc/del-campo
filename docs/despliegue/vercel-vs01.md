@@ -54,6 +54,7 @@ cliente.
 | `VS01_GOOGLE_WORKSPACE_DOMAIN` | Dominio del Workspace de la correduría. La admisión compara contra el claim `hd` del ID token, no contra el sufijo del email. | Production, Preview, Development | Owner |
 | `VS01_ADMITTED_ACCOUNTS` | Lista explícita de cuentas admitidas, separadas por coma o salto de línea. **Vive acá y no en Git** (D-0059). | Production, Preview, Development | Owner, antes del piloto |
 | `VS01_BASE_URL` | URL pública de la app. De acá se deriva el `redirect_uri`; nunca se usa el header `Host`, que un cliente controla. | Production, Preview, Development | Owner, tras el primer deploy |
+| `AUTH_MODE` | `legacy` (default si falta) u `oidc` (T-0035). En `oidc` la admisión es la de la base —invitación o credencial vinculada, y usuario ACTIVE con rol en cada consulta— y no se leen `VS01_GOOGLE_WORKSPACE_DOMAIN` ni `VS01_ADMITTED_ACCOUNTS`. Un valor desconocido impide arrancar. **Pasar a `oidc` requiere la aprobación del owner** (plan de migración de T-0035, fase 2). | Production, Preview, Development | Owner |
 
 Notas de uso:
 

@@ -1,5 +1,5 @@
 import type { GuardConfig, Principal } from '@del-campo/api'
-import { SESSION_COOKIE, admissionConfig, admitCookie, sessionConfig } from '@del-campo/api'
+import { AccesoDenegado, SESSION_COOKIE, admissionConfig, admitCookie, sessionConfig } from '@del-campo/api'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -27,4 +27,19 @@ export const requireAdmitted = async (): Promise<Principal> => {
   const outcome = await admitCookie(jar.get(SESSION_COOKIE)?.value, guardConfig())
   if (!outcome.admitted) redirect(`/login?motivo=${outcome.reason}`)
   return outcome.principal
+}
+
+/**
+ * Las consultas de una página. En `oidc`, la base puede negar aunque la sesión sea válida
+ * (sin credencial vinculada, de baja o sin rol): la página vuelve al login con el mismo
+ * motivo que una cuenta no admitida, y el detalle queda en la auditoría (T-0035). En
+ * `legacy`, `AccesoDenegado` no se lanza nunca.
+ */
+export const consultar = async <T>(consultas: Promise<T>): Promise<T> => {
+  try {
+    return await consultas
+  } catch (error) {
+    if (error instanceof AccesoDenegado) redirect('/login?motivo=NOT_ADMITTED')
+    throw error
+  }
 }

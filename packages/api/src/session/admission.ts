@@ -58,10 +58,23 @@ export interface AdmittedAccount {
   readonly sub: string | null
 }
 
-export interface AdmissionConfig {
+/** `legacy`: Workspace y lista del owner (D-0059). */
+export interface LegacyAdmissionConfig {
   readonly workspaceDomain: string
   readonly admitted: readonly AdmittedAccount[]
 }
+
+/**
+ * `oidc` (T-0035, D-0072, D-0077): cualquier cuenta de Google con email verificado pasa
+ * este guard, y quien decide es la base. Al volver de Google, `ingresar` exige una
+ * credencial vinculada o una invitación vigente; en cada consulta, `conDatos` exige que
+ * la persona siga ACTIVE y con rol. Sin `hd` ni lista: lo que las reemplaza está en la base.
+ */
+export interface OidcAdmissionConfig {
+  readonly modo: 'oidc'
+}
+
+export type AdmissionConfig = LegacyAdmissionConfig | OidcAdmissionConfig
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase()
 
@@ -107,6 +120,13 @@ export const evaluateAdmission = (
     return { admitted: false, reason: 'INVALID_TOKEN' }
   }
   if (!claims.emailVerified) return { admitted: false, reason: 'EMAIL_UNVERIFIED' }
+
+  if ('modo' in config) {
+    return {
+      admitted: true,
+      principal: { sub: claims.sub, email: normalizeEmail(claims.email), displayName: claims.displayName },
+    }
+  }
 
   const domain = claims.hostedDomain?.trim().toLowerCase() ?? ''
   if (domain === '' || domain !== config.workspaceDomain.trim().toLowerCase()) {
