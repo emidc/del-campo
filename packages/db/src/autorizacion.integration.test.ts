@@ -1,5 +1,5 @@
-// T-0035, incremento 2: identidad y autorización híbrida en la base de Broker OS
-// (0007_identidad_y_autorizacion.sql; D-0022, D-0027, D-0077). Contra un Postgres real
+// T-0035, incrementos 2 y 3: identidad y autorización híbrida en la base de Broker OS
+// (0007_identidad_y_autorizacion.sql y 0008_conexion_asume_roles.sql; D-0022, D-0027, D-0077). Contra un Postgres real
 // (R-26), con datos sintéticos y cada caso en una transacción revertida (R-19).
 //
 // Requiere DATABASE_URL apuntando a una base con 0007 aplicada (`pnpm db:migrate`).
