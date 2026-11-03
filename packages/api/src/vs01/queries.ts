@@ -1,10 +1,10 @@
 // Casos de uso de lectura de VS01. Componen las consultas de T-0016 (`policy-query.ts`)
 // y T-0017 (`document-linking/query.ts`) sin redefinirlas (D-0058).
 //
-// Todos reciben un `Principal` como primer parámetro. No lo usan para filtrar —VS01 es de
-// un único tipo de principal y no tiene permisos por cartera (D-0022 sigue abierta)— sino
-// para que sea imposible escribir una consulta de datos sin haber pasado por el guard.
-// Un parámetro que no se usa sería ruido en cualquier otro lado; acá es la frontera.
+// Todos reciben un `Principal` como primer parámetro, para que sea imposible escribir una
+// consulta de datos sin haber pasado por el guard. Y todos corren por `conDatos`: en
+// `legacy`, con la conexión de la app como hasta hoy; en `oidc`, como `broker_app` con el
+// principal declarado, donde filtran las políticas RLS de D-0022 y D-0027 (T-0035).
 
 import type {
   PartyOverview,
@@ -22,6 +22,8 @@ import {
   searchPolicies,
 } from '@del-campo/db'
 
+import type { Ejecutor } from '../acceso/datos.ts'
+import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
@@ -58,10 +60,11 @@ const accessByPolicy = (
   new Map(entries.map((entry) => [entry.policyId, entry]))
 
 export const search = async (
-  _principal: Principal,
+  principal: Principal,
   criteria: PolicySearchCriteria,
-): Promise<SearchOutcome> => {
-  const executor = sql()
+): Promise<SearchOutcome> => conDatos(sql(), principal, (executor) => buscar(executor, criteria))
+
+const buscar = async (executor: Ejecutor, criteria: PolicySearchCriteria): Promise<SearchOutcome> => {
   const result: PolicySearchResult = await searchPolicies(executor, criteria)
   const policyIds = result.candidates.map((candidate) => candidate.policyId)
   const [access, tally] = await Promise.all([
@@ -84,11 +87,12 @@ export interface PolicyView {
 }
 
 export const policy = async (
-  _principal: Principal,
+  principal: Principal,
   policyId: string,
   asOf: string,
-): Promise<PolicyView | null> => {
-  const executor = sql()
+): Promise<PolicyView | null> => conDatos(sql(), principal, (executor) => verPoliza(executor, policyId, asOf))
+
+const verPoliza = async (executor: Ejecutor, policyId: string, asOf: string): Promise<PolicyView | null> => {
   const detail = await getPolicyDetail(executor, policyId, asOf)
   if (detail === null) return null
   const [access] = await getDocumentAccessForPolicies(executor, [policyId])
@@ -101,8 +105,9 @@ export const policy = async (
 }
 
 export const party = async (
-  _principal: Principal,
+  principal: Principal,
   partyId: string,
   asOf: string,
   membershipAt: string,
-): Promise<PartyOverview | null> => getPartyOverview(sql(), partyId, asOf, membershipAt)
+): Promise<PartyOverview | null> =>
+  conDatos(sql(), principal, (executor) => getPartyOverview(executor, partyId, asOf, membershipAt))

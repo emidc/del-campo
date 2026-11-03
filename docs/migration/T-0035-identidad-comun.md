@@ -80,11 +80,13 @@ atrás de Broker OS.
 
 ### Fase 2 — Broker OS pasa a `oidc`
 
-0. Las migraciones 0007, 0008 y 0009 de Broker OS están aplicadas en la base de
+0. Las migraciones 0007 a 0010 de Broker OS están aplicadas en la base de
    producción (`pnpm db:migrate` con aprobación del owner). La 0008 es la que deja a la
    conexión de la app asumir `broker_app`: sin ella, `AUTH_MODE=oidc` rechazaría todo
    request. La 0009 acota el alcance de una empresa asignada (`D-0027`): sin ella, el
-   Operador de una empresa vería las pólizas personales de sus miembros.
+   Operador de una empresa vería las pólizas personales de sus miembros. La 0010 deja a
+   `broker_app` leer la referencia documental y la fecha del lote, que VS01 consulta: sin
+   ella, la búsqueda y la ficha de póliza fallarían.
 1. El owner carga las invitaciones de las personas que hoy están en
    `VS01_ADMITTED_ACCOUNTS`, con su rol, mediante el script (stdin, sin archivos en el
    repo). Si una entrada de la lista ya tiene `sub` fijado, la credencial se crea
@@ -175,6 +177,11 @@ Tienen que estar probadas, con evidencia en `ops/evidence/T-0035.md`:
   firma, `aud`, vencimiento y admisión del destino;
 - la rotación de las claves de firma entre contextos, sin cortar a quien está usando el
   sistema.
+- que `staging_import_batch.notes` en la base de producción no contenga información
+  confidencial, porque la 0010 la deja leer a `broker_app` para mostrar el lote (revisión
+  del owner del #107). Si la contiene, se quita `notes` del grant antes de activar `oidc`;
+- que una negativa de la base (sin credencial, de baja o sin rol) responda igual que una
+  cuenta no admitida, con el motivo sólo en `audit_event` (`acceso.consultar`).
 
 ### Lo que esta aprobación no autoriza
 

@@ -5,6 +5,7 @@
 //
 // Los route handlers de `apps/web` son envoltorios de tres líneas sobre esto.
 
+import { AccesoDenegado } from './acceso/datos.ts'
 import type { AdmissionDenial, Principal } from './session/admission.ts'
 import { denialStatus } from './session/admission.ts'
 import type { GuardConfig } from './session/guard.ts'
@@ -41,5 +42,13 @@ export const guarded = async (
 ): Promise<Response> => {
   const outcome = await admitRequest(request, config)
   if (!outcome.admitted) return deniedResponse(outcome.reason)
-  return handler(outcome.principal, request)
+  try {
+    return await handler(outcome.principal, request)
+  } catch (error) {
+    // En `oidc`, la base también admite (T-0035). Sin credencial vinculada, de baja o sin
+    // rol, la respuesta es idéntica a la de una cuenta que no está en la lista: el motivo
+    // específico no sale del servidor; `conDatos` lo dejó en la auditoría.
+    if (error instanceof AccesoDenegado) return deniedResponse('NOT_ADMITTED')
+    throw error
+  }
 }
