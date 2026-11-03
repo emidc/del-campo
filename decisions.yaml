@@ -311,6 +311,7 @@ decisions:
     title: Punto de enforcement de autorización
     status: OPEN
     date: 2026-09-07
+    adr: DECISIONS/0022-punto-de-enforcement-de-autorizacion.md
     source: DOMAIN.md §69
     statement: >
       RLS de Postgres, capa de aplicación, o híbrido. Debe responder si el predicado
