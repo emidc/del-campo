@@ -231,6 +231,36 @@ describe('catálogo: roles, funciones y cobertura de RLS', () => {
     }
   })
 
+  it('quien corrió la migración puede asumir app, worker y MCP, pero no hereda sus privilegios', async () => {
+    const membresias = await sql<{ rol: string; heredar: boolean; asumir: boolean }[]>`
+      select r.rolname as rol, m.inherit_option as heredar, m.set_option as asumir
+      from pg_auth_members m join pg_roles r on r.oid = m.roleid
+      where m.member = (select oid from pg_roles where rolname = current_user)
+        and r.rolname in ('broker_app', 'broker_worker', 'broker_mcp')
+      order by 1
+    `
+    assert.deepEqual(
+      membresias.map((m) => [m.rol, m.heredar, m.asumir]),
+      [
+        ['broker_app', false, true],
+        ['broker_mcp', false, true],
+        ['broker_worker', false, true],
+      ],
+    )
+  })
+
+  it('un dueño que no es superusuario, con esa membresía, asume broker_app y queda sujeto a RLS', async () => {
+    const visto = await descartable(async (tx) => {
+      await tx`create role t0035_conexion nologin nobypassrls nosuperuser`
+      await tx`grant broker_app to t0035_conexion with inherit false, set true`
+      await tx`set local role t0035_conexion`
+      await tx`set local role broker_app`
+      // Sin principal declarado, RLS no deja ver ninguna parte.
+      return uno(await tx<{ n: number }[]>`select count(*)::int as n from party`).n
+    })
+    assert.equal(visto, 0)
+  })
+
   it('las funciones de authz son SECURITY DEFINER con search_path vacío y EXECUTE sólo para app y MCP (condición 4)', async () => {
     const funciones = await sql<{ firma: string; definer: boolean; config: string[] | null; publico: boolean; app: boolean; mcp: boolean; worker: boolean }[]>`
       select p.oid::regprocedure::text as firma, p.prosecdef as definer, p.proconfig as config,

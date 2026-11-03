@@ -39,6 +39,12 @@ begin
 end
 $$;
 
+-- La conexión de la app (hoy, la del dueño de las tablas) asume uno de estos roles por
+-- transacción con `set local role`. Sin esta membresía, un dueño que no es superusuario
+-- (el `postgres` de Supabase) no podría hacerlo. Con INHERIT FALSE no gana ningún
+-- privilegio de esos roles: sólo puede asumirlos, y al asumirlos queda sujeto a RLS.
+grant broker_app, broker_worker, broker_mcp to current_user with inherit false, set true;
+
 -- ── Identidad ────────────────────────────────────────────────────────────────
 
 alter table app_user
