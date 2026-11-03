@@ -293,3 +293,20 @@ describe('AUTH_MODE (T-0035)', () => {
     }
   })
 })
+
+describe('estructura: el token entre contextos no tiene endpoint todavía (T-0035)', () => {
+  // Ni llamadas reales ni endpoints de prueba accesibles en producción: la verificación del
+  // token se prueba contra la base, no por HTTP. El primer endpoint que lo use se agrega con
+  // su tarea, su JWKS configurado y este test actualizado.
+  const APP = fileURLToPath(new URL('../app/', import.meta.url))
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]))
+
+  const LIB = fileURLToPath(new URL('./', import.meta.url))
+
+  it('ninguna página, endpoint ni handler importa entre-contextos.ts ni verificarToken', () => {
+    const fuentes = [...walk(APP), ...walk(LIB).filter((f) => !/\.test\.ts$|entre-contextos\.ts$/.test(f))]
+    const usan = fuentes.filter((f) => /entre-contextos|verificarToken|admitirLlamada/.test(readFileSync(f, 'utf8')))
+    assert.deepEqual(usan.map((f) => relative(APP, f)), [])
+  })
+})

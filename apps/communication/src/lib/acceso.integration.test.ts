@@ -13,7 +13,19 @@ import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
 import type { Sql, TextSender } from '@del-campo/communication'
-import { sellarHandshake, sellarSesion, type Identidad } from '@del-campo/identidad'
+import {
+  emitirToken,
+  generarParDeClaves,
+  jwksDe,
+  registroJtiEnMemoria,
+  sellarHandshake,
+  sellarSesion,
+  type Identidad,
+  type ParDeClaves,
+  type Verificacion,
+} from '@del-campo/identidad'
+import { conversationList } from '@del-campo/communication'
+import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
 
 import { GET as listGET } from '../app/api/conversations/route.ts'
 import { GET as threadGET } from '../app/api/conversations/[id]/route.ts'
@@ -25,6 +37,7 @@ import { replyResponse } from './handlers.ts'
 import { callbackResponse } from './entrada.ts'
 import { COOKIE_HANDSHAKE, COOKIE_IDENTIDAD, configEntrada, PROPOSITO } from './identidad.ts'
 import { database } from './server.ts'
+import { admitirLlamada, AUDIENCIA_COMMUNICATION } from './entre-contextos.ts'
 
 const ORIGIN = 'http://localhost:3100'
 const SECRET = 'secreto-de-sesion-de-prueba-0123456789abcdef'
@@ -295,6 +308,38 @@ describe('permisos por rol en la app (matriz de permisos.js)', () => {
     })
   }
 
+  it('ni el texto de una respuesta ni un dato bancario que traiga llegan a la auditoría (AM-10b)', async () => {
+    const operador = identidad('bancario-operador')
+    await invitar(operador.email, 'OPERADOR')
+    const revisor = identidad('bancario-revisor')
+    await invitar(revisor.email, 'REVISOR')
+    const { id, waId } = await conversacion()
+    const send: TextSender = () => Promise.resolve({ kind: 'accepted', wamid: `wamid.bancario.${RUN}.${waId}` })
+    // La negada y la que se envía: las dos dejan evento.
+    assert.equal((await responder(await entrar(revisor), id, NO_ENVIA, TEXTO_CON_DATOS_BANCARIOS)).status, 403)
+    assert.equal((await responder(await entrar(operador), id, send, TEXTO_CON_DATOS_BANCARIOS)).status, 201)
+
+    const eventos = await sql<Record<string, unknown>[]>`
+      select id, actor_user_id, origin, action, object_type, object_id, outcome, reason_code from communication.audit_event`
+    assert.ok(eventos.length > 0)
+    const volcado = JSON.stringify(eventos)
+    assert.ok(!volcado.includes(TEXTO_CON_DATOS_BANCARIOS))
+    assert.deepEqual(datosBancariosEn(volcado), [])
+  })
+
+  it('la auditoría no tiene dónde guardar un payload: sólo estas columnas, todas acotadas', async () => {
+    const columnas = await sql<{ c: string }[]>`
+      select column_name as c from information_schema.columns
+      where table_schema = 'communication' and table_name = 'audit_event' order by ordinal_position`
+    assert.deepEqual(
+      columnas.map((x) => x.c),
+      ['id', 'occurred_at', 'actor_user_id', 'origin', 'action', 'object_type', 'object_id', 'outcome', 'reason_code'],
+    )
+    await assert.rejects(
+      sql`insert into communication.audit_event (origin, action, outcome, reason_code) values ('app', 'conversacion.responder', 'denied', ${'4539 1488 0343 6467'})`,
+    )
+  })
+
   it('dos personas responden en la misma conversación y cada intento queda a nombre de quien lo envió', async () => {
     const admin = identidad('autoria-admin')
     const operador = identidad('autoria-operador')
@@ -365,5 +410,99 @@ describe('compatibilidad con legacy', () => {
     } finally {
       process.env.AUTH_MODE = 'oidc'
     }
+  })
+})
+
+describe('token entre contextos: verificado en Communication OS y con la admisión de Communication OS', () => {
+  const EMISOR = 'broker-os'
+  const AHORA = Math.floor(Date.now() / 1000)
+  let vieja: ParDeClaves
+  let nueva: ParDeClaves
+  let ajena: ParDeClaves
+  before(async () => {
+    vieja = await generarParDeClaves()
+    nueva = await generarParDeClaves()
+    ajena = await generarParDeClaves()
+  })
+  const token = (
+    quien: Identidad,
+    clave: ParDeClaves = vieja,
+    cambios: { audiencia?: string; emisor?: string; ahora?: number } = {},
+  ): Promise<string> =>
+    emitirToken(clave.privada, {
+      emisor: cambios.emisor ?? EMISOR,
+      audiencia: cambios.audiencia ?? AUDIENCIA_COMMUNICATION,
+      proveedor: quien.proveedor,
+      sujeto: quien.sujeto,
+      ahora: cambios.ahora ?? AHORA,
+    })
+  const verificacion = (claves: ParDeClaves[] = [vieja], registro = registroJtiEnMemoria()): Verificacion => ({
+    jwks: jwksDe(claves.map((c) => c.publica)),
+    emisor: EMISOR,
+    audiencia: AUDIENCIA_COMMUNICATION,
+    registroJti: registro,
+    ahora: AHORA,
+  })
+  const listar = (t: string, v: Verificacion = verificacion()) =>
+    admitirLlamada(() => sql, t, v, 'conversacion.consultar', async (tx) => (await conversationList(tx)).conversations.length >= 0)
+  const motivo = async (t: string, v?: Verificacion): Promise<string> => {
+    const r = await listar(t, v)
+    return r.ok ? 'OK' : 'token' in r ? r.token : 'denegado' in r ? r.denegado : 'SIN_PERMISO'
+  }
+
+  it('un token válido corre como la persona y con la matriz de Communication OS', async () => {
+    const operador = identidad('token-operador')
+    await invitar(operador.email, 'OPERADOR')
+    await entrar(operador)
+    assert.deepEqual(await listar(await token(operador)), { ok: true, valor: true })
+
+    const revisor = identidad('token-revisor')
+    const revisorId = await invitar(revisor.email, 'REVISOR')
+    await entrar(revisor)
+    assert.deepEqual(await listar(await token(revisor)), { ok: false, sinPermiso: 'conversacion.consultar' })
+    assert.equal((await ultimoEvento('conversacion.consultar'))?.actor, revisorId)
+  })
+
+  it('se rechaza por firma, emisor, audiencia, vencimiento y reutilización, con su motivo auditado', async () => {
+    const quien = identidad('token-rechazos')
+    await invitar(quien.email, 'OPERADOR')
+    await entrar(quien)
+    assert.equal(await motivo(await token(quien, ajena)), 'KID_DESCONOCIDO')
+    assert.equal(await motivo(await token(quien, vieja, { emisor: 'risk-os' })), 'EMISOR')
+    assert.equal(await motivo(await token(quien, vieja, { audiencia: 'risk-os' })), 'AUDIENCIA')
+    assert.equal(await motivo(await token(quien, vieja, { ahora: AHORA - 120 })), 'VENCIDO')
+    const t = await token(quien)
+    const v = verificacion()
+    assert.equal(await motivo(t, v), 'OK')
+    assert.equal(await motivo(t, v), 'REUTILIZADO')
+    assert.deepEqual({ ...(await ultimoEvento('acceso.token')) }, { actor: null, outcome: 'denied', reason: 'REUTILIZADO', object_id: null })
+    const [n] = await sql<{ n: number }[]>`
+      select count(*)::int as n from communication.audit_event where action = 'acceso.token' and object_id is not null`
+    assert.equal(n?.n, 0, 'el token no queda en la auditoría')
+    await assert.rejects(
+      admitirLlamada(() => sql, t, { ...v, audiencia: 'risk-os' }, 'conversacion.consultar', () => Promise.resolve(null)),
+    )
+  })
+
+  it('la admisión es la de Communication OS: sin credencial vinculada o dada de baja, un token válido no entra', async () => {
+    assert.deepEqual(await listar(await token(identidad('token-nadie'))), { ok: false, denegado: 'SIN_CREDENCIAL' })
+    const quien = identidad('token-baja')
+    const usuario = await invitar(quien.email, 'OPERADOR')
+    await entrar(quien)
+    assert.equal(await motivo(await token(quien)), 'OK')
+    await sql`update communication.app_user set status = 'INACTIVE' where id = ${usuario}`
+    assert.deepEqual(await listar(await token(quien)), { ok: false, denegado: 'SIN_ACCESO' })
+  })
+
+  it('rotación de claves: durante el solapamiento valen la vieja y la nueva; después, sólo la nueva', async () => {
+    const quien = identidad('token-rotacion')
+    await invitar(quien.email, 'OPERADOR')
+    await entrar(quien)
+    const solapadas = verificacion([vieja, nueva])
+    assert.equal(await motivo(await token(quien, vieja), solapadas), 'OK')
+    assert.equal(await motivo(await token(quien, nueva), solapadas), 'OK')
+    const rotada = verificacion([nueva])
+    assert.equal(await motivo(await token(quien, vieja), rotada), 'KID_DESCONOCIDO')
+    assert.equal(await motivo(await token(quien, nueva), rotada), 'OK')
   })
 })

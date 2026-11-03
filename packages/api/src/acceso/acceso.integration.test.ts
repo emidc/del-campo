@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { after, describe, it } from 'node:test'
 
 import type { Identidad } from '@del-campo/identidad'
+import { datosBancariosEn, FORMATOS_BANCARIOS } from '@del-campo/identidad'
 import postgres from 'postgres'
 
 import { asignarCliente, cambiarRol, cerrarAsignacion, darDeBaja, invitar } from './admin.ts'
@@ -301,6 +302,40 @@ describe('administración de accesos: actor, auditoría y límites', () => {
         ['ok', null],
         ['denied', 'ASIGNACION_SUPERPUESTA'],
       ],
+    )
+  })
+})
+
+describe('auditoría sin datos bancarios (AM-10b)', () => {
+  it('un email o una identidad con forma de tarjeta no llegan a audit_event: sólo ids y motivos', async () => {
+    const volcado = await descartable(async (tx) => {
+      const admin = await administrador(tx)
+      // Un email válido hecho de una tarjeta, otro inválido que es una tarjeta, y un login rechazado con ella.
+      ok(await invitar(tx, { actor: admin, email: '4539148803436467@sintetico.test', rol: 'OPERADOR' }))
+      assert.deepEqual(await invitar(tx, { actor: admin, email: FORMATOS_BANCARIOS[0] ?? '', rol: 'OPERADOR' }), {
+        ok: false,
+        motivo: 'EMAIL_INVALIDO',
+      })
+      assert.equal((await ingresar(tx, identidad('5555555555554444', '5555555555554444@sintetico.test'))).tipo, 'RECHAZA')
+      const filas = await tx<Record<string, unknown>[]>`
+        select id, actor_user_id, origin, action, object_type, object_id, outcome, reason_code from audit_event`
+      assert.ok(filas.length >= 4)
+      return JSON.stringify(filas)
+    })
+    assert.deepEqual(datosBancariosEn(volcado), [])
+    assert.ok(!volcado.includes('@sintetico.test'), 'ni siquiera el email')
+  })
+
+  it('la auditoría no tiene dónde guardar un payload: sólo estas columnas, todas acotadas', async () => {
+    const columnas = await sql<{ c: string }[]>`
+      select column_name as c from information_schema.columns
+      where table_schema = 'public' and table_name = 'audit_event' order by ordinal_position`
+    assert.deepEqual(
+      columnas.map((x) => x.c),
+      ['id', 'occurred_at', 'actor_user_id', 'origin', 'action', 'object_type', 'object_id', 'outcome', 'reason_code'],
+    )
+    await assert.rejects(
+      descartable((tx) => tx`insert into audit_event (origin, action, outcome, reason_code) values ('app', 'usuario.invitar', 'denied', ${'4539 1488 0343 6467'})`),
     )
   })
 })
