@@ -14,13 +14,15 @@ Los arreglos van en el PR #112, antes de su merge.
   revisión pendiente no la cierra…») cubre a la Operadora y al Administrador por el caso de
   uso y por el `insert` directo, y comprueba que otra persona sí la cierra. Con la línea de
   la aplicación quitada, la prueba falla.
-  - **Queda para el owner:** quien abrió la revisión, ¿puede cerrarla con la reevaluación
-    de otra persona (`cerrarConReevaluacion`)? Hoy puede. No lo cambio sin su decisión.
+  - **Decidido por el owner (2026-11-03):** quien abrió la revisión sí puede cerrarla con la
+    reevaluación de otra persona (`cerrarConReevaluacion`), porque lo que se acepta es trabajo
+    ajeno. Queda como está.
 
 ## Consider
 
-Ninguno se corrige en este PR. Los cinco quedan anotados como condiciones antes de la fase
-que los activa, y el owner decide cuáles entran.
+Ninguno se corrige en este PR. El owner decidió (2026-11-03) que el 2, el 3 y el 6 se
+corrigen en un PR aparte antes de la fase 4. El 4 y el 5 quedan como condiciones antes de la
+fase que los activa.
 
 - **2. Orden previo vacío.** La base exige que exista el orden previo, no que cubra los
   riesgos. Sólo se explota con SQL directo como `risk_persona`. Antes de la fase 4.
