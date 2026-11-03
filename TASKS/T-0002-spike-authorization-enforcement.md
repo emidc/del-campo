@@ -2,7 +2,7 @@
 id: T-0002
 title: Decidir dónde se hace cumplir la autorización
 kind: SPIKE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M

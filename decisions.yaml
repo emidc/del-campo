@@ -309,14 +309,27 @@ decisions:
 
   - id: D-0022
     title: Punto de enforcement de autorización
-    status: OPEN
-    date: 2026-09-07
-    source: DOMAIN.md §69
+    status: ACCEPTED
+    date: 2026-11-03
+    adr: DECISIONS/0022-punto-de-enforcement-de-autorizacion.md
+    source: >
+      DOMAIN.md §69 (abierta el 2026-09-07); spike T-0002 (SPIKES/T-0002-enforcement-autorizacion.md);
+      aprobación del owner del 2026-11-03 en el hilo de T-0035; D-0063, D-0071, D-0072, D-0075.
     statement: >
-      RLS de Postgres, capa de aplicación, o híbrido. Debe responder si el predicado
-      temporal de acceso de aseguradoras es expresable, y qué ocurre cuando un worker
-      o un agente se conecta con service role.
-    unblocked_by: T-0002
+      La autorización es híbrida. RLS de PostgreSQL controla qué filas ve cada principal
+      según su identidad, las empresas asignadas y el contexto; la aplicación controla
+      qué acciones están permitidas y explica quién puede hacerlas. Las restricciones
+      críticas, empezando por que quien redacta una evaluación o un informe no lo
+      aprueba ni lo acepta, se hacen cumplir en las dos capas. La app, los workers y los
+      agentes usan roles de mínimo privilegio, sin BYPASSRLS; el service role queda para
+      migraciones y operación del owner. Cada contexto verifica sus propios permisos y no
+      confía ciegamente en una identidad reenviada por otro. Decisiones funcionales: el
+      revisor profesional no accede por defecto a pólizas ni a notas internas; el portal
+      de empresas (C12) no muestra pólizas completas al inicio; el predicado de
+      aseguradora queda fuera de alcance. La autenticación real, la propagación segura de
+      la identidad, el uso del pooler, las restricciones de ejecución sobre funciones
+      privilegiadas, la cobertura de RLS y la revocación inmediata son criterios de
+      implementación y aceptación de C1 (T-0035), no investigación pendiente.
 
   - id: D-0023
     title: Detalle de InsurerProfile
@@ -366,7 +379,7 @@ decisions:
       La asignación de cartera a un productor debe conservar historia. Estructura
       física a definir a partir de la evidencia de D-0022 y antes de implementar
       autorización productiva para productores.
-    unblocked_by: D-0022
+    unblocked_by: T-0035
 
   - id: D-0028
     title: Persistencia de comunicaciones, Gmail vs WhatsApp

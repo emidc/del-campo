@@ -1,0 +1,12 @@
+{
+  "//": "Spike T-0002: fuera del workspace de pnpm a propósito. Se corre con `node --run`.",
+  "name": "spike-t0002-autorizacion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:setup": "node setup-db.ts",
+    "test": "node --test --test-concurrency=1 \"*.test.ts\"",
+    "mutaciones": "node mutaciones.ts",
+    "bench": "node bench.ts"
+  }
+}
