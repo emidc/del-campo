@@ -20,7 +20,7 @@ import { conEscenario, filasSinteticas, id, PERSONA, REVISOR, reevaluacionNueva 
 import type { Sesion } from './acceso.ts'
 import { asignar, cambiarRol, darDeBaja, invitar } from './accesos.ts'
 import {
-  cargarReevaluacion, cerrarConReevaluacion, pantallaOrdenPrevio, registrarNovedad, registrarOrdenPrevio, reordenar, revisar,
+  cargarReevaluacion, cerrarConReevaluacion, cerrarSinCambio, pantallaOrdenPrevio, registrarNovedad, registrarOrdenPrevio, reordenar, revisar,
 } from './actualizacion.ts'
 import { organizaciones, vistaLista } from './vistas.ts'
 
@@ -294,6 +294,34 @@ describe('personas: cada una ve a quienes escribieron lo que ella ve, no a todas
 })
 
 describe('nadie aprueba su propio trabajo (tampoco un Administrador)', () => {
+  it('quien abrió una revisión pendiente no la cierra «sin cambio», tampoco un Administrador; otra persona sí', () =>
+    conEquipo(async (e) => {
+      const abrir = async (quien: string): Promise<string> => {
+        await como(e.tx, quien, informacionNueva)
+        const filas = await e.tx<{ id: string; autor: string }[]>`
+          select id, autor_persona_id as autor from risk.revision_pendiente order by abierta_en desc, id desc limit 1`
+        const r = filas.at(0)
+        assert.ok(r !== undefined)
+        assert.equal(r.autor, quien)
+        return r.id
+      }
+      const cerrados = async (rev: string): Promise<number | undefined> => {
+        const [f] = await e.tx<{ n: number }[]>`select count(*)::int as n from risk.cierre_revision where revision_id = ${rev}`
+        return f?.n
+      }
+      for (const quien of [e.operador, e.admin]) {
+        const rev = await abrir(quien)
+        await assert.rejects(como(e.tx, quien, (t, s) => cerrarSinCambio(t, s, { revisionId: rev, fundamento: 'No cambia.' })), sinPermiso(TRABAJO_PROPIO))
+        const directo = await como(e.tx, quien, (t) => codigo(t, (u) => u`
+          insert into risk.cierre_revision (revision_id, risk_id, resultado, fundamento, cerrada_por)
+          values (${rev}, ${RIESGO}, 'sin_cambio', 'No cambia.', ${quien})`))
+        assert.equal(directo, '42501', 'la base tampoco lo deja')
+        assert.equal(await cerrados(rev), 0)
+        await como(e.tx, e.operador2, (t, s) => cerrarSinCambio(t, s, { revisionId: rev, fundamento: 'Revisado por otra persona: no cambia.' }))
+        assert.equal(await cerrados(rev), 1)
+      }
+    }))
+
   it('quien cargó una reevaluación no la revisa ni la acepta; otra persona sí, y cada fila queda con su autor', () =>
     conEquipo(async (e) => {
       const { revisionId } = await como(e.tx, e.operador, informacionNueva)

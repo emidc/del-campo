@@ -1,4 +1,11 @@
--- Reversa de 0007: vuelven las políticas de lectura de 0006.
+-- Reversa de 0007: vuelven las políticas de 0006.
+drop policy cierre_revision_cerrar on risk.cierre_revision;
+create policy cierre_revision_cerrar on risk.cierre_revision for insert to risk_persona
+  with check ((select risk.authz_puede_revisar()) and risk.authz_ve_resultados_riesgo(risk_id)
+              and cerrada_por = (select risk.authz_persona())
+              and (evaluacion_id is null or risk.authz_no_es_propio(evaluacion_id, null, null)));
+drop function risk.authz_autor_revision(text);
+
 drop policy persona_leer on risk.persona;
 create policy persona_leer on risk.persona for select to risk_persona
   using ((select risk.authz_persona()) is not null);

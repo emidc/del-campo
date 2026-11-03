@@ -122,7 +122,7 @@ export async function exigirResultados(db: Db, sesion: Sesion, organizacionId: s
 }
 
 /** Nadie revisa ni acepta lo que escribió (T-0035). Con rol, es decir en `oidc`; la base lo exige igual. */
-async function exigirAjeno(tx: Db, sesion: Sesion, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string): Promise<void> {
+async function exigirAjeno(tx: Db, sesion: Sesion, tabla: 'evaluacion' | 'accion' | 'transferencia' | 'revision_pendiente', id: string): Promise<void> {
   if (sesion.rol !== undefined && (await autorDe(tx, tabla, id)) === sesion.personaId) throw new SinPermiso('riesgo.revisar', TRABAJO_PROPIO)
 }
 
@@ -553,6 +553,8 @@ export async function cerrarSinCambio(
   await operar(db, sesion, await organizacionDeObjeto(db, 'revision_pendiente', p.revisionId), op, async (o) => {
     const r = revisionAbierta(o.d, p.revisionId)
     await exigirResultados(o.tx, sesion, o.d.organizacionId)
+    // Quien abrió la revisión no decide que no hace falta: lo decide otra persona.
+    await exigirAjeno(o.tx, sesion, 'revision_pendiente', r.id)
     await o.escribir('cierre_revision', {
       revision_id: r.id, risk_id: r.riskId, resultado: 'sin_cambio', fundamento, cerrada_por: sesion.personaId, cerrada_en: await o.ahora(),
     })

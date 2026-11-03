@@ -14,6 +14,11 @@
 --    revisiones pendientes que abren. Esas tablas pasan a `authz_ve_resultados`, igual que
 --    las evaluaciones. Para el Administrador y el Operador no cambia nada: para ellos
 --    `authz_ve_resultados` es `authz_ve_organizacion`.
+--
+-- 3. Cierre propio (revisión ciega de T-0035). `cierre_revision_cerrar` sólo comparaba el
+--    autor cuando el cierre traía una reevaluación: quien abría una revisión pendiente podía
+--    cerrarla él mismo «sin cambio», también un Administrador. Ahora un cierre sin cambio lo
+--    hace otra persona que la que abrió la revisión.
 
 create function risk.authz_ve_resultados_accion(acc text) returns boolean
 language sql stable security definer set search_path = '' as $$
@@ -51,3 +56,18 @@ create policy persona_leer on risk.persona for select to risk_persona
          or exists (select 1 from risk.cierre_revision x where x.cerrada_por = persona.id)
          or exists (select 1 from risk.orden_previo x where x.revisor_persona_id = persona.id)
          or exists (select 1 from risk.reordenamiento x where x.autor_persona_id = persona.id));
+
+create function risk.authz_autor_revision(rev text) returns text
+language sql stable security definer set search_path = '' as $$
+  select r.autor_persona_id from risk.revision_pendiente r where r.id = rev
+$$;
+revoke all on function risk.authz_autor_revision(text) from public;
+grant execute on function risk.authz_autor_revision(text) to risk_persona;
+
+drop policy cierre_revision_cerrar on risk.cierre_revision;
+create policy cierre_revision_cerrar on risk.cierre_revision for insert to risk_persona
+  with check ((select risk.authz_puede_revisar()) and risk.authz_ve_resultados_riesgo(risk_id)
+              and cerrada_por = (select risk.authz_persona())
+              and (evaluacion_id is null or risk.authz_no_es_propio(evaluacion_id, null, null))
+              and (evaluacion_id is not null
+                   or risk.authz_autor_revision(revision_id) is distinct from (select risk.authz_persona())));
