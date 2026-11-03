@@ -14,7 +14,8 @@ contextRefs: [PROJECT.md, DOMAIN.md, ENGINEERING_RULES.md, SLICES/VS01.md, SLICE
               DECISIONS/0069-acceso-por-persona-risk-os.md,
               DECISIONS/0022-punto-de-enforcement-de-autorizacion.md,
               SPIKES/T-0002-enforcement-autorizacion.md,
-              DECISIONS/0077-autenticacion-oidc-propio.md]
+              DECISIONS/0077-autenticacion-oidc-propio.md,
+              docs/migration/T-0035-identidad-comun.md]
 decisionRefs: [D-0013, D-0022, D-0027, D-0059, D-0060, D-0066, D-0069, D-0072, D-0077]
 ---
 
@@ -66,5 +67,8 @@ pnpm check
 
 ## Data effects
 
-Migra usuarios y credenciales de los tres contextos a una identidad común. El plan de
-migración y de vuelta atrás se define antes de pasar a READY.
+Migra usuarios y credenciales de los tres contextos a una identidad común, con
+migraciones sólo aditivas. El plan por fases, con su vuelta atrás en cada una, está en
+`docs/migration/T-0035-identidad-comun.md`. Los pasos contra producción, la carga de
+invitaciones con datos reales y el borrado de la credencial compartida los hace o los
+aprueba el owner (R-13, R-14).
