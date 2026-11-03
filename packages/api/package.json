@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@del-campo/db": "workspace:*",
+    "@del-campo/identidad": "workspace:*",
     "jose": "^6.2.12",
     "openid-client": "^6.8.8",
     "postgres": "^3.4.9"

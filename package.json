@@ -19,7 +19,8 @@
     "db:version": "node packages/db/src/cli.ts version",
     "dev": "pnpm --filter @del-campo/web dev",
     "build": "pnpm --filter @del-campo/web build",
-    "vs01:seed": "node scripts/vs01/seed-sintetico.mjs"
+    "vs01:seed": "node scripts/vs01/seed-sintetico.mjs",
+    "acceso": "node packages/api/src/acceso/cli.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"
