@@ -114,6 +114,9 @@ importers:
       '@del-campo/db':
         specifier: workspace:*
         version: link:../db
+      '@del-campo/identidad':
+        specifier: workspace:*
+        version: link:../identidad
       jose:
         specifier: ^6.2.12
         version: 6.2.12

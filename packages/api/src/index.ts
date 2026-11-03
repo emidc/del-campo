@@ -65,3 +65,10 @@ export type {
   SearchOutcome,
 } from './vs01/queries.ts'
 export type { PartyOverview } from '@del-campo/db'
+
+// T-0035: acceso individual de Broker OS. Sin uso en las rutas todavía: con
+// `AUTH_MODE=legacy`, que es el valor por defecto, nada cambia.
+export { modoAcceso } from './acceso/modo.ts'
+export type { ModoAcceso } from './acceso/modo.ts'
+export { conPrincipal, ingresar } from './acceso/base.ts'
+export type { PrincipalBroker, ResultadoPrincipal, Rol } from './acceso/base.ts'

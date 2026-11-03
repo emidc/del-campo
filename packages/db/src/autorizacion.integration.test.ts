@@ -1,5 +1,5 @@
-// T-0035, incremento 2: identidad y autorización híbrida en la base de Broker OS
-// (0007_identidad_y_autorizacion.sql; D-0022, D-0027, D-0077). Contra un Postgres real
+// T-0035, incrementos 2 y 3: identidad y autorización híbrida en la base de Broker OS
+// (0007_identidad_y_autorizacion.sql y 0008_conexion_asume_roles.sql; D-0022, D-0027, D-0077). Contra un Postgres real
 // (R-26), con datos sintéticos y cada caso en una transacción revertida (R-19).
 //
 // Requiere DATABASE_URL apuntando a una base con 0007 aplicada (`pnpm db:migrate`).
@@ -229,6 +229,36 @@ describe('catálogo: roles, funciones y cobertura de RLS', () => {
       assert.equal(rol.rolsuper, false, rol.rolname)
       assert.equal(rol.rolcanlogin, false, rol.rolname)
     }
+  })
+
+  it('quien corrió la migración puede asumir app, worker y MCP, pero no hereda sus privilegios', async () => {
+    const membresias = await sql<{ rol: string; heredar: boolean; asumir: boolean }[]>`
+      select r.rolname as rol, m.inherit_option as heredar, m.set_option as asumir
+      from pg_auth_members m join pg_roles r on r.oid = m.roleid
+      where m.member = (select oid from pg_roles where rolname = current_user)
+        and r.rolname in ('broker_app', 'broker_worker', 'broker_mcp')
+      order by 1
+    `
+    assert.deepEqual(
+      membresias.map((m) => [m.rol, m.heredar, m.asumir]),
+      [
+        ['broker_app', false, true],
+        ['broker_mcp', false, true],
+        ['broker_worker', false, true],
+      ],
+    )
+  })
+
+  it('un dueño que no es superusuario, con esa membresía, asume broker_app y queda sujeto a RLS', async () => {
+    const visto = await descartable(async (tx) => {
+      await tx`create role t0035_conexion nologin nobypassrls nosuperuser`
+      await tx`grant broker_app to t0035_conexion with inherit false, set true`
+      await tx`set local role t0035_conexion`
+      await tx`set local role broker_app`
+      // Sin principal declarado, RLS no deja ver ninguna parte.
+      return uno(await tx<{ n: number }[]>`select count(*)::int as n from party`).n
+    })
+    assert.equal(visto, 0)
   })
 
   it('las funciones de authz son SECURITY DEFINER con search_path vacío y EXECUTE sólo para app y MCP (condición 4)', async () => {
