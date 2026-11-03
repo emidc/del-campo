@@ -1,10 +1,9 @@
-import { pantallaOrdenPrevio } from '@del-campo/risk'
+import { pantallaOrdenPrevio, SinPermiso } from '@del-campo/risk'
 import { notFound } from 'next/navigation'
 
 import { parseOrganizacion } from '../../../../lib/handlers.ts'
 import { requireSession } from '../../../../lib/page-guard.ts'
-import { database } from '../../../../lib/server.ts'
-import { avisoDe } from '../../../../vistas/comun.ts'
+import { avisoDe, PaginaSinAcceso, permisosDe } from '../../../../vistas/comun.ts'
 import { PaginaOrdenPrevio } from '../../../../vistas/organizacion.ts'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +16,8 @@ export default async function OrdenPrevio({ params, searchParams }: {
   const sesion = await requireSession()
   const org = parseOrganizacion((await params).org)
   if (org === null) notFound()
-  const pantalla = await pantallaOrdenPrevio(database(), sesion, org)
+  const pantalla = await sesion.datos((db, s) => pantallaOrdenPrevio(db, s, org))
+  if (pantalla instanceof SinPermiso) return PaginaSinAcceso(pantalla.message, sesion.nombre, org)
   if (pantalla === null) notFound()
-  return PaginaOrdenPrevio(pantalla, sesion.nombre, avisoDe(await searchParams))
+  return PaginaOrdenPrevio(pantalla, sesion.nombre, avisoDe(await searchParams), permisosDe(sesion.rol))
 }

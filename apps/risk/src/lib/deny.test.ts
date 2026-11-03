@@ -9,6 +9,8 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
+import { GET as googleCallbackGET } from '../app/api/auth/google/callback/route.ts'
+import { GET as googleStartGET } from '../app/api/auth/google/start/route.ts'
 import { POST as loginPOST } from '../app/api/login/route.ts'
 import { POST as logoutPOST } from '../app/api/logout/route.ts'
 import { POST as ordenPrevioPOST } from '../app/api/o/[org]/orden-previo/route.ts'
@@ -22,6 +24,8 @@ import { GET as transferenciaGET } from '../app/api/o/[org]/transferencia/route.
 import { GET as organizacionesGET } from '../app/api/organizaciones/route.ts'
 import { GET as detalleGET } from '../app/api/r/[id]/route.ts'
 import { guardRequest } from './guard.ts'
+import { COOKIE_IDENTIDAD } from './identidad.ts'
+import { modoAcceso } from './modo.ts'
 import { issueSession, SESSION_COOKIE, SESSION_TTL_SECONDS, verifySession } from './sesion.ts'
 
 const ORIGIN = 'http://localhost:3200'
@@ -30,10 +34,11 @@ const OTRO = 'otro-secreto-de-sesion-de-prueba-0123456789'
 const PERSONA = 'PER-01M50T00000000000000000002'
 const ORG = 'ORG-01M3QSRT003GPNZ7ZJSV8AHDAR'
 const RIESGO = 'RSK-01M3QSRT00DSK3VYVBFPTPJXM6'
-const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL'] as const
+const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL', 'AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const
 const saved: Partial<Record<(typeof VARS)[number], string | undefined>> = {}
 
 const configure = (): void => {
+  for (const v of ['AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const) Reflect.deleteProperty(process.env, v)
   process.env.RISK_UI_SESSION_SECRET = SECRET
   // Una base que no existe: si un handler llegara a consultarla, el test fallaría.
   process.env.RISK_DATABASE_URL = 'postgres://localhost:1/no_existe_test'
@@ -195,8 +200,11 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
   const files = walk(APP).map((f) => relative(APP, f).split('\\').join('/'))
 
   // Las únicas excepciones: el login es donde se obtiene la credencial y el logout sólo borra
-  // la cookie. Ninguna de las dos muestra datos.
-  const PUBLIC = new Set(['login/page.tsx', 'api/login/route.ts', 'api/logout/route.ts'])
+  // la cookie. Ninguna de las dos muestra datos. La entrada con Google es donde se obtiene la
+  // sesión del modo oidc, y en legacy no existe (T-0035).
+  const PUBLIC = new Set([
+    'login/page.tsx', 'api/login/route.ts', 'api/logout/route.ts', 'api/auth/google/start/route.ts', 'api/auth/google/callback/route.ts',
+  ])
 
   it('hay páginas y endpoints que revisar', () => {
     assert.ok(files.includes('page.tsx'))
@@ -211,6 +219,9 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
       if (file.endsWith('page.tsx')) {
         // La primera sentencia del componente de la página, antes de leer parámetros o datos.
         assert.match(source, /export default async function \w+\([^)]*(\([^)]*\)[^)]*)*\) \{\n {2}const sesion = await requireSession\(\)\n/, `${file} no llama a requireSession() primero`)
+        // Toda lectura pasa por `sesion.datos`, que en oidc corre como la persona (T-0035): una
+        // página no usa la conexión de la app.
+        assert.doesNotMatch(source, /lib\/server\.ts|database\(/, `${file} lee con la conexión de la app en vez de sesion.datos`)
         return
       }
       const handlers = source.match(/export (const|function|async function) (GET|POST|PUT|PATCH|DELETE)\b/g) ?? []
@@ -219,4 +230,66 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
       assert.equal(guarded.length, handlers.length, `${file}: cada handler pasa por withSesion`)
     })
   }
+})
+
+describe('AUTH_MODE (T-0035)', () => {
+  const oidc = (): void => {
+    process.env.AUTH_MODE = 'oidc'
+    process.env.RISK_BASE_URL = ORIGIN
+    process.env.RISK_GOOGLE_CLIENT_ID = 'cliente-de-prueba.apps.example.test'
+    process.env.RISK_GOOGLE_CLIENT_SECRET = 'secreto-de-cliente-de-prueba'
+  }
+
+  it('sin valor es legacy; un valor desconocido falla en vez de elegir un modo', () => {
+    assert.equal(modoAcceso(undefined), 'legacy')
+    assert.equal(modoAcceso(' legacy '), 'legacy')
+    assert.equal(modoAcceso('oidc'), 'oidc')
+    assert.throws(() => modoAcceso('OIDC'))
+  })
+
+  it('en legacy la entrada con Google no existe', async () => {
+    assert.equal((await googleStartGET()).status, 404)
+    assert.equal((await googleCallbackGET(new Request(`${ORIGIN}/api/auth/google/callback?code=c&state=s`))).status, 404)
+  })
+
+  describe('en oidc, sin una sesión de Google válida: 401 sin datos y sin tocar la base', () => {
+    for (const e of ENDPOINTS) {
+      for (const [nombre, headers] of [
+        ['sin cookie', {}],
+        ['con una sesión de usuario y contraseña bien firmada', cookie(valida())],
+        ['con una cookie de Google adulterada', { cookie: `${COOKIE_IDENTIDAD}=v1.no-es-una-sesion` }],
+      ] as const) {
+        it(`${e.name}, ${nombre}`, async () => {
+          oidc()
+          try {
+            const r = await e.call(headers)
+            assert.equal(r.status, 401)
+            assert.deepEqual(await r.json(), { error: 'sin credencial válida' })
+          } finally {
+            configure()
+          }
+        })
+      }
+    }
+  })
+
+  it('en oidc sin la configuración de Google, todo 503', async () => {
+    process.env.AUTH_MODE = 'oidc'
+    try {
+      for (const e of ENDPOINTS) assert.equal((await e.call({})).status, 503, e.name)
+      assert.equal((await googleStartGET()).status, 503)
+    } finally {
+      configure()
+    }
+  })
+
+  it('en oidc, POST /api/login no existe', async () => {
+    oidc()
+    try {
+      const r = await loginPOST(new Request(`${ORIGIN}/api/login`, { method: 'POST', headers: { origin: ORIGIN }, body: new URLSearchParams({ usuario: 'x', contrasena: 'y' }) }))
+      assert.equal(r.status, 404)
+    } finally {
+      configure()
+    }
+  })
 })

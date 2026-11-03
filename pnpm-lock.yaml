@@ -58,6 +58,9 @@ importers:
 
   apps/risk:
     dependencies:
+      '@del-campo/identidad':
+        specifier: workspace:*
+        version: link:../../packages/identidad
       '@del-campo/risk':
         specifier: workspace:*
         version: link:../../contexts/risk

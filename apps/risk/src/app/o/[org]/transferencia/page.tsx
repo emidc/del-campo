@@ -1,10 +1,9 @@
-import { VERSION_METODOLOGIA, vistaActividad, vistaTransferencia } from '@del-campo/risk'
+import { SinPermiso, VERSION_METODOLOGIA, vistaActividad, vistaTransferencia } from '@del-campo/risk'
 import { notFound } from 'next/navigation'
 
 import { parseOrganizacion } from '../../../../lib/handlers.ts'
 import { requireSession } from '../../../../lib/page-guard.ts'
-import { database } from '../../../../lib/server.ts'
-import { avisoDe } from '../../../../vistas/comun.ts'
+import { avisoDe, PaginaSinAcceso, permisosDe } from '../../../../vistas/comun.ts'
 import { PaginaTransferencia } from '../../../../vistas/organizacion.ts'
 
 export const dynamic = 'force-dynamic'
@@ -16,9 +15,12 @@ export default async function Transferencia({ params, searchParams }: {
   const sesion = await requireSession()
   const org = parseOrganizacion((await params).org)
   if (org === null) notFound()
-  const db = database()
-  const transferencia = await vistaTransferencia(db, sesion, VERSION_METODOLOGIA, org)
-  const actividad = await vistaActividad(db, sesion, org)
+  const vistas = await sesion.datos(async (db, s) => ({
+    transferencia: await vistaTransferencia(db, s, VERSION_METODOLOGIA, org),
+    actividad: await vistaActividad(db, s, org),
+  }))
+  if (vistas instanceof SinPermiso) return PaginaSinAcceso(vistas.message, sesion.nombre, org)
+  const { transferencia, actividad } = vistas
   if (transferencia === null || actividad === null) notFound()
-  return PaginaTransferencia(transferencia, actividad, sesion.nombre, avisoDe(await searchParams))
+  return PaginaTransferencia(transferencia, actividad, sesion.nombre, avisoDe(await searchParams), permisosDe(sesion.rol))
 }

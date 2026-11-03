@@ -19,6 +19,19 @@ export const PaginaOrganizaciones = (os: readonly Organizacion[], persona: strin
           h('td', null, o.referencias.join(', ') || '—'),
           h('td', null, h('a', { href: `/o/${encodeURIComponent(o.organizacionId)}/orden-previo` }, 'registrar sin ver resultados'))))))
 
+/**
+ * El login del modo `oidc` (T-0035): el botón de Google. Un rechazo dice siempre lo mismo; el
+ * motivo queda en el servidor.
+ */
+export const PaginaLoginGoogle = (configurada: boolean, error: boolean): ReactElement =>
+  h('main', null,
+    configurada
+      ? h('div', { className: 'login' },
+        h('h1', null, 'Risk OS'),
+        error ? h('p', { className: 'aviso' }, 'No se pudo entrar con esa cuenta. Si te invitaron, pedile ayuda a un Administrador.') : null,
+        h('a', { className: 'boton', href: '/api/auth/google/start' }, 'Entrar con Google'))
+      : h('p', { className: 'aviso' }, 'La UI no está configurada: falta la configuración de Google, el secreto de sesión o la base.'))
+
 export const PaginaLogin = (configurada: boolean, error: boolean): ReactElement =>
   h('main', null,
     configurada

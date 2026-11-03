@@ -12,6 +12,7 @@
     "db:down": "node src/persistence/cli.ts down",
     "import": "node src/application/cli-importar.ts",
     "persona": "node src/application/cli-persona.ts",
+    "acceso": "node src/application/cli-acceso.ts",
     "ciclos": "node src/application/cli-ciclos.ts",
     "db:verificar": "node src/persistence/cli.ts verificar",
     "aceptacion": "node src/acceptance/cli.ts",

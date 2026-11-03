@@ -12,6 +12,8 @@ import type { FilaCola, FilaNoEvaluable, FilaRanking, FilaSeguridad, HijoEnLista
 import {
   cabeceraBanderas, cabeceraVector, calculado, celdasBanderas, celdasVector, DIMENSION, enlaceRiesgo, evaluacionUsada, h, marco,
   seccion, tabla, th, vacio, type Aviso,
+  TODO_PERMITIDO,
+  type Permisos,
 } from './comun.ts'
 import { formReordenar } from './formularios.ts'
 
@@ -109,7 +111,7 @@ const filtroUnidad = (v: VistaLista): ReactElement | null =>
     v.unidad === null ? null : h('p', { className: 'muted' },
       `Filtrado por la unidad ${v.unidad}. Las posiciones son las de la organización: el filtro oculta filas y no reordena.`))
 
-export const PaginaLista = (v: VistaLista, persona: string, avisoDePagina?: Aviso): ReactElement =>
+export const PaginaLista = (v: VistaLista, persona: string, avisoDePagina?: Aviso, permisos: Permisos = TODO_PERMITIDO): ReactElement =>
   marco('Lista de riesgos', { organizacionId: v.organizacionId, activa: 'lista', persona, ...(avisoDePagina === undefined ? {} : { aviso: avisoDePagina }) },
     calculado(v.version, 'Posiciones, bandas, banderas, cola y techo plausible'),
     h('p', { className: 'muted' }, 'Cada fila usa la evaluación vigente de su riesgo: la última aceptada o, si no hay, la última no rechazada, rotulada pendiente de revisión.'),
@@ -122,7 +124,7 @@ export const PaginaLista = (v: VistaLista, persona: string, avisoDePagina?: Avis
       h('p', { className: 'muted' }, 'Una persona registra que discrepa del orden calculado, con causa y fundamento. El orden profesional se muestra al lado del calculado; los factores, la criticidad y la banda no cambian.'),
       v.reordenamientos.length === 0 ? vacio('Sin reordenamientos registrados.') :
         tabla([th('Cuándo'), th('Quién'), th('Riesgos'), th('Causa'), th('Fundamento'), th('Patrón'), th('Estado')], v.reordenamientos.map(filaReordenamiento)),
-      v.ranking.length === 0 ? null : formReordenar(v.organizacionId,
+      v.ranking.length === 0 || !permisos.reordenar ? null : formReordenar(v.organizacionId,
         v.ranking.map((f): readonly [string, string] => [f.riskId, `${String(f.posicion)} · ${f.idOrigen === null ? f.titulo : `${f.idOrigen} · ${f.titulo}`}`]),
         `/o/${encodeURIComponent(v.organizacionId)}`)),
     seccion('Seguridad (safety_critical)',

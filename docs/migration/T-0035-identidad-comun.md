@@ -116,9 +116,15 @@ lo esperado: la rotación pendiente de la credencial compartida queda resuelta a
 
 ### Fase 4 — Risk OS pasa a `oidc`
 
+0. La migración 0006 de Risk OS está aplicada en su base de producción y `rol-app.sql`
+   vuelto a correr, con aprobación del owner. Agrega las tablas de identidad, asignación y
+   auditoría, `risk_persona` y RLS; `risk_app` sigue viendo lo mismo por la política
+   `legado_risk_app`. Con `legacy` no cambia nada. Antes de activar `oidc`, el owner
+   asigna a cada Operador y Revisor sus organizaciones, una por una.
 1. Por cada `risk.persona` con usuario activo, el owner carga una invitación con el
    `persona_id`, para que el primer login de Google se vincule a esa misma persona y la
-   autoría se mantenga. Las personas dadas de baja no se invitan.
+   autoría se mantenga (`pnpm --filter @del-campo/risk run acceso invitar --persona PER-…
+   --email … --rol …`). Las personas dadas de baja no se invitan.
 2. `AUTH_MODE=oidc` y despliegue.
 3. Comprobación igual que en la fase 2. Además, una persona que entra con Google ve como
    propias las acciones que registró con contraseña, y `registro_acceso` sigue

@@ -62,7 +62,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @del-campo/risk run db:migrate --hosteada
 ```
 
-Aplica las migraciones pendientes de `contexts/risk/migrations/` en orden (0001 a 0005), una
+Aplica las migraciones pendientes de `contexts/risk/migrations/` en orden (0001 a 0006), una
 transacción por archivo con su fila en `risk.schema_migrations`. Una que falla no deja nada
 y corta las siguientes. Ningún mensaje repite la URL; un error de la base muestra sólo su
 código.
@@ -77,6 +77,11 @@ psql "$RISK_HOSTED_DATABASE_URL" -c '\password risk_app'    # contraseña al aza
 `risk_app` lee e inserta en `risk` y nada más: sin UPDATE, DELETE ni TRUNCATE, sin ser dueño
 de ninguna tabla (no puede desactivar el trigger de sólo inserción, R-22), sin crear nada y
 sin leer otros esquemas (D-0063). Lo prueba `rol-app.integration.test.ts`.
+
+Desde la 0006 (T-0035) toda tabla de `risk` tiene RLS. `risk_app` pasa por la política
+`legado_risk_app`, que le deja ver y escribir lo mismo que antes: con `AUTH_MODE=legacy` nada
+cambia. `rol-app.sql` además lo hace miembro de `risk_persona` con `inherit false`, para que
+en `oidc` cada request pueda asumir ese rol, sujeto a RLS, con la persona declarada.
 
 **Reversa.** En local, `pnpm --filter @del-campo/risk run db:down` revierte una migración por
 vez (probado en CI). En la base hosteada, `db:down --hosteada --borra-datos` existe pero **no es
@@ -101,6 +106,7 @@ Variables, **sólo en Production** (la lista canónica está en el
 | --- | --- |
 | `RISK_DATABASE_URL` | Transaction pooler con el usuario `risk_app`. La app exige TLS con toda base que no está en `localhost`; se puede agregar `?sslmode=require` igual. |
 | `RISK_UI_SESSION_SECRET` | 32 caracteres o más al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. |
+| `AUTH_MODE` | No configurarla, o `legacy`, hasta la fase 4 del plan de T-0035. Con `oidc` hacen falta además `RISK_BASE_URL`, `RISK_GOOGLE_CLIENT_ID` y `RISK_GOOGLE_CLIENT_SECRET`, la migración 0006 aplicada y `rol-app.sql` vuelto a correr; la contraseña deja de entrar. |
 
 Ninguna con prefijo `NEXT_PUBLIC_`. **Las previews nunca ven la base real.** Preview y
 Development quedan sin variables: los endpoints responden 503 y no se puede entrar. A11 (RO01

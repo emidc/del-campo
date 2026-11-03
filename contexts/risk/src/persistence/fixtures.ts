@@ -57,7 +57,7 @@ export type Tabla =
   | 'accion_estado' | 'transferencia' | 'evento_poliza' | 'revision_humana' | 'novedad'
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
   | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion' | 'usuario' | 'credencial'
-  | 'login_fallido'
+  | 'login_fallido' | 'rol_persona' | 'invitacion' | 'credencial_externa' | 'asignacion' | 'evento_auditoria'
 
 export type Fila = Record<string, unknown>
 
@@ -128,6 +128,24 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
   usuario: () => ({ usuario: `usuario-${String(siguiente++)}`, persona_id: B.otraPersona }),
   credencial: () => ({ persona_id: B.persona, password_hash: HASH_SINTETICO }),
   login_fallido: () => ({ usuario_huella: 'a'.repeat(64) }),
+  // T-0035 (D-0072, D-0077). Emails y sujetos inventados, sin dominio real.
+  rol_persona: () => ({ persona_id: B.persona, rol: 'OPERADOR' }),
+  invitacion: () => ({ persona_id: B.otraPersona, email: `persona-${String(siguiente++)}@ejemplo.invalid`, vence_en: '2999-01-01T00:00:00Z' }),
+  credencial_externa: () => ({ persona_id: B.otraPersona, proveedor: 'google', sujeto: `sujeto-${String(siguiente++)}`, invitacion_id: siguienteInvitacion }),
+  asignacion: () => ({ persona_id: B.persona, organizacion_id: ORG_A, vigente: true }),
+  evento_auditoria: () => ({ actor_persona_id: B.persona, origen: 'app', accion: 'riesgo.consultar', tipo_objeto: 'riesgo', id_objeto: B.riesgo, resultado: 'ok' }),
+}
+
+/**
+ * El id que va a tener la próxima invitación. Lo fija `base` después de escribir la suya: la
+ * credencial de la fila por defecto consume una invitación nueva de `otraPersona`, que el caso
+ * escribe antes con `fila('invitacion')`.
+ */
+let siguienteInvitacion = 0
+export const prepararCredencial = async (tx: TransactionSql): Promise<void> => {
+  await insertar(tx, 'invitacion', fila('invitacion'))
+  const [f] = await tx<{ id: string }[]>`select max(id)::text as id from risk.invitacion`
+  siguienteInvitacion = Number(f?.id)
 }
 
 /** Una fila válida de `tabla` sobre los registros de `base`, con `cambios` encima. */
@@ -189,4 +207,11 @@ export const base = async (tx: TransactionSql): Promise<void> => {
   await ins('orden_previo', { id: B.ordenPrevioOrgB, organizacion_id: ORG_B, revisor_persona_id: B.persona })
   await ins('reordenamiento', { id: B.reordenamiento })
   await ins('usuario', { usuario: 'persona-de-la-base', persona_id: B.persona })
+  // T-0035: `persona` entra con Google, invitada; `otraPersona` tiene una invitación pendiente
+  // que consume la credencial de `fila('credencial_externa')`.
+  await ins('invitacion', { persona_id: B.persona, email: 'persona-de-la-base@ejemplo.invalid' })
+  const [inv] = await tx<{ id: string }[]>`select max(id)::text as id from risk.invitacion where persona_id = ${B.persona}`
+  await ins('credencial_externa', { persona_id: B.persona, sujeto: 'sujeto-de-la-base', invitacion_id: Number(inv?.id) })
+  await ins('rol_persona', {})
+  await prepararCredencial(tx)
 }

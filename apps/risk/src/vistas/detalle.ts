@@ -13,6 +13,8 @@ import type { CriticidadDetalle, EntradaHistorial, EvaluacionDetalle, FactorVist
 import {
   cabeceraBanderas, cabeceraVector, calculado, celdasBanderas, celdasVector, corto, DIMENSION, enlaceRiesgo, evaluacionUsada, h, marco,
   NOMBRE_FACTOR, procedencia, revisiones, seccion, tabla, textoFactor, th, vacio, type Aviso,
+  TODO_PERMITIDO,
+  type Permisos,
 } from './comun.ts'
 import { formAltaAccion, formAltaCobertura, formCerrar, formNovedad, formReevaluacion, formRevisar } from './formularios.ts'
 import { bloqueAccion, bloqueCobertura } from './registros.ts'
@@ -50,7 +52,7 @@ const movimiento = (m: Movimiento): ReactElement =>
       h('li', null, `Banda: antes ${m.banda.antes ?? 'sin banda'}; después ${m.banda.despues ?? 'sin banda'}.`),
       h('li', null, `Determinante: antes ${dimensiones(m.dimensionDeterminante.antes)}; después ${dimensiones(m.dimensionDeterminante.despues)}.`)))
 
-const evaluacion = (riskId: string) => (e: EvaluacionDetalle): ReactElement =>
+const evaluacion = (riskId: string, permisos: Permisos) => (e: EvaluacionDetalle): ReactElement =>
   h('article', { className: e.vigente ? 'registro vigente' : 'registro', 'data-evaluacion-detalle': e.id },
     h('h4', null, `${e.tipo === 'inicial' ? 'Evaluación inicial' : `Reevaluación por ${e.motivo ?? 'motivo sin registrar'}`} · ${e.fecha}`,
       e.vigente ? h('span', { className: 'ok' }, ' · la usada') : null),
@@ -72,7 +74,7 @@ const evaluacion = (riskId: string) => (e: EvaluacionDetalle): ReactElement =>
       e.justificacion === null ? null : h('li', null, `Justificación: ${e.justificacion}`),
       e.reglasAplicadas === null ? null : h('li', null, `Reglas aplicadas: ${e.reglasAplicadas.join(', ')}`)),
     e.movimiento === null ? null : movimiento(e.movimiento),
-    formRevisar(riskId, 'evaluacion', e.id, `/r/${riskId}`))
+    permisos.revisar ? formRevisar(riskId, 'evaluacion', e.id, `/r/${riskId}`) : null)
 
 const TABLA: Readonly<Record<string, string>> = {
   riesgo: 'Riesgo', evaluacion: 'Evaluación', revision_humana: 'Revisión humana', accion: 'Acción', accion_estado: 'Estado de acción',
@@ -92,7 +94,7 @@ const historialDeCambios = (cambios: readonly EntradaHistorial[]): ReactElement 
 const relacion = (titulo: string, xs: readonly Identidad[]): ReactElement | null =>
   xs.length === 0 ? null : h('p', null, `${titulo}: `, ...xs.flatMap((x, i) => [i === 0 ? '' : ', ', enlaceRiesgo(x.riskId, x.titulo, x.idOrigen)]))
 
-export const PaginaDetalle = (v: VistaDetalle, persona: string, avisoDePagina?: Aviso): ReactElement => {
+export const PaginaDetalle = (v: VistaDetalle, persona: string, avisoDePagina?: Aviso, permisos: Permisos = TODO_PERMITIDO): ReactElement => {
   const r = v.riesgo
   const volver = `/r/${r.riskId}`
   const padre = r.tipoObjeto === 'padre'
@@ -121,17 +123,17 @@ export const PaginaDetalle = (v: VistaDetalle, persona: string, avisoDePagina?: 
     seccion('Revisiones pendientes', v.revisionesPendientes.length === 0 ? vacio('Ninguna.') : h('ul', null, ...v.revisionesPendientes.map((p) =>
       h('li', { 'data-revision': p.id, 'data-estado': p.estado }, `${p.abiertaEn} · ${p.disparador}${p.referencia === null ? '' : ` (${p.referencia})`} · ${p.estado}`,
         p.cierre === null ? '' : `: ${p.cierre.resultado === 'sin_cambio' ? `sin cambio (${p.cierre.fundamento ?? ''})` : `reevaluación aceptada ${corto(p.cierre.evaluacionId ?? '')}`} por ${p.cierre.cerradaPor} el ${p.cierre.cerradaEn}`,
-        p.estado === 'abierta' ? h('div', { className: 'formularios' }, ...formCerrar(r.riskId, p, v.historial, volver)) : null)))),
+        p.estado === 'abierta' && permisos.revisar ? h('div', { className: 'formularios' }, ...formCerrar(r.riskId, p, v.historial, volver)) : null)))),
     seccion('Historial de evaluaciones',
       v.historial.length === 0 ? vacio(padre ? 'Un padre no tiene evaluación propia: se lee por sus hijos.' : 'Sin evaluaciones.') :
-        h('div', null, ...[...v.historial].reverse().map(evaluacion(r.riskId))),
-      padre || base === undefined ? null : formReevaluacion(r.riskId, base, v.acciones, volver)),
-    seccion('Acciones y decisiones', v.acciones.length === 0 ? vacio('Sin acciones registradas.') : h('div', null, ...v.acciones.map((a) => bloqueAccion(a, { volver, reevaluaciones }))),
-      padre ? null : formAltaAccion(r.riskId, volver)),
-    seccion('Coberturas', v.coberturas.length === 0 ? vacio('Sin coberturas registradas.') : h('div', null, ...v.coberturas.map((c) => bloqueCobertura(c, { volver }))),
-      padre ? null : formAltaCobertura(r.riskId, volver)),
+        h('div', null, ...[...v.historial].reverse().map(evaluacion(r.riskId, permisos))),
+      padre || base === undefined || !permisos.cargar ? null : formReevaluacion(r.riskId, base, v.acciones, volver)),
+    seccion('Acciones y decisiones', v.acciones.length === 0 ? vacio('Sin acciones registradas.') : h('div', null, ...v.acciones.map((a) => bloqueAccion(a, { volver, reevaluaciones, permisos }))),
+      padre || !permisos.cargar ? null : formAltaAccion(r.riskId, volver)),
+    seccion('Coberturas', v.coberturas.length === 0 ? vacio('Sin coberturas registradas.') : h('div', null, ...v.coberturas.map((c) => bloqueCobertura(c, { volver, permisos }))),
+      padre || !permisos.cargar ? null : formAltaCobertura(r.riskId, volver)),
     seccion('Novedades', v.novedades.length === 0 ? vacio('Sin novedades.') : h('ul', null, ...v.novedades.map((n) =>
       h('li', null, `${n.registradaEn} · ${n.tipo} · ${n.autor}: ${n.texto}${n.evidencia.length === 0 ? '' : ` (evidencia: ${n.evidencia.join(', ')})`}`))),
-      formNovedad(r.riskId, destinos, volver)),
+      permisos.cargar ? formNovedad(r.riskId, destinos, volver) : null),
     seccion('Historial de cambios', h('p', { className: 'muted' }, 'Cada cambio es un registro nuevo: nada se sobrescribe ni se borra.'), historialDeCambios(v.cambios)))
 }
