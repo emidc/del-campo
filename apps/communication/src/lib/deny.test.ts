@@ -240,8 +240,17 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
   const files = walk(APP).map((f) => relative(APP, f).split('\\').join('/'))
 
   // Las únicas excepciones, con su motivo: el login es donde se obtiene la credencial,
-  // el logout solo borra la cookie, y el webhook lo protege la firma de Meta (D-0066).
-  const PUBLIC = new Set(['login/page.tsx', 'api/login/route.ts', 'api/logout/route.ts', 'webhook/route.ts'])
+  // el logout solo borra la cookie, y el webhook lo protege la firma de Meta (D-0066). La
+  // entrada con Google es donde se obtiene la sesión del modo oidc, y en legacy no existe
+  // (T-0035).
+  const PUBLIC = new Set([
+    'login/page.tsx',
+    'api/login/route.ts',
+    'api/logout/route.ts',
+    'webhook/route.ts',
+    'api/auth/google/start/route.ts',
+    'api/auth/google/callback/route.ts',
+  ])
   // Las tareas programadas no usan la credencial de la UI sino su propio secreto (T-0026).
   const JOBS = 'api/jobs/'
 

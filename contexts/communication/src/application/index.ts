@@ -12,7 +12,28 @@ export {
   type SendOutcome,
   type TextSender,
 } from '../integration/cloud-api.ts'
-export { connect, type Sql } from '../persistence/database.ts'
+export { connect, type Conexion, type Sql } from '../persistence/database.ts'
+export {
+  EXPLICACION,
+  puede,
+  type AccionCommunication,
+  type RolInterno,
+} from '../domain/permisos.ts'
+export {
+  afirmarRestringida,
+  auditar,
+  conPrincipal,
+  ingresar,
+  ROL_RESTRINGIDO,
+  type CredencialEncontrada,
+  type DecisionLogin,
+  type IdentidadDeLogin,
+  type InvitacionEncontrada,
+  type MotivoDenegado,
+  type PrincipalCommunication,
+  type Rol,
+} from '../persistence/acceso.ts'
+export { cambiarRol, darDeBaja, invitar, type ResultadoAdmin } from './acceso.ts'
 export { listThread, type OutboundMessage, type ThreadMessage } from '../persistence/store.ts'
 export {
   conversationList,
@@ -38,7 +59,7 @@ export {
   type ReprocessOutcome,
   type ReprocessResult,
 } from './reprocess.ts'
-export { sendReply, type ReplyDeps, type ReplyRequest, type ReplyResult } from './reply.ts'
+export { sendReply, type Phase, type ReplyDeps, type ReplyRequest, type ReplyResult } from './reply.ts'
 export {
   createWebhookHandler,
   deliveryStore,

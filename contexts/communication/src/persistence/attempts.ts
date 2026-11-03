@@ -4,7 +4,8 @@
 import { createHash } from 'node:crypto'
 
 import type { AttemptState } from '../domain/reply.ts'
-import type { Sql } from './database.ts'
+import { enTransaccion } from './acceso.ts'
+import type { Conexion, Sql } from './database.ts'
 import type { OutboundMessage } from './store.ts'
 
 export const bodyDigest = (body: string): Buffer => createHash('sha256').update(body, 'utf8').digest()
@@ -19,7 +20,7 @@ export interface AttemptRow {
   readonly createdAt: Date
 }
 
-const ATTEMPT_COLUMNS = (sql: Sql) => sql`
+const ATTEMPT_COLUMNS = (sql: Conexion) => sql`
   id, state, body_sha256 as "bodySha256", message_id as "messageId",
   error_code as "errorCode", error_title as "errorTitle", created_at as "createdAt"`
 
@@ -30,7 +31,7 @@ const toAttempt = (r: RawAttempt): AttemptRow => ({
   messageId: r.messageId === null ? null : Number(r.messageId),
 })
 
-export const findAttempt = async (sql: Sql, key: string): Promise<AttemptRow | null> => {
+export const findAttempt = async (sql: Conexion, key: string): Promise<AttemptRow | null> => {
   const [row] = await sql<RawAttempt[]>`
     select ${ATTEMPT_COLUMNS(sql)} from communication.outbound_attempt where idempotency_key = ${key}`
   return row === undefined ? null : toAttempt(row)
@@ -42,14 +43,16 @@ export interface NewAttempt {
   readonly waId: string
   readonly bsuid: string | null
   readonly body: string
+  /** Quién lo inicia; `null` con la credencial compartida (T-0035). */
+  readonly createdBy?: string | null
 }
 
 /** Inserta el intento en `pending`. Devuelve `null` si la clave ya existía: no se envía de nuevo. */
-export const insertAttempt = async (sql: Sql, a: NewAttempt): Promise<number | null> => {
+export const insertAttempt = async (sql: Conexion, a: NewAttempt): Promise<number | null> => {
   const rows = await sql<{ id: string }[]>`
     insert into communication.outbound_attempt
-      (idempotency_key, phone_number_id, wa_id, bsuid, body, body_sha256)
-    values (${a.key}, ${a.phoneNumberId}, ${a.waId}, ${a.bsuid}, ${a.body}, ${bodyDigest(a.body)})
+      (idempotency_key, phone_number_id, wa_id, bsuid, body, body_sha256, created_by)
+    values (${a.key}, ${a.phoneNumberId}, ${a.waId}, ${a.bsuid}, ${a.body}, ${bodyDigest(a.body)}, ${a.createdBy ?? null})
     on conflict (idempotency_key) do nothing
     returning id`
   const [row] = rows
@@ -60,8 +63,8 @@ export const insertAttempt = async (sql: Sql, a: NewAttempt): Promise<number | n
  * La API aceptó: el saliente y el cierre del intento van en una sola transacción. Si
  * falla, el intento queda `pending` y se ve como sin confirmar; no se pierde.
  */
-export const settleAccepted = async (sql: Sql, attemptId: number, message: OutboundMessage): Promise<number> =>
-  sql.begin(async (tx) => {
+export const settleAccepted = async (sql: Conexion, attemptId: number, message: OutboundMessage): Promise<number> =>
+  enTransaccion(sql, async (tx) => {
     const [row] = await tx<{ id: string }[]>`
       insert into communication.message
         (wamid, direction, phone_number_id, wa_id, bsuid, body, wa_timestamp)
@@ -80,7 +83,7 @@ export const settleAccepted = async (sql: Sql, attemptId: number, message: Outbo
 
 /** Cierra un intento que no se aceptó. Solo desde `pending`: un resultado no se reescribe. */
 export const settleNotAccepted = async (
-  sql: Sql,
+  sql: Conexion,
   attemptId: number,
   outcome: { readonly state: 'rejected'; readonly code: number | null; readonly title: string }
     | { readonly state: 'unconfirmed'; readonly title: string; readonly wamid?: string },
@@ -106,7 +109,7 @@ export interface OpenAttemptRow {
 }
 
 /** Los intentos que pudieron haber salido sin confirmación, para el hilo del participante. */
-export const listOpenAttempts = async (sql: Sql, waId: string): Promise<OpenAttemptRow[]> => {
+export const listOpenAttempts = async (sql: Conexion, waId: string): Promise<OpenAttemptRow[]> => {
   const rows = await sql<(Omit<OpenAttemptRow, 'id'> & { id: string })[]>`
     select id, state, body, error_title as "errorTitle", created_at as "createdAt"
     from communication.outbound_attempt
