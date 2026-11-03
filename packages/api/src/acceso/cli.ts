@@ -7,10 +7,20 @@
 //   pnpm acceso asignar    --base <nombre> --actor <id> --usuario <id> --cliente <party id>
 //   pnpm acceso desasignar --base <nombre> --actor <id> --asignacion <id>
 //
-// `--base` repite el nombre de la base de DATABASE_URL: correr esto contra otra base que
-// la que uno cree es un error que se paga con accesos reales. Usarla contra producción
-// requiere la aprobación del owner (fase 2 del plan de migración); invitar no avisa a
-// nadie, y avisarle a la persona lo hace un humano.
+// **Es una herramienta restringida de administración, no un mecanismo de autenticación.**
+// Quien la corre ya tiene la credencial de la base con privilegios de dueño: ese es el
+// control real, y por eso sólo la corre quien administra la base. `--actor` no autentica
+// a nadie: es la atribución que queda en la auditoría, y la CLI comprueba que nombre a un
+// Administrador ACTIVE para que la atribución no sea arbitraria, pero cualquiera con la
+// credencial podría escribir otro uuid. La autenticación individual de un Administrador
+// llega con la interfaz web en modo `oidc`, donde el actor sale de la sesión y no de un
+// parámetro.
+//
+// `--base` repite el nombre de la base de DATABASE_URL, y contra un host que no es local
+// hay que repetirlo también con `--host`: correr esto contra otra base que la que uno
+// cree es un error que se paga con accesos reales. Usarla contra producción requiere la
+// aprobación del owner (fase 2 del plan de migración); invitar no avisa a nadie, y
+// avisarle a la persona lo hace un humano.
 //
 // La salida son identificadores y motivos, nunca emails: lo que se imprime en una
 // terminal termina en un log.
@@ -23,7 +33,7 @@ import type { ResultadoAdmin } from './admin.ts'
 import { asignarCliente, cambiarRol, cerrarAsignacion, darDeBaja, esRol, invitar } from './admin.ts'
 import type { Rol } from './base.ts'
 
-const USO = 'uso: pnpm acceso <invitar|rol|baja|asignar|desasignar> --base <nombre> [opciones]; ver packages/api/src/acceso/cli.ts'
+const USO = 'uso: pnpm acceso <invitar|rol|baja|asignar|desasignar> --base <nombre> [--host <host>] [opciones]; ver packages/api/src/acceso/cli.ts'
 
 const fallar = (mensaje: string): never => {
   process.stderr.write(`${mensaje}\n`)
@@ -34,6 +44,7 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
     base: { type: 'string' },
+    host: { type: 'string' },
     actor: { type: 'string' },
     email: { type: 'string' },
     rol: { type: 'string' },
@@ -66,6 +77,12 @@ const rolDe = (valor: string): Rol => (esRol(valor) ? valor : fallar(`--rol debe
 const url = process.env.DATABASE_URL ?? fallar('falta DATABASE_URL')
 const nombreBase = new URL(url).pathname.replace(/^\//, '')
 if (requerido('base') !== nombreBase) fallar(`--base no coincide con la base de DATABASE_URL (${nombreBase})`)
+
+const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+const host = new URL(url).hostname
+if (!HOSTS_LOCALES.has(host) && values.host !== host) {
+  fallar(`DATABASE_URL apunta a un host remoto: repetilo con --host para confirmar (requiere aprobación del owner)`)
+}
 
 const sql = postgres(url, { max: 1, prepare: false, onnotice: () => undefined })
 

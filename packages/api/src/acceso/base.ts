@@ -166,12 +166,36 @@ export type ResultadoPrincipal<T> =
   | { readonly ok: true; readonly valor: T }
   | { readonly ok: false; readonly motivo: 'SIN_CREDENCIAL' | 'SIN_ACCESO' }
 
+/** El único rol con el que corren las consultas de datos en modo `oidc`. */
+export const ROL_RESTRINGIDO = 'broker_app'
+
+/**
+ * Falla si la transacción no corre como `broker_app` con un principal declarado. Las
+ * consultas de datos del modo `oidc` la llaman antes de leer: una consulta que por error
+ * recibiera la conexión de la app, que es dueña de las tablas y por eso no está sujeta a
+ * RLS, falla en vez de devolver todo.
+ */
+export const afirmarRestringida = async (tx: Ejecutor): Promise<void> => {
+  const [fila] = await tx<{ rol: string; principal: string | null }[]>`
+    select current_user as rol, authz.usuario_declarado()::text as principal
+  `
+  if (fila?.rol !== ROL_RESTRINGIDO || fila.principal === null) {
+    throw new Error('consulta de datos fuera de una transacción restringida (T-0035, D-0022)')
+  }
+}
+
 /**
  * Corre `accion` como `broker_app`, con el principal declarado local a la transacción.
  * Si la persona no tiene credencial, fue dada de baja o no tiene rol, `accion` no corre.
  *
  * `set local` y `set_config(…, true)` mueren con la transacción: con el pooler en modo
  * transacción, la conexión siguiente no hereda ni el rol ni el principal (D-0022).
+ *
+ * Dentro de una transacción ya abierta corre en un savepoint, y `set local` vive hasta el
+ * final de la transacción de afuera, no del savepoint. Por eso, al terminar sin error, se
+ * restauran el rol y el principal que había antes: lo que siga en esa transacción no
+ * queda como `broker_app` ni a nombre de esta persona. Si `accion` lanza, el savepoint se
+ * revierte y con él el `set local`.
  */
 export const conPrincipal = async <T>(
   conexion: Conexion,
@@ -179,15 +203,32 @@ export const conPrincipal = async <T>(
   accion: (tx: postgres.TransactionSql, principal: PrincipalBroker) => Promise<T>,
 ): Promise<ResultadoPrincipal<T>> =>
   enTransaccion(conexion, async (tx): Promise<ResultadoPrincipal<T>> => {
-    const credencial = await buscarCredencial(tx, identidad)
-    if (credencial === null) return { ok: false, motivo: 'SIN_CREDENCIAL' }
-
-    await tx`set local role broker_app`
-    await tx`select set_config('authz.usuario_id', ${credencial.usuarioId}, true)`
-    const [fila] = await tx<{ usuarioId: string | null; rol: Rol | null }[]>`
-      select authz.usuario() as "usuarioId", authz.rol() as rol
+    const [previo] = await tx<{ rol: string; principal: string }[]>`
+      select current_user as rol, coalesce(current_setting('authz.usuario_id', true), '') as principal
     `
-    if (fila?.usuarioId == null || fila.rol === null) return { ok: false, motivo: 'SIN_ACCESO' }
+    if (previo === undefined) throw new Error('sin estado previo de la transacción')
 
-    return { ok: true, valor: await accion(tx, { usuarioId: fila.usuarioId, rol: fila.rol }) }
+    const restaurar = async (): Promise<void> => {
+      await tx`set local role ${tx(previo.rol)}`
+      await tx`select set_config('authz.usuario_id', ${previo.principal}, true)`
+    }
+
+    const correr = async (): Promise<ResultadoPrincipal<T>> => {
+      const credencial = await buscarCredencial(tx, identidad)
+      if (credencial === null) return { ok: false, motivo: 'SIN_CREDENCIAL' }
+
+      await tx`set local role broker_app`
+      await tx`select set_config('authz.usuario_id', ${credencial.usuarioId}, true)`
+      const [fila] = await tx<{ usuarioId: string | null; rol: Rol | null }[]>`
+        select authz.usuario() as "usuarioId", authz.rol() as rol
+      `
+      if (fila?.usuarioId == null || fila.rol === null) return { ok: false, motivo: 'SIN_ACCESO' }
+
+      await afirmarRestringida(tx)
+      return { ok: true, valor: await accion(tx, { usuarioId: fila.usuarioId, rol: fila.rol }) }
+    }
+
+    const resultado = await correr()
+    await restaurar()
+    return resultado
   })

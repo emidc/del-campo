@@ -9,7 +9,7 @@ import type { Identidad } from '@del-campo/identidad'
 import postgres from 'postgres'
 
 import { asignarCliente, cambiarRol, cerrarAsignacion, darDeBaja, invitar } from './admin.ts'
-import { conPrincipal, ingresar } from './base.ts'
+import { afirmarRestringida, conPrincipal, ingresar } from './base.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -146,17 +146,83 @@ describe('cada request: principal en la base (D-0022)', () => {
         principal,
         parties: (await dentro<{ id: string }[]>`select id from party where id in (${e1.id}, ${e2.id})`).map((f) => f.id),
       }))
-      await tx`reset role`
 
       ok(await darDeBaja(tx, { actor: admin, usuarioId: op.usuarioId }))
       const despues = await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), () => Promise.resolve('corrió'))
-      await tx`reset role`
       const sinCredencial = await conPrincipal(tx, identidad('sub-nadie', 'n@sintetico.test'), () => Promise.resolve('corrió'))
       return { e1: e1.id, opId: op.usuarioId, visto, despues, sinCredencial }
     })
     assert.deepEqual(r.visto, { ok: true, valor: { principal: { usuarioId: r.opId, rol: 'OPERADOR' }, parties: [r.e1] } })
     assert.deepEqual(r.despues, { ok: false, motivo: 'SIN_ACCESO' })
     assert.deepEqual(r.sinCredencial, { ok: false, motivo: 'SIN_CREDENCIAL' })
+  })
+})
+
+describe('aislamiento de conPrincipal dentro de una transacción existente (revisión del #105)', () => {
+  const estado = async (tx: postgres.TransactionSql): Promise<[string, string]> => {
+    const [fila] = await tx<{ rol: string; principal: string }[]>`
+      select current_user as rol, coalesce(current_setting('authz.usuario_id', true), '') as principal
+    `
+    if (fila === undefined) throw new Error('sin estado')
+    return [fila.rol, fila.principal]
+  }
+
+  it('al terminar, con acceso o sin él, la transacción de afuera vuelve a su rol y a su principal', async () => {
+    const r = await descartable(async (tx) => {
+      const admin = await administrador(tx)
+      const op = ok(await invitar(tx, { actor: admin, email: 'op@sintetico.test', rol: 'OPERADOR' }))
+      await ingresar(tx, identidad('sub-op', 'op@sintetico.test'))
+      const antes = await estado(tx)
+      const adentro = await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), (dentro) => estado(dentro))
+      const despuesConAcceso = await estado(tx)
+      ok(await darDeBaja(tx, { actor: admin, usuarioId: op.usuarioId }))
+      await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), () => Promise.resolve(null))
+      const despuesSinAcceso = await estado(tx)
+      return { antes, adentro, despuesConAcceso, despuesSinAcceso, opId: op.usuarioId }
+    })
+    assert.deepEqual(r.adentro, { ok: true, valor: ['broker_app', r.opId] })
+    assert.notEqual(r.antes[0], 'broker_app')
+    assert.deepEqual(r.despuesConAcceso, r.antes)
+    assert.deepEqual(r.despuesSinAcceso, r.antes)
+  })
+
+  it('si la acción falla, el savepoint se revierte y la transacción de afuera sigue con su rol', async () => {
+    const r = await descartable(async (tx) => {
+      const admin = await administrador(tx)
+      await invitar(tx, { actor: admin, email: 'op@sintetico.test', rol: 'OPERADOR' })
+      await ingresar(tx, identidad('sub-op', 'op@sintetico.test'))
+      const antes = await estado(tx)
+      const error = await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), async (dentro) => {
+        await dentro`select 1/0`
+      }).then(
+        () => null,
+        (e: unknown) => (e instanceof Error ? e.message : String(e)),
+      )
+      return { antes, error, despues: await estado(tx) }
+    })
+    assert.match(r.error ?? '', /division by zero/)
+    assert.deepEqual(r.despues, r.antes)
+  })
+
+  it('una consulta con la conexión de la app, sin rol restringido, falla en vez de saltear RLS', async () => {
+    const r = await descartable((tx) =>
+      afirmarRestringida(tx).then(
+        () => 'pasó',
+        (e: unknown) => (e instanceof Error ? e.message : String(e)),
+      ),
+    )
+    assert.match(r, /fuera de una transacción restringida/)
+  })
+
+  it('como broker_app pero sin principal declarado, también falla', async () => {
+    const r = await descartable(async (tx) => {
+      await tx`set local role broker_app`
+      return afirmarRestringida(tx).then(
+        () => 'pasó',
+        (e: unknown) => (e instanceof Error ? e.message : String(e)),
+      )
+    })
+    assert.match(r, /fuera de una transacción restringida/)
   })
 })
 
