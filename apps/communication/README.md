@@ -85,8 +85,9 @@ Con `AUTH_MODE=oidc` no entra la credencial compartida: se entra con Google, só
 una invitación de un Administrador (D-0072), y la identidad es el `sub` de Google
 (D-0077). En cada request, la base vuelve a admitir a la persona y las consultas corren
 como `communication_app` con RLS (migración 0005, D-0022): una baja corta el acceso en
-el request siguiente. El Administrador y el Operador Del Campo ven las conversaciones;
-responde sólo el Operador; el Revisor profesional no ve Comunicación. Cada envío queda a
+el request siguiente. El Administrador y el Operador Del Campo ven y responden las
+conversaciones (decisión del owner del 2026-11-03); el Revisor profesional no ve
+Comunicación, y a quien no puede responder la UI no le muestra el formulario. Cada envío queda a
 nombre de quien lo hizo y en `audit_event`, sin texto ni teléfono.
 
 Las invitaciones se cargan con la CLI del contexto

@@ -14,7 +14,7 @@ import {
   type Sql,
 } from '@del-campo/communication'
 
-import type { Datos } from './acceso.ts'
+import { actorPuede, type Datos } from './acceso.ts'
 import { cookiesDeSalida } from './entrada.ts'
 import { modoAcceso } from './modo.ts'
 import { authConfigFromEnv, issueSession, SESSION_COOKIE, sessionCookieHeader, verifyCredentials } from './auth.ts'
@@ -48,13 +48,17 @@ export const listBody = (list: ConversationList) => ({
   })),
 })
 
-export const threadBody = (thread: ConversationThread, canSend: boolean) => ({
+export const threadBody = (thread: ConversationThread, canSend: boolean, mayReply = true) => ({
   id: thread.id,
   label: thread.label,
   deliveries: deliveriesBody(thread.deliveries),
   window: { open: thread.window.open, closesAt: iso(thread.window.closesAt) },
-  canReply: thread.canReply && canSend,
-  replyBlockedReason: !thread.canReply
+  // Sin el permiso de responder, la UI no muestra el formulario (decisión del owner, T-0035).
+  mayReply,
+  canReply: mayReply && thread.canReply && canSend,
+  replyBlockedReason: !mayReply
+    ? null
+    : !thread.canReply
     ? 'El participante no tiene teléfono: Cloud API envía a un wa_id.'
     : !canSend
       ? 'El envío no está configurado en este entorno.'
@@ -68,9 +72,12 @@ export const listConversationsResponse = async (datos: Datos): Promise<Response>
 export const threadResponse = async (datos: Datos, rawId: string, canSend: boolean): Promise<Response> => {
   const id = parseConversationId(rawId)
   if (id === null) return json({ error: 'conversación inexistente' }, 404)
-  const thread = await datos('conversacion.consultar', (sql) => conversationThread(sql, id))
-  if (thread === null) return json({ error: 'conversación inexistente' }, 404)
-  return json(threadBody(thread, canSend))
+  const found = await datos('conversacion.consultar', async (sql, actor) => ({
+    thread: await conversationThread(sql, id),
+    mayReply: actorPuede(actor, 'conversacion.responder'),
+  }))
+  if (found.thread === null) return json({ error: 'conversación inexistente' }, 404)
+  return json(threadBody(found.thread, canSend, found.mayReply))
 }
 
 const MAX_REPLY_REQUEST_BYTES = 64 * 1024
@@ -132,7 +139,7 @@ export const replyResponse = async (request: Request, rawId: string, deps: Reply
   // Primero, si quien pide puede responder: así un rol sin permiso recibe su explicación
   // antes de que se escriba nada. Cada fase del envío vuelve a pasar por la base, así que
   // una baja durante el envío se respeta igual (ver `sendReply`).
-  const author = await deps.datos('conversacion.responder', (_sql, autor) => Promise.resolve(autor))
+  const author = await deps.datos('conversacion.responder', (_sql, actor) => Promise.resolve(actor.autor))
   const phase: Phase = (op) => deps.datos('conversacion.responder', (sql) => op(sql))
   const result = await sendReply(
     {

@@ -21,9 +21,9 @@
 --     EXECUTE sólo para `communication_app` (D-0022, condición 4).
 --   * RLS habilitado en toda tabla del esquema, con políticas sólo para `communication_app`.
 --
--- Permisos por rol (matriz de `permisos.js` del prototipo v25, sección Comunicación):
--- la ven el Administrador y el Operador Del Campo; responde el Operador; el Revisor
--- profesional no la ve. Communication OS no tiene clientes ni empresas: no hay alcance
+-- Permisos por rol (matriz de `permisos.js` del prototipo v25, sección Comunicación, con
+-- la decisión del owner del 2026-11-03): el Administrador y el Operador Del Campo ven y
+-- responden las conversaciones; el Revisor profesional no ve Comunicación. Communication OS no tiene clientes ni empresas: no hay alcance
 -- por empresa que aplicar, y no se lee nada de Broker OS.
 
 -- ── Rol de conexión (D-0022: sin BYPASSRLS, mínimo privilegio) ───────────────
@@ -150,10 +150,10 @@ language sql stable security definer set search_path = '' as $$
   select coalesce(communication.authz_rol() in ('ADMINISTRADOR', 'OPERADOR'), false)
 $$;
 
--- Responder: sólo el Operador Del Campo.
+-- Responder: Administrador y Operador Del Campo.
 create function communication.authz_puede_responder() returns boolean
 language sql stable security definer set search_path = '' as $$
-  select coalesce(communication.authz_rol() = 'OPERADOR', false)
+  select coalesce(communication.authz_rol() in ('ADMINISTRADOR', 'OPERADOR'), false)
 $$;
 
 revoke all on function

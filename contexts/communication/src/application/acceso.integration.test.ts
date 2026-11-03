@@ -227,18 +227,18 @@ describe('qué ve y qué hace cada rol, en la base', () => {
     }
   })
 
-  it('sólo el Operador crea un intento de envío, y sólo a su nombre', async () => {
-    await comoRol('OPERADOR', async (tx, yo) => {
-      assert.equal((await nuevoIntento(tx, yo)).length, 1)
-      const [otro] = await tx<{ id: string }[]>`select gen_random_uuid()::text as id`
-      await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, otro?.id ?? null)), (e) => codigo(e) === '42501')
-      await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, null)), (e) => codigo(e) === '42501')
-    })
-    for (const rol of ['ADMINISTRADOR', 'REVISOR'] as const) {
+  it('Administrador y Operador crean un intento de envío, sólo a su nombre; el Revisor no', async () => {
+    for (const rol of ['ADMINISTRADOR', 'OPERADOR'] as const) {
       await comoRol(rol, async (tx, yo) => {
-        await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, yo)), (e) => codigo(e) === '42501', rol)
+        assert.equal((await nuevoIntento(tx, yo)).length, 1, rol)
+        const [otro] = await tx<{ id: string }[]>`select gen_random_uuid()::text as id`
+        await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, otro?.id ?? null)), (e) => codigo(e) === '42501', rol)
+        await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, null)), (e) => codigo(e) === '42501', rol)
       })
     }
+    await comoRol('REVISOR', async (tx, yo) => {
+      await assert.rejects(tx.savepoint((sp) => nuevoIntento(sp, yo)), (e) => codigo(e) === '42501')
+    })
   })
 
   it('nadie escribe un mensaje entrante ni borra mensajes', async () => {

@@ -21,12 +21,25 @@ import {
   type Conexion,
   type MotivoDenegado,
   type PrincipalCommunication,
+  type RolInterno,
   type Sql,
 } from '@del-campo/communication'
 import { decidirLogin, type Identidad } from '@del-campo/identidad'
 
-/** `autor` es el `app_user.id` de quien actúa; `null` con la credencial compartida. */
-export type Operacion<T> = (sql: Conexion, autor: string | null) => Promise<T>
+/**
+ * Quién actúa. Con la credencial compartida (`legacy`) no hay persona: `autor` y `rol`
+ * son `null`, y la UI se comporta como antes de T-0035.
+ */
+export interface Actor {
+  readonly autor: string | null
+  readonly rol: RolInterno | null
+}
+
+export type Operacion<T> = (sql: Conexion, actor: Actor) => Promise<T>
+
+/** Si quien actúa puede hacer la acción. Sin persona (`legacy`), lo de siempre: sí. */
+export const actorPuede = (actor: Actor, accion: AccionCommunication): boolean =>
+  actor.rol === null || puede(actor.rol, accion)
 
 export type Datos = <T>(accion: AccionCommunication, op: Operacion<T>) => Promise<T>
 
@@ -55,7 +68,7 @@ export class SinPermiso extends Error {
 export const datosLegacy =
   (conexion: () => Sql): Datos =>
   (_accion, op) =>
-    op(conexion(), null)
+    op(conexion(), { autor: null, rol: null })
 
 export const datosOidc =
   (conexion: () => Sql, identidad: Pick<Identidad, 'proveedor' | 'sujeto'>): Datos =>
@@ -78,7 +91,7 @@ export const datosOidc =
           })
           return { permitido: false }
         }
-        return { permitido: true, valor: await op(tx, principal.usuarioId) }
+        return { permitido: true, valor: await op(tx, { autor: principal.usuarioId, rol: principal.rol }) }
       },
     )
     if (!resultado.ok) {

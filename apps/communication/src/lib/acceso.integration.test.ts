@@ -250,44 +250,66 @@ describe('permisos por rol en la app (matriz de permisos.js)', () => {
     assert.deepEqual({ ...evento }, { actor: usuario, outcome: 'denied', reason: 'ROL_SIN_PERMISO', object_id: null })
   })
 
-  it('el Administrador ve el hilo pero no responde, y no se escribe nada', async () => {
-    const quien = identidad('admin')
-    await invitar(quien.email, 'ADMINISTRADOR')
+  it('el Revisor profesional no responde: 403 explicado y no se escribe nada', async () => {
+    const quien = identidad('revisorresponde')
+    await invitar(quien.email, 'REVISOR')
     const sesion = await entrar(quien)
     const { id, waId } = await conversacion()
-    const hilo = await threadGET(new Request(`${ORIGIN}/api/conversations/${String(id)}`, { headers: conCookie(sesion) }), {
-      params: Promise.resolve({ id: String(id) }),
-    })
-    assert.equal(hilo.status, 200)
     const response = await responder(sesion, id, NO_ENVIA)
     assert.equal(response.status, 403)
-    assert.deepEqual(await response.json(), { error: 'Responder conversaciones es del Operador Del Campo.' })
+    assert.deepEqual(await response.json(), { error: 'Responden conversaciones el Administrador y el Operador Del Campo.' })
     const [n] = await sql<{ n: number }[]>`select count(*)::int as n from communication.outbound_attempt where wa_id = ${waId}`
     assert.equal(n?.n, 0)
   })
 
-  it('el Operador responde: el intento queda a su nombre y la auditoría no guarda ni el texto ni el teléfono', async () => {
-    const quien = identidad('responde')
-    const usuario = await invitar(quien.email, 'OPERADOR')
-    const sesion = await entrar(quien)
+  for (const rol of ['ADMINISTRADOR', 'OPERADOR'] as const) {
+    it(`${rol}: ve el formulario, responde, y el envío queda a su nombre sin texto ni teléfono en la auditoría`, async () => {
+      const quien = identidad(`responde-${rol.toLowerCase()}`)
+      const usuario = await invitar(quien.email, rol)
+      const sesion = await entrar(quien)
+      const { id, waId } = await conversacion()
+
+      const hilo = await threadGET(new Request(`${ORIGIN}/api/conversations/${String(id)}`, { headers: conCookie(sesion) }), {
+        params: Promise.resolve({ id: String(id) }),
+      })
+      assert.equal(hilo.status, 200)
+      assert.equal(((await hilo.json()) as { mayReply: boolean }).mayReply, true)
+
+      const texto = `Mi CBU es 0000003100000000000001 (${RUN})`
+      const send: TextSender = () => Promise.resolve({ kind: 'accepted', wamid: `wamid.salida.${RUN}.${waId}` })
+      const response = await responder(sesion, id, send, texto)
+      assert.equal(response.status, 201)
+
+      const [intento] = await sql<{ id: string; autor: string; state: string }[]>`
+        select id, created_by as autor, state from communication.outbound_attempt where wa_id = ${waId}`
+      assert.deepEqual({ autor: intento?.autor, state: intento?.state }, { autor: usuario, state: 'accepted' })
+
+      const eventos = await sql<Record<string, unknown>[]>`
+        select * from communication.audit_event where actor_user_id = ${usuario} and action = 'conversacion.responder'`
+      assert.equal(eventos.length, 1)
+      assert.equal(eventos[0]?.object_id, intento?.id)
+      const volcado = JSON.stringify(eventos)
+      for (const sensible of [texto, '0000003100000000000001', waId, waId.slice(-4)]) {
+        assert.ok(!volcado.includes(sensible), `la auditoría no contiene ${sensible}`)
+      }
+    })
+  }
+
+  it('dos personas responden en la misma conversación y cada intento queda a nombre de quien lo envió', async () => {
+    const admin = identidad('autoria-admin')
+    const operador = identidad('autoria-operador')
+    const adminId = await invitar(admin.email, 'ADMINISTRADOR')
+    const operadorId = await invitar(operador.email, 'OPERADOR')
+    const sesionAdmin = await entrar(admin)
+    const sesionOperador = await entrar(operador)
     const { id, waId } = await conversacion()
-    const texto = `Mi CBU es 0000003100000000000001 (${RUN})`
-    const send: TextSender = () => Promise.resolve({ kind: 'accepted', wamid: `wamid.salida.${RUN}.${waId}` })
-    const response = await responder(sesion, id, send, texto)
-    assert.equal(response.status, 201)
-
-    const [intento] = await sql<{ id: string; autor: string; state: string }[]>`
-      select id, created_by as autor, state from communication.outbound_attempt where wa_id = ${waId}`
-    assert.deepEqual({ autor: intento?.autor, state: intento?.state }, { autor: usuario, state: 'accepted' })
-
-    const eventos = await sql<Record<string, unknown>[]>`
-      select * from communication.audit_event where actor_user_id = ${usuario} and action = 'conversacion.responder'`
-    assert.equal(eventos.length, 1)
-    assert.equal(eventos[0]?.object_id, intento?.id)
-    const volcado = JSON.stringify(eventos)
-    for (const sensible of [texto, '0000003100000000000001', waId, waId.slice(-4)]) {
-      assert.ok(!volcado.includes(sensible), `la auditoría no contiene ${sensible}`)
-    }
+    let n = 0
+    const send: TextSender = () => Promise.resolve({ kind: 'accepted', wamid: `wamid.autoria.${RUN}.${String(++n)}` })
+    assert.equal((await responder(sesionAdmin, id, send, 'Respuesta del Administrador')).status, 201)
+    assert.equal((await responder(sesionOperador, id, send, 'Respuesta del Operador')).status, 201)
+    const autores = await sql<{ autor: string }[]>`
+      select created_by as autor from communication.outbound_attempt where wa_id = ${waId} order by id`
+    assert.deepEqual(autores.map((a) => a.autor), [adminId, operadorId])
   })
 
   it('si la baja llega mientras se envía, el resultado no se registra a su nombre y el intento queda sin confirmar', async () => {
