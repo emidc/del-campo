@@ -5,6 +5,7 @@
 //
 // Los route handlers de `apps/web` son envoltorios de tres líneas sobre esto.
 
+import { AccesoDenegado } from './acceso/datos.ts'
 import type { AdmissionDenial, Principal } from './session/admission.ts'
 import { denialStatus } from './session/admission.ts'
 import type { GuardConfig } from './session/guard.ts'
@@ -41,5 +42,15 @@ export const guarded = async (
 ): Promise<Response> => {
   const outcome = await admitRequest(request, config)
   if (!outcome.admitted) return deniedResponse(outcome.reason)
-  return handler(outcome.principal, request)
+  try {
+    return await handler(outcome.principal, request)
+  } catch (error) {
+    // En `oidc`, la base también admite (T-0035): una persona sin credencial vinculada, de
+    // baja o sin rol recibe el mismo 403 vacío que quien no pasa el guard.
+    if (error instanceof AccesoDenegado) return accesoDenegadoResponse(error.motivo)
+    throw error
+  }
 }
+
+const accesoDenegadoResponse = (motivo: AccesoDenegado['motivo']): Response =>
+  new Response(null, { status: 403, headers: { 'x-vs01-denial': motivo, 'cache-control': 'no-store' } })

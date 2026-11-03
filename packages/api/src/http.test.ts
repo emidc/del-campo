@@ -9,6 +9,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { AccesoDenegado } from './acceso/datos.ts'
 import { guarded, jsonResponse } from './http.ts'
 import type { IdentityClaims } from './session/admission.ts'
 import type { GuardConfig } from './session/guard.ts'
@@ -112,5 +113,26 @@ describe('consultas directas de datos — deny by default', () => {
     assert.equal(response.status, 200)
     assert.equal(handlerRuns, before + 1)
     assert.equal(response.headers.get('cache-control'), 'no-store')
+  })
+})
+
+describe('T-0035: la base también admite en oidc', () => {
+  it('AccesoDenegado de la consulta es un 403 sin cuerpo, como cualquier negativa', async () => {
+    const cookie = await sealSession(claims(), SECRET)
+    for (const motivo of ['SIN_CREDENCIAL', 'SIN_ACCESO'] as const) {
+      const response = await guarded(requestWith(cookie), config, () => Promise.reject(new AccesoDenegado(motivo)))
+      assert.equal(response.status, 403)
+      assert.equal(await response.text(), '')
+      assert.equal(response.headers.get('x-vs01-denial'), motivo)
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+    }
+  })
+
+  it('cualquier otro error no se disfraza de denegación', async () => {
+    const cookie = await sealSession(claims(), SECRET)
+    await assert.rejects(
+      guarded(requestWith(cookie), config, () => Promise.reject(new Error('falla de la base'))),
+      /falla de la base/,
+    )
   })
 })

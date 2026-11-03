@@ -5,6 +5,7 @@
 // configurada a mano puede quedar desactualizada respecto de la base sin que nada falle,
 // que es exactamente el modo de falla que este requisito existe para evitar.
 
+import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
@@ -35,13 +36,13 @@ const UNKNOWN: BatchStamp = {
  * es un dato de cliente, pero la propiedad que ADR-0059 declara es estructural —"una
  * consulta de datos sin sesión no tipa"— y una excepción la vuelve una convención.
  */
-export const latestBatch = async (_principal: Principal): Promise<BatchStamp> => {
-  const rows = await sql()<BatchRow[]>`
+export const latestBatch = async (principal: Principal): Promise<BatchStamp> => {
+  const rows = await conDatos(sql(), principal, (executor) => executor<BatchRow[]>`
     select started_at, source_manifest_sha256, notes
     from staging_import_batch
     order by started_at desc
     limit 1
-  `
+  `)
   const row = rows[0]
   if (row === undefined) return UNKNOWN
   return {
