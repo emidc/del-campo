@@ -100,6 +100,9 @@ siguen intactos. Las filas nuevas quedan sin uso.
 
 ### Fase 3 — Communication OS pasa a `oidc` y la credencial compartida muere
 
+0. La migración 0005 de Communication OS está aplicada en su base de producción, con
+   aprobación del owner. Agrega las tablas de identidad, `communication_app` y RLS; sin
+   ella, `AUTH_MODE=oidc` rechazaría todo request. Con `legacy` no cambia nada.
 1. Invitaciones para las personas que hoy comparten la credencial, con su rol.
 2. `AUTH_MODE=oidc` y despliegue. Desde acá, cada acción queda a nombre de una persona.
 3. Comprobación igual que en la fase 2, más que la contraseña compartida ya no entra.

@@ -32,6 +32,14 @@ Todo vive en el esquema de Postgres `communication`, incluido el ledger de migra
 | `outbound_status` | El último estado de cada `wamid` saliente (`sent` < `delivered` < `read` < `failed`). No tiene FK a `message`: también registra estados de salientes que no salieron de acá. |
 | `unsupported_message` | Entrantes de tipos fuera de alcance: que llegaron, de quién y cuándo, sin contenido. |
 | `outbound_attempt` | Cada intento de envío desde la UI, con su clave de idempotencia guardada antes de llamar a la API (R-20): `pending`, `accepted`, `rejected` o `unconfirmed`. El texto se borra al aceptarse, porque ya está en `message`, y a los 30 días en los no aceptados. |
+| `app_user`, `user_credential`, `user_invitation` | Identidad por persona de T-0035 (0005): rol, estado, credencial (proveedor, sujeto) e invitación. Vacías hasta la fase 3 del plan de migración. |
+| `audit_event` | Quién hizo qué, sobre qué y con qué resultado; sólo inserción, sin texto libre. |
+
+Desde 0005 todas las tablas tienen RLS. El dueño sigue exento (sin `force`), así que el
+webhook, las tareas y la app en `AUTH_MODE=legacy` no cambian. Con `oidc`, la app
+consulta como `communication_app` con el principal local a la transacción
+(`src/persistence/acceso.ts`); las funciones `authz_*` son la única fuente de las
+reglas, y `src/domain/permisos.ts` es su copia en la aplicación.
 
 ## Bases locales
 

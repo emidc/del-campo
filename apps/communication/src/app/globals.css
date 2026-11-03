@@ -65,6 +65,7 @@ form.reply { display: flex; flex-direction: column; gap: 8px; padding: 12px; bor
 textarea, input { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
 button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
 button.link { background: transparent; color: var(--accent); border-color: transparent; padding: 4px 8px; }
+a.button { display: inline-block; font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; text-decoration: none; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 form.login { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 40px auto; padding: 20px; }

@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
-  return withSession(async (req) =>
-    replyResponse(req, (await context.params).id, { sql: database(), setup: sendSetup(), log }),
+  return withSession(async (req, datos) =>
+    replyResponse(req, (await context.params).id, { sql: () => database(), datos, setup: sendSetup(), log }),
   )(request)
 }

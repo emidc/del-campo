@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
-import { requireAdmitted } from '@/lib/sesion'
+import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +19,7 @@ export default async function PolizaPage({
   const principal = await requireAdmitted()
   const { id } = await params
   const asOf = fechaDeHoy()
-  const [lote, vista] = await Promise.all([latestBatch(principal), policy(principal, id, asOf)])
+  const [lote, vista] = await consultar(Promise.all([latestBatch(principal), policy(principal, id, asOf)]))
   if (vista === null) notFound()
 
   const { detail, access } = vista

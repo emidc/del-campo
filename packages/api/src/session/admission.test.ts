@@ -6,6 +6,7 @@ import { describe, it } from 'node:test'
 
 import type { AdmissionConfig, IdentityClaims } from './admission.ts'
 import { denialStatus, evaluateAdmission, parseAdmittedAccounts } from './admission.ts'
+import { admissionConfig } from './config.ts'
 
 const WORKSPACE = 'ejemplo-sintetico.test'
 
@@ -172,5 +173,52 @@ describe('denialStatus', () => {
     assert.equal(denialStatus('EMAIL_UNVERIFIED'), 403)
     assert.equal(denialStatus('OUTSIDE_WORKSPACE'), 403)
     assert.equal(denialStatus('NOT_ADMITTED'), 403)
+  })
+})
+
+describe('T-0035: admisión en oidc', () => {
+  const OIDC = { modo: 'oidc' } as const
+  const externa: IdentityClaims = {
+    sub: 'sub-externa',
+    email: 'Persona@Gmail-Sintetico.test',
+    emailVerified: true,
+    hostedDomain: null,
+    displayName: null,
+  }
+
+  it('sin sesión, inválida o vencida se niega igual que en legacy', () => {
+    assert.deepEqual(evaluateAdmission({ kind: 'NONE' }, OIDC), { admitted: false, reason: 'NO_SESSION' })
+    assert.deepEqual(evaluateAdmission({ kind: 'INVALID' }, OIDC), { admitted: false, reason: 'INVALID_TOKEN' })
+    assert.deepEqual(evaluateAdmission({ kind: 'EXPIRED' }, OIDC), { admitted: false, reason: 'EXPIRED' })
+  })
+
+  it('exige email verificado e identidad completa', () => {
+    assert.deepEqual(evaluateAdmission({ kind: 'CLAIMS', claims: { ...externa, emailVerified: false } }, OIDC), {
+      admitted: false,
+      reason: 'EMAIL_UNVERIFIED',
+    })
+    assert.deepEqual(evaluateAdmission({ kind: 'CLAIMS', claims: { ...externa, sub: ' ' } }, OIDC), {
+      admitted: false,
+      reason: 'INVALID_TOKEN',
+    })
+  })
+
+  it('una cuenta sin Workspace pasa el guard: quien decide es la base', () => {
+    assert.deepEqual(evaluateAdmission({ kind: 'CLAIMS', claims: externa }, OIDC), {
+      admitted: true,
+      principal: { sub: 'sub-externa', email: 'persona@gmail-sintetico.test', displayName: null },
+    })
+  })
+
+  it('en oidc no se leen ni el Workspace ni la lista; en legacy siguen siendo obligatorios', () => {
+    const previo = { ...process.env }
+    try {
+      delete process.env.VS01_GOOGLE_WORKSPACE_DOMAIN
+      delete process.env.VS01_ADMITTED_ACCOUNTS
+      assert.deepEqual(admissionConfig('oidc'), { modo: 'oidc' })
+      assert.throws(() => admissionConfig('legacy'), /VS01_GOOGLE_WORKSPACE_DOMAIN/)
+    } finally {
+      process.env = previo
+    }
   })
 })

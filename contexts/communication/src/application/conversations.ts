@@ -12,7 +12,7 @@ import {
   listConversations,
   listUnsupported,
 } from '../persistence/conversations.ts'
-import type { Sql } from '../persistence/database.ts'
+import type { Conexion } from '../persistence/database.ts'
 import { deliveryBacklog, listThread, type DeliveryBacklog } from '../persistence/store.ts'
 import type { OutboundStatus } from '../domain/status.ts'
 
@@ -59,7 +59,7 @@ const toHealth = (b: DeliveryBacklog): DeliveryHealth => ({
   ignored: b.ignored,
 })
 
-export const deliveryHealth = async (sql: Sql, now: Date = new Date()): Promise<DeliveryHealth> =>
+export const deliveryHealth = async (sql: Conexion, now: Date = new Date()): Promise<DeliveryHealth> =>
   toHealth(await deliveryBacklog(sql, stalledBefore(now), ignoredSince(now)))
 
 export interface ConversationList {
@@ -67,7 +67,7 @@ export interface ConversationList {
   readonly deliveries: DeliveryHealth
 }
 
-export const conversationList = async (sql: Sql, now: Date = new Date()): Promise<ConversationList> => {
+export const conversationList = async (sql: Conexion, now: Date = new Date()): Promise<ConversationList> => {
   const [rows, deliveries] = await Promise.all([listConversations(sql), deliveryHealth(sql, now)])
   return {
     conversations: rows.map((r) => ({
@@ -121,7 +121,7 @@ export interface ConversationThread {
  * mensajes del mismo instante conservan el desempate de `listThread`.
  */
 export const conversationThread = async (
-  sql: Sql,
+  sql: Conexion,
   id: number,
   now: Date = new Date(),
 ): Promise<ConversationThread | null> => {

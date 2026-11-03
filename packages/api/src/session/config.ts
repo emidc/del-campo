@@ -3,6 +3,8 @@
 // (R-18). Este módulo es el único lugar que nombra las variables; la ficha de despliegue
 // (`docs/despliegue/vercel-vs01.md`) las documenta una por una.
 
+import type { ModoAcceso } from '../acceso/modo.ts'
+import { modoAcceso } from '../acceso/modo.ts'
 import type { AdmissionConfig } from './admission.ts'
 import { parseAdmittedAccounts } from './admission.ts'
 
@@ -36,10 +38,17 @@ const required = (name: string): string => {
   return value.trim()
 }
 
-export const admissionConfig = (): AdmissionConfig => ({
-  workspaceDomain: required('VS01_GOOGLE_WORKSPACE_DOMAIN'),
-  admitted: parseAdmittedAccounts(required('VS01_ADMITTED_ACCOUNTS')),
-})
+/**
+ * En `oidc` no se leen ni el dominio del Workspace ni la lista: la admisión es la de la
+ * base (T-0035). En `legacy`, que es el default, todo sigue como en D-0059.
+ */
+export const admissionConfig = (modo: ModoAcceso = modoAcceso()): AdmissionConfig =>
+  modo === 'oidc'
+    ? { modo: 'oidc' }
+    : {
+        workspaceDomain: required('VS01_GOOGLE_WORKSPACE_DOMAIN'),
+        admitted: parseAdmittedAccounts(required('VS01_ADMITTED_ACCOUNTS')),
+      }
 
 export const sessionConfig = (): SessionConfig => ({
   secret: required('VS01_SESSION_SECRET'),

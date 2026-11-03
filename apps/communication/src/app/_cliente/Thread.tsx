@@ -30,6 +30,8 @@ interface ThreadData {
   readonly label: Label
   readonly deliveries: Deliveries
   readonly window: { readonly open: boolean; readonly closesAt: string | null }
+  /** Si quien mira tiene el permiso de responder. Sin él, no se muestra el formulario. */
+  readonly mayReply: boolean
   readonly canReply: boolean
   readonly replyBlockedReason: string | null
   readonly items: Item[]
@@ -148,6 +150,7 @@ export function Thread({ id }: { readonly id: number }) {
               <ItemView key={item.kind === 'unsupported' ? `u-${String(n)}-${item.at}` : `${item.kind}-${String(item.id)}`} item={item} />
             ))}
           </div>
+          {!data.mayReply ? null : (
           <form className="reply" onSubmit={(e) => void submit(e)}>
             <p className={data.window.open ? 'muted' : 'notice warn'}>
               {data.window.open
@@ -179,6 +182,7 @@ export function Thread({ id }: { readonly id: number }) {
               {sending ? 'Enviando…' : 'Enviar'}
             </button>
           </form>
+          )}
         </section>
       )}
     </main>
