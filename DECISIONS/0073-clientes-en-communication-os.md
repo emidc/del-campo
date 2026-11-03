@@ -49,12 +49,20 @@ La decisión y su estado viven en `decisions.yaml`, D-0073.
 
 ## Pendiente de verificación
 
-- **Qué pasa hoy con los clientes que ya escriben.** La autorización rige después de C1.
-  Mientras tanto, según la respuesta U1, el número ya recibe mensajes de clientes sobre la
-  credencial compartida de D-0066, que se decidió para otra cosa. Esta decisión no dice si
-  ese uso sigue en la transición o se pausa hasta C1. Lo decide el owner aparte, y la
-  respuesta se agrega acá.
 - Los cuatro pendientes de la lista de entrada (2 a 5).
+
+## Transición hasta C1
+
+Según la respuesta U1, el número ya recibe mensajes de clientes sobre la credencial
+compartida de D-0066, que se decidió para otra cosa. El owner eligió el 2026-11-02 una
+transición controlada, en lugar de pausar el canal hasta C1:
+
+- se sigue atendiendo a los clientes que ya escriben al número;
+- el owner rota la credencial compartida (R-16); ningún agente la genera ni la conoce;
+- no se suman clientes nuevos al canal hasta cumplir las condiciones de entrada.
+
+La alternativa descartada era no atender clientes por este número hasta C1 y derivarlos
+al canal habitual.
 
 ## Alternativas consideradas
 

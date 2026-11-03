@@ -12,7 +12,7 @@ migrar bases ni cambiar permisos de producción.
 |---|---|---|---|
 | Cierre de Q4: D-0063 y D-0067 | `D-0071`: contextos separados; Broker OS lee a Risk y Communication por su API de aplicación; organización evaluada ↔ empresa vinculada a mano, con el id de la empresa como referencia opaca. D-0063 y D-0067 pasan a ACCEPTED | ACCEPTED | Si una empresa puede tener más de una organización evaluada (se recomienda que no); desde qué pantalla se registra la vinculación (`T-0036`) |
 | D-0066 y D-0069: acceso | `D-0072`: Google con cualquier cuenta, sólo por invitación; roles Administrador, Operador Del Campo y Revisor profesional; revocación inmediata; se prioriza Supabase Auth | ACCEPTED; reemplaza a D-0066, D-0069 y partes de D-0059 al entrar C1 | ADR de Supabase Auth frente a D-0013 y D-0060 (`T-0035`, R-05); dónde se hacen cumplir los permisos (D-0022, `T-0002`); asignación de empresas (D-0027) |
-| U1: clientes en Communication OS | `D-0073`: piloto supervisado con clientes reales después de C1 y de los controles mínimos; IA prepara, una persona decide | PROVISIONAL, sin fecha de inicio | Qué pasa con los clientes que ya escriben hasta C1; retención actual del texto; política de retención; controles de acceso; fecha de inicio |
+| U1: clientes en Communication OS | `D-0073`: piloto supervisado con clientes reales después de C1 y de los controles mínimos; IA prepara, una persona decide | PROVISIONAL, sin fecha de inicio; transición controlada hasta C1 | Rotación de la credencial compartida por el owner; retención actual del texto; política de retención; controles de acceso; fecha de inicio |
 | R-19: LLM externos | `D-0074`: tres niveles de información; la confidencial sólo por cuentas registradas | ACCEPTED | Registrar las cuentas que usa el equipo (proveedor, plan, condiciones, modelos); ninguna registrada al 02/11 |
 | MCP y skills | `D-0075`: servidor MCP propio, primero de lectura; tres skills de metodología primero | ACCEPTED como dirección | Dónde viven las skills; qué interfaces admiten skills y MCP propios |
 | D-0062 y D-0068: planes pagos | `D-0076`: tope de USD 45 por mes para los tres contextos, impuestos incluidos; nada se contrata sin una configuración aprobada; Risk OS no se migra por defecto | ACCEPTED | Configuración concreta dentro del tope (`T-0037`); impuestos y costos por proyecto, no verificados |
@@ -31,7 +31,7 @@ a AD-17, el puntaje del panel, el correo y el resto de `PROJECT.md` §4.
 | C7 | Dependía de R-19 | Depende de las skills validadas y de las cuentas registradas para nivel 2 (D-0074, D-0075) |
 | C11 | Dependía de U1 | Depende de C1 y de las condiciones de entrada de D-0073 |
 | C13 | Servidor MCP en la etapa 4 | Dirección confirmada; sólo lectura primero, no obligatorio para la primera versión; puede adelantarse si aporta valor (D-0075) |
-| Riesgo «CO01 opera con clientes sobre credencial compartida» | Mitigación: decisión U1 en la etapa 0 | Decidido el destino (D-0073); la transición hasta C1 sigue pendiente |
+| Riesgo «CO01 opera con clientes sobre credencial compartida» | Mitigación: decisión U1 en la etapa 0 | Decidido (D-0073): transición controlada hasta C1, con la credencial rotada y sin clientes nuevos |
 
 ## 3. Propuesta de etapas, dependencias y prioridades
 
@@ -41,8 +41,8 @@ estimadas.
 **Etapa 0 · Cerrar y decidir (noviembre).**
 
 1. Aceptar RO01 (`T-0032`, prevista el 25/11). Sigue primera.
-2. Resolver la transición de los clientes que ya escriben a Communication OS (D-0073). Es
-   el único punto donde hoy hay datos de clientes sin una decisión que los cubra.
+2. Transición controlada de Communication OS (D-0073): el owner rota la credencial
+   compartida y no se suman clientes nuevos al canal hasta C1.
 3. Tarea nueva propuesta: verificar la retención actual de Communication OS y escribir la
    política de retención (pendientes 2 y 3 de D-0073). No toca producción hasta que el
    owner apruebe la política.

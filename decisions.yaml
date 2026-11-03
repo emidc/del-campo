@@ -1361,7 +1361,8 @@ decisions:
     date: 2026-11-02
     source: >
       Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
-      2, U1) en el hilo de T-0034; respuesta U1 del owner en la fase 1 del proyecto de la
+      2, U1) en el hilo de T-0034, y elección del owner del mismo día sobre la transición
+      hasta C1 («Transición controlada»); respuesta U1 del owner en la fase 1 del proyecto de la
       north star (el número ya recibe mensajes de clientes); SLICES/CO01.md §3;
       PROJECT.md §4; D-0065, D-0066, D-0072, D-0074; R-13, R-14, R-19.
     adr: DECISIONS/0073-clientes-en-communication-os.md
@@ -1383,7 +1384,10 @@ decisions:
       formalmente al expediente comercial. El payload crudo se sigue borrando a los 30
       días (D-0065), salvo revisión justificada. Esta decisión amplía el alcance de
       CO01, que se aceptó sólo con el equipo, y es la autorización propia que PROJECT.md
-      §4 exige para conversaciones con clientes.
+      §4 exige para conversaciones con clientes. Transición hasta C1, elegida por el
+      owner el 2026-11-02: se sigue atendiendo a los clientes que ya escriben al número,
+      el owner rota la credencial compartida de D-0066 (R-16) y no se suman clientes
+      nuevos al canal hasta cumplir las condiciones de entrada.
     falsified_by: >
       Que una conversación de cliente quede expuesta a alguien sin permiso; que la
       política de retención no se pueda cumplir con la copia que exige D-0065; que el
