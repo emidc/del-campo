@@ -1495,3 +1495,19 @@ decisions:
       aislamiento, seguridad, backups y continuidad. Cualquier aumento del presupuesto
       requiere aprobación explícita. Contratar servicios, migrar bases y cambiar
       permisos de producción requieren autorización específica del owner (R-13, R-14).
+
+  - id: D-0077
+    title: Proveedor de autenticación de C1 — OIDC propio o Supabase Auth
+    status: OPEN
+    date: 2026-11-03
+    source: >
+      D-0072 (prioriza Supabase Auth y delega su confirmación a un ADR de T-0035);
+      D-0013, D-0022, D-0060, D-0076; R-05; T-0035.
+    adr: DECISIONS/0077-autenticacion-oidc-propio.md
+    statement: >
+      Determinar si los tres contextos autentican con Supabase Auth o con el OIDC de
+      Google propio de D-0060 (openid-client y jose). La propuesta del ADR es el OIDC
+      propio, con un cliente de Google de audiencia External, el sub de Google como
+      identidad, admisión por invitación en las tablas de cada contexto y un token
+      firmado de corta duración entre contextos. Espera la elección del owner.
+    unblocked_by: T-0035
