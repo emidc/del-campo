@@ -39,7 +39,8 @@ tres de arriba las informó el owner.
    `apps/`, `packages/` ni `contexts/`.
 3. **No decide nada por sí sola.** Lo que la north star propone y no está en
    `decisions.yaml` sigue siendo una propuesta. Las decisiones que el plan necesita
-   están en [09](09-plan-de-produccion.md#decisiones-del-owner) y las registra `T-0034`.
+   están en [09](09-plan-de-produccion.md#decisiones-del-owner); `T-0034` registró las de la
+   etapa 1 el 02/11/2026 ([11](11-decisiones-y-hoja-de-ruta.md)).
 
 ## Contenido
 
@@ -55,12 +56,14 @@ tres de arriba las informó el owner.
 | Los cambios de la v25, las pruebas y las limitaciones | [08 · Cambios, pruebas y evaluación final](08-cambios-pruebas-y-evaluacion-final.md) |
 | Las cinco etapas y los trece cortes hacia producción | [09 · Plan de paso a producción](09-plan-de-produccion.md) |
 | Qué script de prueba sirve de criterio de aceptación de cada corte | [10 · Pruebas como criterios de aceptación](10-pruebas-como-criterios.md) |
+| Qué decidió el owner al cierre de Q4 y qué cambia en el plan | [11 · Decisiones y hoja de ruta](11-decisiones-y-hoja-de-ruta.md) |
 | El prototipo y sus pruebas | [`prototipo/`](prototipo/) |
 
 Los documentos 01 a 08 son copia sin cambios de los de la carpeta congelada. Las rutas
 que citan (`prototipo/index.html`, `fuente/`, `evidencia/`, `fase-5/…`) son de esa
-carpeta, no de este repositorio. Los documentos 09 y 10 son nuevos: 09 transcribe el
-plan aprobado el 02/11/2026 y 10 cruza ese plan con los scripts.
+carpeta, no de este repositorio. Los documentos 09 a 11 son nuevos: 09 transcribe el
+plan aprobado el 02/11/2026, 10 cruza ese plan con los scripts y 11 registra las
+decisiones de cierre de Q4 (`T-0034`).
 
 ## El prototipo
 

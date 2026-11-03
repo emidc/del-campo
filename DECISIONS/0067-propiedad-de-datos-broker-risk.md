@@ -4,6 +4,12 @@
 - **Fecha:** 2026-10-14
 - **Supersede:** — (complementa D-0063; no la reemplaza)
 
+> **Vigencia (2026-11-02).** La decisión de cierre de Q4 del owner la pasó a ACCEPTED, y
+> `D-0071` reemplazó la cláusula «en Q4 no se copian identificadores internos de Broker OS
+> ni hay flujos automáticos»: Broker OS lee a Risk OS por su API de aplicación y la
+> organización evaluada se vincula a mano con la empresa, con el id de `Party` como
+> referencia opaca. El inventario de propiedad y la regla general siguen vigentes.
+
 ## Contexto
 
 D-0063 fija cómo se separan los contextos durante Q4: cada uno con su esquema de

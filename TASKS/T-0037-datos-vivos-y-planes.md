@@ -1,6 +1,6 @@
 ---
 id: T-0037
-title: Refrescar los datos de clientes y pólizas y salir de los planes gratuitos (C3)
+title: Refrescar los datos de clientes y pólizas y ajustar la infraestructura al presupuesto (C3)
 kind: MIGRATION
 status: DRAFT
 workstream: MIG
@@ -10,7 +10,7 @@ created: 2026-11-02
 blockedBy: [T-0034]
 contextRefs: [PROJECT.md, docs/migration/zoho, DECISIONS/0064-enlaces-de-zoho-sin-comprobar.md,
               docs/despliegue/vercel-vs01.md]
-decisionRefs: [D-0062, D-0064]
+decisionRefs: [D-0062, D-0064, D-0068, D-0076]
 ---
 
 ## Why
@@ -24,7 +24,8 @@ infraestructura acorde.
 
 Clientes, pólizas y enlaces documentales se refrescan desde Zoho (o su reemplazo) con
 un procedimiento repetible, y la fecha de corte se ve en la interfaz. Producción corre
-sobre planes pagos. Se conoce la proporción de pólizas con documento comprobado, sin
+sobre una configuración de infraestructura que el owner aprobó dentro del tope de USD 45
+mensuales de D-0076, con impuestos y consumos incluidos. Se conoce la proporción de pólizas con documento comprobado, sin
 comprobar o pendiente (U8).
 
 ## Non-scope

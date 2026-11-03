@@ -8,6 +8,10 @@
   autenticación propia y aislada durante Q4, igual que Communication OS (D-0063,
   D-0066); el límite de intentos queda para T-0032.
 
+> **Vigencia (2026-11-02).** `D-0072` la reemplaza cuando el acceso individual con
+> Google y roles (corte C1, `T-0035`) entre en servicio en este contexto. Hasta entonces
+> sigue rigiendo.
+
 ## Contexto
 
 `SLICES/RO01.md` (§2, Acceso; §7) pide que nada de Risk OS se vea ni se escriba sin

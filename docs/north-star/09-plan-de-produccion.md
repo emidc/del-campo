@@ -62,6 +62,11 @@ repo cuando se escriba el slice de su etapa.
 Catorce decisiones abiertas condicionan el plan; cuatro bloquean la etapa 1. Ninguna
 queda tomada por este documento: las registra `T-0034` en `decisions.yaml`.
 
+> **Actualización (02/11/2026).** El owner decidió los puntos de cierre de Q4, D-0066 y
+> D-0069, U1, R-19 y D-0062 (D-0071 a D-0076). En varios eligió algo distinto de la
+> recomendación de esta tabla, que se conserva como estaba. Qué quedó decidido y qué
+> cambia en el plan: [11](11-decisiones-y-hoja-de-ruta.md).
+
 | Decisión | Qué hay que decidir | Recomendación del plan | Bloquea |
 |---|---|---|---|
 | Cierre de Q4: D-0063 y D-0067 | Si los contextos siguen aislados y cómo se corresponden empresa y organización | Mantener contextos separados con proyecciones de solo lectura y un mapa explícito empresa ↔ organización | C2, C4 |
