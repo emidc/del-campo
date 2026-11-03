@@ -2,7 +2,7 @@
 id: T-0035
 title: Unificar identidad, permisos por rol y auditoría en los tres contextos (C1)
 kind: FEATURE
-status: READY
+status: ACTIVE
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -57,7 +57,21 @@ salida y efecto, sin datos bancarios. La credencial compartida de CO01 deja de e
 pnpm check
 ```
 
-- [ ] Las reglas de `permisos.js`, `aislamiento.js` y `bancarios.js` del prototipo v25 están reescritas como pruebas contra el servidor y pasan.
+- [ ] Matriz rol × acción × alcance (empresa y evaluación) traducida de `permisos.js` y
+      `aislamiento.js` del prototipo v25:
+      - **funcionalidades existentes** en Broker OS, Risk OS y Communication OS: cada
+        acción probada contra el servidor para Administrador, Operador Del Campo y
+        Revisor profesional, incluidos los casos que deben denegarse;
+      - **funcionalidades futuras** (no implementadas): listadas en la matriz como
+        pendientes, inaccesibles para todos los roles, con una prueba de que se deniegan;
+        su implementación y sus pruebas quedan pendientes y no se dan por verificadas;
+      - nadie aprueba su propio trabajo, tampoco un Administrador, probado en las dos
+        capas;
+      - aprobación comercial, aprobación de informes y aceptación profesional de
+        evaluaciones son acciones distintas, cada una con su prueba.
+- [ ] Auditoría estructurada y mínima por operación (actor, origen, acción, objeto,
+      resultado, instante), sin payloads completos; los casos de `bancarios.js` prueban
+      que ningún dato bancario llega al registro aunque la entrada lo traiga.
 - [ ] Condiciones de D-0022, cada una con su prueba contra Postgres:
       - autenticación real: el principal que llega a la base sale de una sesión verificada;
       - propagación segura de la identidad entre contextos, con admisión y alcance propios en cada uno;
@@ -72,6 +86,12 @@ pnpm check
       contextos y la rotación de las claves de firma entre contextos.
 - [ ] Ningún rol tiene acceso universal a empresas: toda lectura de un Operador pasa por
       una asignación explícita.
+- [ ] Cada incremento demuestra que no cambia el comportamiento actual en producción,
+      también las migraciones que agregan RLS, roles o grants sobre tablas existentes:
+      las pruebas existentes de cada contexto pasan sin cambios con `AUTH_MODE=legacy`.
+- [ ] Token entre contextos verificado en el destino: firma, audiencia, emisor,
+      vencimiento, rotación de claves, reutilización (`jti`) y admisión propia del
+      destino. Sin endpoints de prueba accesibles en producción.
 - [ ] Revisión ciega del diff (D-0052).
 
 ## Data effects
@@ -83,3 +103,22 @@ invitaciones con datos reales y el borrado de la credencial compartida los hace 
 aprueba el owner (R-13, R-14). La aprobación del plan (2026-11-03) no autoriza el borrado
 de la credencial compartida ni el cierre de los mecanismos anteriores: cada uno requiere
 una aprobación específica.
+
+## Decisiones de implementación
+
+Aprobadas por el owner el 2026-11-03 sobre el plan de la fase 0, en el hilo de T-0035.
+
+- **Matriz.** Rol × acción × alcance. Se traducen y prueban sólo las acciones existentes;
+  las futuras quedan documentadas como pendientes e inaccesibles. No se implementa un
+  mecanismo genérico de excepciones por persona: cuando una funcionalidad real lo
+  requiera, se evalúan permisos adicionales específicos.
+- **R-25.** Las apps de los tres contextos pueden importar `@del-campo/identidad`, que se
+  limita a autenticación, identidad, sesiones y tokens entre contextos. La autorización de
+  negocio, los permisos y la auditoría quedan en cada contexto. No se agregan dependencias
+  entre los dominios de Broker OS, Risk OS y Communication OS.
+- **Entre contextos.** Se implementa y prueba la verificación del token sin llamadas
+  funcionales reales y sin endpoints temporales accesibles en producción.
+- **Incrementos.** Seis PRs, cada uno revisable y desplegable solo, sin alterar el
+  comportamiento actual. La autorización cubre sólo la fase 0: no autoriza cambios de
+  configuración de producción, invitaciones reales, migración de usuarios ni eliminación
+  de credenciales existentes. No se agregan servicios ni gastos (D-0076).
