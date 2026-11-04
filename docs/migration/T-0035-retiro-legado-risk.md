@@ -17,7 +17,7 @@ pruebas de que ninguna ruta `oidc` lee datos por privilegios heredados, y este p
 | Conexión de la app en `oidc` | `risk_app`, la misma que `legacy` | `risk_oidc`, en su propia variable (`RISK_OIDC_DATABASE_URL`) |
 | Qué lee esa conexión sin asumir a la persona | Todo, por `legado_risk_app` | Nada: ningún privilegio sobre ninguna tabla |
 | Admisión (credencial, invitación, vínculo, `inicio_sesion`) | Consultas directas de la app | Tres funciones `risk.admision_*`, SECURITY DEFINER, que contestan por una identidad o un email y vuelven a comprobar el ingreso |
-| Rechazos sin actor (login, consulta, token) | Insert directo, por `legado_risk_app` | Insert sin lectura, sólo con la forma de un rechazo (`evento_auditoria_rechazo`) |
+| Rechazos sin actor (login, consulta, token) | Insert directo, por `legado_risk_app` | Insert sin lectura, sólo de las columnas del evento (no `id` ni `ocurrido_en`) y sólo con la forma de un rechazo (`evento_auditoria_rechazo`) |
 | `SinPermiso` auditado después de revertir | Con la conexión de la app | En otra transacción como la persona, por la política de 0008 |
 | `risk_app` miembro de `risk_persona` | Sí (`rol-app.sql`) | No: `rol-app.sql` y la 0009 se lo sacan |
 | `ingresar` y `conPrincipal` con otra conexión | Corrían | Fallan antes de leer nada |
@@ -73,7 +73,10 @@ el usuario `risk_oidc.<ref>`) y **se deja** `RISK_DATABASE_URL`: es la vuelta at
 Es la fase 4 del plan, con la preparación de arriba hecha: asignaciones e invitaciones con la
 CLI, `AUTH_MODE=oidc` y despliegue, y las comprobaciones de esa fase. Además:
 
-- **Ninguna conexión de la app como `risk_app`.** Con la cadena de administración:
+- **Ninguna conexión de la app como `risk_app`.** Lo que lo prueba durante todo el período
+  son los logs de conexión de Postgres (en Supabase, *Logs → Postgres*, filtrando por
+  `connection authorized: user=risk_app`): las únicas tienen que ser del owner con la CLI. Una
+  foto puntual, con la cadena de administración:
 
   ```sql
   select usename, application_name, count(*) from pg_stat_activity
@@ -94,8 +97,8 @@ y a `risk_app`, que no cambió. En la base no se toca nada: `risk_oidc` queda si
 decir, durante todo el período:
 
 - ninguna vuelta a `legacy`;
-- ninguna conexión de la app como `risk_app` (la consulta de la etapa A, al menos una vez por
-  semana y el último día);
+- ninguna conexión de la app como `risk_app` en los logs de conexión del período (no alcanza
+  la foto de `pg_stat_activity`, que sólo ve el momento);
 - ningún error de conexión equivocada en los logs;
 - cada persona invitada entró al menos una vez (`acceso.ingresar` o `acceso.vincular` con
   resultado `ok` en `evento_auditoria`), o el owner decidió que no hace falta;
@@ -139,9 +142,20 @@ este procedimiento no toma:
 > Recomendación: la 1, porque mantiene el mínimo privilegio de R-22 y deja la política sin
 > ningún usuario. Se decide al preparar la fase 5, no antes.
 
-Con la decisión tomada, la etapa C es: migración que borra la política (y, si corresponde,
-crea `risk_cli`), `rol-app.sql` actualizado, `db:verificar` y `db:verificar-oidc` contra la
-hosteada, y la CLI probada contra una copia (vercel-risk.md §8) antes de producción.
+**Cuándo se decide:** es condición para cerrar la fase 5. Queda en la tabla de pendientes de
+`ops/evidence/T-0035.md` y, al cerrar T-0035, como tarea propia con fecha en Project OS.
+
+Con la decisión tomada, la etapa C es:
+
+1. Migración que borra la política (y, si corresponde, crea `risk_cli`), con su reversa, y
+   `rol-app.sql` actualizado. Probados en CI y contra una copia restaurada (vercel-risk.md §8):
+   cada comando de la CLI (importar, persona, acceso, aceptación) corre y no ve más de lo que
+   necesita.
+2. Aplicarla en la hosteada con aprobación del owner; `db:verificar` y `db:verificar-oidc`.
+3. **Observación de catorce días**, igual que en la etapa A, más: cada uso de la CLI en el
+   período termina sin 42501, y ninguna tabla de `risk` tiene una política para `risk_app`
+   (`select count(*) from pg_policy where polname = 'legado_risk_app'` da 0).
+4. Al terminar, la etapa queda cerrada en la evidencia.
 
 **Vuelta atrás:** la reversa de esa migración, que vuelve a crear la política para `risk_app`.
 

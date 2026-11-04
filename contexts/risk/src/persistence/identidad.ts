@@ -153,7 +153,7 @@ export const ingresar = async (
       const invitacionId = decision.tipo === 'VINCULA' ? (invitacion?.id ?? null) : null
       await tx`
         select risk.admision_registrar(${decision.usuarioId}, ${identidad.proveedor}, ${identidad.sujeto},
-                                       ${invitacion?.email ?? null}, ${invitacionId}::bigint)`
+                                       ${normalizarEmail(identidad.email)}, ${invitacionId}::bigint)`
     }
     return decision
   })

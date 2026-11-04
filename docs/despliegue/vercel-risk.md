@@ -231,16 +231,38 @@ repositorio, a Drive compartido ni a un mensaje.
 
 **Restaurar** en un proyecto vacío (o en el mismo, después de borrar el esquema):
 
+Desde la 0006 los permisos son parte del esquema: los `revoke … from public` de las funciones
+SECURITY DEFINER, los grants de `risk_persona` y los de `risk_oidc` (0009). Por eso se
+restaura **con** privilegios, después de crear los roles, que no viajan en el archivo:
+
 ```bash
-pg_restore --dbname "$RISK_HOSTED_DATABASE_URL" --no-owner --no-privileges --exit-on-error /ruta/privada/risk-….dump
+psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'risk_app') then create role risk_app nologin noinherit; end if;
+  if not exists (select 1 from pg_roles where rolname = 'risk_persona') then
+    create role risk_persona nologin nobypassrls nosuperuser nocreatedb nocreaterole noinherit;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'risk_oidc') then
+    create role risk_oidc nologin noinherit nobypassrls nosuperuser nocreatedb nocreaterole;
+  end if;
+end
+$$;
+SQL
+pg_restore --dbname "$RISK_HOSTED_DATABASE_URL" --no-owner --exit-on-error /ruta/privada/risk-….dump
 psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 -f contexts/risk/deploy/rol-app.sql
 psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 -f contexts/risk/deploy/rol-oidc.sql    # si la 0009 está aplicada
-pnpm --filter @del-campo/risk run db:verificar --hosteada     # con risk_app
-pnpm --filter @del-campo/risk run db:verificar-oidc --hosteada     # con risk_oidc, si la app está en oidc
+pnpm --filter @del-campo/risk run db:verificar --hosteada          # con risk_app
+pnpm --filter @del-campo/risk run db:verificar-oidc --hosteada     # con risk_oidc, si la 0009 está aplicada
 ```
 
-`--no-privileges`: en un proyecto nuevo `risk_app` y `risk_oidc` todavía no existen y sus
-permisos los vuelven a dar `rol-app.sql` y `rol-oidc.sql`, después.
+`rol-app.sql` y `rol-oidc.sql` vuelven a dar LOGIN y membresías, que son del servidor y no de la
+base. **No** usar `--no-privileges` con la 0006 o posteriores: deja las funciones de
+autorización y de admisión ejecutables por PUBLIC y a `risk_persona` sin permisos, y el modo
+`oidc` niega todo. `rol-oidc.sql` vuelve a cerrar las tres `admision_*`, y `db:verificar-oidc`
+falla si alguna SECURITY DEFINER de `risk` queda para PUBLIC o si `risk_persona` perdió sus
+permisos (revisión ciega de la 0009). Para un archivo anterior a la 0006, el camino de antes
+(`--no-privileges` y `rol-app.sql`) sigue valiendo.
 
 **Pausa por inactividad.** El plan Free pausa el proyecto tras una semana sin actividad: la
 app responde con error y nadie entra. Se reactiva desde el panel de Supabase (*Restore

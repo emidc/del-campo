@@ -12,7 +12,7 @@ type Db = Sql | TransactionSql
 
 const ROL = 'risk_oidc'
 const CATALOGO = ['pg_catalog', 'information_schema', 'pg_toast']
-const ADMISION = ['admision_credencial(text,text)', 'admision_invitacion(text)', 'admision_registrar(text,text,text,text,bigint)']
+const ADMISION: readonly string[] = ['admision_credencial(text,text)', 'admision_invitacion(text)', 'admision_registrar(text,text,text,text,bigint)']
 
 export interface PuntoOidc {
   readonly punto: string
@@ -30,27 +30,42 @@ export const verificarOidc = async (db: Db): Promise<{ readonly rol: string; rea
       case when rolcreaterole then 'crea roles' end, case when rolcreatedb then 'crea bases' end,
       case when rolreplication then 'replicación' end, case when rolinherit then 'hereda' end], null) as atributos
     from pg_roles where rolname = current_user`
-  const miembro = await db<{ rol: string; inherit: boolean }[]>`
-    select g.rolname as rol, m.inherit_option as inherit
+  const miembro = await db<{ rol: string; inherit: boolean; set: boolean }[]>`
+    select g.rolname as rol, m.inherit_option as inherit, m.set_option as set
     from pg_auth_members m join pg_roles g on g.oid = m.roleid
     where m.member = (select oid from pg_roles where rolname = current_user) order by 1`
   // 'member': aun sin heredar, con SET ROLE tendría sus privilegios. `risk_persona` es la única
-  // esperada, sin heredar; desde ella, RLS decide.
+  // esperada, sin heredar y con SET; desde ella, RLS decide.
   const alcanza = await db<{ rol: string }[]>`
     select rolname as rol from pg_roles
     where rolname not in (current_user, 'risk_persona') and pg_has_role(current_user, oid, 'member') order by 1`
+  // Tablas, vistas, materializadas, foráneas y particionadas, y también grants por columna.
   const privilegios = await db<{ p: string }[]>`
     select c.relname || ' ' || p.p as p from pg_class c join pg_namespace n on n.oid = c.relnamespace
     cross join unnest(array['select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger']) as p(p)
-    where n.nspname = 'risk' and c.relkind = 'r' and has_table_privilege(c.oid, p.p)
+    where n.nspname = 'risk' and c.relkind in ('r', 'v', 'm', 'f', 'p')
+      and (has_table_privilege(c.oid, p.p)
+           or (p.p in ('select', 'insert', 'update', 'references') and has_any_column_privilege(c.oid, p.p)))
       and not (c.relname = 'evento_auditoria' and p.p = 'insert')
     order by 1`
+  const [auditoria] = await db<{ columnas: string[] }[]>`
+    select coalesce(array_agg(a.attname::text order by a.attnum) filter (where has_column_privilege(a.attrelid, a.attnum, 'insert')), '{}') as columnas
+    from pg_attribute a where a.attrelid = 'risk.evento_auditoria'::regclass and a.attnum > 0 and not a.attisdropped`
   const [dueno] = await db<{ n: number }[]>`
     select count(*)::int as n from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'risk' and pg_has_role(c.relowner, 'member')`
-  const admision = await db<{ f: string }[]>`
-    select p.oid::regprocedure::text as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'risk' and p.proname like 'admision\\_%' and has_function_privilege(p.oid, 'execute')`
+  // Toda SECURITY DEFINER de `risk` que la conexión o PUBLIC pueden ejecutar: sólo las tres de
+  // admisión, y ninguna para PUBLIC (una restauración con --no-privileges las abre).
+  const secdef = await db<{ f: string; publico: boolean; propia: boolean }[]>`
+    select p.oid::regprocedure::text as f, has_function_privilege('public', p.oid, 'execute') as publico,
+           has_function_privilege(p.oid, 'execute') as propia
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'risk' and p.prosecdef order by 1`
+  // `risk_persona` tiene que poder usarse: sin sus grants (otra vez, una restauración), el modo
+  // oidc niega todo aunque esta conexión esté bien.
+  const [persona] = await db<{ usa: boolean; lee: boolean }[]>`
+    select has_schema_privilege('risk_persona', 'risk', 'usage') as usa,
+           has_table_privilege('risk_persona', 'risk.riesgo', 'select') as lee`
   const fuera = await db<{ esquema: string; n: number }[]>`
     select n.nspname as esquema, count(*)::int as n
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -60,19 +75,33 @@ export const verificarOidc = async (db: Db): Promise<{ readonly rol: string; rea
   const [crea] = await db<{ crea: boolean }[]>`select coalesce(has_schema_privilege('risk', 'create'), false) as crea`
 
   const rol = r?.rol ?? ''
-  const ejecuta = new Set(admision.map((a) => a.f.replace(/^risk\./, '')))
+  const ejecuta = new Set(secdef.filter((f) => f.propia).map((f) => f.f.replace(/^risk\./, '')))
   const faltaAdmision = ADMISION.filter((f) => !ejecuta.has(f))
-  const membresias = miembro.map((m) => `${m.rol}${m.inherit ? ' (hereda)' : ''}`)
+  const deMas = [...ejecuta].filter((f) => !ADMISION.includes(f))
+  const paraPublic = secdef.filter((f) => f.publico).map((f) => f.f.replace(/^risk\./, ''))
+  const membresias = miembro.map((m) => `${m.rol}${m.inherit ? ' (hereda)' : ''}${m.set ? '' : ' (sin SET)'}`)
+  const columnasEsperadas = ['actor_persona_id', 'origen', 'accion', 'tipo_objeto', 'id_objeto', 'resultado', 'motivo']
+  const columnas = auditoria?.columnas ?? []
   return {
     rol,
     puntos: [
       { punto: `conectado como ${ROL}`, cumple: rol === ROL, detalle: rol },
       { punto: 'sin atributos de administración y sin heredar', cumple: (r?.atributos ?? []).length === 0, detalle: lista(r?.atributos ?? []) },
-      { punto: 'miembro sólo de risk_persona, sin heredar', cumple: membresias.length === 1 && membresias[0] === 'risk_persona', detalle: lista(membresias) },
+      { punto: 'miembro sólo de risk_persona, sin heredar y con SET', cumple: membresias.length === 1 && membresias[0] === 'risk_persona', detalle: lista(membresias) },
       { punto: 'no alcanza a risk_app ni a otro rol (legado_risk_app no le llega)', cumple: alcanza.length === 0, detalle: lista(alcanza.map((a) => a.rol)) },
       { punto: 'no es dueño de nada en risk', cumple: (dueno?.n ?? 0) === 0, detalle: `dueño de ${String(dueno?.n ?? 0)}` },
-      { punto: 'ningún privilegio sobre tablas de risk, salvo insertar en la auditoría', cumple: privilegios.length === 0, detalle: lista(privilegios.map((p) => p.p)) },
+      { punto: 'ningún privilegio sobre tablas ni vistas de risk, salvo insertar en la auditoría', cumple: privilegios.length === 0, detalle: lista(privilegios.map((p) => p.p)) },
+      {
+        punto: 'en la auditoría inserta sólo las columnas del evento (no id ni ocurrido_en)',
+        cumple: columnas.join(',') === columnasEsperadas.join(','), detalle: lista(columnas),
+      },
       { punto: 'ejecuta las tres funciones de admisión', cumple: faltaAdmision.length === 0, detalle: `le falta: ${lista(faltaAdmision)}` },
+      { punto: 'ninguna otra función SECURITY DEFINER de risk', cumple: deMas.length === 0, detalle: lista(deMas) },
+      { punto: 'PUBLIC no ejecuta ninguna función SECURITY DEFINER de risk', cumple: paraPublic.length === 0, detalle: lista(paraPublic) },
+      {
+        punto: 'risk_persona conserva sus permisos (si no, oidc niega todo)', cumple: (persona?.usa ?? false) && (persona?.lee ?? false),
+        detalle: persona?.usa !== true ? 'sin USAGE sobre risk' : persona.lee ? 'ok' : 'no lee risk.riesgo',
+      },
       { punto: 'no crea objetos en risk', cumple: !(crea?.crea ?? false), detalle: crea?.crea === true ? 'puede crear' : 'no puede' },
       {
         punto: 'no lee tablas fuera de risk', cumple: fuera.length === 0,

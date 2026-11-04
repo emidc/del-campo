@@ -1,0 +1,12 @@
+miembro|risk_oidc|postgres|f|t
+miembro|risk_persona|postgres|f|t
+miembro|risk_persona|risk_app|f|t
+miembro|risk_persona|risk_oidc|f|t
+rol|risk_app|f
+rol|risk_oidc|f
+rol|risk_persona|f
+acl|evento_auditoria|{postgres=arwdDxt/postgres,risk_persona=ar/postgres}
+pol|evento_auditoria_escribir
+pol|evento_auditoria_leer
+pol|legado_risk_app
+nsp|{postgres=UC/postgres,risk_persona=U/postgres}

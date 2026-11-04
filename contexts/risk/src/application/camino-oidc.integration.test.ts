@@ -83,9 +83,18 @@ describe('risk_oidc: la conexión del modo oidc no lee datos', () => {
     const privilegios = await sql<{ t: string; p: string }[]>`
       select c.relname as t, p.p from pg_class c join pg_namespace n on n.oid = c.relnamespace
       cross join unnest(array['select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger']) as p(p)
-      where n.nspname = 'risk' and c.relkind = 'r' and has_table_privilege('risk_oidc', c.oid, p.p)
+      where n.nspname = 'risk' and c.relkind in ('r', 'v', 'm', 'f', 'p')
+        and (has_table_privilege('risk_oidc', c.oid, p.p)
+             or (p.p in ('select', 'insert', 'update', 'references') and has_any_column_privilege('risk_oidc', c.oid, p.p)))
       order by 1, 2`
     assert.deepEqual(privilegios.map((x) => `${x.t} ${x.p}`), ['evento_auditoria insert'])
+    // Y ahí, sólo las columnas del evento: `id` y `ocurrido_en` los pone la base.
+    const [tabla] = await sql<{ entera: boolean; id: boolean; ocurrido: boolean; motivo: boolean }[]>`
+      select has_table_privilege('risk_oidc', 'risk.evento_auditoria', 'insert') as entera,
+             has_column_privilege('risk_oidc', 'risk.evento_auditoria', 'id', 'insert') as id,
+             has_column_privilege('risk_oidc', 'risk.evento_auditoria', 'ocurrido_en', 'insert') as ocurrido,
+             has_column_privilege('risk_oidc', 'risk.evento_auditoria', 'motivo', 'insert') as motivo`
+    assert.deepEqual({ ...tabla }, { entera: false, id: false, ocurrido: false, motivo: true })
     const secuencias = await sql<{ s: string }[]>`
       select c.relname as s from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'risk' and c.relkind = 'S'
@@ -130,6 +139,13 @@ describe('risk_oidc: la conexión del modo oidc no lee datos', () => {
       assert.equal(await evento('persona.dar_de_baja', 'denied'), '42501')
       assert.equal(await evento('acceso.consultar', 'denied', null, 'PER-01M50T00000000000000000002'), '42501', 'sin objeto')
       assert.equal(await como(tx, 'risk_oidc', () => codigo(tx, (u) => u`select count(*) from risk.evento_auditoria`)), '42501')
+      // Ni fechar un rechazo ni ocupar un id futuro (revisión ciega de 0009, hallazgo 2).
+      assert.equal(await como(tx, 'risk_oidc', () => codigo(tx, (u) => u`
+        insert into risk.evento_auditoria (id, actor_persona_id, origen, accion, resultado, motivo)
+        overriding system value values (999999999, null, 'app', 'acceso.consultar', 'denied', 'SIN_ACCESO')`)), '42501')
+      assert.equal(await como(tx, 'risk_oidc', () => codigo(tx, (u) => u`
+        insert into risk.evento_auditoria (ocurrido_en, actor_persona_id, origen, accion, resultado, motivo)
+        values ('2020-01-01', null, 'app', 'acceso.consultar', 'denied', 'SIN_ACCESO')`)), '42501')
     }))
 })
 
@@ -275,9 +291,33 @@ describe('deploy/rol-oidc.sql y db:verificar-oidc', () => {
       await tx`grant risk_app to risk_oidc with inherit false, set true`
       await tx`set local role risk_oidc`
       assert.deepEqual(await fallan(tx), [
-        'miembro sólo de risk_persona, sin heredar',
+        'miembro sólo de risk_persona, sin heredar y con SET',
         'no alcanza a risk_app ni a otro rol (legado_risk_app no le llega)',
-        'ningún privilegio sobre tablas de risk, salvo insertar en la auditoría',
+        'ningún privilegio sobre tablas ni vistas de risk, salvo insertar en la auditoría',
       ])
+    }))
+
+  it('después de una restauración con --no-privileges: verificar-oidc lo ve y rol-oidc.sql cierra las funciones', () =>
+    enTransaccionRevertida(sql, async (tx) => {
+      // Lo que deja `pg_restore --no-privileges`: las funciones con EXECUTE para PUBLIC y
+      // `risk_persona` sin sus grants (revisión ciega de 0009, hallazgo 1).
+      for (const f of ADMISION) await tx.unsafe(`grant execute on function ${f} to public`)
+      await tx`create view risk.vista_t0035 as select id from risk.riesgo`
+      await tx`grant select on risk.vista_t0035 to public`
+      await tx`revoke usage on schema risk from risk_persona`
+      await tx.unsafe(rolOidc())
+      const publico = await tx<{ f: string }[]>`
+        select p.oid::regprocedure::text as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'risk' and p.prosecdef and has_function_privilege('public', p.oid, 'execute')`
+      assert.deepEqual(publico.map((x) => x.f), [], 'rol-oidc.sql se las vuelve a sacar a PUBLIC')
+      await tx`set local role risk_oidc`
+      assert.deepEqual(await fallan(tx), [
+        'ningún privilegio sobre tablas ni vistas de risk, salvo insertar en la auditoría',
+        'risk_persona conserva sus permisos (si no, oidc niega todo)',
+      ])
+      await tx`reset role`
+      for (const f of ADMISION) await tx.unsafe(`grant execute on function ${f} to public`)
+      await tx`set local role risk_oidc`
+      assert.ok((await fallan(tx)).includes('PUBLIC no ejecuta ninguna función SECURITY DEFINER de risk'))
     }))
 })

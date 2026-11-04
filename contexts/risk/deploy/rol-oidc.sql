@@ -12,9 +12,10 @@
 --   - es miembro de `risk_persona` y de nada más, sin heredar sus privilegios (INHERIT FALSE):
 --     sólo puede asumirlo con `set local role`, y desde ahí decide RLS. En particular no es
 --     miembro de `risk_app`, así que `legado_risk_app` no le llega;
---   - sobre las tablas de `risk` no tiene ningún privilegio, salvo insertar en
---     `evento_auditoria`, y ahí la política `evento_auditoria_rechazo` le deja sólo rechazos
---     sin actor. Lo demás lo hace por las tres funciones `admision_*` de la 0009.
+--   - sobre las tablas de `risk` no tiene ningún privilegio, salvo insertar las columnas del
+--     evento en `evento_auditoria` (no `id` ni `ocurrido_en`), y ahí la política
+--     `evento_auditoria_rechazo` le deja sólo rechazos sin actor. Lo demás lo hace por las tres funciones `admision_*` de la 0009, que sólo él
+--     ejecuta: este archivo les vuelve a sacar EXECUTE a PUBLIC.
 --
 -- `pnpm --filter @del-campo/risk run db:verificar-oidc --hosteada`, con la cadena de
 -- `risk_oidc`, comprueba todo esto desde el lado de la conexión.
@@ -65,8 +66,13 @@ grant usage on schema risk to risk_oidc;
 
 revoke all on all tables in schema risk from risk_oidc;
 revoke all on all sequences in schema risk from risk_oidc;
-grant insert on risk.evento_auditoria to risk_oidc;
+grant insert (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado, motivo) on risk.evento_auditoria to risk_oidc;
 
+-- Una restauración con `pg_restore --no-privileges` deja las funciones con el default de
+-- Postgres (EXECUTE para PUBLIC). Se vuelve a cerrar acá, cada vez (revisión ciega de 0009).
+revoke all on function risk.admision_credencial(text, text) from public;
+revoke all on function risk.admision_invitacion(text) from public;
+revoke all on function risk.admision_registrar(text, text, text, text, bigint) from public;
 grant execute on function risk.admision_credencial(text, text) to risk_oidc;
 grant execute on function risk.admision_invitacion(text) to risk_oidc;
 grant execute on function risk.admision_registrar(text, text, text, text, bigint) to risk_oidc;

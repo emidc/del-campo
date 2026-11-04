@@ -1,0 +1,99 @@
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+==== sesion autorizada como risk_oidc (session_user = risk_oidc)
+SET
+ session_user | current_user 
+--------------+--------------
+ risk_oidc    | risk_oidc
+(1 row)
+
+-- 1. lectura directa
+ERROR:  permission denied for table persona
+-- 2. enumeracion por email (sin el sub de Google)
+ id |           persona_id           |           email           |           vence_en            |   rol    | con_credencial 
+----+--------------------------------+---------------------------+-------------------------------+----------+----------------
+ 2  | PER-01M50T00000000000000000012 | operadora@ejemplo.invalid | 2026-11-11 11:47:16.627738+00 | OPERADOR | f
+(1 row)
+
+ id | persona_id | email | vence_en | rol | con_credencial 
+----+------------+-------+----------+-----+----------------
+(0 rows)
+
+-- 3. vincular una identidad cualquiera a la invitación pendiente de otra persona, sabiendo sólo el email
+BEGIN
+ admision_registrar 
+--------------------
+ 
+(1 row)
+
+COMMIT
+ id |           persona_id           |   rol    
+----+--------------------------------+----------
+ 2  | PER-01M50T00000000000000000012 | OPERADOR
+(1 row)
+
+-- 4. asumir risk_persona (session level, no local) como la persona recién vinculada
+SET
+           set_config           
+--------------------------------
+ PER-01M50T00000000000000000012
+(1 row)
+
+ current_user |         authz_persona          | authz_rol 
+--------------+--------------------------------+-----------
+ risk_persona | PER-01M50T00000000000000000012 | OPERADOR
+(1 row)
+
+RESET
+-- 4b. impersonar a la admin sin su sub: declarar el principal de otra persona
+SET
+           set_config           
+--------------------------------
+ PER-01M50T00000000000000000011
+(1 row)
+
+         authz_persona          |   authz_rol   
+--------------------------------+---------------
+ PER-01M50T00000000000000000011 | ADMINISTRADOR
+(1 row)
+
+ personas_visibles 
+-------------------
+                 2
+(1 row)
+
+RESET
+-- 5. auditoría: id y ocurrido_en elegidos por la conexión
+ERROR:  syntax error at or near "id"
+LINE 1: ...to risk.evento_auditoria overriding system value (id, ocurri...
+                                                             ^
+INSERT 0 1
+RESET
+ id |      ocurrido_en       |    accion    | motivo  
+----+------------------------+--------------+---------
+  2 | 2099-01-01 00:00:00+00 | acceso.token | FALSO_X
+(1 row)
+
+SET
+-- 5b. id elegido por la conexión (overriding system value)
+INSERT 0 1
+RESET
+ last_value 
+------------
+          2
+(1 row)
+
+ id |          ocurrido_en          |     accion      |   motivo    
+----+-------------------------------+-----------------+-------------
+  1 | 2026-11-04 11:47:16.632505+00 | acceso.vincular | 
+  2 | 2099-01-01 00:00:00+00        | acceso.token    | FALSO_X
+  5 | 2020-01-01 00:00:00+00        | acceso.ingresar | NO_INVITADO
+(3 rows)
+
+-- 5c. ahora la app (como dueño, simula) intenta auditar normalmente dos veces
+INSERT 0 1
+INSERT 0 1
+ERROR:  duplicate key value violates unique constraint "evento_auditoria_pkey"
+DETAIL:  Key (id)=(5) already exists.

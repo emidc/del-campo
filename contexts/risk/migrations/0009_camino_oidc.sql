@@ -126,7 +126,10 @@ grant execute on function risk.admision_registrar(text, text, text, text, bigint
 -- contexto rechazado: quedan auditados sin persona y sin objeto. Sólo insertar: `risk_oidc`
 -- no lee la auditoría (sin SELECT, tampoco puede usar RETURNING).
 
-grant insert on risk.evento_auditoria to risk_oidc;
+-- Sólo las columnas del evento: `id` y `ocurrido_en` los pone la base. Con la tabla entera,
+-- `overriding system value` le dejaría fechar un rechazo u ocupar un id futuro y tumbar la
+-- auditoría legítima (revisión ciega de 0009, hallazgo 2).
+grant insert (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado, motivo) on risk.evento_auditoria to risk_oidc;
 create policy evento_auditoria_rechazo on risk.evento_auditoria for insert to risk_oidc
   with check (origen = 'app' and actor_persona_id is null and resultado = 'denied'
               and tipo_objeto is null and id_objeto is null
