@@ -42,6 +42,7 @@ export const TABLAS_DEL_HISTORIAL: Readonly<Record<string, { readonly entra: Tab
   credencial_externa: { fuera: 'credenciales de acceso (D-0077), no un cambio de un riesgo' },
   asignacion: { fuera: 'qué organizaciones ve cada persona (D-0027), no un cambio de un riesgo' },
   evento_auditoria: { fuera: 'la auditoría de T-0035 registra quién intentó qué; el cambio de un riesgo ya está en su tabla' },
+  jti_aceptado: { fuera: 'tokens entre contextos ya aceptados (D-0077, T-0035), no un cambio de un riesgo' },
   schema_migrations: { fuera: 'el ledger de migraciones del esquema, no un dato de Risk OS' },
 }
 

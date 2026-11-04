@@ -13,6 +13,9 @@ type Db = Sql | TransactionSql
 const ROL = 'risk_oidc'
 const CATALOGO = ['pg_catalog', 'information_schema', 'pg_toast']
 const ADMISION: readonly string[] = ['admision_credencial(text,text)', 'admision_invitacion(text)', 'admision_registrar(text,text,text,text,bigint)']
+/** El registro de `jti` del token entre contextos (0010): la otra función que ejecuta la conexión. */
+const REGISTRO_JTI = 'registrar_jti(text,text,timestamp with time zone)'
+const PROPIAS: readonly string[] = [...ADMISION, REGISTRO_JTI]
 
 export interface PuntoOidc {
   readonly punto: string
@@ -55,7 +58,7 @@ export const verificarOidc = async (db: Db): Promise<{ readonly rol: string; rea
     select count(*)::int as n from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'risk' and pg_has_role(c.relowner, 'member')`
   // Toda SECURITY DEFINER de `risk` que la conexión o PUBLIC pueden ejecutar: sólo las tres de
-  // admisión, y ninguna para PUBLIC (una restauración con --no-privileges las abre).
+  // admisión y el registro de jti, y ninguna para PUBLIC (una restauración con --no-privileges las abre).
   const secdef = await db<{ f: string; publico: boolean; propia: boolean }[]>`
     select p.oid::regprocedure::text as f, has_function_privilege('public', p.oid, 'execute') as publico,
            has_function_privilege(p.oid, 'execute') as propia
@@ -77,7 +80,8 @@ export const verificarOidc = async (db: Db): Promise<{ readonly rol: string; rea
   const rol = r?.rol ?? ''
   const ejecuta = new Set(secdef.filter((f) => f.propia).map((f) => f.f.replace(/^risk\./, '')))
   const faltaAdmision = ADMISION.filter((f) => !ejecuta.has(f))
-  const deMas = [...ejecuta].filter((f) => !ADMISION.includes(f))
+  const faltaJti = !ejecuta.has(REGISTRO_JTI)
+  const deMas = [...ejecuta].filter((f) => !PROPIAS.includes(f))
   const paraPublic = secdef.filter((f) => f.publico).map((f) => f.f.replace(/^risk\./, ''))
   const membresias = miembro.map((m) => `${m.rol}${m.inherit ? ' (hereda)' : ''}${m.set ? '' : ' (sin SET)'}`)
   const columnasEsperadas = ['actor_persona_id', 'origen', 'accion', 'tipo_objeto', 'id_objeto', 'resultado', 'motivo']
@@ -96,6 +100,7 @@ export const verificarOidc = async (db: Db): Promise<{ readonly rol: string; rea
         cumple: columnas.join(',') === columnasEsperadas.join(','), detalle: lista(columnas),
       },
       { punto: 'ejecuta las tres funciones de admisión', cumple: faltaAdmision.length === 0, detalle: `le falta: ${lista(faltaAdmision)}` },
+      { punto: 'ejecuta el registro de jti (0010)', cumple: !faltaJti, detalle: faltaJti ? 'le falta: registrar_jti' : 'ok' },
       { punto: 'ninguna otra función SECURITY DEFINER de risk', cumple: deMas.length === 0, detalle: lista(deMas) },
       { punto: 'PUBLIC no ejecuta ninguna función SECURITY DEFINER de risk', cumple: paraPublic.length === 0, detalle: lista(paraPublic) },
       {

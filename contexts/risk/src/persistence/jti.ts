@@ -1,0 +1,47 @@
+// Registro persistente de los `jti` del token entre contextos (D-0077, T-0035; migración 0010).
+//
+// Cumple el contrato `RegistroJti` de `@del-campo/identidad` por forma, sin importarlo: el
+// contexto no depende del paquete de identidad. Es atómico y compartido por todas las
+// instancias de Risk OS: `risk.registrar_jti` hace `insert … on conflict do nothing` sobre la
+// clave (emisor, jti), que deja pasar a uno solo aunque dos instancias reciban el mismo token
+// a la vez; la otra espera a que la primera confirme o revierta para decidir. La misma función
+// purga los `jti` vencidos hace más de 10 minutos.
+//
+// Se construye con la conexión del pool, nunca con la transacción del pedido, y lanza si se
+// le pasa una: así el `jti` queda registrado en cuanto se acepta el token, aunque después la
+// acción falle y su transacción se revierta, y otra instancia con el mismo token no queda
+// esperando el lock mientras dura la acción. Con una transacción, una acción que falla
+// liberaría el `jti` y el mismo token se podría volver a usar mientras no venza.
+
+import type { Sql, TransactionSql } from './database.ts'
+
+/** Lo que `verificarToken` pasa a `registrar`, igual que `UsoJti` de `@del-campo/identidad`. */
+export interface UsoJti {
+  readonly emisor: string
+  readonly jti: string
+  /** El `exp` del token, en segundos desde la época. */
+  readonly venceEn: number
+  readonly ahora: number
+}
+
+export interface RegistroJtiPostgres {
+  registrar(uso: UsoJti): Promise<boolean>
+}
+
+/**
+ * La llamada del registro, sobre cualquier conexión. La usa `registroJtiPostgres` con el pool;
+ * las pruebas de permisos, dentro de una transacción con otro rol. `true` si el `jti` de ese
+ * emisor no estaba y quedó registrado; `false` si se reutiliza. Pasa por `risk.registrar_jti`
+ * (0010), que sólo ejecuta `risk_oidc`: la conexión del modo `oidc` no toca la tabla.
+ */
+export const registrarJti = async (db: Sql | TransactionSql, { emisor, jti, venceEn }: UsoJti): Promise<boolean> => {
+  const [r] = await db<{ ok: boolean }[]>`select risk.registrar_jti(${emisor}, ${jti}, ${new Date(venceEn * 1000)}) as ok`
+  return r?.ok === true
+}
+
+/** El registro que la app pasa a `verificarToken`. Sólo con el pool: con una transacción, lanza. */
+export const registroJtiPostgres = (db: Sql): RegistroJtiPostgres => {
+  // postgres.js no distingue una transacción por tipo: la de `begin` tiene `savepoint`.
+  if ('savepoint' in db) throw new Error('el registro de jti se construye con el pool, no con una transacción')
+  return { registrar: (uso) => registrarJti(db, uso) }
+}

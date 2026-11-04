@@ -11,8 +11,10 @@
 //    válido, y el alcance es el de Risk OS, no el del contexto que llama.
 //
 // Todavía no hay llamadas reales: ningún endpoint usa esto (lo exige `deny.test.ts`) y no se
-// publica ninguno de prueba. Cuando exista la primera, el JWKS del emisor y el registro de
-// `jti` en la base se configuran con ella.
+// publica ninguno de prueba. Cuando exista la primera, se configura el JWKS del emisor. El
+// registro de `jti` ya es obligatorio: `admitirLlamada` no acepta `registroJti: null`, y el que
+// corresponde es `registroJtiPostgres` de @del-campo/risk, construido con la conexión del
+// pool para que sea el mismo en todas las instancias de Risk OS.
 
 import { verificarToken, type RechazoToken, type Verificacion } from '@del-campo/identidad'
 import { auditar, type Sesion, type Sql, type TransactionSql } from '@del-campo/risk'
@@ -37,6 +39,7 @@ export const admitirLlamada = async <T>(
   verificacion: Verificacion,
   accion: (tx: TransactionSql, sesion: Sesion) => Promise<T>,
 ): Promise<Llamada<T>> => {
+  if (verificacion.registroJti === null) throw new Error('una llamada real necesita el registro de jti compartido')
   if (verificacion.audiencia !== AUDIENCIA_RISK) throw new Error(`la audiencia de Risk OS es ${AUDIENCIA_RISK}`)
   const r = await verificarToken(token, verificacion)
   if (!r.ok) {

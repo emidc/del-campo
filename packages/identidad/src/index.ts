@@ -32,11 +32,13 @@ export { DURACION_HANDSHAKE_SEGUNDOS, leerHandshake, sellarHandshake } from './h
 export type { ConfigOidc, Handshake, PedidoDeAutorizacion } from './oidc.ts'
 export { EMISOR_GOOGLE, SCOPES, identidadDeClaims, identidadDelCallback, pedirAutorizacion } from './oidc.ts'
 
-export type { Emision, Jwks, ParDeClaves, RechazoToken, RegistroJti, ResultadoToken, Verificacion } from './token.ts'
+export type { Emision, Jwks, ParDeClaves, RechazoToken, RegistroJti, ResultadoToken, UsoJti, Verificacion } from './token.ts'
 export {
   ALGORITMO,
   DURACION_MAXIMA_SEGUNDOS,
   DURACION_TOKEN_SEGUNDOS,
+  FORMATO_CONTEXTO,
+  JTI_LARGO_MAXIMO,
   TOLERANCIA_SEGUNDOS,
   clavePublica,
   emitirToken,

@@ -14,8 +14,8 @@
 --     miembro de `risk_app`, así que `legado_risk_app` no le llega;
 --   - sobre las tablas de `risk` no tiene ningún privilegio, salvo insertar las columnas del
 --     evento en `evento_auditoria` (no `id` ni `ocurrido_en`), y ahí la política
---     `evento_auditoria_rechazo` le deja sólo rechazos sin actor. Lo demás lo hace por las tres funciones `admision_*` de la 0009, que sólo él
---     ejecuta: este archivo les vuelve a sacar EXECUTE a PUBLIC.
+--     `evento_auditoria_rechazo` le deja sólo rechazos sin actor. Lo demás lo hace por las tres funciones `admision_*` de la 0009 y
+--     `registrar_jti` de la 0010, que sólo él ejecuta: este archivo les vuelve a sacar EXECUTE a PUBLIC.
 --
 -- `pnpm --filter @del-campo/risk run db:verificar-oidc --hosteada`, con la cadena de
 -- `risk_oidc`, comprueba todo esto desde el lado de la conexión.
@@ -76,5 +76,14 @@ revoke all on function risk.admision_registrar(text, text, text, text, bigint) f
 grant execute on function risk.admision_credencial(text, text) to risk_oidc;
 grant execute on function risk.admision_invitacion(text) to risk_oidc;
 grant execute on function risk.admision_registrar(text, text, text, text, bigint) to risk_oidc;
+-- El registro de `jti` del token entre contextos (migración 0010), si ya está aplicada.
+do $$
+begin
+  if to_regprocedure('risk.registrar_jti(text, text, timestamptz)') is not null then
+    revoke all on function risk.registrar_jti(text, text, timestamptz) from public;
+    grant execute on function risk.registrar_jti(text, text, timestamptz) to risk_oidc;
+  end if;
+end
+$$;
 
 commit;

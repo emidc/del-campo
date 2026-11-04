@@ -74,6 +74,7 @@ it('el paquete exporta las lecturas por organización y los casos de uso de la a
     'registrarEventoPoliza',
     'registrarNovedad',
     'registrarOrdenPrevio',
+    'registroJtiPostgres',
     'reordenar',
     'revisar',
     'sesionVigente',

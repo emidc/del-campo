@@ -16,7 +16,7 @@ import {
   emitirToken, generarParDeClaves, jwksDe, registroJtiEnMemoria, sellarHandshake, type Identidad, type ParDeClaves, type Verificacion,
 } from '@del-campo/identidad'
 import {
-  asignar, cambiarRol, connect, darDeBaja, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
+  asignar, cambiarRol, connect, darDeBaja, registroJtiPostgres, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
   SinPermiso, VERSION_METODOLOGIA, vistaDetalle, vistaLista, pantallaOrdenPrevio, type RolInterno, type Sql, type TransactionSql,
 } from '@del-campo/risk'
 import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
@@ -464,6 +464,40 @@ describe('token entre contextos: verificado en Risk OS y con la admisión de Ris
       assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
       // Un token con otra audiencia no se puede verificar acá como si fuera de Risk OS.
       await assert.rejects(admitirLlamada(e.tx, t, { ...v, audiencia: 'communication-os' }, () => Promise.resolve(null)))
+    })
+  })
+
+  it('con el registro de la base: dos instancias no aceptan el mismo token, y vencido es VENCIDO', async () => {
+    // Dos instancias de Risk OS: cada una con su pool de `risk_oidc` (como `RISK_OIDC_DATABASE_URL`)
+    // y su registro, sobre la misma base. El registro confirma por su cuenta (no es la transacción
+    // del equipo): deja filas con jti aleatorios en delcampo_risk_test, que es de sólo inserción y
+    // no las ve ninguna otra prueba.
+    const poolOidc = (): Sql => {
+      const url = new URL(testUrl())
+      url.searchParams.set('role', 'risk_oidc')
+      return connect(url.href)
+    }
+    const unaInstancia = poolOidc()
+    const otraInstancia = poolOidc()
+    try {
+      await conEquipo(async (e) => {
+        const instancia = (pool: Sql, ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(pool)), ahora })
+        const t = await token('operadora')
+        assert.deepEqual(await orgs(e, t, instancia(unaInstancia)), { ok: true, valor: [ORG] })
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 30)), { ok: false, token: 'REUTILIZADO' })
+        assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
+        // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 66)), { ok: false, token: 'VENCIDO' })
+      })
+    } finally {
+      await unaInstancia.end()
+      await otraInstancia.end()
+    }
+  })
+
+  it('una llamada real no se admite sin registro de jti', async () => {
+    await conEquipo(async (e) => {
+      await assert.rejects(orgs(e, await token('operadora'), { ...verificacion(), registroJti: null }), /registro de jti/)
     })
   })
 
