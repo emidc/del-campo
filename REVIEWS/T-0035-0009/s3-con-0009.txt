@@ -1,0 +1,15 @@
+miembro|risk_oidc|postgres|f|t
+miembro|risk_persona|postgres|f|t
+miembro|risk_persona|risk_oidc|f|t
+rol|risk_app|f
+rol|risk_oidc|f
+rol|risk_persona|f
+acl|evento_auditoria|{postgres=arwdDxt/postgres,risk_persona=ar/postgres,risk_oidc=a/postgres}
+pol|evento_auditoria_escribir
+pol|evento_auditoria_leer
+pol|evento_auditoria_rechazo
+pol|legado_risk_app
+fn|risk.admision_credencial(text,text)
+fn|risk.admision_invitacion(text)
+fn|risk.admision_registrar(text,text,text,text,bigint)
+nsp|{postgres=UC/postgres,risk_persona=U/postgres,risk_oidc=U/postgres}

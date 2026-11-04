@@ -1,10 +1,10 @@
-// Registro persistente de los `jti` del token entre contextos (D-0077, T-0035; migración 0009).
+// Registro persistente de los `jti` del token entre contextos (D-0077, T-0035; migración 0010).
 //
 // Cumple el contrato `RegistroJti` de `@del-campo/identidad` por forma, sin importarlo: el
 // contexto no depende del paquete de identidad. Es atómico y compartido por todas las
-// instancias de Risk OS: el `insert … on conflict do nothing` sobre la clave (emisor, jti)
-// deja pasar a uno solo aunque dos instancias reciban el mismo token a la vez, y la otra
-// espera a que la primera confirme o revierta para decidir.
+// instancias de Risk OS: `risk.registrar_jti` hace `insert … on conflict do nothing` sobre la
+// clave (emisor, jti), que deja pasar a uno solo aunque dos instancias reciban el mismo token
+// a la vez; la otra espera a que la primera confirme o revierta para decidir.
 //
 // Se construye con la conexión del pool, nunca con la transacción del pedido, y lanza si se
 // le pasa una: así el `jti` queda registrado en cuanto se acepta el token, aunque después la
@@ -28,19 +28,14 @@ export interface RegistroJtiPostgres {
 }
 
 /**
- * La sentencia del registro, sobre cualquier conexión. La usa `registroJtiPostgres` con el pool;
+ * La llamada del registro, sobre cualquier conexión. La usa `registroJtiPostgres` con el pool;
  * las pruebas de permisos, dentro de una transacción con otro rol. `true` si el `jti` de ese
- * emisor no estaba y quedó registrado; `false` si se reutiliza.
+ * emisor no estaba y quedó registrado; `false` si se reutiliza. Pasa por `risk.registrar_jti`
+ * (0010), que sólo ejecuta `risk_oidc`: la conexión del modo `oidc` no toca la tabla.
  */
 export const registrarJti = async (db: Sql | TransactionSql, { emisor, jti, venceEn }: UsoJti): Promise<boolean> => {
-  // Sin columnas en `on conflict`: con columnas, Postgres exige además que la fila nueva pase
-  // una política SELECT, y la conexión de la app no tendría ninguna cuando se retire la
-  // política amplia de legado. La clave primaria es la única restricción única de la tabla.
-  const r = await db`
-    insert into risk.jti_aceptado (emisor, jti, vence_en)
-    values (${emisor}, ${jti}, ${new Date(venceEn * 1000)})
-    on conflict do nothing`
-  return r.count === 1
+  const [r] = await db<{ ok: boolean }[]>`select risk.registrar_jti(${emisor}, ${jti}, ${new Date(venceEn * 1000)}) as ok`
+  return r?.ok === true
 }
 
 /** El registro que la app pasa a `verificarToken`. Sólo con el pool: con una transacción, lanza. */

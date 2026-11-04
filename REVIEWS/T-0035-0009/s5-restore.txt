@@ -1,0 +1,14 @@
+== §8 de vercel-risk.md: pg_restore --no-privileges + rol-app.sql + rol-oidc.sql
+PUBLIC ejecuta: admision_credencial=true admision_invitacion=true admision_registrar=true
+rol conectado: risk_oidc
+✓ conectado como risk_oidc: risk_oidc
+✓ sin atributos de administración y sin heredar: ninguno
+✓ miembro sólo de risk_persona, sin heredar: risk_persona
+✓ no alcanza a risk_app ni a otro rol (legado_risk_app no le llega): ninguno
+✓ no es dueño de nada en risk: dueño de 0
+✓ ningún privilegio sobre tablas de risk, salvo insertar en la auditoría: ninguno
+✓ ejecuta las tres funciones de admisión: le falta: ninguno
+✓ no crea objetos en risk: no puede
+✓ no lee tablas fuera de risk: ninguno
+conexión de oidc: cumple
+lectura como persona: 42501 permission denied for schema risk

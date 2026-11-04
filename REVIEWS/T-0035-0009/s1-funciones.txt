@@ -1,0 +1,36 @@
+== funciones ejecutables por risk_oidc (fuera de pg_catalog/information_schema)
+risk|risk.solo_insercion()|f|t
+risk|risk.evaluacion_anterior_registrada()|f|t
+risk|risk.accion_estado_transicion()|f|t
+risk|risk.estado_vigente_accion(text)|f|t
+risk|risk.evaluacion_accion_cumplida()|f|t
+risk|risk.revision_pendiente_accion_cumplida()|f|t
+risk|risk.motivo_cierra(text,text)|f|t
+risk|risk.cierre_revision_reevaluacion_valida()|f|t
+risk|risk.revision_humana_cierre_firme()|f|t
+risk|risk.orden_previo_antes_de_resultados()|f|t
+risk|risk.orden_previo_item_en_su_registro()|f|t
+risk|risk.admision_credencial(text,text)|t|f
+risk|risk.admision_invitacion(text)|t|f
+risk|risk.admision_registrar(text,text,text,text,bigint)|t|f
+== secdef en risk ejecutables por PUBLIC
+== funciones de risk ejecutables por risk_persona
+30
+== relaciones no-tabla en risk con algun privilegio para risk_oidc
+== column privileges risk_oidc
+evento_auditoria|id|INSERT
+evento_auditoria|accion|INSERT
+evento_auditoria|id_objeto|INSERT
+evento_auditoria|actor_persona_id|INSERT
+evento_auditoria|resultado|INSERT
+evento_auditoria|tipo_objeto|INSERT
+evento_auditoria|ocurrido_en|INSERT
+evento_auditoria|origen|INSERT
+evento_auditoria|motivo|INSERT
+== default privileges
+== db acl / schemas usage
+
+public|t|f
+risk|t|f
+== politicas que aplican a risk_persona o public con roles
+== risk_persona miembro de

@@ -72,7 +72,10 @@ un Administrador (D-0072), y la identidad es el `sub` de Google (D-0077). La inv
 nombrar a una persona que ya usa Risk OS: su primer login se vincula a ella y lo que registró
 con contraseña sigue siendo suyo. En cada request la base vuelve a admitir a la persona, y las
 páginas y los endpoints leen y escriben como `risk_persona`, con RLS (migración 0006, D-0022):
-una baja o un cambio de rol rigen en el request siguiente.
+una baja o un cambio de rol rigen en el request siguiente. La conexión del modo `oidc` es la de
+`risk_oidc` (migración 0009), que no lee ninguna tabla: admite con las funciones `admision_*`
+y después asume a la persona. `legado_risk_app` queda sólo para `legacy`
+(`docs/migration/T-0035-retiro-legado-risk.md`).
 
 La matriz es la que el owner aprobó el 2026-11-03 (`contexts/risk/src/domain/permisos.ts`):
 
@@ -108,14 +111,15 @@ de esta carpeta, que está gitignored.
 
 | Variable | Qué es |
 |---|---|
-| `RISK_DATABASE_URL` | La base de Risk OS. En local, `postgres://localhost:5432/delcampo_risk_dev`. |
+| `RISK_DATABASE_URL` | La base de Risk OS en `legacy`. En local, `postgres://localhost:5432/delcampo_risk_dev`. |
+| `RISK_OIDC_DATABASE_URL` | Sólo en `oidc`: la misma base con el rol `risk_oidc` (migración 0009), que no lee ninguna tabla y asume a cada persona. En `oidc` la app no abre `RISK_DATABASE_URL`, y `ingresar`/`conPrincipal` se niegan con cualquier otro rol. En local hace falta darle LOGIN (`contexts/risk/deploy/rol-oidc.sql`). |
 | `RISK_UI_SESSION_SECRET` | Secreto de la firma de la cookie, al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. En `oidc` también cifra la sesión de Google, con otra clave derivada. |
 | `AUTH_MODE` | `legacy` (usuario y contraseña, D-0069) u `oidc` (Google por invitación, T-0035). Sin valor, `legacy`; un valor desconocido falla. |
 | `RISK_BASE_URL` | Sólo en `oidc`: origen público de la app. La URI de redirección es este origen más `/api/auth/google/callback`. |
 | `RISK_GOOGLE_CLIENT_ID`, `RISK_GOOGLE_CLIENT_SECRET` | Sólo en `oidc`: cliente OAuth de Google (fase 1 del plan de T-0035). |
 
-En Vercel van sólo en Production, con el rol `risk_app` en `RISK_DATABASE_URL`; las previews
-quedan sin base. El despliegue está en `docs/despliegue/vercel-risk.md`.
+En Vercel van sólo en Production, con el rol `risk_app` en `RISK_DATABASE_URL` y, desde la
+fase 4, `risk_oidc` en `RISK_OIDC_DATABASE_URL`; las previews quedan sin base. El despliegue está en `docs/despliegue/vercel-risk.md`.
 
 ## Reglas de presentación (RO01 §3)
 
@@ -212,6 +216,6 @@ prioritario se lee y qué evaluación de ese hijo usa su posición.
 
 | Archivo | Qué cubre |
 |---|---|
-| `src/lib/deny.test.ts` | R-28: cada endpoint de datos sin cookie, con una inválida, de otro secreto, adulterada o vencida responde 401 sin tocar la base; sin configuración, 503; login y logout de otro origen, 403; toda página llama primero a `requireSession()`, lee sólo con `sesion.datos` y todo endpoint pasa por `withSesion`. En `oidc`, sin una sesión de Google válida, 401 sin tocar la base; sin su configuración, 503; en `legacy`, la entrada con Google no existe. Los tres POST de T-0031 sin sesión, 401; de otro origen o sin origen, 403 aun con sesión. |
-| `src/lib/acceso.integration.test.ts` | T-0035 en `oidc`, de punta a punta sobre las 8 sintéticas: sin invitación no entra; la persona de siempre entra con Google y conserva su id; la contraseña no entra; alcance por organización asignada; el Revisor recibe 403 hasta registrar su orden previo y después ve; la Operadora no registra un orden previo y el Revisor no carga; autoría y auditoría de cada escritura y de cada rechazo; la UI sin los formularios que el rol no puede usar; baja y cambio de rol en el request siguiente; y en `legacy`, con todo eso cargado, todo como antes. |
+| `src/lib/deny.test.ts` | R-28: cada endpoint de datos sin cookie, con una inválida, de otro secreto, adulterada o vencida responde 401 sin tocar la base; sin configuración, 503; login y logout de otro origen, 403; toda página llama primero a `requireSession()`, lee sólo con `sesion.datos` y todo endpoint pasa por `withSesion`. En `oidc`, sin una sesión de Google válida, 401 sin tocar la base; sin su configuración o con sólo la conexión de `legacy`, 503; en `legacy`, la entrada con Google no existe. Los tres POST de T-0031 sin sesión, 401; de otro origen o sin origen, 403 aun con sesión. |
+| `src/lib/acceso.integration.test.ts` | T-0035 en `oidc`, de punta a punta sobre las 8 sintéticas y con la conexión de `risk_oidc`, como en producción: sin invitación no entra; la persona de siempre entra con Google y conserva su id; la contraseña no entra; alcance por organización asignada; el Revisor recibe 403 hasta registrar su orden previo y después ve; la Operadora no registra un orden previo y el Revisor no carga; autoría y auditoría de cada escritura y de cada rechazo; la UI sin los formularios que el rol no puede usar; baja y cambio de rol en el request siguiente; y en `legacy`, con todo eso cargado, todo como antes. |
 | `src/vistas/paginas.integration.test.ts` | El HTML de cada página con las 8 sintéticas: `C_raw` sólo en la fila de criticidad del detalle, con los 7 factores y las 2 banderas; toda fila con factores los muestra completos; el techo sólo en la cola y el detalle; sólo riesgos de la organización; `unknown`; evaluación usada; versión; sin riesgo neto. Y cada endpoint con una sesión válida, y la baja que lo corta. Los formularios de T-0031: el material ciego sin resultados y el orden previo una sola vez; una novedad que abre una revisión y su cierre sin cambio; un pedido incompleto que no escribe nada; `volver` a otro sitio que se ignora; el reordenamiento al lado del orden calculado; el estado de una acción nueva; el historial en la página. |

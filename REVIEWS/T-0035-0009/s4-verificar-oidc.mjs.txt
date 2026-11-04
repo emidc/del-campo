@@ -1,0 +1,20 @@
+import postgres from 'postgres'
+import { verificarOidc, informeVerificacionOidc } from './src/persistence/verificacion-oidc.ts'
+const sql = postgres(process.argv[2], { onnotice: () => {} })
+class R extends Error {}
+for (const caso of ['base', 'set_false', 'pg_monitor', 'select_vista_public']) {
+  try {
+    await sql.begin(async (tx) => {
+      if (caso === 'set_false') await tx`grant risk_persona to risk_oidc with inherit false, set false`
+      if (caso === 'pg_monitor') await tx`grant pg_read_all_data to risk_oidc`
+      if (caso === 'select_vista_public') { await tx`create view risk.zz_vista as select id, nombre from risk.persona`; await tx`grant select on risk.zz_vista to public` }
+      await tx`set local session authorization risk_oidc`
+      const v = await verificarOidc(tx)
+      console.log('== ' + caso); console.log(informeVerificacionOidc(v).filter((l) => l.startsWith('✗') || l.startsWith('conexión')).join('\n'))
+      if (caso === 'set_false') { try { await tx.savepoint((t) => t`set local role risk_persona`) ; console.log('set role: ok') } catch (e) { console.log('set role:', e.code, e.message) } }
+      if (caso === 'select_vista_public') { const r = await tx`select count(*)::int n from risk.zz_vista`; console.log('filas leídas por la vista, como risk_oidc:', r[0].n) }
+      throw new R()
+    })
+  } catch (e) { if (!(e instanceof R)) console.log(caso, 'ERROR', e.message) }
+}
+await sql.end()

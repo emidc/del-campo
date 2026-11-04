@@ -124,10 +124,12 @@ lo esperado: la rotación pendiente de la credencial compartida queda resuelta a
 
 ### Fase 4 — Risk OS pasa a `oidc`
 
-0. Las migraciones 0006 a 0008 de Risk OS están aplicadas en su base de producción y
-   `rol-app.sql` vuelto a correr, con aprobación del owner. Agrega las tablas de identidad, asignación y
-   auditoría, `risk_persona` y RLS; `risk_app` sigue viendo lo mismo por la política
-   `legado_risk_app`. Con `legacy` no cambia nada. Antes de activar `oidc`, el owner
+0. Las migraciones 0006 a 0009 de Risk OS están aplicadas en su base de producción, y
+   `rol-app.sql` y `rol-oidc.sql` vueltos a correr, con aprobación del owner. Agrega las tablas de identidad, asignación y
+   auditoría, `risk_persona`, RLS y `risk_oidc`, la conexión propia del modo `oidc`; `risk_app` sigue viendo lo mismo por la política
+   `legado_risk_app`. Con `legacy` no cambia nada. En Vercel se agrega
+   `RISK_OIDC_DATABASE_URL` y se deja `RISK_DATABASE_URL` para la vuelta atrás
+   ([procedimiento de retiro](T-0035-retiro-legado-risk.md), §2). Antes de activar `oidc`, el owner
    asigna a cada Operador y Revisor sus organizaciones, una por una.
 1. Por cada `risk.persona` con usuario activo, el owner carga una invitación con el
    `persona_id`, para que el primer login de Google se vincule a esa misma persona y la
@@ -143,7 +145,10 @@ incluye retirar `legado_risk_app` del camino `oidc`: una conexión de ejecución
 dependa de esa política, pruebas de que ninguna ruta `oidc` lee datos por privilegios
 heredados, y un procedimiento de retiro con período de observación y vuelta atrás. La
 política no se borra antes de tener ese procedimiento, porque cortaría el acceso actual o
-la admisión de personas nuevas.
+la admisión de personas nuevas. Las tres están en la migración 0009 y en
+[T-0035-retiro-legado-risk.md](T-0035-retiro-legado-risk.md): el camino `oidc` corre como
+`risk_oidc`, que no lee ninguna tabla; la política queda sólo para `legacy` y la CLI del
+owner, y su borrado (etapa C) espera una decisión sobre el rol de la CLI.
 
 **Vuelta atrás:** `AUTH_MODE=legacy`. Las credenciales scrypt siguen vigentes en
 `risk.credencial` y nada se borra, porque el esquema es sólo de inserción.

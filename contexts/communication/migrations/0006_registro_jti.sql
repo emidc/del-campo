@@ -1,6 +1,6 @@
 -- T-0035, pendiente 3 de la revisión del owner (2026-11-04): registro persistente de los
 -- `jti` del token entre contextos de D-0077, para que Communication OS acepte cada token una
--- sola vez aunque corra en varias instancias. Es la misma tabla que la migración 0009 de
+-- sola vez aunque corra en varias instancias. Es la misma tabla que la migración 0010 de
 -- Risk OS, en el esquema propio (D-0063).
 --
 --   * Compartido por todas las instancias del destino: vive en la base de Communication OS.

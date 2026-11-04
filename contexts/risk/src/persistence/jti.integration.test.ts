@@ -1,4 +1,4 @@
-// Registro persistente de `jti` (T-0035, migración 0009) contra Postgres: una sola aceptación
+// Registro persistente de `jti` (T-0035, migración 0010) contra Postgres: una sola aceptación
 // por (emisor, jti), aunque dos instancias reciban el mismo token a la vez.
 //
 // Las pruebas de carrera tienen que confirmar de verdad, con transacciones en conexiones
@@ -12,9 +12,9 @@ import { after, before, describe, it } from 'node:test'
 import { setTimeout as esperar } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
-import type { Sql, TransactionSql } from './database.ts'
+import { connect, type Sql, type TransactionSql } from './database.ts'
 import { registrarJti, registroJtiPostgres, type UsoJti } from './jti.ts'
-import { conBaseTemporal, enTransaccionRevertida, openTestDatabase } from './testing.ts'
+import { conBaseTemporal, enTransaccionRevertida, openTestDatabase, testDatabaseUrl } from './testing.ts'
 
 const AHORA = 1_900_000_000
 const uso = (cambios: Partial<UsoJti> = {}): UsoJti => ({ emisor: 'broker-os', jti: randomUUID(), venceEn: AHORA + 60, ahora: AHORA, ...cambios })
@@ -32,7 +32,7 @@ const hayEsperandoLock = async (db: Sql): Promise<void> => {
   for (let i = 0; i < 200; i++) {
     const [f] = await db<{ n: number }[]>`
       select count(*)::int as n from pg_stat_activity
-      where datname = current_database() and wait_event_type = 'Lock' and query like '%jti_aceptado%'`
+      where datname = current_database() and wait_event_type = 'Lock' and query like '%registrar_jti%'`
     if ((f?.n ?? 0) > 0) return
     await esperar(10)
   }
@@ -126,14 +126,20 @@ describe('registro de jti en la base de Risk OS', () => {
     })
   })
 
-  it('risk_app registra; risk_persona no lee ni escribe el registro', async () => {
+  it('risk_oidc registra sólo por la función; no lee la tabla, y risk_app y risk_persona no registran', async () => {
     const rolApp = readFileSync(fileURLToPath(new URL('../../deploy/rol-app.sql', import.meta.url)), 'utf8').replace(/^(begin|commit);$/gm, '')
     await enTransaccionRevertida(sql, async (tx) => {
       await tx.unsafe(rolApp)
-      await tx.unsafe('set local role risk_app')
       const u = uso()
+      await tx.unsafe('set local role risk_oidc')
       assert.equal(await registrarJti(tx, u), true)
       assert.equal(await registrarJti(tx, u), false)
+      assert.equal(await codigo(tx, () => tx`select 1 from risk.jti_aceptado`), '42501')
+      assert.equal(await codigo(tx, () => tx`insert into risk.jti_aceptado (emisor, jti, vence_en) values ('broker-os', 'x', now())`), '42501')
+      // El modo legacy no recibe tokens: la conexión de `risk_app` no ejecuta el registro.
+      await tx.unsafe('reset role')
+      await tx.unsafe('set local role risk_app')
+      assert.equal(await codigo(tx, () => registrarJti(tx, uso())), '42501')
       await tx.unsafe('reset role')
       await tx.unsafe('set local role risk_persona')
       assert.equal(await codigo(tx, () => tx`select 1 from risk.jti_aceptado`), '42501')
@@ -141,15 +147,33 @@ describe('registro de jti en la base de Risk OS', () => {
     })
   })
 
-  it('sin legado_risk_app, risk_app sigue registrando con su política propia', async () => {
-    const rolApp = readFileSync(fileURLToPath(new URL('../../deploy/rol-app.sql', import.meta.url)), 'utf8').replace(/^(begin|commit);$/gm, '')
-    await enTransaccionRevertida(sql, async (tx) => {
-      await tx.unsafe(rolApp)
-      await tx.unsafe('drop policy legado_risk_app on risk.jti_aceptado')
-      await tx.unsafe('set local role risk_app')
-      const u = uso()
-      assert.equal(await registrarJti(tx, u), true)
-      assert.equal(await registrarJti(tx, u), false)
+  it('registrar_jti es SECURITY DEFINER con search_path vacío, y sólo risk_oidc la ejecuta', async () => {
+    const [f] = await sql<{ definer: boolean; config: string[] | null; publico: boolean; oidc: boolean; app: boolean; persona: boolean }[]>`
+      select p.prosecdef as definer, p.proconfig as config,
+             has_function_privilege('public', p.oid, 'execute') as publico,
+             has_function_privilege('risk_oidc', p.oid, 'execute') as oidc,
+             has_function_privilege('risk_app', p.oid, 'execute') as app,
+             has_function_privilege('risk_persona', p.oid, 'execute') as persona
+      from pg_proc p where p.oid = 'risk.registrar_jti(text, text, timestamptz)'::regprocedure`
+    assert.deepEqual({ ...f }, { definer: true, config: ['search_path=""'], publico: false, oidc: true, app: false, persona: false })
+  })
+
+  it('con un pool que entra como risk_oidc, como en producción, registra una vez', async () => {
+    await conBaseTemporal('delcampo_risk_jti_oidc_test', async (base) => {
+      const [db] = await base<{ db: string }[]>`select current_database() as db`
+      const url = new URL(testDatabaseUrl())
+      url.pathname = `/${db?.db ?? ''}`
+      url.searchParams.set('role', 'risk_oidc')
+      const oidc = connect(url.href)
+      try {
+        const [quien] = await oidc<{ rol: string }[]>`select current_user as rol`
+        assert.equal(quien?.rol, 'risk_oidc')
+        const u = uso()
+        assert.equal(await registroJtiPostgres(oidc).registrar(u), true)
+        assert.equal(await registroJtiPostgres(oidc).registrar(u), false)
+      } finally {
+        await oidc.end()
+      }
     })
   })
 

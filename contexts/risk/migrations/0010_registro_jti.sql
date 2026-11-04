@@ -17,9 +17,11 @@
 -- venció, cuándo se aceptó), sin la persona ni el token. El volumen es una fila por
 -- llamada; si algún día pesa, purgar lo vencido es una decisión aparte, con su ADR.
 --
--- Quién escribe: la conexión de la app (`risk_app` en la base hosteada, el dueño en local),
--- antes de asumir `risk_persona`, porque el token se verifica antes de la admisión.
--- `risk_persona` no lee ni escribe acá: no tiene grant ni política.
+-- Quién escribe: la conexión del modo `oidc` (`risk_oidc`, migración 0009), antes de asumir
+-- `risk_persona`, porque el token se verifica antes de la admisión. Como las funciones de
+-- admisión de 0009, lo hace por `risk.registrar_jti`, SECURITY DEFINER con search_path vacío
+-- y EXECUTE sólo para `risk_oidc`: esa conexión sigue sin ningún privilegio sobre la tabla y
+-- sin poder leer qué `jti` se aceptaron. `risk_persona` no lee ni escribe acá.
 --
 -- Para quien se conecta hoy sólo agrega una tabla vacía: ninguna ruta acepta tokens todavía.
 
@@ -41,12 +43,24 @@ create trigger solo_insercion before update or delete on risk.jti_aceptado
 create trigger solo_insercion_truncate before truncate on risk.jti_aceptado
   for each statement execute function risk.solo_insercion();
 
--- RLS como toda tabla del esquema (0006). `legado_risk_app` por la regla de 0006; la política
--- propia de inserción es la que tiene que quedar cuando se retire el acceso amplio de
--- `risk_app` del camino `oidc` (pendiente 2 de la misma revisión). Alcanza sola porque el
--- registro usa `on conflict do nothing` sin columnas: con columnas, Postgres exigiría también
--- una política SELECT (`persistence/jti.ts` lo prueba sin `legado_risk_app`). Sin política
--- para `risk_persona`.
+-- RLS como toda tabla del esquema (0006), con `legado_risk_app` por la regla de 0006 (el modo
+-- `legacy` no recibe tokens). Ninguna política para `risk_oidc` ni para `risk_persona`: la
+-- función corre como dueña.
 alter table risk.jti_aceptado enable row level security;
 create policy legado_risk_app on risk.jti_aceptado for all to risk_app using (true) with check (true);
-create policy jti_aceptado_registrar on risk.jti_aceptado for insert to risk_app with check (true);
+
+-- `true` si el `jti` de ese emisor no estaba y quedó registrado; `false` si se reutiliza. Dos
+-- llamadas a la vez con el mismo par: la segunda espera el lock de la clave y después no inserta.
+create function risk.registrar_jti(p_emisor text, p_jti text, p_vence_en timestamptz) returns boolean
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_filas bigint;
+begin
+  insert into risk.jti_aceptado (emisor, jti, vence_en) values (p_emisor, p_jti, p_vence_en)
+  on conflict do nothing;
+  get diagnostics v_filas = row_count;
+  return v_filas = 1;
+end
+$$;
+revoke all on function risk.registrar_jti(text, text, timestamptz) from public;
+grant execute on function risk.registrar_jti(text, text, timestamptz) to risk_oidc;

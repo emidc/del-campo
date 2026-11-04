@@ -358,7 +358,7 @@ const CASOS: Caso[] = [
   ['evento_auditoria_resultado', 'evento_auditoria', { resultado: 'tal vez' }],
   ['evento_auditoria_motivo', 'evento_auditoria', { resultado: 'denied', motivo: 'no tenía permiso' }],
 
-  // Registro de jti del token entre contextos (T-0035, migración 0009).
+  // Registro de jti del token entre contextos (T-0035, migración 0010).
   ['jti_aceptado_pkey', 'jti_aceptado', dosVeces('jti_aceptado')],
   ['jti_aceptado_emisor_formato', 'jti_aceptado', { emisor: 'Broker OS' }],
   ['jti_aceptado_jti_formato', 'jti_aceptado', { jti: '' }],

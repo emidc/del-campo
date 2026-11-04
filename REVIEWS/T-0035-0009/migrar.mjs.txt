@@ -1,0 +1,7 @@
+import postgres from 'postgres'
+import { migrate, down } from '/home/claude/review-0009/contexts/risk/src/persistence/migrations.ts'
+const sql = postgres(process.argv[2], { onnotice: (n) => console.log('NOTICE', n.message) })
+const cmd = process.argv[3]
+const r = cmd === 'down' ? await down(sql) : await migrate(sql)
+console.log(cmd, JSON.stringify(r))
+await sql.end()

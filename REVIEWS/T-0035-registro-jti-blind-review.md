@@ -175,3 +175,17 @@ verificado.
 - **Noted 2, 4, 5 y 6:** sin cambios. CI corre Postgres 17.
 
 Después de las correcciones, `pnpm check` local: 177 y 1463 pruebas, sin fallas.
+
+## Después del merge de #116 (2026-11-04)
+
+#116 llevó a `main` la migración 0009 de Risk OS (`camino_oidc`), con el rol de conexión
+`risk_oidc`, que no tiene privilegios sobre ninguna tabla. Para no chocar, la migración de este
+PR pasa a ser **0010** (`0010_registro_jti.sql`): el reporte de arriba la nombra 0009 porque
+revisó el commit anterior. Y como en el modo `oidc` las llamadas entre contextos corren con
+`risk_oidc`, el registro dejó de insertar en la tabla con la conexión: ahora llama a
+`risk.registrar_jti`, SECURITY DEFINER con search_path vacío y EXECUTE sólo para `risk_oidc`,
+igual que las funciones de admisión de 0009. Sin la política propia de inserción de
+`risk_app` (el modo `legacy` no recibe tokens), `verificar-oidc` acepta y exige esa función, y
+`rol-oidc.sql` le vuelve a sacar EXECUTE a PUBLIC. El Act on 1 queda cerrado de otra forma: la
+función corre como dueña y no depende de ninguna política. `pnpm check` local: 177 y 1479
+pruebas, sin fallas.

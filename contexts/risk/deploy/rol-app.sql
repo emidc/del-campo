@@ -7,9 +7,9 @@
 --
 -- Lo que deja:
 --   - `risk_app` puede entrar y no es superusuario, no crea bases, roles ni esquemas, no salta
---     RLS y no es miembro de ningún rol, salvo `risk_persona` si la migración 0006 está
---     aplicada (T-0035): sin heredar sus privilegios (INHERIT FALSE) y sólo para asumirlo con
---     `set local role` en AUTH_MODE=oidc. `risk_persona` no es dueño de nada y no salta RLS;
+--     RLS y no es miembro de ningún rol. Tampoco de `risk_persona`: desde la migración 0009
+--     (T-0035) el modo `oidc` se conecta con su propio rol, `risk_oidc` (`deploy/rol-oidc.sql`),
+--     y `risk_app`, que ve todo por `legado_risk_app`, queda sólo para `legacy` y la CLI;
 --   - en el esquema `risk` lee e inserta en todas las tablas, salvo el ledger de migraciones, que
 --     sólo lee; no tiene UPDATE, DELETE, TRUNCATE, REFERENCES ni TRIGGER sobre ninguna, y no es
 --     dueño de nada, así que tampoco puede desactivar el trigger de sólo inserción (R-22);
@@ -53,9 +53,8 @@ $$;
 
 -- Ninguna membresía: con NOINHERIT no heredaría privilegios, pero con SET ROLE tomaría los del
 -- rol del que es miembro (por ejemplo, el dueño de las tablas) y podría desactivar el trigger.
--- La única excepción es `risk_persona` (T-0035, migración 0006): el rol restringido con que
--- corren las consultas de una persona en AUTH_MODE=oidc, que no es dueño de nada y está sujeto
--- a RLS. Se vuelve a dar con INHERIT FALSE para que no herede nada aunque alguien lo cambie.
+-- Sin excepciones desde 0009: si una versión anterior de este archivo le dio `risk_persona`,
+-- acá se le saca.
 do $$
 declare g record;
 begin
@@ -63,9 +62,6 @@ begin
            where m.member = (select oid from pg_roles where rolname = 'risk_app') loop
     execute format('revoke %I from risk_app', g.rolname);
   end loop;
-  if exists (select 1 from pg_roles where rolname = 'risk_persona') then
-    grant risk_persona to risk_app with inherit false, set true;
-  end if;
 end
 $$;
 

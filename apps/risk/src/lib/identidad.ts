@@ -28,7 +28,8 @@ export const configEntrada = (env: Env): ConfigEntrada | null => {
   const clienteId = env.RISK_GOOGLE_CLIENT_ID ?? ''
   const clienteSecreto = env.RISK_GOOGLE_CLIENT_SECRET ?? ''
   const secreto = env.RISK_UI_SESSION_SECRET ?? ''
-  if ((env.RISK_DATABASE_URL ?? '') === '') return null
+  // La conexión de `risk_oidc` (0009), no la de `risk_app`: ver `server.ts`.
+  if ((env.RISK_OIDC_DATABASE_URL ?? '') === '') return null
   if (baseUrl === '' || clienteId === '' || clienteSecreto === '' || secreto.length < MIN_LARGO_SECRETO) return null
   let base: URL
   try {

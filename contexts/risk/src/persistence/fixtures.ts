@@ -135,7 +135,7 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
   credencial_externa: () => ({ persona_id: B.otraPersona, proveedor: 'google', sujeto: `sujeto-${String(siguiente++)}`, invitacion_id: siguienteInvitacion }),
   asignacion: () => ({ persona_id: B.persona, organizacion_id: ORG_A, vigente: true }),
   evento_auditoria: () => ({ actor_persona_id: B.persona, origen: 'app', accion: 'riesgo.consultar', tipo_objeto: 'riesgo', id_objeto: B.riesgo, resultado: 'ok' }),
-  // Registro de jti del token entre contextos (T-0035, migración 0009).
+  // Registro de jti del token entre contextos (T-0035, migración 0010).
   jti_aceptado: () => ({ emisor: 'broker-os', jti: `jti-${String(siguiente++)}`, vence_en: '2999-01-01T00:00:00Z' }),
 }
 
