@@ -15,6 +15,7 @@
     "acceso": "node src/application/cli-acceso.ts",
     "ciclos": "node src/application/cli-ciclos.ts",
     "db:verificar": "node src/persistence/cli.ts verificar",
+    "db:verificar-oidc": "node src/persistence/cli.ts verificar-oidc",
     "aceptacion": "node src/acceptance/cli.ts",
     "ensayo": "node src/testing/cli-ensayo.ts"
   },

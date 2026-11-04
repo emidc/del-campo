@@ -16,7 +16,7 @@ import {
   emitirToken, generarParDeClaves, jwksDe, registroJtiEnMemoria, sellarHandshake, type Identidad, type ParDeClaves, type Verificacion,
 } from '@del-campo/identidad'
 import {
-  asignar, cambiarRol, connect, darDeBaja, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
+  asignar, cambiarRol, connect, darDeBaja, registroJtiPostgres, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
   SinPermiso, VERSION_METODOLOGIA, vistaDetalle, vistaLista, pantallaOrdenPrevio, type RolInterno, type Sql, type TransactionSql,
 } from '@del-campo/risk'
 import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
@@ -48,7 +48,7 @@ const OIDC = {
   RISK_GOOGLE_CLIENT_ID: 'cliente-de-prueba.apps.example.test',
   RISK_GOOGLE_CLIENT_SECRET: 'secreto-de-cliente-de-prueba',
   RISK_UI_SESSION_SECRET: SECRET,
-  RISK_DATABASE_URL: 'postgres://no-se-usa',
+  RISK_OIDC_DATABASE_URL: 'postgres://no-se-usa',
 }
 const LEGACY = { RISK_UI_SESSION_SECRET: SECRET, RISK_DATABASE_URL: 'postgres://no-se-usa' }
 
@@ -102,6 +102,8 @@ interface Equipo {
   readonly post: (quien: string, path: string, campos: Record<string, string>) => Promise<{ ok: string | null; error: string | null }>
   readonly pagina: (quien: string) => ReturnType<typeof sesionDePagina>
   readonly ultimoEvento: (accion: string) => Promise<{ actor: string | null; resultado: string; motivo: string | null; idObjeto: string | null } | undefined>
+  /** Corre `f` con la conexión del modo `oidc` (`risk_oidc`, 0009), como en producción. */
+  readonly oidc: <T>(f: () => Promise<T>) => Promise<T>
 }
 
 class Revertir extends Error {}
@@ -116,10 +118,21 @@ const conEquipo = async (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
       await tx`insert into risk.credencial ${tx({ persona_id: LEGADO, password_hash: HASH })}`
 
       const deps = (): Deps => ({ env: OIDC, db: () => tx })
+      // Lo de la app corre como `risk_oidc`, que no lee ninguna tabla; lo de la CLI del owner y las
+      // comprobaciones del test, como el dueño. Así toda la suite prueba que el camino `oidc` no
+      // necesita `legado_risk_app` ni ningún privilegio de la conexión.
+      const oidc = async <T>(f: () => Promise<T>): Promise<T> => {
+        await tx`set local role risk_oidc`
+        try {
+          return await f()
+        } finally {
+          await tx`reset role`
+        }
+      }
       const volverDeGoogle = async (quien: Identidad): Promise<Response> => {
         const handshake = await sellarHandshake({ state: 's', nonce: 'n', codeVerifier: 'v' }, SECRET, PROPOSITO)
         const request = new Request(`${ORIGIN}/api/auth/google/callback?code=c&state=s`, { headers: { cookie: `${COOKIE_HANDSHAKE}=${handshake}` } })
-        return callbackResponse(request, OIDC, { pedir: () => Promise.reject(new Error('no se usa')), canjear: () => Promise.resolve(quien), conexion: () => tx })
+        return oidc(() => callbackResponse(request, OIDC, { pedir: () => Promise.reject(new Error('no se usa')), canjear: () => Promise.resolve(quien), conexion: () => tx }))
       }
       const entrar = async (quien: Identidad): Promise<string> => {
         const response = await volverDeGoogle(quien)
@@ -155,7 +168,7 @@ const conEquipo = async (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
       const ordenPrevioPOST = withSesion<{ org: string }>((r, s, db, c) => ordenPrevioResponse(r, s, db, c.org), deps)
 
       const cabecera = (quien: string, extra: Record<string, string> = {}): Record<string, string> => ({ cookie: `${COOKIE_IDENTIDAD}=${quien}`, ...extra })
-      const get = (quien: string, path: string): Promise<Response> => {
+      const get = (quien: string, path: string): Promise<Response> => oidc(() => {
         const request = new Request(`${ORIGIN}${path}`, { headers: cabecera(quien) })
         if (path === '/api/organizaciones') return organizacionesGET(request, {})
         const det = /^\/api\/r\/(.+)$/.exec(path)
@@ -163,21 +176,23 @@ const conEquipo = async (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
         const m = /^\/api\/o\/([^/]+)\/(lista|plan)$/.exec(path)
         assert.ok(m !== null, path)
         return vistaGET(request, { org: decodeURIComponent(m[1] ?? ''), vista: m[2] as 'lista' | 'plan' })
-      }
+      })
       const post = async (quien: string, path: string, campos: Record<string, string>): Promise<{ ok: string | null; error: string | null }> => {
         const request = new Request(`${ORIGIN}${path}`, { method: 'POST', headers: cabecera(quien, { origin: ORIGIN }), body: new URLSearchParams(campos) })
         const act = /^\/api\/r\/([^/]+)\/actualizar$/.exec(path)
         const previo = /^\/api\/o\/([^/]+)\/orden-previo$/.exec(path)
-        const r = act !== null ? await actualizarPOST(request, { id: act[1] ?? '' }) : await ordenPrevioPOST(request, { org: previo?.[1] ?? '' })
+        const r = await oidc(() => act !== null ? actualizarPOST(request, { id: act[1] ?? '' }) : ordenPrevioPOST(request, { org: previo?.[1] ?? '' }))
         assert.equal(r.status, 303, `${path}: ${String(r.status)}`)
         const u = new URL(r.headers.get('location') ?? '')
         return { ok: u.searchParams.get('ok'), error: u.searchParams.get('error') }
       }
-      const pagina = (quien: string): ReturnType<typeof sesionDePagina> =>
-        sesionDePagina({
+      const pagina = async (quien: string): ReturnType<typeof sesionDePagina> => {
+        const p = await oidc(() => sesionDePagina({
           env: OIDC, cookie: (n) => (n === COOKIE_IDENTIDAD ? quien : undefined), db: () => tx,
           alLogin: () => { throw new Error('al login') },
-        })
+        }))
+        return p === null ? null : { ...p, datos: (lectura) => oidc(() => p.datos(lectura)) }
+      }
       const ultimoEvento: Equipo['ultimoEvento'] = async (accion) => {
         const [e] = await tx<{ actor: string | null; resultado: string; motivo: string | null; idObjeto: string | null }[]>`
           select actor_persona_id as actor, resultado, motivo, id_objeto as "idObjeto"
@@ -185,7 +200,7 @@ const conEquipo = async (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
         return e
       }
 
-      await cuerpo({ tx, ids: { admin, operadora, revisor, legado: LEGADO }, cookies, volverDeGoogle, get, post, pagina, ultimoEvento })
+      await cuerpo({ tx, ids: { admin, operadora, revisor, legado: LEGADO }, cookies, volverDeGoogle, get, post, pagina, ultimoEvento, oidc })
       throw new Revertir()
     })
   } catch (e) {
@@ -418,7 +433,7 @@ describe('token entre contextos: verificado en Risk OS y con la admisión de Ris
   const verificacion = (claves: ParDeClaves[] = [vieja], registro = registroJtiEnMemoria()): Verificacion =>
     ({ jwks: jwksDe(claves.map((c) => c.publica)), emisor: EMISOR, audiencia: AUDIENCIA_RISK, registroJti: registro, ahora: AHORA })
   const orgs = (e: Equipo, t: string, v: Verificacion = verificacion()) =>
-    admitirLlamada(e.tx, t, v, async (tx, s) => (await organizaciones(tx, s)).map((o) => o.organizacionId))
+    e.oidc(() => admitirLlamada(e.tx, t, v, async (tx, s) => (await organizaciones(tx, s)).map((o) => o.organizacionId)))
 
   it('un token válido corre como la persona, con su rol y su alcance en Risk OS', async () => {
     await conEquipo(async (e) => {
@@ -426,7 +441,8 @@ describe('token entre contextos: verificado en Risk OS y con la admisión de Ris
       const admin = await orgs(e, await token('admin'))
       assert.ok(admin.ok && admin.valor.length === 8)
       // Las reglas de Risk OS siguen valiendo: el Revisor sin orden previo no ve resultados.
-      const r = await admitirLlamada(e.tx, await token('revisor'), verificacion(), (tx, s) => vistaLista(tx, s, VERSION_METODOLOGIA, ORG))
+      const t = await token('revisor')
+      const r = await e.oidc(() => admitirLlamada(e.tx, t, verificacion(), (tx, s) => vistaLista(tx, s, VERSION_METODOLOGIA, ORG)))
       assert.ok(!r.ok && 'sinPermiso' in r && r.sinPermiso.message === SIN_ORDEN_PREVIO)
     })
   })
@@ -448,6 +464,40 @@ describe('token entre contextos: verificado en Risk OS y con la admisión de Ris
       assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
       // Un token con otra audiencia no se puede verificar acá como si fuera de Risk OS.
       await assert.rejects(admitirLlamada(e.tx, t, { ...v, audiencia: 'communication-os' }, () => Promise.resolve(null)))
+    })
+  })
+
+  it('con el registro de la base: dos instancias no aceptan el mismo token, y vencido es VENCIDO', async () => {
+    // Dos instancias de Risk OS: cada una con su pool de `risk_oidc` (como `RISK_OIDC_DATABASE_URL`)
+    // y su registro, sobre la misma base. El registro confirma por su cuenta (no es la transacción
+    // del equipo): deja filas con jti aleatorios en delcampo_risk_test, que es de sólo inserción y
+    // no las ve ninguna otra prueba.
+    const poolOidc = (): Sql => {
+      const url = new URL(testUrl())
+      url.searchParams.set('role', 'risk_oidc')
+      return connect(url.href)
+    }
+    const unaInstancia = poolOidc()
+    const otraInstancia = poolOidc()
+    try {
+      await conEquipo(async (e) => {
+        const instancia = (pool: Sql, ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(pool)), ahora })
+        const t = await token('operadora')
+        assert.deepEqual(await orgs(e, t, instancia(unaInstancia)), { ok: true, valor: [ORG] })
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 30)), { ok: false, token: 'REUTILIZADO' })
+        assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
+        // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 66)), { ok: false, token: 'VENCIDO' })
+      })
+    } finally {
+      await unaInstancia.end()
+      await otraInstancia.end()
+    }
+  })
+
+  it('una llamada real no se admite sin registro de jti', async () => {
+    await conEquipo(async (e) => {
+      await assert.rejects(orgs(e, await token('operadora'), { ...verificacion(), registroJti: null }), /registro de jti/)
     })
   })
 

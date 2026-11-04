@@ -3,9 +3,10 @@ import { before, describe, it } from 'node:test'
 
 import { SignJWT, importJWK } from 'jose'
 
-import type { Emision, ParDeClaves, Verificacion } from './token.ts'
+import type { Emision, ParDeClaves, UsoJti, Verificacion } from './token.ts'
 import {
   DURACION_MAXIMA_SEGUNDOS,
+  JTI_LARGO_MAXIMO,
   clavePublica,
   emitirToken,
   generarParDeClaves,
@@ -118,6 +119,42 @@ describe('token entre contextos', () => {
       .setIssuer('broker').setAudience('risk').setSubject('sub-ana').setIssuedAt(AHORA).setExpirationTime(AHORA + 60).setJti('j')
       .sign(clave)
     assert.equal(await motivo(otroProveedor), 'CLAIMS')
+    // Un jti más largo de lo que guardan los registros de los contextos se rechaza antes de registrarlo.
+    const firmar = (jti: string): Promise<string> => base().setSubject('sub-ana').setJti(jti).sign(clave)
+    assert.equal(await motivo(await firmar('j'.repeat(JTI_LARGO_MAXIMO))), 'OK')
+    assert.equal(await motivo(await firmar('j'.repeat(JTI_LARGO_MAXIMO + 1))), 'CLAIMS')
+    // Y uno con caracteres que la base no guarda tal cual (NUL, surrogates sueltos, espacios).
+    for (const raro of ['j\u0000k', 'j\ud800', 'j k', 'jñ']) assert.equal(await motivo(await firmar(raro)), 'CLAIMS', JSON.stringify(raro))
+  })
+
+  it('reutilización: el registro recibe el emisor, el jti y el vencimiento del token ya validado', async () => {
+    const usos: UsoJti[] = []
+    const token = await emitirToken(vieja.privada, emision())
+    const r = await verificarToken(token, verificacion({ registroJti: { registrar: (uso) => (usos.push(uso), true) } }))
+    assert.ok(r.ok)
+    assert.deepEqual(usos, [{ emisor: 'broker', jti: r.jti, venceEn: AHORA + 60, ahora: AHORA }])
+  })
+
+  it('un emisor fuera del formato de contexto es un error de configuración, al emitir y al verificar', async () => {
+    await assert.rejects(emitirToken(vieja.privada, emision({ emisor: 'https://broker.example' })), /emisor mal configurado/)
+    const token = await emitirToken(vieja.privada, emision())
+    await assert.rejects(verificarToken(token, verificacion({ emisor: 'https://broker.example' })), /emisor mal configurado/)
+  })
+
+  it('reutilización: el registro en memoria recuerda el jti mientras dura la tolerancia de reloj', () => {
+    const registro = registroJtiEnMemoria()
+    const uso: UsoJti = { emisor: 'broker', jti: 'j', venceEn: AHORA + 60, ahora: AHORA }
+    assert.equal(registro.registrar(uso), true)
+    assert.equal(registro.registrar({ ...uso, jti: 'otro', ahora: AHORA + 62 }), true)
+    assert.equal(registro.registrar({ ...uso, ahora: AHORA + 62 }), false)
+  })
+
+  it('reutilización: el jti es único por emisor, no entre emisores', () => {
+    const registro = registroJtiEnMemoria()
+    const uso: UsoJti = { emisor: 'broker', jti: 'j', venceEn: AHORA + 60, ahora: AHORA }
+    assert.equal(registro.registrar(uso), true)
+    assert.equal(registro.registrar(uso), false)
+    assert.equal(registro.registrar({ ...uso, emisor: 'risk' }), true)
   })
 
   it('reutilización: el mismo token se acepta una sola vez', async () => {

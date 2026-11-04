@@ -71,11 +71,13 @@ export {
   type AccionRisk, type RolInterno,
 } from '../domain/permisos.ts'
 export {
-  afirmarRestringida, auditar, conPrincipal, ingresar, ROL_RESTRINGIDO,
+  afirmarRestringida, auditar, conPrincipal, ingresar, ROL_CONEXION_OIDC, ROL_RESTRINGIDO,
   type CredencialEncontrada, type DecisionLogin, type EventoDeAuditoria, type IdentidadDeLogin, type InvitacionEncontrada,
   type MotivoDenegado, type PrincipalRisk, type ResultadoPrincipal,
 } from '../persistence/identidad.ts'
 export { asignar, cambiarRol, darDeBaja, invitar, type Invitacion, type RechazoAdmin, type ResultadoAdmin } from './accesos.ts'
+// T-0035: el registro de `jti` del token entre contextos, que la app pasa a `verificarToken`.
+export { registroJtiPostgres, type RegistroJtiPostgres, type UsoJti } from '../persistence/jti.ts'
 // Operación de la base y carga de lotes: los usa la app en sus tests de integración y T-0032.
 export { migrate } from '../persistence/migrations.ts'
 export { importarLote, leerArchivosDeLote, leerContrato } from './importar.ts'

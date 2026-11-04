@@ -82,6 +82,7 @@ export interface Emision {
 export const emitirToken = async (clavePrivada: JWK, emision: Emision): Promise<string> => {
   if (typeof clavePrivada.kid !== 'string' || clavePrivada.kid === '') throw new Error('la clave de firma necesita kid')
   if (clavePrivada.d === undefined) throw new Error('para firmar hace falta la clave privada')
+  if (!FORMATO_CONTEXTO.test(emision.emisor)) throw new Error(`emisor mal configurado: ${emision.emisor}`)
   const ahora = emision.ahora ?? Math.floor(Date.now() / 1000)
   const duracion = emision.duracionSegundos ?? DURACION_TOKEN_SEGUNDOS
   return new SignJWT({ prv: emision.proveedor })
@@ -95,22 +96,50 @@ export const emitirToken = async (clavePrivada: JWK, emision: Emision): Promise<
     .sign(await importJWK(clavePrivada, ALGORITMO))
 }
 
+/** Un `jti` más largo que esto se rechaza: los registros de cada contexto guardan hasta acá. */
+export const JTI_LARGO_MAXIMO = 128
+/** Un `jti` es ASCII visible: sin NUL ni caracteres que la base no guarde tal cual. */
+const FORMATO_JTI = new RegExp(`^[\\x21-\\x7e]{1,${String(JTI_LARGO_MAXIMO)}}$`)
+
 /**
- * Recuerda los `jti` ya aceptados hasta que vencen. `registrar` devuelve `false` si el
- * `jti` ya estaba: el token se está reutilizando. Cada contexto lo implementa en su base
- * cuando tenga llamadas reales; acá hay una implementación en memoria para pruebas.
+ * Cómo se llama un contexto en `iss` y `aud` (`broker-os`, `risk-os`, `communication-os`). Es
+ * el mismo formato que exige la columna `emisor` de los registros de `jti`: un emisor que no
+ * lo cumple es un error de configuración y se rechaza al emitir y al verificar, no en la base.
+ */
+export const FORMATO_CONTEXTO = /^[a-z][a-z0-9-]{1,40}$/
+
+/** Un token que el verificador ya validó entero y que falta registrar. */
+export interface UsoJti {
+  /** El contexto que lo firmó (`iss`). El `jti` es único por emisor. */
+  readonly emisor: string
+  readonly jti: string
+  /** El `exp` del token, en segundos desde la época. */
+  readonly venceEn: number
+  /** El instante del verificador, en segundos desde la época. */
+  readonly ahora: number
+}
+
+/**
+ * Recuerda los `jti` ya aceptados, por emisor. `registrar` devuelve `false` si el `jti` ya
+ * estaba: el token se está reutilizando. Tiene que ser atómico y compartido por todas las
+ * instancias del destino: las llamadas reales usan el de la base de cada contexto
+ * (`registroJtiPostgres` en Risk OS y en Communication OS). El de memoria es sólo para
+ * pruebas: no ve lo que aceptó otra instancia.
  */
 export interface RegistroJti {
-  registrar(jti: string, venceEn: number, ahora: number): boolean | Promise<boolean>
+  registrar(uso: UsoJti): boolean | Promise<boolean>
 }
 
 export const registroJtiEnMemoria = (): RegistroJti => {
   const vistos = new Map<string, number>()
   return {
-    registrar(jti, venceEn, ahora) {
-      for (const [visto, vence] of vistos) if (vence < ahora) vistos.delete(visto)
-      if (vistos.has(jti)) return false
-      vistos.set(jti, venceEn)
+    registrar({ emisor, jti, venceEn, ahora }) {
+      // Se olvida recién pasada la tolerancia: hasta `exp + TOLERANCIA_SEGUNDOS` el
+      // verificador todavía acepta el token.
+      for (const [visto, vence] of vistos) if (vence + TOLERANCIA_SEGUNDOS < ahora) vistos.delete(visto)
+      const clave = JSON.stringify([emisor, jti])
+      if (vistos.has(clave)) return false
+      vistos.set(clave, venceEn)
       return true
     },
   }
@@ -159,11 +188,13 @@ const motivoDeError = (error: unknown): RechazoToken => {
 }
 
 /**
- * Verifica un token entre contextos. Nunca lanza por un token malo: devuelve el motivo.
+ * Verifica un token entre contextos. Nunca lanza por un token malo: devuelve el motivo. Lanza
+ * sólo si la verificación misma está mal configurada (un emisor fuera de `FORMATO_CONTEXTO`).
  * El `jti` se registra al final, sólo si todo lo demás es válido, para que un token
  * falso no pueda quemar el `jti` de uno verdadero.
  */
 export const verificarToken = async (token: string, verificacion: Verificacion): Promise<ResultadoToken> => {
+  if (!FORMATO_CONTEXTO.test(verificacion.emisor)) throw new Error(`emisor mal configurado: ${verificacion.emisor}`)
   const ahora = verificacion.ahora ?? Math.floor(Date.now() / 1000)
 
   let cabecera: ReturnType<typeof decodeProtectedHeader>
@@ -195,11 +226,15 @@ export const verificarToken = async (token: string, verificacion: Verificacion):
   if (typeof sub !== 'string' || sub === '' || typeof jti !== 'string' || jti === '' || !esProveedor(prv)) {
     return rechazo('CLAIMS')
   }
+  if (!FORMATO_JTI.test(jti)) {
+    return rechazo('CLAIMS')
+  }
   if (typeof iat !== 'number' || typeof exp !== 'number') return rechazo('CLAIMS')
   if (iat > ahora + TOLERANCIA_SEGUNDOS) return rechazo('DURACION')
   if (exp - iat > DURACION_MAXIMA_SEGUNDOS) return rechazo('DURACION')
 
-  if (verificacion.registroJti !== null && !(await verificacion.registroJti.registrar(jti, exp, ahora))) {
+  const uso: UsoJti = { emisor: verificacion.emisor, jti, venceEn: exp, ahora }
+  if (verificacion.registroJti !== null && !(await verificacion.registroJti.registrar(uso))) {
     return rechazo('REUTILIZADO')
   }
   return { ok: true, proveedor: prv, sujeto: sub, jti }

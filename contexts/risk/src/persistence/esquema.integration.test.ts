@@ -357,6 +357,11 @@ const CASOS: Caso[] = [
   ['evento_auditoria_id_objeto', 'evento_auditoria', { id_objeto: '' }],
   ['evento_auditoria_resultado', 'evento_auditoria', { resultado: 'tal vez' }],
   ['evento_auditoria_motivo', 'evento_auditoria', { resultado: 'denied', motivo: 'no tenía permiso' }],
+
+  // Registro de jti del token entre contextos (T-0035, migración 0010).
+  ['jti_aceptado_pkey', 'jti_aceptado', dosVeces('jti_aceptado')],
+  ['jti_aceptado_emisor_formato', 'jti_aceptado', { emisor: 'Broker OS' }],
+  ['jti_aceptado_jti_formato', 'jti_aceptado', { jti: '' }],
 ]
 
 const TABLAS: Tabla[] = [
@@ -364,6 +369,7 @@ const TABLAS: Tabla[] = [
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
   'usuario', 'credencial', 'login_fallido', 'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
+  'jti_aceptado',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */
@@ -501,8 +507,8 @@ const cubrirOrdenesPrevios = async (tx: TransactionSql): Promise<void> => {
 }
 
 describe('sólo inserción (R-22, R-23)', () => {
-  it('ninguna tabla admite UPDATE, DELETE ni TRUNCATE', async () => {
-    for (const t of TABLAS) {
+  it('ninguna tabla admite UPDATE, DELETE ni TRUNCATE, salvo el registro de jti, que se purga', async () => {
+    for (const t of TABLAS.filter((x) => x !== 'jti_aceptado')) {
       const columna = Object.keys(fila(t))[0] ?? ''
       for (const sentencia of [`update risk.${t} set ${columna} = ${columna}`, `delete from risk.${t}`, `truncate risk.${t} cascade`]) {
         await enTransaccionRevertida(sql, async (tx) => {
@@ -528,7 +534,7 @@ describe('sólo inserción (R-22, R-23)', () => {
     })
   })
 
-  it('todas las tablas del esquema tienen los dos triggers', async () => {
+  it('todas las tablas del esquema tienen los dos triggers, salvo el registro de jti, que se purga', async () => {
     const filas = await sql<{ tabla: string; n: number }[]>`
       select k.relname as tabla, count(t.tgname)::int as n
       from pg_class k join pg_namespace s on s.oid = k.relnamespace
@@ -536,7 +542,9 @@ describe('sólo inserción (R-22, R-23)', () => {
       where s.nspname = 'risk' and k.relkind = 'r' and k.relname <> 'schema_migrations'
       group by k.relname order by k.relname`
     assert.deepEqual(filas.map((f) => f.tabla), [...TABLAS].sort())
-    assert.ok(filas.every((f) => f.n === 2), JSON.stringify(filas))
+    // `jti_aceptado` (0010) es estado de seguridad efímero, no historia: `risk.registrar_jti` purga
+    // lo vencido, por decisión del owner del 2026-11-04.
+    assert.ok(filas.every((f) => f.n === (f.tabla === 'jti_aceptado' ? 0 : 2)), JSON.stringify(filas))
   })
 })
 

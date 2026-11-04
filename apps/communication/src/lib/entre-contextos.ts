@@ -11,9 +11,11 @@
 //    token prueba quién es la persona, nunca qué puede: una baja en Communication OS corta
 //    la llamada aunque el token sea válido.
 //
-// Todavía no hay llamadas reales: ningún endpoint usa esto (lo exige `deny.test.ts`) y no
-// se publica ninguno de prueba. Cuando exista la primera, el JWKS del emisor y el registro
-// de `jti` en la base se configuran con ella.
+// Todavía no hay llamadas reales: ningún endpoint usa esto (lo exige `deny.test.ts`) y no se
+// publica ninguno de prueba. Cuando exista la primera, se configura el JWKS del emisor. El
+// registro de `jti` ya es obligatorio: `admitirLlamada` no acepta `registroJti: null`, y el
+// que corresponde es `registroJtiPostgres` de @del-campo/communication, construido con la
+// conexión del pool para que sea el mismo en todas las instancias de Communication OS.
 
 import { verificarToken, type RechazoToken, type Verificacion } from '@del-campo/identidad'
 import { auditar, type AccionCommunication, type MotivoDenegado, type Sql } from '@del-campo/communication'
@@ -41,6 +43,7 @@ export const admitirLlamada = async <T>(
   accion: AccionCommunication,
   op: Operacion<T>,
 ): Promise<Llamada<T>> => {
+  if (verificacion.registroJti === null) throw new Error('una llamada real necesita el registro de jti compartido')
   if (verificacion.audiencia !== AUDIENCIA_COMMUNICATION) {
     throw new Error(`la audiencia de Communication OS es ${AUDIENCIA_COMMUNICATION}`)
   }

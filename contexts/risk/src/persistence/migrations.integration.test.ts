@@ -12,11 +12,12 @@ const TABLES = [
   'accion', 'accion_estado', 'cierre_revision', 'credencial', 'evaluacion', 'evento_poliza', 'lote_importacion', 'miembro_escenario', 'novedad',
   'orden_previo', 'orden_previo_item', 'persona', 'registro_acceso', 'reordenamiento', 'reordenamiento_vigente',
   'revision_humana', 'revision_pendiente', 'riesgo', 'transferencia', 'usuario', 'login_fallido',
-  'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
+  'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria', 'jti_aceptado',
 ].sort()
 const FILES = [
   '0001_risk_schema.sql', '0002_lote_importacion.sql', '0003_credencial.sql', '0004_actualizacion.sql', '0005_login_fallido.sql',
-  '0006_identidad_y_autorizacion.sql', '0007_material_ciego_y_personas.sql', '0008_sql_directo.sql',
+  '0006_identidad_y_autorizacion.sql', '0007_material_ciego_y_personas.sql', '0008_sql_directo.sql', '0009_camino_oidc.sql',
+  '0010_registro_jti.sql',
 ]
 
 let sql: Sql

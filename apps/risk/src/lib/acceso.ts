@@ -37,10 +37,15 @@ export const auditarSinPermiso = (db: Db, personaId: string, e: SinPermiso): Pro
     actor: personaId, origen: 'app', accion: e.accion, tipoObjeto: null, idObjeto: null, resultado: 'denied', motivo: motivoSinPermiso(e),
   })
 
+/** Una persona que la base no admite: queda el rechazo, sin actor ni objeto. */
+const auditarNegativa = (conexion: Db, motivo: MotivoDenegado): Promise<void> =>
+  auditar(conexion, { actor: null, origen: 'app', accion: 'acceso.consultar', tipoObjeto: null, idObjeto: null, resultado: 'denied', motivo })
+
 /**
  * Corre `accion` como la persona de `identidad`. Un `SinPermiso` que sale de `accion` revierte
- * su transacción entera y se audita aparte, con la conexión de la app, a nombre de quien lo
- * intentó. Una negativa de la base también se audita, sin actor.
+ * su transacción entera y se audita aparte, en otra transacción restringida de quien lo
+ * intentó: la conexión de `oidc` sólo audita rechazos sin actor (0009). Una negativa de la base
+ * también se audita, sin actor.
  */
 export const correrComo = async <T>(
   conexion: Db,
@@ -55,13 +60,14 @@ export const correrComo = async <T>(
       return accion(tx, sesionDe(principal))
     })
     if (r.ok) return r
-    await auditar(conexion, {
-      actor: null, origen: 'app', accion: 'acceso.consultar', tipoObjeto: null, idObjeto: null, resultado: 'denied', motivo: r.motivo,
-    })
+    await auditarNegativa(conexion, r.motivo)
     return { ok: false, denegado: r.motivo }
   } catch (e) {
     if (!(e instanceof SinPermiso) || quien.id === null) throw e
-    await auditarSinPermiso(conexion, quien.id, e)
+    const personaId = quien.id
+    const auditado = await conPrincipal(conexion, identidad, (tx) => auditarSinPermiso(tx, personaId, e))
+    // Dada de baja entre las dos transacciones: queda el rechazo, sin actor.
+    if (!auditado.ok) await auditarNegativa(conexion, auditado.motivo)
     return { ok: false, sinPermiso: e }
   }
 }

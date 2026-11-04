@@ -34,6 +34,8 @@ export {
   type Rol,
 } from '../persistence/acceso.ts'
 export { cambiarRol, darDeBaja, invitar, type ResultadoAdmin } from './acceso.ts'
+// T-0035: el registro de `jti` del token entre contextos, que la app pasa a `verificarToken`.
+export { registroJtiPostgres, type RegistroJtiPostgres, type UsoJti } from '../persistence/jti.ts'
 export { listThread, type OutboundMessage, type ThreadMessage } from '../persistence/store.ts'
 export {
   conversationList,
