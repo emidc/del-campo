@@ -64,6 +64,18 @@ export class SinPermiso extends Error {
   }
 }
 
+/** Una persona que la base no admite: queda el rechazo, sin actor ni objeto. */
+const auditarNegativa = (conexion: Conexion, motivo: MotivoDenegado): Promise<void> =>
+  auditar(conexion, {
+    actor: null,
+    origen: 'app',
+    accion: 'acceso.consultar',
+    tipoObjeto: null,
+    idObjeto: null,
+    resultado: 'denied',
+    motivo,
+  })
+
 /** `legacy`: la conexión tal cual. La conexión se pide recién al usarla. */
 export const datosLegacy =
   (conexion: () => Sql): Datos =>
@@ -95,15 +107,7 @@ export const datosOidc =
       },
     )
     if (!resultado.ok) {
-      await auditar(sql, {
-        actor: null,
-        origen: 'app',
-        accion: 'acceso.consultar',
-        tipoObjeto: null,
-        idObjeto: null,
-        resultado: 'denied',
-        motivo: resultado.motivo,
-      })
+      await auditarNegativa(sql, resultado.motivo)
       throw new AccesoDenegado(resultado.motivo)
     }
     if (!resultado.valor.permitido) throw new SinPermiso(accion)
@@ -114,10 +118,19 @@ export const datosOidc =
  * La admisión al volver de Google: credencial ya vinculada o invitación vigente para ese
  * email verificado (D-0072, D-0077). Sólo si admite se emite la cookie, que lleva la
  * identidad y no permisos: cada request vuelve a preguntarle a la base.
+ *
+ * `ingresar` mira la credencial y el estado, no el rol: una persona activa y sin rol pasaría
+ * y recibiría una sesión que no lee nada, y esa sesión la distinguiría hacia afuera de una
+ * cuenta no invitada. Por eso, antes de admitir, la misma pregunta que hace cada request; si
+ * la base no admite, queda auditado como en cualquier request (`acceso.consultar`).
  */
 export const admitirLogin = async (conexion: Sql, identidad: Identidad, ahora: number = Date.now()): Promise<boolean> => {
   const decision = await ingresar(conexion, identidad, (credencial, invitacion) =>
     decidirLogin(identidad, credencial, invitacion, ahora),
   )
-  return decision.tipo !== 'RECHAZA'
+  if (decision.tipo === 'RECHAZA') return false
+  const resultado = await conPrincipal(conexion, identidad, () => Promise.resolve())
+  if (resultado.ok) return true
+  await auditarNegativa(conexion, resultado.motivo)
+  return false
 }
