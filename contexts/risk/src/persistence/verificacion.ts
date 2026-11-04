@@ -17,8 +17,8 @@ export interface Verificacion {
   /** Tablas de `risk` de las que el rol es dueño, o miembro del dueño: puede desactivar los triggers. */
   readonly duenoDe: number
   /**
-   * Roles de los que es miembro, aun sin heredar: con `SET ROLE` tendría sus privilegios. No
-   * cuenta `risk_persona` (T-0035) si es seguro asumirlo: ver `restringidoInseguro`.
+   * Roles de los que es miembro, aun sin heredar: con `SET ROLE` tendría sus privilegios. Desde
+   * 0009 tampoco `risk_persona`: lo asume sólo `risk_oidc`, la conexión del modo `oidc`.
    */
   readonly miembroDe: readonly string[]
   /**
@@ -64,7 +64,7 @@ export const verificar = async (db: Db, dir = MIGRATIONS_DIR): Promise<Verificac
   // 'member' y no 'usage': un rol NOINHERIT no hereda los privilegios, pero con SET ROLE los toma.
   const miembro = await db<{ rol: string }[]>`
     select rolname as rol from pg_roles
-    where rolname <> current_user and rolname <> ${ROL_RESTRINGIDO} and pg_has_role(current_user, oid, 'member') order by rolname`
+    where rolname <> current_user and pg_has_role(current_user, oid, 'member') order by rolname`
   const restringido = await db<{ problema: string }[]>`
     select unnest(array_remove(array[
       case when r.rolsuper or r.rolbypassrls then 'salta RLS' end,

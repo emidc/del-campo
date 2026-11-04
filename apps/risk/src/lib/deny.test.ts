@@ -26,6 +26,7 @@ import { GET as detalleGET } from '../app/api/r/[id]/route.ts'
 import { guardRequest } from './guard.ts'
 import { COOKIE_IDENTIDAD } from './identidad.ts'
 import { modoAcceso } from './modo.ts'
+import { variableDeConexion } from './server.ts'
 import { issueSession, SESSION_COOKIE, SESSION_TTL_SECONDS, verifySession } from './sesion.ts'
 
 const ORIGIN = 'http://localhost:3200'
@@ -34,11 +35,11 @@ const OTRO = 'otro-secreto-de-sesion-de-prueba-0123456789'
 const PERSONA = 'PER-01M50T00000000000000000002'
 const ORG = 'ORG-01M3QSRT003GPNZ7ZJSV8AHDAR'
 const RIESGO = 'RSK-01M3QSRT00DSK3VYVBFPTPJXM6'
-const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL', 'AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const
+const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL', 'RISK_OIDC_DATABASE_URL', 'AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const
 const saved: Partial<Record<(typeof VARS)[number], string | undefined>> = {}
 
 const configure = (): void => {
-  for (const v of ['AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const) Reflect.deleteProperty(process.env, v)
+  for (const v of ['AUTH_MODE', 'RISK_OIDC_DATABASE_URL', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const) Reflect.deleteProperty(process.env, v)
   process.env.RISK_UI_SESSION_SECRET = SECRET
   // Una base que no existe: si un handler llegara a consultarla, el test fallaría.
   process.env.RISK_DATABASE_URL = 'postgres://localhost:1/no_existe_test'
@@ -238,6 +239,8 @@ describe('AUTH_MODE (T-0035)', () => {
     process.env.RISK_BASE_URL = ORIGIN
     process.env.RISK_GOOGLE_CLIENT_ID = 'cliente-de-prueba.apps.example.test'
     process.env.RISK_GOOGLE_CLIENT_SECRET = 'secreto-de-cliente-de-prueba'
+    // La conexión de `risk_oidc` (0009), también una base que no existe.
+    process.env.RISK_OIDC_DATABASE_URL = 'postgres://localhost:1/no_existe_oidc_test'
   }
 
   it('sin valor es legacy; un valor desconocido falla en vez de elegir un modo', () => {
@@ -278,6 +281,21 @@ describe('AUTH_MODE (T-0035)', () => {
     try {
       for (const e of ENDPOINTS) assert.equal((await e.call({})).status, 503, e.name)
       assert.equal((await googleStartGET()).status, 503)
+    } finally {
+      configure()
+    }
+  })
+
+  it('en oidc la conexión es la de risk_oidc: con sólo la de risk_app (RISK_DATABASE_URL), todo 503 (0009)', async () => {
+    oidc()
+    Reflect.deleteProperty(process.env, 'RISK_OIDC_DATABASE_URL')
+    try {
+      assert.ok((process.env.RISK_DATABASE_URL ?? '') !== '')
+      for (const e of ENDPOINTS) assert.equal((await e.call({})).status, 503, e.name)
+      assert.equal((await googleStartGET()).status, 503)
+      assert.equal(variableDeConexion({ AUTH_MODE: 'oidc' }), 'RISK_OIDC_DATABASE_URL')
+      assert.equal(variableDeConexion({}), 'RISK_DATABASE_URL')
+      assert.equal(variableDeConexion({ AUTH_MODE: 'legacy' }), 'RISK_DATABASE_URL')
     } finally {
       configure()
     }

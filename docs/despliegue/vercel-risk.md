@@ -80,8 +80,10 @@ sin leer otros esquemas (D-0063). Lo prueba `rol-app.integration.test.ts`.
 
 Desde la 0006 (T-0035) toda tabla de `risk` tiene RLS. `risk_app` pasa por la política
 `legado_risk_app`, que le deja ver y escribir lo mismo que antes: con `AUTH_MODE=legacy` nada
-cambia. `rol-app.sql` además lo hace miembro de `risk_persona` con `inherit false`, para que
-en `oidc` cada request pueda asumir ese rol, sujeto a RLS, con la persona declarada.
+cambia. Desde la 0009, `risk_app` no es miembro de ningún rol: el modo `oidc` se conecta con
+`risk_oidc` (`deploy/rol-oidc.sql`), que no lee ninguna tabla y en cada request asume
+`risk_persona`, sujeto a RLS, con la persona declarada. Se configura al preparar la fase 4,
+con el [procedimiento de retiro](../migration/T-0035-retiro-legado-risk.md).
 
 **Reversa.** En local, `pnpm --filter @del-campo/risk run db:down` revierte una migración por
 vez (probado en CI). En la base hosteada, `db:down --hosteada --borra-datos` existe pero **no es
@@ -106,7 +108,8 @@ Variables, **sólo en Production** (la lista canónica está en el
 | --- | --- |
 | `RISK_DATABASE_URL` | Transaction pooler con el usuario `risk_app`. La app exige TLS con toda base que no está en `localhost`; se puede agregar `?sslmode=require` igual. |
 | `RISK_UI_SESSION_SECRET` | 32 caracteres o más al azar (`openssl rand -base64 36`). Cambiarlo cierra todas las sesiones. |
-| `AUTH_MODE` | No configurarla, o `legacy`, hasta la fase 4 del plan de T-0035. Con `oidc` hacen falta además `RISK_BASE_URL`, `RISK_GOOGLE_CLIENT_ID` y `RISK_GOOGLE_CLIENT_SECRET`, la migración 0006 aplicada y `rol-app.sql` vuelto a correr; la contraseña deja de entrar. |
+| `AUTH_MODE` | No configurarla, o `legacy`, hasta la fase 4 del plan de T-0035. Con `oidc` hacen falta además `RISK_OIDC_DATABASE_URL`, `RISK_BASE_URL`, `RISK_GOOGLE_CLIENT_ID` y `RISK_GOOGLE_CLIENT_SECRET`, las migraciones 0006 a 0009 aplicadas y `rol-app.sql` y `rol-oidc.sql` vueltos a correr; la contraseña deja de entrar. |
+| `RISK_OIDC_DATABASE_URL` | Sólo desde la fase 4: Transaction pooler con el usuario `risk_oidc`. En `oidc` la app usa ésta y nunca `RISK_DATABASE_URL`, que queda para volver a `legacy` ([procedimiento](../migration/T-0035-retiro-legado-risk.md)). |
 
 Ninguna con prefijo `NEXT_PUBLIC_`. **Las previews nunca ven la base real.** Preview y
 Development quedan sin variables: los endpoints responden 503 y no se puede entrar. A11 (RO01
@@ -231,11 +234,13 @@ repositorio, a Drive compartido ni a un mensaje.
 ```bash
 pg_restore --dbname "$RISK_HOSTED_DATABASE_URL" --no-owner --no-privileges --exit-on-error /ruta/privada/risk-….dump
 psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 -f contexts/risk/deploy/rol-app.sql
+psql "$RISK_HOSTED_DATABASE_URL" -v ON_ERROR_STOP=1 -f contexts/risk/deploy/rol-oidc.sql    # si la 0009 está aplicada
 pnpm --filter @del-campo/risk run db:verificar --hosteada     # con risk_app
+pnpm --filter @del-campo/risk run db:verificar-oidc --hosteada     # con risk_oidc, si la app está en oidc
 ```
 
-`--no-privileges`: en un proyecto nuevo `risk_app` todavía no existe y sus permisos los vuelve a
-dar `rol-app.sql`, después.
+`--no-privileges`: en un proyecto nuevo `risk_app` y `risk_oidc` todavía no existen y sus
+permisos los vuelven a dar `rol-app.sql` y `rol-oidc.sql`, después.
 
 **Pausa por inactividad.** El plan Free pausa el proyecto tras una semana sin actividad: la
 app responde con error y nadie entra. Se reactiva desde el panel de Supabase (*Restore

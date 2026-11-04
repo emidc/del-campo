@@ -14,7 +14,10 @@ import { fileURLToPath } from 'node:url'
 import { VERSION_METODOLOGIA as V } from '../domain/modelo.ts'
 import { ACCIONES, puede, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO, type AccionRisk, type RolInterno } from '../domain/permisos.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
-import { conPrincipal, ingresar, type CredencialEncontrada, type DecisionLogin, type InvitacionEncontrada } from '../persistence/identidad.ts'
+import {
+  conPrincipal as conPrincipalDeLaBase, ingresar as ingresarDeLaBase, type CredencialEncontrada, type DecisionLogin, type IdentidadDeLogin,
+  type InvitacionEncontrada, type PrincipalRisk, type ResultadoPrincipal,
+} from '../persistence/identidad.ts'
 import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
 import { conEscenario, filasSinteticas, id, PERSONA, REVISOR, reevaluacionNueva } from '../testing/actualizacion.ts'
 import type { Sesion } from './acceso.ts'
@@ -36,6 +39,24 @@ before(async () => {
 after(async () => {
   await sql.end()
 })
+
+/**
+ * `ingresar` y `conPrincipal` corren sólo con la conexión de `oidc` (0009), que no lee ninguna
+ * tabla: acá también, como en producción. Lo demás (la CLI y las comprobaciones), como el dueño.
+ */
+const conConexionOidc = async <T>(tx: TransactionSql, f: () => Promise<T>): Promise<T> => {
+  await tx`set local role risk_oidc`
+  try {
+    return await f()
+  } finally {
+    await tx`reset role`
+  }
+}
+const ingresar = (tx: TransactionSql, identidad: IdentidadDeLogin, d: Parameters<typeof ingresarDeLaBase>[2]): Promise<DecisionLogin> =>
+  conConexionOidc(tx, () => ingresarDeLaBase(tx, identidad, d))
+const conPrincipal = <T>(
+  tx: TransactionSql, identidad: Pick<IdentidadDeLogin, 'proveedor' | 'sujeto'>, accion: (t: TransactionSql, p: PrincipalRisk) => Promise<T>,
+): Promise<ResultadoPrincipal<T>> => conConexionOidc(tx, () => conPrincipalDeLaBase(tx, identidad, accion))
 
 /** Una regla mínima: entra quien tiene credencial activa; se vincula quien tiene invitación vigente. */
 const decidir = (c: CredencialEncontrada | null, i: InvitacionEncontrada | null): DecisionLogin => {
@@ -548,14 +569,19 @@ describe('condiciones de D-0022 en la base de Risk OS', () => {
       assert.equal(r?.p, '')
     }))
 
-  it('deploy/rol-app.sql deja a risk_app miembro de risk_persona sin heredar nada', async () => {
+  it('deploy/rol-app.sql deja a risk_app sin ninguna membresía: no puede tomar el camino oidc (0009)', async () => {
     const texto = readFileSync(fileURLToPath(new URL('../../deploy/rol-app.sql', import.meta.url)), 'utf8').replace(/^(begin|commit);$/gm, '')
     await enTransaccionRevertida(sql, async (tx) => {
+      // Como lo dejaba el rol-app.sql anterior a 0009, para ver que esta versión lo saca.
+      await tx`grant risk_persona to risk_app with inherit false, set true`
       await tx.unsafe(texto)
-      const [m] = await tx<{ inherit: boolean; set: boolean }[]>`
-        select m.inherit_option as inherit, m.set_option as set from pg_auth_members m
-        where m.roleid = 'risk_persona'::regrole and m.member = 'risk_app'::regrole`
-      assert.deepEqual({ ...m }, { inherit: false, set: true })
+      const miembro = await tx<{ r: string }[]>`
+        select r.rolname as r from pg_auth_members m join pg_roles r on r.oid = m.roleid where m.member = 'risk_app'::regrole`
+      assert.deepEqual(miembro.map((m) => m.r), [])
+      // `set role` lo decide el usuario de la sesión (acá, el de los tests): se pregunta al catálogo.
+      const [p] = await tx<{ persona: boolean; oidc: boolean }[]>`
+        select pg_has_role('risk_app', 'risk_persona', 'member') as persona, pg_has_role('risk_app', 'risk_oidc', 'member') as oidc`
+      assert.deepEqual({ ...p }, { persona: false, oidc: false })
     })
   })
 })
