@@ -69,12 +69,14 @@ de ser inmediata.
 ### Fase 1 — Cliente de Google External (owner)
 
 El owner coordina y aprueba la creación; la ejecuta quien tenga permisos de
-administración en el proyecto de Google Cloud. Se crean clientes OAuth **nuevos** de
-audiencia External, con scopes `openid email profile`. La implementación evalúa usar un
-cliente por app (Broker OS, Communication OS y Risk OS) dentro del mismo proyecto, en
-lugar de uno con tres URIs de redirección; la elección queda en el PR de la fase 0. El
-cliente Internal de VS01 se mantiene disponible durante toda la migración, como vuelta
-atrás de Broker OS.
+administración en Google Cloud. Se crean clientes OAuth **nuevos** de audiencia External,
+con scopes `openid email profile`, en un proyecto de Google Cloud **aparte** del del cliente
+Internal: la audiencia es una por proyecto, y cambiarla en el proyecto actual cambiaría el
+login de Broker OS. La implementación evalúa usar un cliente por app (Broker OS,
+Communication OS y Risk OS) dentro de ese proyecto nuevo, en lugar de uno con tres URIs de
+redirección. El cliente Internal de VS01 se mantiene disponible durante toda la
+migración, como vuelta atrás de Broker OS. La checklist está en
+`docs/migration/T-0035-fase-1-checklist.md`.
 
 **Vuelta atrás:** borrar los clientes nuevos. Nadie los usa todavía.
 
@@ -96,8 +98,13 @@ atrás de Broker OS.
 3. Comprobación: cada persona entra con su cuenta; una cuenta no invitada recibe un
    rechazo; una baja hecha por un Administrador corta el acceso en el request siguiente.
 
-**Vuelta atrás:** `AUTH_MODE=legacy` y volver a desplegar. La lista y el cliente Internal
-siguen intactos. Las filas nuevas quedan sin uso.
+**Vuelta atrás:** `AUTH_MODE=legacy`, devolver a `GOOGLE_OAUTH_CLIENT_ID` y
+`GOOGLE_OAUTH_CLIENT_SECRET` las credenciales del cliente Internal (Broker OS usa esas
+mismas variables en los dos modos, así que el paso 2 las reemplazó) y volver a desplegar.
+La lista y el cliente Internal siguen intactos. Las filas nuevas quedan sin uso. No se
+vuelve con un Instant Rollback de Vercel a un despliegue anterior a la 0011 dejando
+`AUTH_MODE=oidc`: ese código pide las notas del lote, que `broker_app` ya no lee, y VS01
+entera respondería 42501.
 
 ### Fase 3 — Communication OS pasa a `oidc` y la credencial compartida muere
 
