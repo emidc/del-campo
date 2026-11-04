@@ -80,3 +80,30 @@ corrigen en un PR aparte antes de la fase 4: los corrige la migración `0008` de
   `null`. Sigue abierto que una persona escriba a su nombre un `riesgo.*` falso o sobre un
   objeto que no ve: la app arma la acción como `riesgo.<op>`, así que una lista cerrada o
   la visibilidad del objeto en la política son un cambio aparte, si el owner lo quiere.
+
+## Revisión ciega del PR de `0011` (#114)
+
+`REVIEWS/T-0035-0011-blind-review.md`, sobre `1489105`, antes del merge (D-0052). Sondas en
+`REVIEWS/T-0035-0011/`.
+
+- **Act on 1. Se perdía la marca «LOTE SINTÉTICO — sin datos de clientes». Arreglado.**
+  La marca vivía sólo en `notes`, así que el despliegue de Preview dejaba de mostrarla.
+  Ahora VS01 reconoce el lote sintético por su huella fija (`MANIFIESTO_SINTETICO`, la
+  misma que escribe `scripts/vs01/seed-sintetico.mjs`) y la cabecera vuelve a decirlo, sin
+  leer `notes`. `packages/api/src/vs01/batch.test.ts` prueba la etiqueta con y sin la marca
+  y que el seed escribe esa huella y esa marca. `docs/despliegue/vercel-vs01.md` vuelve a
+  ser cierto sin cambios.
+- **Act on 2. La checklist suponía el mismo proyecto de Google Cloud para el cliente
+  Internal y la pantalla External. Arreglado en la checklist y en el plan.** Los clientes
+  External van en un proyecto nuevo y el del Internal no se toca. Queda marcado para
+  confirmarlo en la consola, porque no se probó contra Google.
+- **Consider 3. Instant Rollback con `oidc` y la 0011 aplicada.** Anotado en la vuelta
+  atrás de la fase 2: se vuelve con `AUTH_MODE=legacy`, no con un despliegue anterior.
+- **Consider 4. Ninguna prueba ejercitaba la consulta del lote. Arreglado.** La consulta
+  sale a `leerLote`, que usan `latestBatch` y la prueba de `datos.integration.test.ts`; si
+  alguien vuelve a pedir `notes`, esa prueba falla en `oidc`.
+- **Consider 5. La checklist pedía anotar un nombre. Arreglado:** se acuerda fuera del
+  repositorio y la evidencia anota sólo el rol.
+- **Consider 6. Las credenciales del Internal se reemplazan en la fase 2. Arreglado en el
+  plan y en la checklist:** se guardan antes, fuera del repositorio, y la vuelta atrás de
+  la fase 2 las restituye.

@@ -69,24 +69,27 @@ de ser inmediata.
 ### Fase 1 — Cliente de Google External (owner)
 
 El owner coordina y aprueba la creación; la ejecuta quien tenga permisos de
-administración en el proyecto de Google Cloud. Se crean clientes OAuth **nuevos** de
-audiencia External, con scopes `openid email profile`. La implementación evalúa usar un
-cliente por app (Broker OS, Communication OS y Risk OS) dentro del mismo proyecto, en
-lugar de uno con tres URIs de redirección; la elección queda en el PR de la fase 0. El
-cliente Internal de VS01 se mantiene disponible durante toda la migración, como vuelta
-atrás de Broker OS.
+administración en Google Cloud. Se crean clientes OAuth **nuevos** de audiencia External,
+con scopes `openid email profile`, en un proyecto de Google Cloud **aparte** del del cliente
+Internal: la audiencia es una por proyecto, y cambiarla en el proyecto actual cambiaría el
+login de Broker OS. La implementación evalúa usar un cliente por app (Broker OS,
+Communication OS y Risk OS) dentro de ese proyecto nuevo, en lugar de uno con tres URIs de
+redirección. El cliente Internal de VS01 se mantiene disponible durante toda la
+migración, como vuelta atrás de Broker OS. La checklist está en
+`docs/migration/T-0035-fase-1-checklist.md`.
 
 **Vuelta atrás:** borrar los clientes nuevos. Nadie los usa todavía.
 
 ### Fase 2 — Broker OS pasa a `oidc`
 
-0. Las migraciones 0007 a 0010 de Broker OS están aplicadas en la base de
+0. Las migraciones 0007 a 0011 de Broker OS están aplicadas en la base de
    producción (`pnpm db:migrate` con aprobación del owner). La 0008 es la que deja a la
    conexión de la app asumir `broker_app`: sin ella, `AUTH_MODE=oidc` rechazaría todo
    request. La 0009 acota el alcance de una empresa asignada (`D-0027`): sin ella, el
    Operador de una empresa vería las pólizas personales de sus miembros. La 0010 deja a
    `broker_app` leer la referencia documental y la fecha del lote, que VS01 consulta: sin
-   ella, la búsqueda y la ficha de póliza fallarían.
+   ella, la búsqueda y la ficha de póliza fallarían. La 0011 le quita la lectura de las
+   notas del lote, que VS01 ya no muestra (decisión del owner, 2026-11-04).
 1. El owner carga las invitaciones de las personas que hoy están en
    `VS01_ADMITTED_ACCOUNTS`, con su rol, mediante el script (stdin, sin archivos en el
    repo). Si una entrada de la lista ya tiene `sub` fijado, la credencial se crea
@@ -95,8 +98,13 @@ atrás de Broker OS.
 3. Comprobación: cada persona entra con su cuenta; una cuenta no invitada recibe un
    rechazo; una baja hecha por un Administrador corta el acceso en el request siguiente.
 
-**Vuelta atrás:** `AUTH_MODE=legacy` y volver a desplegar. La lista y el cliente Internal
-siguen intactos. Las filas nuevas quedan sin uso.
+**Vuelta atrás:** `AUTH_MODE=legacy`, devolver a `GOOGLE_OAUTH_CLIENT_ID` y
+`GOOGLE_OAUTH_CLIENT_SECRET` las credenciales del cliente Internal (Broker OS usa esas
+mismas variables en los dos modos, así que el paso 2 las reemplazó) y volver a desplegar.
+La lista y el cliente Internal siguen intactos. Las filas nuevas quedan sin uso. No se
+vuelve con un Instant Rollback de Vercel a un despliegue anterior a la 0011 dejando
+`AUTH_MODE=oidc`: ese código pide las notas del lote, que `broker_app` ya no lee, y VS01
+entera respondería 42501.
 
 ### Fase 3 — Communication OS pasa a `oidc` y la credencial compartida muere
 
@@ -116,8 +124,8 @@ lo esperado: la rotación pendiente de la credencial compartida queda resuelta a
 
 ### Fase 4 — Risk OS pasa a `oidc`
 
-0. La migración 0006 de Risk OS está aplicada en su base de producción y `rol-app.sql`
-   vuelto a correr, con aprobación del owner. Agrega las tablas de identidad, asignación y
+0. Las migraciones 0006 a 0008 de Risk OS están aplicadas en su base de producción y
+   `rol-app.sql` vuelto a correr, con aprobación del owner. Agrega las tablas de identidad, asignación y
    auditoría, `risk_persona` y RLS; `risk_app` sigue viendo lo mismo por la política
    `legado_risk_app`. Con `legacy` no cambia nada. Antes de activar `oidc`, el owner
    asigna a cada Operador y Revisor sus organizaciones, una por una.
@@ -129,6 +137,13 @@ lo esperado: la rotación pendiente de la credencial compartida queda resuelta a
 3. Comprobación igual que en la fase 2. Además, una persona que entra con Google ve como
    propias las acciones que registró con contraseña, y `registro_acceso` sigue
    registrando a la misma persona.
+
+**Antes de ejecutarla (decisión del owner, 2026-11-04).** La preparación de esta fase
+incluye retirar `legado_risk_app` del camino `oidc`: una conexión de ejecución `oidc` que no
+dependa de esa política, pruebas de que ninguna ruta `oidc` lee datos por privilegios
+heredados, y un procedimiento de retiro con período de observación y vuelta atrás. La
+política no se borra antes de tener ese procedimiento, porque cortaría el acceso actual o
+la admisión de personas nuevas.
 
 **Vuelta atrás:** `AUTH_MODE=legacy`. Las credenciales scrypt siguen vigentes en
 `risk.credencial` y nada se borra, porque el esquema es sólo de inserción.
@@ -186,9 +201,9 @@ Tienen que estar probadas, con evidencia en `ops/evidence/T-0035.md`:
   firma, `aud`, vencimiento y admisión del destino;
 - la rotación de las claves de firma entre contextos, sin cortar a quien está usando el
   sistema.
-- que `staging_import_batch.notes` en la base de producción no contenga información
-  confidencial, porque la 0010 la deja leer a `broker_app` para mostrar el lote (revisión
-  del owner del #107). Si la contiene, se quita `notes` del grant antes de activar `oidc`;
+- ~~que `staging_import_batch.notes` en la base de producción no contenga información
+  confidencial~~: resuelto sin inspeccionar las notas. La 0011 retira el permiso y VS01
+  deja de leerlas (decisión del owner, 2026-11-04);
 - que una negativa de la base (sin credencial, de baja o sin rol) responda igual que una
   cuenta no admitida, con el motivo sólo en `audit_event` (`acceso.consultar`).
 

@@ -209,7 +209,9 @@ try {
     if (reset) await limpiar(tx)
 
     // El lote que la app informa en pantalla. Que diga "SINTÉTICO" es parte del punto:
-    // nadie debe poder confundir este despliegue con datos de la correduría.
+    // nadie debe poder confundir este despliegue con datos de la correduría. La app lo
+    // reconoce por esta huella fija (`MANIFIESTO_SINTETICO` en packages/api/src/vs01/batch.ts),
+    // no por las notas, que `broker_app` no lee desde la migración 0011.
     await tx`insert into staging_import_batch (started_at, source_manifest_sha256, notes)
       values (now(), ${'0'.repeat(64)}, ${MARCA_SINTETICA})`
 

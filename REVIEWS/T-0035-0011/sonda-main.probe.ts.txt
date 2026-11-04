@@ -1,0 +1,6 @@
+import { batchLabel, latestBatch } from './vs01/batch-main.probe.ts'
+import { sql } from './db.ts'
+const p = { sub: 'sub-sonda', email: 'sonda-op@sintetico.test', displayName: null }
+try { const s = await latestBatch(p); console.log(`SONDA-main ${process.env.AUTH_MODE}:`, batchLabel(s)) }
+catch (e) { console.log(`SONDA-main ${process.env.AUTH_MODE} ERROR`, (e as {code?:string}).code) }
+await sql().end()

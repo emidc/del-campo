@@ -9,6 +9,7 @@ import { getDocumentAccessForPolicies, getPolicyDetail } from '@del-campo/db'
 import postgres from 'postgres'
 
 import type { Principal } from '../session/admission.ts'
+import { leerLote } from '../vs01/batch.ts'
 import { AccesoDenegado, conDatos } from './datos.ts'
 
 const databaseUrl = process.env.DATABASE_URL
@@ -163,7 +164,7 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
   it('la referencia documental y el lote se leen igual que en legacy: sin 42501 por falta de grants (0010)', async () => {
     const leer = async (ejecutor: postgres.Sql | postgres.TransactionSql, polizas: readonly string[]) => ({
       acceso: await getDocumentAccessForPolicies(ejecutor, polizas),
-      lote: [...(await ejecutor`select source_manifest_sha256, notes from staging_import_batch where notes = 'lote sintético'`)],
+      lote: await leerLote(ejecutor),
     })
     const r = await descartable(async (tx) => {
       const m = await sembrar(tx)
@@ -172,22 +173,25 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
       return { legacy, oidc }
     })
     assert.deepEqual(r.oidc, r.legacy)
-    assert.equal(r.oidc.lote.length, 1)
+    assert.equal(r.oidc.lote.known, true)
+    assert.equal(r.oidc.lote.manifestPrefix, 'a'.repeat(12))
   })
 
-  it('el resto de staging sigue cerrado para broker_app', async () => {
-    const r = await descartable(async (tx) => {
-      await sembrar(tx)
-      return conDatos(tx, principal('sub-op'), async (ejecutor) => {
-        try {
-          await ejecutor`select id from staging_import_batch`
-          return 'leyó'
-        } catch (error) {
-          return (error as { code?: string }).code
-        }
-      }, 'oidc').catch((error: unknown) => (error as { code?: string }).code)
-    })
-    assert.equal(r, '42501')
+  it('el resto de staging sigue cerrado para broker_app, incluidas las notas del lote (0011)', async () => {
+    for (const columna of ['id', 'notes']) {
+      const r = await descartable(async (tx) => {
+        await sembrar(tx)
+        return conDatos(tx, principal('sub-op'), async (ejecutor) => {
+          try {
+            await ejecutor`select ${ejecutor(columna)} from staging_import_batch`
+            return 'leyó'
+          } catch (error) {
+            return (error as { code?: string }).code
+          }
+        }, 'oidc').catch((error: unknown) => (error as { code?: string }).code)
+      })
+      assert.equal(r, '42501', columna)
+    }
   })
 
   it('sin credencial vinculada o dado de baja, la consulta no corre: AccesoDenegado', async () => {

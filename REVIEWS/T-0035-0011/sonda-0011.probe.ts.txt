@@ -1,0 +1,20 @@
+import { batchLabel, latestBatch } from './index.ts'
+import { conDatos } from './acceso/datos.ts'
+import { sql } from './db.ts'
+const p = { sub: 'sub-sonda', email: 'sonda-op@sintetico.test', displayName: null }
+const modo = process.env.AUTH_MODE
+try {
+  const s = await latestBatch(p)
+  console.log(`SONDA ${modo} latestBatch:`, JSON.stringify(s))
+  console.log(`SONDA ${modo} cabecera:`, batchLabel(s))
+} catch (e) { console.log(`SONDA ${modo} latestBatch ERROR`, (e as {code?:string}).code, (e as Error).message) }
+// consulta de main (con notes): simula volver a un despliegue anterior con la 0011 aplicada
+try {
+  const r = await conDatos(sql(), p, (x) => x`select started_at, source_manifest_sha256, notes from staging_import_batch order by started_at desc limit 1`)
+  console.log(`SONDA ${modo} consulta de main: leyó ${r.length} fila(s)`)
+} catch (e) { console.log(`SONDA ${modo} consulta de main ERROR`, (e as {code?:string}).code, (e as Error).message) }
+for (const q of ['select * from staging_import_batch', 'select count(notes) from staging_import_batch', "select 1 from staging_import_batch where notes like 'LOTE%'", 'select s from staging_import_batch s', 'select row_to_json(s) from staging_import_batch s']) {
+  try { await conDatos(sql(), p, (x) => x.unsafe(q)); console.log(`SONDA ${modo} [${q}] leyó`) }
+  catch (e) { console.log(`SONDA ${modo} [${q}]`, (e as {code?:string}).code) }
+}
+await sql().end()
