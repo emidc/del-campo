@@ -43,8 +43,10 @@ create trigger solo_insercion_truncate before truncate on risk.jti_aceptado
 
 -- RLS como toda tabla del esquema (0006). `legado_risk_app` por la regla de 0006; la política
 -- propia de inserción es la que tiene que quedar cuando se retire el acceso amplio de
--- `risk_app` del camino `oidc` (pendiente 2 de la misma revisión). Sin política para
--- `risk_persona`.
+-- `risk_app` del camino `oidc` (pendiente 2 de la misma revisión). Alcanza sola porque el
+-- registro usa `on conflict do nothing` sin columnas: con columnas, Postgres exigiría también
+-- una política SELECT (`persistence/jti.ts` lo prueba sin `legado_risk_app`). Sin política
+-- para `risk_persona`.
 alter table risk.jti_aceptado enable row level security;
 create policy legado_risk_app on risk.jti_aceptado for all to risk_app using (true) with check (true);
 create policy jti_aceptado_registrar on risk.jti_aceptado for insert to risk_app with check (true);

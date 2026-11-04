@@ -11,7 +11,7 @@ import { after, before, describe, it } from 'node:test'
 import { setTimeout as esperar } from 'node:timers/promises'
 
 import type { Sql, TransactionSql } from './database.ts'
-import { registroJtiPostgres, type UsoJti } from './jti.ts'
+import { registrarJti, registroJtiPostgres, type UsoJti } from './jti.ts'
 import { openTestDatabase } from './testing.ts'
 
 const AHORA = 1_900_000_000
@@ -60,10 +60,10 @@ describe('registro de jti en la base de Communication OS', () => {
   it('acepta cada jti una sola vez por emisor, y guarda su vencimiento', async () => {
     await enTransaccionRevertida(async (tx) => {
       const u = uso()
-      assert.equal(await registroJtiPostgres(tx).registrar(u), true)
-      assert.equal(await registroJtiPostgres(tx).registrar({ ...u, ahora: AHORA + 30 }), false)
+      assert.equal(await registrarJti(tx, u), true)
+      assert.equal(await registrarJti(tx, { ...u, ahora: AHORA + 30 }), false)
       // Broker OS y Risk OS emiten los dos hacia Communication OS: el jti es único por emisor.
-      assert.equal(await registroJtiPostgres(tx).registrar({ ...u, emisor: 'risk-os' }), true)
+      assert.equal(await registrarJti(tx, { ...u, emisor: 'risk-os' }), true)
       const [f] = await tx<{ vence: Date }[]>`select vence_en as vence from communication.jti_aceptado where emisor = 'broker-os' and jti = ${u.jti}`
       assert.equal(f?.vence.getTime(), (AHORA + 60) * 1000)
     })
@@ -73,8 +73,8 @@ describe('registro de jti en la base de Communication OS', () => {
     const u = uso()
     let segunda: Promise<boolean> | undefined
     const primera = await sql.begin(async (a) => {
-      const ok = await registroJtiPostgres(a).registrar(u)
-      segunda = sql.begin((b) => registroJtiPostgres(b).registrar(u))
+      const ok = await registrarJti(a, u)
+      segunda = sql.begin((b) => registrarJti(b, u))
       await hayEsperandoLock()
       return ok
     })
@@ -86,8 +86,8 @@ describe('registro de jti en la base de Communication OS', () => {
     const u = uso()
     let segunda: Promise<boolean> | undefined
     await assert.rejects(sql.begin(async (a) => {
-      assert.equal(await registroJtiPostgres(a).registrar(u), true)
-      segunda = sql.begin((b) => registroJtiPostgres(b).registrar(u))
+      assert.equal(await registrarJti(a, u), true)
+      segunda = sql.begin((b) => registrarJti(b, u))
       await hayEsperandoLock()
       throw new Error('revertir la primera')
     }), /revertir la primera/)
@@ -113,12 +113,19 @@ describe('registro de jti en la base de Communication OS', () => {
   it('sólo inserción, y communication_app no lee ni escribe el registro', async () => {
     await enTransaccionRevertida(async (tx) => {
       const u = uso()
-      await registroJtiPostgres(tx).registrar(u)
+      await registrarJti(tx, u)
       assert.equal(await codigo(tx, () => tx`delete from communication.jti_aceptado where jti = ${u.jti}`), '23001')
       assert.equal(await codigo(tx, () => tx`update communication.jti_aceptado set vence_en = now() where jti = ${u.jti}`), '23001')
       await tx.unsafe('set local role communication_app')
       assert.equal(await codigo(tx, () => tx`select 1 from communication.jti_aceptado`), '42501')
-      assert.equal(await codigo(tx, () => registroJtiPostgres(tx).registrar(uso())), '42501')
+      assert.equal(await codigo(tx, () => registrarJti(tx, uso())), '42501')
+    })
+  })
+
+  it('con una transacción no se construye: el registro es el del pool', async () => {
+    await enTransaccionRevertida((tx) => {
+      assert.throws(() => registroJtiPostgres(tx as unknown as Sql), /con el pool/)
+      return Promise.resolve()
     })
   })
 })

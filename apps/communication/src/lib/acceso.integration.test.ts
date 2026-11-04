@@ -24,7 +24,7 @@ import {
   type ParDeClaves,
   type Verificacion,
 } from '@del-campo/identidad'
-import { conversationList, registroJtiPostgres } from '@del-campo/communication'
+import { connect, conversationList, registroJtiPostgres } from '@del-campo/communication'
 import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
 
 import { GET as listGET } from '../app/api/conversations/route.ts'
@@ -488,13 +488,18 @@ describe('token entre contextos: verificado en Communication OS y con la admisi�
     const quien = identidad('token-registro')
     await invitar(quien.email, 'OPERADOR')
     await entrar(quien)
-    // Dos instancias de Communication OS: cada una con su verificación y su registro, sobre la misma base.
-    const instancia = (ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(sql)), ahora })
-    const t = await token(quien)
-    assert.equal(await motivo(t, instancia()), 'OK')
-    assert.equal(await motivo(t, instancia(AHORA + 30)), 'REUTILIZADO')
-    // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
-    assert.equal(await motivo(t, instancia(AHORA + 66)), 'VENCIDO')
+    // Dos instancias de Communication OS: cada una con su pool y su registro, sobre la misma base.
+    const otraInstancia = connect(testDatabaseUrl())
+    try {
+      const instancia = (pool: Sql, ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(pool)), ahora })
+      const t = await token(quien)
+      assert.equal(await motivo(t, instancia(sql)), 'OK')
+      assert.equal(await motivo(t, instancia(otraInstancia, AHORA + 30)), 'REUTILIZADO')
+      // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
+      assert.equal(await motivo(t, instancia(otraInstancia, AHORA + 66)), 'VENCIDO')
+    } finally {
+      await otraInstancia.end()
+    }
   })
 
   it('una llamada real no se admite sin registro de jti', async () => {

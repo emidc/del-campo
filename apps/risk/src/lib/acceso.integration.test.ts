@@ -452,16 +452,23 @@ describe('token entre contextos: verificado en Risk OS y con la admisión de Ris
   })
 
   it('con el registro de la base: dos instancias no aceptan el mismo token, y vencido es VENCIDO', async () => {
-    await conEquipo(async (e) => {
-      // Dos instancias de Risk OS: cada una con su verificación y su registro, sobre la misma base.
-      const instancia = (ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(e.tx)), ahora })
-      const t = await token('operadora')
-      assert.deepEqual(await orgs(e, t, instancia()), { ok: true, valor: [ORG] })
-      assert.deepEqual(await orgs(e, t, instancia(AHORA + 30)), { ok: false, token: 'REUTILIZADO' })
-      assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
-      // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
-      assert.deepEqual(await orgs(e, t, instancia(AHORA + 66)), { ok: false, token: 'VENCIDO' })
-    })
+    // Dos instancias de Risk OS: cada una con su pool y su registro, sobre la misma base. El
+    // registro confirma por su cuenta (no es la transacción del equipo): deja filas con jti
+    // aleatorios en delcampo_risk_test, que es de sólo inserción y no las ve ninguna otra prueba.
+    const otraInstancia = connect(testUrl())
+    try {
+      await conEquipo(async (e) => {
+        const instancia = (pool: Sql, ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(pool)), ahora })
+        const t = await token('operadora')
+        assert.deepEqual(await orgs(e, t, instancia(sql)), { ok: true, valor: [ORG] })
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 30)), { ok: false, token: 'REUTILIZADO' })
+        assert.deepEqual(await e.ultimoEvento('acceso.token'), { actor: null, resultado: 'denied', motivo: 'REUTILIZADO', idObjeto: null })
+        // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
+        assert.deepEqual(await orgs(e, t, instancia(otraInstancia, AHORA + 66)), { ok: false, token: 'VENCIDO' })
+      })
+    } finally {
+      await otraInstancia.end()
+    }
   })
 
   it('una llamada real no se admite sin registro de jti', async () => {

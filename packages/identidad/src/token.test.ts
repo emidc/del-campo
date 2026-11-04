@@ -123,6 +123,8 @@ describe('token entre contextos', () => {
     const firmar = (jti: string): Promise<string> => base().setSubject('sub-ana').setJti(jti).sign(clave)
     assert.equal(await motivo(await firmar('j'.repeat(JTI_LARGO_MAXIMO))), 'OK')
     assert.equal(await motivo(await firmar('j'.repeat(JTI_LARGO_MAXIMO + 1))), 'CLAIMS')
+    // Y uno con caracteres que la base no guarda tal cual (NUL, surrogates sueltos, espacios).
+    for (const raro of ['j\u0000k', 'j\ud800', 'j k', 'jñ']) assert.equal(await motivo(await firmar(raro)), 'CLAIMS', JSON.stringify(raro))
   })
 
   it('reutilización: el registro recibe el emisor, el jti y el vencimiento del token ya validado', async () => {
@@ -131,6 +133,20 @@ describe('token entre contextos', () => {
     const r = await verificarToken(token, verificacion({ registroJti: { registrar: (uso) => (usos.push(uso), true) } }))
     assert.ok(r.ok)
     assert.deepEqual(usos, [{ emisor: 'broker', jti: r.jti, venceEn: AHORA + 60, ahora: AHORA }])
+  })
+
+  it('un emisor fuera del formato de contexto es un error de configuración, al emitir y al verificar', async () => {
+    await assert.rejects(emitirToken(vieja.privada, emision({ emisor: 'https://broker.example' })), /emisor mal configurado/)
+    const token = await emitirToken(vieja.privada, emision())
+    await assert.rejects(verificarToken(token, verificacion({ emisor: 'https://broker.example' })), /emisor mal configurado/)
+  })
+
+  it('reutilización: el registro en memoria recuerda el jti mientras dura la tolerancia de reloj', () => {
+    const registro = registroJtiEnMemoria()
+    const uso: UsoJti = { emisor: 'broker', jti: 'j', venceEn: AHORA + 60, ahora: AHORA }
+    assert.equal(registro.registrar(uso), true)
+    assert.equal(registro.registrar({ ...uso, jti: 'otro', ahora: AHORA + 62 }), true)
+    assert.equal(registro.registrar({ ...uso, ahora: AHORA + 62 }), false)
   })
 
   it('reutilización: el jti es único por emisor, no entre emisores', () => {

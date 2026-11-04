@@ -13,7 +13,7 @@ import { setTimeout as esperar } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 import type { Sql, TransactionSql } from './database.ts'
-import { registroJtiPostgres, type UsoJti } from './jti.ts'
+import { registrarJti, registroJtiPostgres, type UsoJti } from './jti.ts'
 import { conBaseTemporal, enTransaccionRevertida, openTestDatabase } from './testing.ts'
 
 const AHORA = 1_900_000_000
@@ -55,14 +55,11 @@ const codigo = async (tx: TransactionSql, sentencia: () => Promise<unknown>): Pr
 describe('registro de jti en la base de Risk OS', () => {
   it('acepta cada jti una sola vez por emisor, y guarda su vencimiento', async () => {
     await enTransaccionRevertida(sql, async (tx) => {
-      const registro = registroJtiPostgres(tx)
       const u = uso()
-      assert.equal(await registro.registrar(u), true)
-      assert.equal(await registro.registrar(u), false)
-      // Otra instancia: otro registro sobre la misma base ve lo mismo.
-      assert.equal(await registroJtiPostgres(tx).registrar({ ...u, ahora: AHORA + 30 }), false)
+      assert.equal(await registrarJti(tx, u), true)
+      assert.equal(await registrarJti(tx, u), false)
       // El mismo jti de otro emisor es otro token: un emisor no quema los jti de otro.
-      assert.equal(await registro.registrar({ ...u, emisor: 'communication-os' }), true)
+      assert.equal(await registrarJti(tx, { ...u, emisor: 'communication-os' }), true)
       const [f] = await tx<{ vence: Date }[]>`select vence_en as vence from risk.jti_aceptado where emisor = 'broker-os' and jti = ${u.jti}`
       assert.equal(f?.vence.getTime(), (AHORA + 60) * 1000)
     })
@@ -73,9 +70,9 @@ describe('registro de jti en la base de Risk OS', () => {
       const u = uso()
       let segunda: Promise<boolean> | undefined
       const primera = await base.begin(async (a) => {
-        const ok = await registroJtiPostgres(a).registrar(u)
+        const ok = await registrarJti(a, u)
         // La segunda instancia inserta la misma clave mientras la primera no confirmó: espera.
-        segunda = base.begin((b) => registroJtiPostgres(b).registrar(u))
+        segunda = base.begin((b) => registrarJti(b, u))
         await hayEsperandoLock(base)
         return ok
       })
@@ -89,8 +86,8 @@ describe('registro de jti en la base de Risk OS', () => {
       const u = uso()
       let segunda: Promise<boolean> | undefined
       await assert.rejects(base.begin(async (a) => {
-        assert.equal(await registroJtiPostgres(a).registrar(u), true)
-        segunda = base.begin((b) => registroJtiPostgres(b).registrar(u))
+        assert.equal(await registrarJti(a, u), true)
+        segunda = base.begin((b) => registrarJti(b, u))
         await hayEsperandoLock(base)
         throw new Error('revertir la primera')
       }), /revertir la primera/)
@@ -123,7 +120,7 @@ describe('registro de jti en la base de Risk OS', () => {
   it('no se actualiza ni se borra: sólo inserción', async () => {
     await enTransaccionRevertida(sql, async (tx) => {
       const u = uso()
-      await registroJtiPostgres(tx).registrar(u)
+      await registrarJti(tx, u)
       assert.equal(await codigo(tx, () => tx`delete from risk.jti_aceptado where jti = ${u.jti}`), '23001')
       assert.equal(await codigo(tx, () => tx`update risk.jti_aceptado set vence_en = now() where jti = ${u.jti}`), '23001')
     })
@@ -135,12 +132,31 @@ describe('registro de jti en la base de Risk OS', () => {
       await tx.unsafe(rolApp)
       await tx.unsafe('set local role risk_app')
       const u = uso()
-      assert.equal(await registroJtiPostgres(tx).registrar(u), true)
-      assert.equal(await registroJtiPostgres(tx).registrar(u), false)
+      assert.equal(await registrarJti(tx, u), true)
+      assert.equal(await registrarJti(tx, u), false)
       await tx.unsafe('reset role')
       await tx.unsafe('set local role risk_persona')
       assert.equal(await codigo(tx, () => tx`select 1 from risk.jti_aceptado`), '42501')
-      assert.equal(await codigo(tx, () => registroJtiPostgres(tx).registrar(uso())), '42501')
+      assert.equal(await codigo(tx, () => registrarJti(tx, uso())), '42501')
+    })
+  })
+
+  it('sin legado_risk_app, risk_app sigue registrando con su política propia', async () => {
+    const rolApp = readFileSync(fileURLToPath(new URL('../../deploy/rol-app.sql', import.meta.url)), 'utf8').replace(/^(begin|commit);$/gm, '')
+    await enTransaccionRevertida(sql, async (tx) => {
+      await tx.unsafe(rolApp)
+      await tx.unsafe('drop policy legado_risk_app on risk.jti_aceptado')
+      await tx.unsafe('set local role risk_app')
+      const u = uso()
+      assert.equal(await registrarJti(tx, u), true)
+      assert.equal(await registrarJti(tx, u), false)
+    })
+  })
+
+  it('con una transacción no se construye: el registro es el del pool', async () => {
+    await enTransaccionRevertida(sql, (tx) => {
+      assert.throws(() => registroJtiPostgres(tx as unknown as Sql), /con el pool/)
+      return Promise.resolve()
     })
   })
 })
