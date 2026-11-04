@@ -4,7 +4,8 @@
 // contexto no depende del paquete de identidad. Es atómico y compartido por todas las
 // instancias de Risk OS: `risk.registrar_jti` hace `insert … on conflict do nothing` sobre la
 // clave (emisor, jti), que deja pasar a uno solo aunque dos instancias reciban el mismo token
-// a la vez; la otra espera a que la primera confirme o revierta para decidir.
+// a la vez; la otra espera a que la primera confirme o revierta para decidir. La misma función
+// purga los `jti` vencidos hace más de 10 minutos.
 //
 // Se construye con la conexión del pool, nunca con la transacción del pedido, y lanza si se
 // le pasa una: así el `jti` queda registrado en cuanto se acepta el token, aunque después la

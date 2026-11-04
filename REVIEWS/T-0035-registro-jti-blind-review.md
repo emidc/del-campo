@@ -167,8 +167,10 @@ verificado.
 - **Consider 3 — corregido.** `FORMATO_CONTEXTO` en `@del-campo/identidad`, el mismo de la
   columna: `emitirToken` y `verificarToken` lanzan con un emisor fuera de formato, como error de
   configuración, antes de llegar a la base.
-- **Consider 4 — queda para el owner.** Se mantiene sin purga, por R-22/R-23 y el precedente de
-  `login_fallido`. Si el owner prefiere purgar lo vencido, es un cambio aparte.
+- **Consider 4 — resuelto por el owner (2026-11-04): purgar.** `registrar_jti`, en Risk OS (0010)
+  y en Communication OS (0006), borra después de cada registro los `jti` vencidos hace más de
+  10 minutos, con un índice por `vence_en`. La tabla deja de tener el trigger de sólo inserción
+  y sólo la función borra: ni `risk_app`, ni `risk_oidc`, ni `communication_app` tienen DELETE.
 - **Noted 1 — corregido.** El verificador exige un `jti` de ASCII visible, hasta 128: NUL,
   surrogates, espacios y no ASCII son `CLAIMS`.
 - **Noted 3 — corregido.** El registro en memoria olvida un `jti` recién pasada la tolerancia.

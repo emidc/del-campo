@@ -3,7 +3,7 @@
 //
 // Las pruebas de carrera tienen que confirmar de verdad, con transacciones en conexiones
 // distintas: corren en una base temporal (`conBaseTemporal`), porque delcampo_risk_test no se
-// vacía y la tabla es de sólo inserción.
+// vacía.
 
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -117,12 +117,29 @@ describe('registro de jti en la base de Risk OS', () => {
     })
   })
 
-  it('no se actualiza ni se borra: sólo inserción', async () => {
+  it('purga: cada registro borra los jti vencidos hace más de 10 minutos y deja los demás', async () => {
     await enTransaccionRevertida(sql, async (tx) => {
+      const viejo = randomUUID()
+      const reciente = randomUUID()
+      await tx`insert into risk.jti_aceptado (emisor, jti, vence_en) values
+        ('broker-os', ${viejo}, now() - interval '11 minutes'), ('broker-os', ${reciente}, now() - interval '9 minutes')`
       const u = uso()
-      await registrarJti(tx, u)
-      assert.equal(await codigo(tx, () => tx`delete from risk.jti_aceptado where jti = ${u.jti}`), '23001')
-      assert.equal(await codigo(tx, () => tx`update risk.jti_aceptado set vence_en = now() where jti = ${u.jti}`), '23001')
+      assert.equal(await registrarJti(tx, u), true)
+      const quedan = await tx<{ jti: string }[]>`select jti from risk.jti_aceptado where jti in (${viejo}, ${reciente}, ${u.jti}) order by jti`
+      assert.deepEqual(quedan.map((f) => f.jti), [reciente, u.jti].sort())
+    })
+  })
+
+  it('sólo la función borra: risk_app y risk_oidc no tienen DELETE ni UPDATE', async () => {
+    const rolApp = readFileSync(fileURLToPath(new URL('../../deploy/rol-app.sql', import.meta.url)), 'utf8').replace(/^(begin|commit);$/gm, '')
+    await enTransaccionRevertida(sql, async (tx) => {
+      await tx.unsafe(rolApp)
+      for (const rol of ['risk_app', 'risk_oidc']) {
+        await tx.unsafe(`set local role ${rol}`)
+        assert.equal(await codigo(tx, () => tx`delete from risk.jti_aceptado`), '42501', rol)
+        assert.equal(await codigo(tx, () => tx`update risk.jti_aceptado set vence_en = now()`), '42501', rol)
+        await tx.unsafe('reset role')
+      }
     })
   })
 

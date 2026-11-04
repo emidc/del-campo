@@ -1,9 +1,9 @@
 // Registro persistente de `jti` (T-0035, migración 0006) contra Postgres: una sola aceptación
 // por (emisor, jti), aunque dos instancias reciban el mismo token a la vez.
 //
-// Las pruebas de carrera confirman de verdad, con transacciones en conexiones distintas. La
-// tabla es de sólo inserción y `truncateAll` no la vacía: cada prueba usa un `jti` nuevo, así
-// que lo que queda no cambia ninguna otra.
+// Las pruebas de carrera confirman de verdad, con transacciones en conexiones distintas.
+// `truncateAll` no vacía la tabla: cada prueba usa un `jti` nuevo, así que lo que queda no
+// cambia ninguna otra.
 
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -37,7 +37,7 @@ const hayEsperandoLock = async (): Promise<void> => {
   for (let i = 0; i < 200; i++) {
     const [f] = await sql<{ n: number }[]>`
       select count(*)::int as n from pg_stat_activity
-      where datname = current_database() and wait_event_type = 'Lock' and query like '%jti_aceptado%'`
+      where datname = current_database() and wait_event_type = 'Lock' and query like '%registrar_jti%'`
     if ((f?.n ?? 0) > 0) return
     await esperar(10)
   }
@@ -110,14 +110,24 @@ describe('registro de jti en la base de Communication OS', () => {
     assert.equal(await registro.registrar(u), false)
   })
 
-  it('sólo inserción, y communication_app no lee ni escribe el registro', async () => {
+  it('purga: cada registro borra los jti vencidos hace más de 10 minutos y deja los demás', async () => {
     await enTransaccionRevertida(async (tx) => {
+      const viejo = randomUUID()
+      const reciente = randomUUID()
+      await tx`insert into communication.jti_aceptado (emisor, jti, vence_en) values
+        ('broker-os', ${viejo}, now() - interval '11 minutes'), ('broker-os', ${reciente}, now() - interval '9 minutes')`
       const u = uso()
-      await registrarJti(tx, u)
-      assert.equal(await codigo(tx, () => tx`delete from communication.jti_aceptado where jti = ${u.jti}`), '23001')
-      assert.equal(await codigo(tx, () => tx`update communication.jti_aceptado set vence_en = now() where jti = ${u.jti}`), '23001')
+      assert.equal(await registrarJti(tx, u), true)
+      const quedan = await tx<{ jti: string }[]>`select jti from communication.jti_aceptado where jti in (${viejo}, ${reciente}, ${u.jti}) order by jti`
+      assert.deepEqual(quedan.map((f) => f.jti), [reciente, u.jti].sort())
+    })
+  })
+
+  it('communication_app no lee, no escribe, no borra ni ejecuta el registro', async () => {
+    await enTransaccionRevertida(async (tx) => {
       await tx.unsafe('set local role communication_app')
       assert.equal(await codigo(tx, () => tx`select 1 from communication.jti_aceptado`), '42501')
+      assert.equal(await codigo(tx, () => tx`delete from communication.jti_aceptado`), '42501')
       assert.equal(await codigo(tx, () => registrarJti(tx, uso())), '42501')
     })
   })

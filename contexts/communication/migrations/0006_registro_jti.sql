@@ -10,9 +10,10 @@
 --   * Vencimiento: cada fila guarda el `exp` del token. El verificador rechaza un token
 --     vencido antes de mirar el registro; después de su `exp`, la fila no decide nada.
 --
--- Sólo inserción, como `audit_event`: no se purga. La fila es el rastro mínimo de una
--- llamada aceptada (quién emitió, cuándo venció, cuándo se aceptó), sin la persona ni el
--- token. Si algún día el volumen pesa, purgar lo vencido es una decisión aparte.
+-- Se purga lo vencido (decisión del owner, 2026-11-04): no es auditoría, es estado de
+-- seguridad efímero. Cada registro borra los `jti` vencidos hace más de 10 minutos; el
+-- verificador acepta un token hasta `exp` más 5 s, así que el margen cubre de sobra un
+-- desfase de reloj entre la base y las instancias.
 --
 -- Quién escribe: la conexión de la app, que es dueña de las tablas, antes de asumir
 -- `communication_app`. `communication_app` no lee ni escribe acá: RLS sin política y sin grant.
@@ -27,16 +28,23 @@ create table communication.jti_aceptado (
 comment on table communication.jti_aceptado is
   'T-0035 (D-0077): cada token entre contextos aceptado, por (emisor, jti), para no aceptarlo dos veces en ninguna instancia. Sin la persona ni el token.';
 
-create function communication.jti_aceptado_solo_insercion() returns trigger
-language plpgsql set search_path = '' as $$
-begin
-  raise exception 'jti_aceptado es sólo de inserción' using errcode = 'restrict_violation';
-end
-$$;
-revoke all on function communication.jti_aceptado_solo_insercion() from public;
-create trigger jti_aceptado_solo_insercion before update or delete on communication.jti_aceptado
-  for each row execute function communication.jti_aceptado_solo_insercion();
-create trigger jti_aceptado_solo_insercion_truncate before truncate on communication.jti_aceptado
-  for each statement execute function communication.jti_aceptado_solo_insercion();
+create index jti_aceptado_por_vencimiento on communication.jti_aceptado (vence_en);
 
 alter table communication.jti_aceptado enable row level security;
+
+-- `true` si el `jti` de ese emisor no estaba y quedó registrado; `false` si se reutiliza. Dos
+-- llamadas a la vez con el mismo par: la segunda espera el lock de la clave y después no
+-- inserta. Después purga lo vencido hace más de 10 minutos. Sólo la ejecuta el dueño.
+create function communication.registrar_jti(p_emisor text, p_jti text, p_vence_en timestamptz) returns boolean
+language plpgsql volatile set search_path = '' as $$
+declare
+  v_filas bigint;
+begin
+  insert into communication.jti_aceptado (emisor, jti, vence_en) values (p_emisor, p_jti, p_vence_en)
+  on conflict do nothing;
+  get diagnostics v_filas = row_count;
+  delete from communication.jti_aceptado where vence_en < pg_catalog.now() - interval '10 minutes';
+  return v_filas = 1;
+end
+$$;
+revoke all on function communication.registrar_jti(text, text, timestamptz) from public;

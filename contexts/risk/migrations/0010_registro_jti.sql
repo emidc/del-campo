@@ -12,10 +12,12 @@
 --     vencido antes de mirar el registro, así que un `jti` sólo hace falta recordarlo
 --     hasta su `exp`; después, la fila no decide nada.
 --
--- Sólo inserción, como el resto del esquema (R-22, R-23): no se purga. Un token aceptado
--- es una llamada entre contextos y la fila es su rastro mínimo (quién emitió, cuándo
--- venció, cuándo se aceptó), sin la persona ni el token. El volumen es una fila por
--- llamada; si algún día pesa, purgar lo vencido es una decisión aparte, con su ADR.
+-- Se purga lo vencido (decisión del owner, 2026-11-04, en la revisión de este PR): es la
+-- única tabla del esquema que no es de sólo inserción. No es historia de un riesgo ni
+-- auditoría (R-22, R-23): es estado de seguridad efímero, y la llamada aceptada ya deja su
+-- rastro en `evento_auditoria` cuando corresponde. Cada registro borra los `jti` vencidos hace
+-- más de `10 minutes`: el verificador acepta un token hasta `exp` más 5 s de tolerancia, así
+-- que el margen cubre de sobra un desfase de reloj entre la base y las instancias.
 --
 -- Quién escribe: la conexión del modo `oidc` (`risk_oidc`, migración 0009), antes de asumir
 -- `risk_persona`, porque el token se verifica antes de la admisión. Como las funciones de
@@ -38,10 +40,9 @@ create table risk.jti_aceptado (
 comment on table risk.jti_aceptado is
   'RO01 §2, Acceso: cada token entre contextos aceptado, por (emisor, jti), para no aceptarlo dos veces en ninguna instancia (D-0077, T-0035). Sin la persona ni el token.';
 
-create trigger solo_insercion before update or delete on risk.jti_aceptado
-  for each row execute function risk.solo_insercion();
-create trigger solo_insercion_truncate before truncate on risk.jti_aceptado
-  for each statement execute function risk.solo_insercion();
+-- Para la purga: sin el trigger `solo_insercion` (ver la cabecera). Nadie más que la función
+-- de abajo borra: `risk_app` no tiene DELETE (rol-app.sql) y `risk_oidc` ningún privilegio.
+create index jti_aceptado_por_vencimiento on risk.jti_aceptado (vence_en);
 
 -- RLS como toda tabla del esquema (0006), con `legado_risk_app` por la regla de 0006 (el modo
 -- `legacy` no recibe tokens). Ninguna política para `risk_oidc` ni para `risk_persona`: la
@@ -51,6 +52,7 @@ create policy legado_risk_app on risk.jti_aceptado for all to risk_app using (tr
 
 -- `true` si el `jti` de ese emisor no estaba y quedó registrado; `false` si se reutiliza. Dos
 -- llamadas a la vez con el mismo par: la segunda espera el lock de la clave y después no inserta.
+-- Después purga lo vencido hace más de 10 minutos.
 create function risk.registrar_jti(p_emisor text, p_jti text, p_vence_en timestamptz) returns boolean
 language plpgsql volatile security definer set search_path = '' as $$
 declare
@@ -59,6 +61,7 @@ begin
   insert into risk.jti_aceptado (emisor, jti, vence_en) values (p_emisor, p_jti, p_vence_en)
   on conflict do nothing;
   get diagnostics v_filas = row_count;
+  delete from risk.jti_aceptado where vence_en < pg_catalog.now() - interval '10 minutes';
   return v_filas = 1;
 end
 $$;
