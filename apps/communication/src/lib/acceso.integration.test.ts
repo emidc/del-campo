@@ -24,7 +24,7 @@ import {
   type ParDeClaves,
   type Verificacion,
 } from '@del-campo/identidad'
-import { conversationList } from '@del-campo/communication'
+import { conversationList, registroJtiPostgres } from '@del-campo/communication'
 import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identidad'
 
 import { GET as listGET } from '../app/api/conversations/route.ts'
@@ -482,6 +482,24 @@ describe('token entre contextos: verificado en Communication OS y con la admisi�
     await assert.rejects(
       admitirLlamada(() => sql, t, { ...v, audiencia: 'risk-os' }, 'conversacion.consultar', () => Promise.resolve(null)),
     )
+  })
+
+  it('con el registro de la base: dos instancias no aceptan el mismo token, y vencido es VENCIDO', async () => {
+    const quien = identidad('token-registro')
+    await invitar(quien.email, 'OPERADOR')
+    await entrar(quien)
+    // Dos instancias de Communication OS: cada una con su verificación y su registro, sobre la misma base.
+    const instancia = (ahora = AHORA): Verificacion => ({ ...verificacion([vieja], registroJtiPostgres(sql)), ahora })
+    const t = await token(quien)
+    assert.equal(await motivo(t, instancia()), 'OK')
+    assert.equal(await motivo(t, instancia(AHORA + 30)), 'REUTILIZADO')
+    // Pasado su exp (60 s más 5 de tolerancia), el token ya no llega al registro.
+    assert.equal(await motivo(t, instancia(AHORA + 66)), 'VENCIDO')
+  })
+
+  it('una llamada real no se admite sin registro de jti', async () => {
+    const quien = identidad('token-sin-registro')
+    await assert.rejects(listar(await token(quien), { ...verificacion(), registroJti: null }), /registro de jti/)
   })
 
   it('la admisión es la de Communication OS: sin credencial vinculada o dada de baja, un token válido no entra', async () => {

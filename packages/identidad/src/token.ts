@@ -95,22 +95,39 @@ export const emitirToken = async (clavePrivada: JWK, emision: Emision): Promise<
     .sign(await importJWK(clavePrivada, ALGORITMO))
 }
 
+/** Un `jti` más largo que esto se rechaza: los registros de cada contexto guardan hasta acá. */
+export const JTI_LARGO_MAXIMO = 128
+
+/** Un token que el verificador ya validó entero y que falta registrar. */
+export interface UsoJti {
+  /** El contexto que lo firmó (`iss`). El `jti` es único por emisor. */
+  readonly emisor: string
+  readonly jti: string
+  /** El `exp` del token, en segundos desde la época. */
+  readonly venceEn: number
+  /** El instante del verificador, en segundos desde la época. */
+  readonly ahora: number
+}
+
 /**
- * Recuerda los `jti` ya aceptados hasta que vencen. `registrar` devuelve `false` si el
- * `jti` ya estaba: el token se está reutilizando. Cada contexto lo implementa en su base
- * cuando tenga llamadas reales; acá hay una implementación en memoria para pruebas.
+ * Recuerda los `jti` ya aceptados, por emisor. `registrar` devuelve `false` si el `jti` ya
+ * estaba: el token se está reutilizando. Tiene que ser atómico y compartido por todas las
+ * instancias del destino: las llamadas reales usan el de la base de cada contexto
+ * (`registroJtiPostgres` en Risk OS y en Communication OS). El de memoria es sólo para
+ * pruebas: no ve lo que aceptó otra instancia.
  */
 export interface RegistroJti {
-  registrar(jti: string, venceEn: number, ahora: number): boolean | Promise<boolean>
+  registrar(uso: UsoJti): boolean | Promise<boolean>
 }
 
 export const registroJtiEnMemoria = (): RegistroJti => {
   const vistos = new Map<string, number>()
   return {
-    registrar(jti, venceEn, ahora) {
+    registrar({ emisor, jti, venceEn, ahora }) {
       for (const [visto, vence] of vistos) if (vence < ahora) vistos.delete(visto)
-      if (vistos.has(jti)) return false
-      vistos.set(jti, venceEn)
+      const clave = JSON.stringify([emisor, jti])
+      if (vistos.has(clave)) return false
+      vistos.set(clave, venceEn)
       return true
     },
   }
@@ -195,11 +212,15 @@ export const verificarToken = async (token: string, verificacion: Verificacion):
   if (typeof sub !== 'string' || sub === '' || typeof jti !== 'string' || jti === '' || !esProveedor(prv)) {
     return rechazo('CLAIMS')
   }
+  if (jti.length > JTI_LARGO_MAXIMO) {
+    return rechazo('CLAIMS')
+  }
   if (typeof iat !== 'number' || typeof exp !== 'number') return rechazo('CLAIMS')
   if (iat > ahora + TOLERANCIA_SEGUNDOS) return rechazo('DURACION')
   if (exp - iat > DURACION_MAXIMA_SEGUNDOS) return rechazo('DURACION')
 
-  if (verificacion.registroJti !== null && !(await verificacion.registroJti.registrar(jti, exp, ahora))) {
+  const uso: UsoJti = { emisor: verificacion.emisor, jti, venceEn: exp, ahora }
+  if (verificacion.registroJti !== null && !(await verificacion.registroJti.registrar(uso))) {
     return rechazo('REUTILIZADO')
   }
   return { ok: true, proveedor: prv, sujeto: sub, jti }

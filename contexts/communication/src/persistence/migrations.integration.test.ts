@@ -18,6 +18,7 @@ const TABLES = [
   'user_credential',
   'user_invitation',
   'audit_event',
+  'jti_aceptado',
 ]
 const FILES = [
   '0001_communication_schema.sql',
@@ -25,6 +26,7 @@ const FILES = [
   '0003_delivery_reprocessing.sql',
   '0004_delivery_phone_filter.sql',
   '0005_identidad_y_autorizacion.sql',
+  '0006_registro_jti.sql',
 ]
 
 let sql: Sql
@@ -69,6 +71,7 @@ describe('migraciones del contexto', () => {
     }
     await sql`insert into communication.webhook_delivery (signature, body_raw) values ('valid', '{}')`
     assert.deepEqual(await columns(), ['last_reprocessed_at', 'reprocess_count'])
+    assert.equal(await down(sql), '0006_registro_jti.sql')
     assert.equal(await down(sql), '0005_identidad_y_autorizacion.sql')
     assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
     assert.equal(await down(sql), '0003_delivery_reprocessing.sql')
@@ -77,6 +80,7 @@ describe('migraciones del contexto', () => {
       '0003_delivery_reprocessing.sql',
       '0004_delivery_phone_filter.sql',
       '0005_identidad_y_autorizacion.sql',
+      '0006_registro_jti.sql',
     ])
     const [row] = await sql<{ n: number; c: number }[]>`
       select count(*)::int as n, min(reprocess_count) as c from communication.webhook_delivery`
@@ -89,6 +93,7 @@ describe('migraciones del contexto', () => {
       insert into communication.webhook_delivery
         (signature, body_raw, processing, processed_at, ignored_count, phone_number_filter)
       values ('valid', '{}', 'ignored', now(), 1, '800000000000001'), ('valid', '{}', 'processed', now(), 0, null)`
+    assert.equal(await down(sql), '0006_registro_jti.sql')
     assert.equal(await down(sql), '0005_identidad_y_autorizacion.sql')
     assert.equal(await down(sql), '0004_delivery_phone_filter.sql')
     const rows = await sql<{ processing: string; error: string | null }[]>`
@@ -97,7 +102,7 @@ describe('migraciones del contexto', () => {
       ['failed', 'ignorada: todo su contenido era de otro número'],
       ['processed', null],
     ])
-    assert.deepEqual(await migrate(sql), ['0004_delivery_phone_filter.sql', '0005_identidad_y_autorizacion.sql'])
+    assert.deepEqual(await migrate(sql), ['0004_delivery_phone_filter.sql', '0005_identidad_y_autorizacion.sql', '0006_registro_jti.sql'])
     await sql`delete from communication.webhook_delivery`
   })
 

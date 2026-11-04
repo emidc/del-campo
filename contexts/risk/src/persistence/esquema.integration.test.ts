@@ -357,6 +357,11 @@ const CASOS: Caso[] = [
   ['evento_auditoria_id_objeto', 'evento_auditoria', { id_objeto: '' }],
   ['evento_auditoria_resultado', 'evento_auditoria', { resultado: 'tal vez' }],
   ['evento_auditoria_motivo', 'evento_auditoria', { resultado: 'denied', motivo: 'no tenía permiso' }],
+
+  // Registro de jti del token entre contextos (T-0035, migración 0009).
+  ['jti_aceptado_pkey', 'jti_aceptado', dosVeces('jti_aceptado')],
+  ['jti_aceptado_emisor_formato', 'jti_aceptado', { emisor: 'Broker OS' }],
+  ['jti_aceptado_jti_formato', 'jti_aceptado', { jti: '' }],
 ]
 
 const TABLAS: Tabla[] = [
@@ -364,6 +369,7 @@ const TABLAS: Tabla[] = [
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
   'usuario', 'credencial', 'login_fallido', 'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
+  'jti_aceptado',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */
