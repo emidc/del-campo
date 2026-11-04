@@ -1,0 +1,191 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { after, before, describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
+
+import { VERSION_METODOLOGIA as V } from '../domain/modelo.ts'
+import { ACCIONES, puede, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO, type AccionRisk, type RolInterno } from '../domain/permisos.ts'
+import type { Sql, TransactionSql } from '../persistence/database.ts'
+import { conPrincipal, ingresar, type CredencialEncontrada, type DecisionLogin, type InvitacionEncontrada } from '../persistence/identidad.ts'
+import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
+import { conEscenario, filasSinteticas, id, PERSONA, REVISOR, reevaluacionNueva } from '../testing/actualizacion.ts'
+import type { Sesion } from './acceso.ts'
+import { asignar, cambiarRol, darDeBaja, invitar } from './accesos.ts'
+import {
+  cargarReevaluacion, cerrarConReevaluacion, cerrarSinCambio, pantallaOrdenPrevio, registrarNovedad, registrarOrdenPrevio, reordenar, revisar,
+} from './actualizacion.ts'
+import { organizaciones, vistaLista } from './vistas.ts'
+
+const F = filasSinteticas()
+const RIESGO = id('S36-R01')
+const ORG = F['risks.csv'].find((r) => r.risk_id === RIESGO)?.organizacion_id ?? ''
+const OTRA_ORG = 'ORG-01M3QSRT00VT0W3XH3JG6NDTEX'
+
+let sql: Sql
+before(async () => {
+  sql = await openTestDatabase()
+})
+after(async () => {
+  await sql.end()
+})
+
+/** Una regla mínima: entra quien tiene credencial activa; se vincula quien tiene invitación vigente. */
+const decidir = (c: CredencialEncontrada | null, i: InvitacionEncontrada | null): DecisionLogin => {
+  if (c !== null) return c.estadoUsuario === 'ACTIVO' ? { tipo: 'ENTRA', usuarioId: c.usuarioId } : { tipo: 'RECHAZA', motivo: 'DADO_DE_BAJA' }
+  if (i === null || i.venceEn <= Date.now() || i.estadoUsuario === 'BAJA') return { tipo: 'RECHAZA', motivo: 'NO_INVITADO' }
+  return { tipo: 'VINCULA', usuarioId: i.usuarioId }
+}
+
+interface Equipo {
+  readonly tx: TransactionSql
+  readonly admin: string
+  /** La persona de las sintéticas que ya escribía con contraseña: ahora entra con Google. */
+  readonly operador: string
+  readonly operador2: string
+  readonly revisor: string
+  /** Sus sesiones con contraseña (`legacy`), anteriores al vínculo. */
+  readonly legado: Sesion
+}
+
+const sujeto = (personaId: string): string => `sujeto-${personaId}`
+
+/** Invita, vincula con Google y asigna `ORG` al Operador, a la Operadora 2 y al Revisor. */
+const conEquipo = (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
+  conEscenario(sql, async ({ tx, sesion }) => {
+    const entra = async (personaId: string, email: string): Promise<void> => {
+      const d = await ingresar(tx, { proveedor: 'google', sujeto: sujeto(personaId), email }, decidir)
+      assert.equal(d.tipo, 'VINCULA')
+    }
+    const a = await invitar(tx, { actor: null, email: 'admin@ejemplo.invalid', rol: 'ADMINISTRADOR', nombre: 'Administradora de prueba' })
+    assert.ok(a.ok)
+    const admin = a.valor.personaId
+    await entra(admin, 'admin@ejemplo.invalid')
+    const o = await invitar(tx, { actor: admin, email: 'operadora@ejemplo.invalid', rol: 'OPERADOR', personaId: PERSONA })
+    const o2 = await invitar(tx, { actor: admin, email: 'operadora2@ejemplo.invalid', rol: 'OPERADOR', nombre: 'Operadora 2 de prueba' })
+    const r = await invitar(tx, { actor: admin, email: 'revisor@ejemplo.invalid', rol: 'REVISOR', personaId: REVISOR })
+    assert.ok(o.ok && o2.ok && r.ok)
+    await entra(PERSONA, 'operadora@ejemplo.invalid')
+    await entra(o2.valor.personaId, 'OPERADORA2@ejemplo.invalid ')
+    await entra(REVISOR, 'revisor@ejemplo.invalid')
+    for (const p of [PERSONA, o2.valor.personaId, REVISOR]) {
+      assert.ok((await asignar(tx, { actor: admin, personaId: p, organizacionId: ORG, vigente: true })).ok)
+    }
+    await cuerpo({ tx, admin, operador: PERSONA, operador2: o2.valor.personaId, revisor: REVISOR, legado: sesion })
+  })
+
+/** Corre `fn` como esa persona, en una transacción restringida; falla si la base no la admite. */
+const como = async <T>(tx: TransactionSql, personaId: string, fn: (t: TransactionSql, s: Sesion) => Promise<T>): Promise<T> => {
+  const r = await conPrincipal(tx, { proveedor: 'google', sujeto: sujeto(personaId) }, (t, p) =>
+    fn(t, { personaId: p.personaId, nombre: p.nombre, credencialId: p.credencialId, rol: p.rol }))
+  if (!r.ok) throw new Error(`no admitida: ${r.motivo}`)
+  return r.valor
+}
+
+/** El SQLSTATE de una sentencia que tiene que fallar, dentro de un savepoint. */
+const codigo = async (tx: TransactionSql, f: (t: TransactionSql) => Promise<unknown>): Promise<string> => {
+  try {
+    await tx.savepoint(f)
+  } catch (e) {
+    return String((e as { code?: string }).code)
+  }
+  return 'sin error'
+}
+
+const sinPermiso = (patron: RegExp | string) => (e: unknown): boolean =>
+  e instanceof SinPermiso && (typeof patron === 'string' ? e.message === patron : patron.test(e.message))
+
+const informacionNueva = (t: TransactionSql, s: Sesion) =>
+  registrarNovedad(t, s, { riskId: RIESGO, tipo: 'informacion_nueva', texto: 'Llegó el informe del perito.', evidencia: 'DOC-SINTETICO-2' })
+
+const reevaluacion = (t: TransactionSql, s: Sesion) =>
+  cargarReevaluacion(t, s, reevaluacionNueva(F, RIESGO, { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
+
+const ordenPrevio = async (t: TransactionSql, s: Sesion): Promise<void> => {
+  const p = await pantallaOrdenPrevio(t, s, ORG)
+  assert.ok(p !== null && p.objetos.length > 0)
+  await registrarOrdenPrevio(t, s, ORG, { materialRef: 'MAT-CIEGO-1', items: p.objetos.map((x, i) => ({ riskId: x.riskId, posicion: i + 1 })) })
+}
+
+const PREDICADO: Readonly<Partial<Record<AccionRisk, string>>> = {
+  'riesgo.cargar': 'authz_puede_cargar',
+  'riesgo.revisar': 'authz_puede_revisar',
+  'riesgo.reordenar': 'authz_puede_reordenar',
+  'riesgo.orden_previo': 'authz_puede_orden_previo',
+}
+
+const log = (k: string, v: unknown): void => { console.log(`SONDA ${k}: ${JSON.stringify(v)}`) }
+
+describe('sondas de la revisión ciega', () => {
+  it('S1 cierre sin cambio de la revisión que abrió la misma persona', () =>
+    conEquipo(async (e) => {
+      const { revisionId } = await como(e.tx, e.operador, informacionNueva)
+      assert.ok(revisionId !== null)
+      let app = 'ok'
+      try {
+        await como(e.tx, e.operador, (t, s) => cerrarSinCambio(t, s, { revisionId, fundamento: 'Sin cambios: fundamento sintético.' }))
+      } catch (x) { app = String((x as Error).message) }
+      log('S1 app (operador cierra sin cambio su propia revisión)', app)
+      const [c] = await e.tx<{ cerro: string; autor: string }[]>`
+        select c.cerrada_por as cerro, p.autor_persona_id as autor from risk.cierre_revision c join risk.revision_pendiente p on p.id = c.revision_id where c.revision_id = ${revisionId}`
+      log('S1 fila', { mismaPersona: c?.cerro === c?.autor && c !== undefined })
+    }))
+
+  it('S1b la base deja el mismo cierre por SQL directo', () =>
+    conEquipo(async (e) => {
+      const { revisionId } = await como(e.tx, e.operador, informacionNueva)
+      const r = await como(e.tx, e.operador, (t) => codigo(t, (u) => u`
+        insert into risk.cierre_revision (revision_id, risk_id, resultado, fundamento, cerrada_por)
+        values (${revisionId}, ${RIESGO}, 'sin_cambio', 'x', ${e.operador})`))
+      log('S1b sqlstate', r)
+    }))
+
+  it('S2 funciones SECURITY DEFINER con argumentos arbitrarios saltan RLS', () =>
+    conEquipo(async (e) => {
+      const riesgoAjeno = id('S07-R06')
+      const [evAjena] = await e.tx<{ id: string }[]>`select id from risk.evaluacion where risk_id = ${riesgoAjeno} limit 1`
+      const [evOrg] = await e.tx<{ id: string }[]>`select e.id from risk.evaluacion e join risk.riesgo r on r.id = e.risk_id where r.organizacion_id = ${ORG} limit 1`
+      const [trfOrg] = await e.tx<{ id: string }[]>`select x.id from risk.transferencia x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG} limit 1`
+      const fila = await como(e.tx, e.revisor, (t) => t<Record<string, unknown>[]>`
+        select (select count(*)::int from risk.evaluacion where id = ${evAjena?.id ?? ''}) as ve_eval_ajena_por_rls,
+               risk.authz_riesgo_de(${evAjena?.id ?? ''}, null, null) as riesgo_de_eval_ajena,
+               risk.authz_autor_de(${evOrg?.id ?? ''}, null, null) is not null as autor_de_eval_ciega_no_nulo,
+               risk.authz_riesgo_de(null, null, ${trfOrg?.id ?? ''}) as riesgo_de_cobertura_ciega,
+               risk.authz_rol_de(${e.admin}) as rol_de_admin,
+               risk.authz_rol_de(${e.operador2}) as rol_de_operadora2`)
+      log('S2 como Revisor sin orden previo', fila[0])
+    }))
+
+  it('S3 orden previo vacío por SQL directo abre los resultados', () =>
+    conEquipo(async (e) => {
+      const n = await como(e.tx, e.revisor, async (t) => {
+        await t`insert into risk.orden_previo (id, organizacion_id, revisor_persona_id, material_ref)
+                values ('OPR-00000000000000000000000099', ${ORG}, ${e.revisor}, 'MAT')`
+        return t<{ n: number }[]>`select count(*)::int as n from risk.evaluacion e join risk.riesgo r on r.id = e.risk_id where r.organizacion_id = ${ORG}`
+      })
+      log('S3 evaluaciones visibles tras orden previo sin items', n[0]?.n)
+    }))
+
+  it('S4 evento de auditoría arbitrario a nombre propio', () =>
+    conEquipo(async (e) => {
+      const r = await como(e.tx, e.operador, (t) => codigo(t, (u) => u`
+        insert into risk.evento_auditoria (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado)
+        values (${e.operador}, 'app', 'persona.dar_de_baja', 'persona', ${e.admin}, 'ok')`))
+      log('S4 sqlstate', r)
+    }))
+
+  it('S5 Revisor: lo que ve antes del orden previo, tabla por tabla', () =>
+    conEquipo(async (e) => {
+      await como(e.tx, e.operador, informacionNueva)
+      const f = await como(e.tx, e.revisor, (t) => t<Record<string, number>[]>`
+        select (select count(*)::int from risk.persona) as persona,
+               (select count(*)::int from risk.orden_previo) as orden_previo,
+               (select count(*)::int from risk.orden_previo_item) as orden_previo_item,
+               (select count(*)::int from risk.reordenamiento) as reordenamiento,
+               (select count(*)::int from risk.reordenamiento_vigente) as reordenamiento_vigente,
+               (select count(*)::int from risk.cierre_revision) as cierre_revision,
+               (select count(*)::int from risk.registro_acceso) as registro_acceso,
+               (select count(*)::int from risk.miembro_escenario) as miembro_escenario,
+               (select count(*)::int from risk.riesgo) as riesgo`)
+      log('S5', f[0])
+    }))
+})

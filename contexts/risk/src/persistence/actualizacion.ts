@@ -60,7 +60,7 @@ export const insertar = async (tx: TransactionSql, tabla: TablaActualizacion, fi
 }
 
 /** Quién escribió una evaluación, una acción o una cobertura desde una sesión; `null` si vino de una importación. */
-export const autorDe = async (tx: Db, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string): Promise<string | null> => {
+export const autorDe = async (tx: Db, tabla: 'evaluacion' | 'accion' | 'transferencia' | 'revision_pendiente', id: string): Promise<string | null> => {
   const [f] = await tx<{ autor: string | null }[]>`select autor_persona_id as autor from ${tx(`risk.${tabla}`)} where id = ${id}`
   return f?.autor ?? null
 }
