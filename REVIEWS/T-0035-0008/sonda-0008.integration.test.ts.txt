@@ -1,0 +1,205 @@
+// T-0035, incremento 5: la matriz de Risk OS en las dos capas, contra Postgres. Cada caso corre
+// como `risk_persona` con el principal de una persona (`conPrincipal`), sobre las sintéticas
+// importadas en una transacción que se revierte. Para cada regla se prueba la aplicación (el
+// caso de uso explica el rechazo) y la base (la misma escritura, directa, la rechaza RLS).
+//
+// La regla de login real (`decidirLogin`) es de `@del-campo/identidad`, que el contexto no
+// importa (R-25): acá va una mínima, y la real se prueba en la app.
+
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { after, before, describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
+
+import { VERSION_METODOLOGIA as V } from '../domain/modelo.ts'
+import { ACCIONES, puede, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO, type AccionRisk, type RolInterno } from '../domain/permisos.ts'
+import type { Sql, TransactionSql } from '../persistence/database.ts'
+import { conPrincipal, ingresar, type CredencialEncontrada, type DecisionLogin, type InvitacionEncontrada } from '../persistence/identidad.ts'
+import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
+import { conEscenario, filasSinteticas, id, PERSONA, REVISOR, reevaluacionNueva } from '../testing/actualizacion.ts'
+import type { Sesion } from './acceso.ts'
+import { asignar, cambiarRol, darDeBaja, invitar } from './accesos.ts'
+import {
+  cargarReevaluacion, cerrarConReevaluacion, cerrarSinCambio, pantallaOrdenPrevio, registrarNovedad, registrarOrdenPrevio, reordenar, revisar,
+} from './actualizacion.ts'
+import { organizaciones, vistaLista, vistaPlan } from './vistas.ts'
+
+const F = filasSinteticas()
+const RIESGO = id('S36-R01')
+const ORG = F['risks.csv'].find((r) => r.risk_id === RIESGO)?.organizacion_id ?? ''
+const OTRA_ORG = 'ORG-01M3QSRT00VT0W3XH3JG6NDTEX'
+
+let sql: Sql
+before(async () => {
+  sql = await openTestDatabase()
+})
+after(async () => {
+  await sql.end()
+})
+
+/** Una regla mínima: entra quien tiene credencial activa; se vincula quien tiene invitación vigente. */
+const decidir = (c: CredencialEncontrada | null, i: InvitacionEncontrada | null): DecisionLogin => {
+  if (c !== null) return c.estadoUsuario === 'ACTIVO' ? { tipo: 'ENTRA', usuarioId: c.usuarioId } : { tipo: 'RECHAZA', motivo: 'DADO_DE_BAJA' }
+  if (i === null || i.venceEn <= Date.now() || i.estadoUsuario === 'BAJA') return { tipo: 'RECHAZA', motivo: 'NO_INVITADO' }
+  return { tipo: 'VINCULA', usuarioId: i.usuarioId }
+}
+
+interface Equipo {
+  readonly tx: TransactionSql
+  readonly admin: string
+  /** La persona de las sintéticas que ya escribía con contraseña: ahora entra con Google. */
+  readonly operador: string
+  readonly operador2: string
+  readonly revisor: string
+  /** Sus sesiones con contraseña (`legacy`), anteriores al vínculo. */
+  readonly legado: Sesion
+}
+
+const sujeto = (personaId: string): string => `sujeto-${personaId}`
+
+/** Invita, vincula con Google y asigna `ORG` al Operador, a la Operadora 2 y al Revisor. */
+const conEquipo = (cuerpo: (e: Equipo) => Promise<void>): Promise<void> =>
+  conEscenario(sql, async ({ tx, sesion }) => {
+    const entra = async (personaId: string, email: string): Promise<void> => {
+      const d = await ingresar(tx, { proveedor: 'google', sujeto: sujeto(personaId), email }, decidir)
+      assert.equal(d.tipo, 'VINCULA')
+    }
+    const a = await invitar(tx, { actor: null, email: 'admin@ejemplo.invalid', rol: 'ADMINISTRADOR', nombre: 'Administradora de prueba' })
+    assert.ok(a.ok)
+    const admin = a.valor.personaId
+    await entra(admin, 'admin@ejemplo.invalid')
+    const o = await invitar(tx, { actor: admin, email: 'operadora@ejemplo.invalid', rol: 'OPERADOR', personaId: PERSONA })
+    const o2 = await invitar(tx, { actor: admin, email: 'operadora2@ejemplo.invalid', rol: 'OPERADOR', nombre: 'Operadora 2 de prueba' })
+    const r = await invitar(tx, { actor: admin, email: 'revisor@ejemplo.invalid', rol: 'REVISOR', personaId: REVISOR })
+    assert.ok(o.ok && o2.ok && r.ok)
+    await entra(PERSONA, 'operadora@ejemplo.invalid')
+    await entra(o2.valor.personaId, 'OPERADORA2@ejemplo.invalid ')
+    await entra(REVISOR, 'revisor@ejemplo.invalid')
+    for (const p of [PERSONA, o2.valor.personaId, REVISOR]) {
+      assert.ok((await asignar(tx, { actor: admin, personaId: p, organizacionId: ORG, vigente: true })).ok)
+    }
+    await cuerpo({ tx, admin, operador: PERSONA, operador2: o2.valor.personaId, revisor: REVISOR, legado: sesion })
+  })
+
+/** Corre `fn` como esa persona, en una transacción restringida; falla si la base no la admite. */
+const como = async <T>(tx: TransactionSql, personaId: string, fn: (t: TransactionSql, s: Sesion) => Promise<T>): Promise<T> => {
+  const r = await conPrincipal(tx, { proveedor: 'google', sujeto: sujeto(personaId) }, (t, p) =>
+    fn(t, { personaId: p.personaId, nombre: p.nombre, credencialId: p.credencialId, rol: p.rol }))
+  if (!r.ok) throw new Error(`no admitida: ${r.motivo}`)
+  return r.valor
+}
+
+/** El SQLSTATE de una sentencia que tiene que fallar, dentro de un savepoint. */
+const codigo = async (tx: TransactionSql, f: (t: TransactionSql) => Promise<unknown>): Promise<string> => {
+  try {
+    await tx.savepoint(f)
+  } catch (e) {
+    return String((e as { code?: string }).code)
+  }
+  return 'sin error'
+}
+
+const sinPermiso = (patron: RegExp | string) => (e: unknown): boolean =>
+  e instanceof SinPermiso && (typeof patron === 'string' ? e.message === patron : patron.test(e.message))
+
+const informacionNueva = (t: TransactionSql, s: Sesion) =>
+  registrarNovedad(t, s, { riskId: RIESGO, tipo: 'informacion_nueva', texto: 'Llegó el informe del perito.', evidencia: 'DOC-SINTETICO-2' })
+
+const reevaluacion = (t: TransactionSql, s: Sesion) =>
+  cargarReevaluacion(t, s, reevaluacionNueva(F, RIESGO, { motivo: 'informacion_nueva', accionId: null, fecha: '2026-10-15' }))
+
+const ordenPrevio = async (t: TransactionSql, s: Sesion): Promise<void> => {
+  const p = await pantallaOrdenPrevio(t, s, ORG)
+  assert.ok(p !== null && p.objetos.length > 0)
+  await registrarOrdenPrevio(t, s, ORG, { materialRef: 'MAT-CIEGO-1', items: p.objetos.map((x, i) => ({ riskId: x.riskId, posicion: i + 1 })) })
+}
+
+import { exigirResultados } from './actualizacion.ts'
+
+const log = (k: string, v: unknown): void => { console.log(`# SONDA ${k}: ${JSON.stringify(v)}`) }
+
+const evals = (e: Equipo, quien: string) => como(e.tx, quien, (t) => t<{ n: number }[]>`
+  select count(*)::int as n from risk.evaluacion x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}`).then((f) => f[0]?.n)
+
+describe('sondas 0008', () => {
+  it('P1 carrera: un riesgo con registrado_en anterior al orden previo pero confirmado después', () =>
+    conEquipo(async (e) => {
+      await como(e.tx, e.revisor, ordenPrevio)
+      log('P1 evaluaciones del Revisor con orden previo completo', await evals(e, e.revisor))
+      // Simula una importación cuya transacción empezó antes que la del orden previo y confirmó después:
+      // su now() (registrado_en por defecto) es anterior al registrado_en del orden previo.
+      await e.tx`insert into risk.riesgo (id, organizacion_id, tipo_objeto, titulo, origen, lote_origen, id_origen, registrado_en)
+        values ('RSK-00000000000000000000000081', ${ORG}, 'riesgo', 'Riesgo de un lote concurrente', 'importacion', 'LOTE-SONDA', 'X1', now() - interval '1 second')`
+      log('P1 evaluaciones del Revisor después', await evals(e, e.revisor))
+      log('P1 authz_ve_resultados', await como(e.tx, e.revisor, (t) => t<{ v: boolean }[]>`select risk.authz_ve_resultados(${ORG}) as v`).then((f) => f[0]?.v))
+      log('P1 app exigirResultados', await como(e.tx, e.revisor, (t, s) => exigirResultados(t, s, ORG).then(() => 'pasa', (x: unknown) => String(x))))
+      const v = await como(e.tx, e.revisor, (t, s) => vistaLista(t, s, V, ORG)).then((x) => x === null ? 'null' : 'vista armada', (x: unknown) => `rechazo: ${String(x)}`)
+      log('P1 app vistaLista', v)
+      const op = await como(e.tx, e.revisor, (t) => codigo(t, (u) => u`
+        insert into risk.orden_previo_item (orden_previo_id, organizacion_id, risk_id, posicion)
+        select o.id, ${ORG}, 'RSK-00000000000000000000000081', 999 from risk.orden_previo o where o.revisor_persona_id = ${e.revisor}`))
+      log('P1 completar el orden previo despues (otra transaccion simulada no aplica: mismo tx)', op)
+    }))
+
+  it('P2 authz_riesgo_de y booleanos sobre material oculto del Revisor antes de su orden previo', () =>
+    conEquipo(async (e) => {
+      const [trf] = await e.tx<{ id: string }[]>`select t.id from risk.transferencia t join risk.riesgo r on r.id = t.risk_id where r.organizacion_id = ${ORG} limit 1`
+      const [acc] = await e.tx<{ id: string }[]>`select a.id from risk.accion a join risk.riesgo r on r.id = a.risk_id where r.organizacion_id = ${ORG} limit 1`
+      const [ev] = await e.tx<{ id: string }[]>`select x.id from risk.evaluacion x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG} limit 1`
+      const r = await como(e.tx, e.revisor, (t) => t`
+        select (select count(*)::int from risk.transferencia) as ve_trf_por_rls,
+               (select count(*)::int from risk.accion) as ve_acc_por_rls,
+               risk.authz_riesgo_de(null, null, ${trf?.id ?? ''}) as riesgo_de_trf_ciega,
+               risk.authz_riesgo_de(null, ${acc?.id ?? ''}, null) as riesgo_de_acc_ciega,
+               risk.authz_riesgo_de(${ev?.id ?? ''}, null, null) as riesgo_de_eval_ciega,
+               risk.authz_ve_resultados_accion(${acc?.id ?? ''}) as ve_res_acc,
+               risk.authz_ve_accion(${acc?.id ?? ''}) as ve_acc_existe,
+               risk.authz_ve_accion('ACC-00000000000000000000000000') as ve_acc_inexistente,
+               risk.authz_no_es_propio(${ev?.id ?? ''}, null, null) as no_es_propio`)
+      log('P2 Revisor sin orden previo', r[0])
+    }))
+
+  it('P3 auditoría: lo que todavía entra como risk_persona', () =>
+    conEquipo(async (e) => {
+      const [evAjena] = await e.tx<{ id: string }[]>`select id from risk.evaluacion where risk_id = ${id('S07-R06')} limit 1`
+      const ins = (t: TransactionSql, actor: string | null, accion: string, tipo: string, obj: string) => codigo(t, (u) => u`
+        insert into risk.evento_auditoria (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado)
+        values (${actor}, 'app', ${accion}, ${tipo}, ${obj}, 'ok')`)
+      log('P3a Revisor: riesgo.revisar ok sobre evaluacion de otra organizacion', await como(e.tx, e.revisor, (t) => ins(t, e.revisor, 'riesgo.revisar', 'evaluacion', evAjena?.id ?? '')))
+      log('P3b Revisor: riesgo.importar ok (no es accion de la matriz)', await como(e.tx, e.revisor, (t) => ins(t, e.revisor, 'riesgo.importar', 'organizacion', ORG)))
+      log('P3c Operador: actor null', await como(e.tx, e.operador, (t) => ins(t, null, 'riesgo.revisar', 'riesgo', RIESGO)))
+      // risk_persona sin principal válido (persona dada de baja), como queda tras set role con una baja.
+      assert.ok((await darDeBaja(e.tx, { actor: e.admin, personaId: e.operador2 })).ok)
+      const sinPrincipal = await e.tx.savepoint(async (t) => {
+        await t`set local role risk_persona`
+        await t`select set_config('authz.persona_id', ${e.operador2}, true)`
+        const [p] = await t<{ p: string | null }[]>`select risk.authz_persona() as p`
+        const r = await ins(t, null, 'riesgo.aceptar', 'evaluacion', evAjena?.id ?? '')
+        const r2 = await ins(t, null, 'persona.dar_de_baja', 'persona', e.admin)
+        await t`reset role`
+        return { principal: p?.p ?? null, riesgo: r, persona: r2 }
+      })
+      log('P3d risk_persona con principal dado de baja, actor null', sinPrincipal)
+    }))
+
+  it('P4 costo de authz_ve_resultados por fila', () =>
+    conEquipo(async (e) => {
+      await como(e.tx, e.revisor, ordenPrevio)
+      const medir = async (quien: string) => como(e.tx, quien, async (t) => {
+        const t0 = performance.now()
+        for (let i = 0; i < 5; i++) await t`select count(*) from risk.evaluacion`
+        return Math.round((performance.now() - t0) / 5)
+      })
+      const [n] = await e.tx<{ ev: number; rs: number }[]>`select (select count(*)::int from risk.evaluacion x join risk.riesgo r on r.id=x.risk_id where r.organizacion_id=${ORG}) as ev, (select count(*)::int from risk.riesgo where organizacion_id=${ORG}) as rs`
+      log('P4 filas', n)
+      log('P4 ms por select count(*) evaluacion: operador / revisor', [await medir(e.operador), await medir(e.revisor)])
+    }))
+
+  it('P5 orden previo por la app y por SQL con registrado_en explícito = now()', () =>
+    conEquipo(async (e) => {
+      const r = await como(e.tx, e.revisor, (t) => codigo(t, (u) => u`
+        insert into risk.orden_previo (id, organizacion_id, revisor_persona_id, material_ref, registrado_en)
+        values ('OPR-00000000000000000000000082', ${ORG}, ${e.revisor}, 'MAT', statement_timestamp())`))
+      log('P5 registrado_en = statement_timestamp()', r)
+    }))
+})

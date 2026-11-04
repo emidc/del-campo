@@ -93,8 +93,9 @@ antes de registrar su orden previo: los riesgos con su identidad y su estructura
 su estado (`efecto`), coberturas (`suficiencia`, `exposicion_retenida_monto`) y sus eventos,
 novedades, revisiones pendientes, evaluaciones, revisiones humanas y reordenamientos quedan
 detrás de `authz_ve_resultados`, en la base (migración 0007). Desde 0008, la base exige además
-que el orden previo cubra cada riesgo y cada padre de la organización registrados hasta él,
-como ya lo exigía la aplicación: un orden previo vacío no abre nada.
+que el orden previo cubra cada riesgo y cada padre de la organización, como ya lo exigía la
+aplicación: al confirmarlo, un trigger diferido lo rechaza si falta alguno ya confirmado, y
+uno vacío no abre nada ni dentro de su propia transacción.
 
 **Personas (Risk OS).** Cada persona ve su propia fila de `risk.persona` y la de quienes
 escribieron algo que ella puede leer; el Administrador ve todas. Antes de 0007 se veían

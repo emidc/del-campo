@@ -251,7 +251,7 @@ describe('independencia del orden previo (RO01 §6, A8a)', () => {
       assert.equal(directo, '42501', 'ni el Administrador lo registra salteando la app')
     }))
 
-  it('un orden previo escrito por SQL abre los resultados sólo si cubre todo el material ciego, y no se atrasa', () =>
+  it('un orden previo escrito por SQL abre los resultados sólo si cubre todo el material ciego, y no se confirma si no lo cubre', () =>
     conEquipo(async (e) => {
       const opr = 'OPR-00000000000000000000000079'
       const ciegos = (await e.tx<{ id: string }[]>`
@@ -271,17 +271,24 @@ describe('independencia del orden previo (RO01 §6, A8a)', () => {
       assert.equal(await evaluaciones(), 0, 'vacío')
       const item = (riskId: string, posicion: number) => como(e.tx, e.revisor, (t) => t`
         insert into risk.orden_previo_item (orden_previo_id, organizacion_id, risk_id, posicion) values (${opr}, ${ORG}, ${riskId}, ${posicion})`)
+      // Lo que exige el trigger al confirmar, adelantado con SET CONSTRAINTS.
+      const alConfirmar = (): Promise<string> => codigo(e.tx, (u) => u`set constraints risk.orden_previo_cubre_el_material immediate`)
       for (const [i, riskId] of ciegos.slice(1).entries()) await item(riskId, i + 1)
       assert.equal(await evaluaciones(), 0, 'le falta uno')
+      assert.equal(await alConfirmar(), '23514', 'y no se confirma')
       await item(ciegos[0] ?? '', ciegos.length)
-      const completo = await evaluaciones()
-      assert.ok(completo > 0, 'completo')
+      assert.ok(await evaluaciones() > 0, 'completo')
 
-      // Un riesgo que se carga después no le quita lo que ya ve.
+      // Un riesgo que otra transacción confirma antes que el registro lo deja sin cubrir: el
+      // registro no se confirma y se reintenta, en vez de quedar trabado.
+      const importado = 'RSK-00000000000000000000000079'
       await e.tx`
-        insert into risk.riesgo (id, organizacion_id, tipo_objeto, titulo, origen, autor_persona_id, registrado_en)
-        values ('RSK-00000000000000000000000079', ${ORG}, 'riesgo', 'Riesgo cargado después', 'sesion', ${e.operador}, now() + interval '1 hour')`
-      assert.equal(await evaluaciones(), completo)
+        insert into risk.riesgo (id, organizacion_id, tipo_objeto, titulo, origen, autor_persona_id)
+        values (${importado}, ${ORG}, 'riesgo', 'Riesgo importado a la vez', 'sesion', ${e.operador})`
+      assert.equal(await evaluaciones(), 0)
+      assert.equal(await alConfirmar(), '23514')
+      await item(importado, ciegos.length + 1)
+      assert.equal(await alConfirmar(), 'sin error')
     }))
 
   it('el Revisor no carga datos: lo explica la app y lo exige la base', () =>
@@ -502,9 +509,11 @@ describe('condiciones de D-0022 en la base de Risk OS', () => {
         select risk.authz_riesgo_de(${ev}, null, null) as r`).then((f) => f[0]?.r)
       assert.equal(await riesgoDe(e.operador, ajena.ev), null, 'de otra organización')
       assert.equal(await riesgoDe(e.operador, propia.ev), RIESGO)
+      assert.equal(await riesgoDe(e.revisor, propia.ev), null, 'el Revisor, antes de su orden previo')
 
       // Autor de un reordenamiento y revisor de un orden previo: sólo si es quien consulta.
       await como(e.tx, e.revisor, ordenPrevio)
+      assert.equal(await riesgoDe(e.revisor, propia.ev), RIESGO, 'y después')
       const { reordenamientoId } = await como(e.tx, e.revisor, (t, s) => reordenar(t, s, V, ORG, {
         tipo: 'banda', riskId: RIESGO, banda: 'Crítica', causa: 'desacuerdo_de_criterio_profesional', fundamento: 'Criterio profesional.', patron: 'otro',
       }))
@@ -516,13 +525,15 @@ describe('condiciones de D-0022 en la base de Risk OS', () => {
       assert.deepEqual(await autores(e.revisor), { ror: e.revisor, opr: e.revisor })
     }))
 
-  it('la auditoría sólo acepta de una persona acciones de la matriz de riesgos', () =>
+  it('la auditoría sólo acepta de una persona acciones riesgo.*, y siempre con ella como actor', () =>
     conEquipo(async (e) => {
-      const evento = (accion: string) => como(e.tx, e.operador, (t) => codigo(t, (u) => u`
+      const evento = (accion: string, actor: string | null = e.operador) => como(e.tx, e.operador, (t) => codigo(t, (u) => u`
         insert into risk.evento_auditoria (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado)
-        values (${e.operador}, 'app', ${accion}, 'persona', ${e.admin}, 'ok')`))
+        values (${actor}, 'app', ${accion}, 'persona', ${e.admin}, 'ok')`))
       assert.equal(await evento('persona.dar_de_baja'), '42501')
       assert.equal(await evento('acceso.ingresar'), '42501')
+      assert.equal(await evento('riesgo.consultar', null), '42501', 'sin actor')
+      assert.equal(await evento('riesgo.consultar', e.admin), '42501', 'a nombre de otra persona')
       assert.equal(await evento('riesgo.consultar'), 'sin error')
     }))
 

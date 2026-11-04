@@ -1,0 +1,52 @@
+# C1 con el arreglo: la importación empieza antes y confirma DESPUÉS del registro
+## importación en curso
+           set_config           
+--------------------------------
+ PER-0000000000000000000000000R
+(1 row)
+
+            visibles            
+--------------------------------
+ RSK-0000000000000000000000000A
+(1 row)
+
+ ve_al_registrar 
+-----------------
+ t
+(1 row)
+
+           set_config           
+--------------------------------
+ PER-0000000000000000000000000R
+(1 row)
+
+                       visibles_despues                        
+---------------------------------------------------------------
+ RSK-0000000000000000000000000A,RSK-0000000000000000000000000B
+(1 row)
+
+ ve_despues 
+------------
+ t
+(1 row)
+
+# C2 con el arreglo: la importación confirma ANTES que el registro (transacción del Revisor abierta antes)
+ principal 
+ t
+      visibles_al_empezar       
+ RSK-0000000000000000000000000C
+ pg_sleep 
+ 
+ ve_sin_ordenar_d 
+ f
+ERROR:  risk.orden_previo: OPR-00000000000000000000000002 no cubre todos los riesgos de ORG-SONDA-2
+CONTEXT:  PL/pgSQL function risk.orden_previo_cubre_el_material() line 4 at RAISE
+## reintento
+ principal 
+ t
+ ordenes_previas 
+               0
+ principal 
+ t
+ ve_despues_del_reintento 
+ t

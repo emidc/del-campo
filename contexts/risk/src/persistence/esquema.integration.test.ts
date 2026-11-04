@@ -291,6 +291,11 @@ const CASOS: Caso[] = [
     await insertar(tx, 'registro_acceso', fila('registro_acceso', { persona_id: B.otraPersona, tipo: 'vista_resultados', organizacion_id: ORG_B, vista: 'lista' }))
     await insertar(tx, 'orden_previo', fila('orden_previo'))
   }],
+  ['orden_previo_cubre_el_material', 'orden_previo', async (tx) => {
+    // Diferido: se comprueba al confirmar. SET CONSTRAINTS lo adelanta, sin posiciones.
+    await insertar(tx, 'orden_previo', fila('orden_previo'))
+    await tx`set constraints risk.orden_previo_cubre_el_material immediate`
+  }],
   ['orden_previo_item_en_su_registro', 'orden_previo_item', async (tx) => {
     // Un orden previo registrado en otra transacción (antes): sus posiciones ya no entran.
     const id = nuevoId('OPR')
@@ -408,7 +413,8 @@ describe('cada restricción rechaza su caso', () => {
       where n.nspname = 'risk' and i.indisunique and not exists (select 1 from pg_constraint where conindid = i.indexrelid)
       union all
       select t.tgname from pg_trigger t join pg_class k on k.oid = t.tgrelid join pg_namespace n on n.oid = k.relnamespace
-      where n.nspname = 'risk' and not t.tgisinternal and t.tgname not like 'solo_insercion%'`
+      where n.nspname = 'risk' and not t.tgisinternal and t.tgname not like 'solo_insercion%'
+        and t.tgconstraint = 0`
     const catalogo = filas.map((f) => f.nombre.replace(/^risk\./, '')).sort()
     assert.deepEqual([...new Set(CASOS.map(([r]) => r))].sort(), catalogo)
     assert.equal(new Set(CASOS.map(([r]) => r)).size, CASOS.length, 'un caso por restricción')
@@ -482,6 +488,18 @@ describe('historia de evaluaciones', () => {
   })
 })
 
+const cubrirOrdenesPrevios = async (tx: TransactionSql): Promise<void> => {
+  await tx`
+    insert into risk.orden_previo_item (orden_previo_id, organizacion_id, risk_id, posicion)
+    select o.id, o.organizacion_id, r.id,
+           coalesce((select max(i.posicion) from risk.orden_previo_item i where i.orden_previo_id = o.id), 0)
+             + row_number() over (partition by o.id order by r.id)
+    from risk.orden_previo o
+    join risk.riesgo r on r.organizacion_id = o.organizacion_id and r.tipo_objeto in ('riesgo', 'padre')
+    where not exists (select 1 from risk.orden_previo_item i where i.orden_previo_id = o.id and i.risk_id = r.id)`
+  await tx`set constraints risk.orden_previo_cubre_el_material immediate`
+}
+
 describe('sólo inserción (R-22, R-23)', () => {
   it('ninguna tabla admite UPDATE, DELETE ni TRUNCATE', async () => {
     for (const t of TABLAS) {
@@ -490,6 +508,9 @@ describe('sólo inserción (R-22, R-23)', () => {
         await enTransaccionRevertida(sql, async (tx) => {
           await base(tx)
           await insertar(tx, t, fila(t))
+          // TRUNCATE no corre con eventos diferidos pendientes (55006): los órdenes previos de
+          // la base se completan y se comprueban antes, para que lo rechace `solo_insercion`.
+          if (sentencia.startsWith('truncate')) await cubrirOrdenesPrevios(tx)
           await assert.rejects(tx.unsafe(sentencia), (e: { code?: string; message?: string }) => {
             assert.equal(e.code, '23001', `${sentencia}: ${String(e.message)}`)
             assert.match(e.message ?? '', /sólo inserción/)

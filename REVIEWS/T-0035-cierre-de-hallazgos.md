@@ -50,3 +50,33 @@ corrigen en un PR aparte antes de la fase 4: los corrige la migración `0008` de
 - **Recuento de Communication OS.** La evidencia anotaba «fail 1» porque el suite padre de
   los 4 cancelados cuenta como fallido en esa salida; el revisor contó 0 fallas y los
   mismos 4 cancelados. Es el mismo resultado.
+
+## Revisión ciega del PR de `0008`
+
+`REVIEWS/T-0035-0008-blind-review.md`, sobre `5ea8aa5`, antes del merge (D-0052). Sondas en
+`REVIEWS/T-0035-0008/`.
+
+- **Act on 1. Importación concurrente con el registro del orden previo. Arreglado.** La
+  primera versión de `0008` comparaba `registrado_en` de riesgo y orden previo, que son la
+  hora de inicio de cada transacción: una importación que empezaba antes y confirmaba
+  después dejaba al Revisor sin resultados para siempre. Ahora no se comparan instantes. Un
+  constraint trigger diferido (`orden_previo_cubre_el_material`) rechaza al confirmar un
+  orden previo que deje sin ítem algún riesgo o padre ya confirmado, y
+  `authz_ve_resultados` acepta un orden previo de una transacción anterior (ya pasó el
+  trigger) o, dentro de la propia, uno que cubra lo que esa transacción ve. Sonda con dos
+  conexiones reales (`REVIEWS/T-0035-0008/sonda-arreglo-carrera.txt`): con la importación
+  confirmando después, el Revisor sigue viendo resultados; confirmando antes, el registro
+  falla y el reintento entra.
+- **Consider 2. Transacción abierta antes de una importación. Cerrado por el mismo
+  arreglo.** En `READ COMMITTED` el Revisor ve el riesgo nuevo y tiene que ordenarlo (en la
+  sonda, `ve_sin_ordenar_d = f` y el `commit` falla). Con `REPEATABLE READ` no lo ve y el
+  orden cubre su material; el riesgo queda como material posterior, igual que uno importado
+  después.
+- **Consider 3. `authz_riesgo_de` antes del orden previo. Arreglado.** Devuelve el riesgo
+  sólo si quien consulta ve sus resultados; la prueba cubre al Revisor antes y después de
+  su orden previo. Los booleanos `authz_ve_*` siguen ejecutables: dicen si un id existe en
+  lo que la persona ve, no su contenido. No los cambio.
+- **Consider 4. Auditoría.** Arreglado lo barato: el actor tiene que ser el principal, nunca
+  `null`. Sigue abierto que una persona escriba a su nombre un `riesgo.*` falso o sobre un
+  objeto que no ve: la app arma la acción como `riesgo.<op>`, así que una lista cerrada o
+  la visibilidad del objeto en la política son un cambio aparte, si el owner lo quiere.

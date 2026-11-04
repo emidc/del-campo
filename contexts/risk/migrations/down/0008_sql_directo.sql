@@ -42,3 +42,7 @@ language sql stable security definer set search_path = '' as $$
       select 1 from risk.orden_previo o
       where o.organizacion_id = org and o.revisor_persona_id = risk.authz_persona()))
 $$;
+
+drop trigger orden_previo_cubre_el_material on risk.orden_previo;
+drop function risk.orden_previo_cubre_el_material();
+drop function risk.orden_previo_faltantes(text, text);
