@@ -2,9 +2,9 @@
 // la app.
 //
 //   RISK_DATABASE_URL=postgres://localhost:5432/delcampo_risk_test \
-//     node src/persistence/cli.ts create | migrate | down | verificar
+//     node src/persistence/cli.ts create | migrate | down | verificar | verificar-oidc
 //
-//   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts migrate | verificar --hosteada
+//   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts migrate | verificar | verificar-oidc --hosteada
 //   RISK_HOSTED_DATABASE_URL=… node src/persistence/cli.ts down --hosteada --borra-datos
 //
 // Sin `--hosteada`, apunta a RISK_DATABASE_URL o a delcampo_risk_dev, y sólo opera sobre esa
@@ -18,9 +18,10 @@ import postgres from 'postgres'
 import { conectar, destinoDe, errorSinDatos, HOSTED_FLAG, type Destino } from './database.ts'
 import { down, migrate, MigrationError } from './migrations.ts'
 import { informeVerificacion, puntosVerificacion, verificar } from './verificacion.ts'
+import { informeVerificacionOidc, verificarOidc } from './verificacion-oidc.ts'
 
 const DEFAULT_URL = 'postgres://localhost:5432/delcampo_risk_dev'
-const USO = `uso: node src/persistence/cli.ts create | migrate | down | verificar [${HOSTED_FLAG}] (down ${HOSTED_FLAG} pide además --borra-datos)`
+const USO = `uso: node src/persistence/cli.ts create | migrate | down | verificar | verificar-oidc [${HOSTED_FLAG}] (down ${HOSTED_FLAG} pide además --borra-datos)`
 
 const die = (message: string): never => {
   process.stderr.write(`✗ ${message}\n`)
@@ -34,7 +35,7 @@ const { destino, args: todos } = r as { destino: Destino; args: string[] }
 const BORRA = '--borra-datos'
 const args = todos.filter((a) => a !== BORRA)
 const command = args[0]
-if (args.length !== 1 || todos.length - args.length > 1 || !['create', 'migrate', 'down', 'verificar'].includes(command ?? '')) die(USO)
+if (args.length !== 1 || todos.length - args.length > 1 || !['create', 'migrate', 'down', 'verificar', 'verificar-oidc'].includes(command ?? '')) die(USO)
 if (todos.length !== args.length && !(command === 'down' && destino.hosteada)) die(`${BORRA} es sólo para down ${HOSTED_FLAG}`)
 if (command === 'down' && destino.hosteada && todos.length === args.length) {
   die(`down ${HOSTED_FLAG} borra la última migración y lo registrado en sus tablas: hacé antes una copia (docs/despliegue/vercel-risk.md §8) y repetilo con ${BORRA}`)
@@ -71,6 +72,11 @@ try {
       const v = await verificar(sql)
       process.stdout.write(`${name}\n${informeVerificacion(v).join('\n')}\n`)
       process.exitCode = puntosVerificacion(v).every((p) => p.cumple) ? 0 : 2
+    } else if (command === 'verificar-oidc') {
+      // Con la credencial de risk_oidc (T-0035, 0009): la conexión del modo oidc no lee datos.
+      const v = await verificarOidc(sql)
+      process.stdout.write(`${name}\n${informeVerificacionOidc(v).join('\n')}\n`)
+      process.exitCode = v.puntos.every((p) => p.cumple) ? 0 : 2
     } else {
       const applied = await migrate(sql)
       if (applied.length === 0) process.stdout.write(`· ${name}: ninguna migración pendiente\n`)

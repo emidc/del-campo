@@ -71,7 +71,7 @@ export {
   type AccionRisk, type RolInterno,
 } from '../domain/permisos.ts'
 export {
-  afirmarRestringida, auditar, conPrincipal, ingresar, ROL_RESTRINGIDO,
+  afirmarRestringida, auditar, conPrincipal, ingresar, ROL_CONEXION_OIDC, ROL_RESTRINGIDO,
   type CredencialEncontrada, type DecisionLogin, type EventoDeAuditoria, type IdentidadDeLogin, type InvitacionEncontrada,
   type MotivoDenegado, type PrincipalRisk, type ResultadoPrincipal,
 } from '../persistence/identidad.ts'

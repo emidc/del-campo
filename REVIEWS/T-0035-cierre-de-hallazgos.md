@@ -107,3 +107,42 @@ corrigen en un PR aparte antes de la fase 4: los corrige la migración `0008` de
 - **Consider 6. Las credenciales del Internal se reemplazan en la fase 2. Arreglado en el
   plan y en la checklist:** se guardan antes, fuera del repositorio, y la vuelta atrás de
   la fase 2 las restituye.
+
+## Revisión ciega del PR de `0009` (#116)
+
+`REVIEWS/T-0035-0009-blind-review.md`, sobre `d168235`, antes del merge (D-0052). Sondas en
+`REVIEWS/T-0035-0009/`.
+
+- **Act on 1. Una restauración con `--no-privileges` abría las `admision_*` a PUBLIC y
+  `db:verificar-oidc` decía «cumple». Arreglado.** `rol-oidc.sql` hace `revoke … from public`
+  de las tres antes de darlas a `risk_oidc`. `verificar-oidc` agrega cuatro puntos: ninguna
+  SECURITY DEFINER de `risk` para PUBLIC, ninguna otra ejecutable por `risk_oidc`,
+  `risk_persona` con USAGE y lectura (si no, `oidc` niega todo) y sólo las columnas del evento
+  en la auditoría. `vercel-risk.md` §8 restaura **con** privilegios, después de crear los
+  roles, y explica por qué `--no-privileges` ya no sirve desde la 0006; probado con
+  `pg_dump`/`pg_restore` a una base descartable. La prueba «después de una restauración con
+  --no-privileges…» de `camino-oidc.integration.test.ts` reproduce el estado y comprueba las
+  dos cosas.
+- **Consider 2. `risk_oidc` podía elegir `id` y `ocurrido_en`. Arreglado.** El grant es por
+  columna, sin esas dos, en la 0009 y en `rol-oidc.sql`; la prueba de rechazos intenta
+  `overriding system value` y una fecha propia y recibe 42501.
+- **Consider 3. La base comparaba el email de la invitación consigo mismo. Arreglado.**
+  `ingresar` pasa el email normalizado de la identidad que entra.
+- **Consider 4. Si `drop role` fallaba, la reversa dejaba a `risk_oidc` con LOGIN y miembro
+  de `risk_persona`. Arreglado:** antes del `drop`, la reversa le saca la membresía y el
+  LOGIN, y el aviso lo dice. Además vuelve a dar `risk_persona` a `risk_app` sólo donde
+  `risk_app` puede entrar, que es donde el `rol-app.sql` anterior se la había dado.
+- **Consider 5. `verificar-oidc` sólo miraba tablas y las `admision_*`. Arreglado:** mira
+  tablas, vistas, materializadas, foráneas y particionadas, grants por columna, toda SECURITY
+  DEFINER de `risk` y que la membresía en `risk_persona` tenga SET. La prueba de la
+  restauración crea una vista para PUBLIC y la detecta.
+- **Consider 6. La etapa C no tenía pasos ni observación. Arreglado en el procedimiento:**
+  pasos, prueba de la CLI contra una copia, catorce días de observación con sus criterios y
+  vuelta atrás. La decisión sobre el rol de la CLI queda en la tabla de pendientes como
+  condición para cerrar la fase 5. La observación de la etapa A pasa a usar los logs de
+  conexión de Postgres en vez de una foto de `pg_stat_activity`.
+- **Noted.** Que la admisión no protege contra la credencial de `risk_oidc` filtrada (puede
+  declararse cualquier principal) es el modelo de D-0022 y queda así. El recuento de 819 contra
+  820 es por `--test-force-exit` en `deny.test.ts` (ver más arriba); sin esa opción son 142 y
+  estables.
+

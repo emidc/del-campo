@@ -105,25 +105,16 @@ interface FilaCredencial {
 
 const buscarCredencial = async (db: Db, identidad: Pick<IdentidadDeLogin, 'proveedor' | 'sujeto'>): Promise<FilaCredencial | null> => {
   const [f] = await db<{ id: string; personaId: string; rol: string | null }[]>`
-    select c.id::text, c.persona_id as "personaId",
-           (select r.rol from risk.rol_persona r where r.persona_id = c.persona_id order by r.id desc limit 1) as rol
-    from risk.credencial_externa c
-    where c.proveedor = ${identidad.proveedor} and c.sujeto = ${identidad.sujeto}`
+    select id, persona_id as "personaId", rol from risk.admision_credencial(${identidad.proveedor}, ${identidad.sujeto})`
   return f ?? null
 }
 
 /** La última invitación sin consumir para ese email, con el estado de su persona. */
 const buscarInvitacion = async (tx: TransactionSql, email: string): Promise<(InvitacionEncontrada & { readonly id: string }) | null> => {
-  // Dos logins a la vez con la misma invitación: el segundo espera y después la ve consumida.
-  await tx`select pg_advisory_xact_lock(hashtextextended(${'risk.invitacion:' + email}, 0))`
+  // Dos logins a la vez con la misma invitación: el segundo espera y después la ve consumida (0009).
   const [f] = await tx<{ id: string; personaId: string; email: string; venceEn: Date; rol: string | null; conCredencial: boolean }[]>`
-    select i.id::text, i.persona_id as "personaId", i.email, i.vence_en as "venceEn",
-           (select r.rol from risk.rol_persona r where r.persona_id = i.persona_id order by r.id desc limit 1) as rol,
-           exists (select 1 from risk.credencial_externa c where c.persona_id = i.persona_id) as "conCredencial"
-    from risk.invitacion i
-    where i.email = ${email}
-      and not exists (select 1 from risk.credencial_externa c where c.invitacion_id = i.id)
-    order by i.id desc limit 1`
+    select id, persona_id as "personaId", email, vence_en as "venceEn", rol, con_credencial as "conCredencial"
+    from risk.admision_invitacion(${email})`
   if (f === undefined) return null
   return {
     id: f.id, usuarioId: f.personaId, email: f.email, venceEn: f.venceEn.getTime(), estadoUsuario: estadoDe(f.rol, f.conCredencial),
@@ -141,32 +132,29 @@ export const ingresar = async (
   decidir: (credencial: CredencialEncontrada | null, invitacion: InvitacionEncontrada | null) => DecisionLogin,
 ): Promise<DecisionLogin> =>
   enTransaccion(db, async (tx) => {
+    await afirmarConexionOidc(tx)
     const fila = await buscarCredencial(tx, identidad)
     const credencial = fila === null ? null : { usuarioId: fila.personaId, estadoUsuario: estadoDe(fila.rol, true) }
     const invitacion =
       credencial === null && identidad.email.trim() !== '' ? await buscarInvitacion(tx, normalizarEmail(identidad.email)) : null
     const decision = decidir(credencial, invitacion)
 
-    if (decision.tipo === 'VINCULA') {
-      // Sólo se vincula a quien la invitación nombra: otra cosa es un error de quien llama.
-      if (invitacion?.usuarioId !== decision.usuarioId) throw new Error('VINCULA sin una invitación para esa persona')
-      await tx`
-        insert into risk.credencial_externa (persona_id, proveedor, sujeto, invitacion_id)
-        values (${decision.usuarioId}, ${identidad.proveedor}, ${identidad.sujeto}, ${invitacion.id})`
-    }
+    // Sólo se vincula a quien la invitación nombra: otra cosa es un error de quien llama.
+    if (decision.tipo === 'VINCULA' && invitacion?.usuarioId !== decision.usuarioId) throw new Error('VINCULA sin una invitación para esa persona')
     if (decision.tipo === 'ENTRA' && credencial?.usuarioId !== decision.usuarioId) throw new Error('ENTRA sin la credencial de esa persona')
 
-    const rechazo = decision.tipo === 'RECHAZA'
-    if (!rechazo) await tx`insert into risk.registro_acceso (persona_id, tipo) values (${decision.usuarioId}, 'inicio_sesion')`
-    await auditar(tx, {
-      actor: rechazo ? null : decision.usuarioId,
-      origen: 'app',
-      accion: decision.tipo === 'VINCULA' ? 'acceso.vincular' : 'acceso.ingresar',
-      tipoObjeto: rechazo ? null : 'persona',
-      idObjeto: rechazo ? null : decision.usuarioId,
-      resultado: rechazo ? 'denied' : 'ok',
-      motivo: rechazo ? decision.motivo : null,
-    })
+    if (decision.tipo === 'RECHAZA') {
+      await auditar(tx, {
+        actor: null, origen: 'app', accion: 'acceso.ingresar', tipoObjeto: null, idObjeto: null, resultado: 'denied', motivo: decision.motivo,
+      })
+    } else {
+      // La base vuelve a comprobar la decisión y escribe el vínculo, el `inicio_sesion` (A8a) y
+      // el evento, todo o nada (0009).
+      const invitacionId = decision.tipo === 'VINCULA' ? (invitacion?.id ?? null) : null
+      await tx`
+        select risk.admision_registrar(${decision.usuarioId}, ${identidad.proveedor}, ${identidad.sujeto},
+                                       ${normalizarEmail(identidad.email)}, ${invitacionId}::bigint)`
+    }
     return decision
   })
 
@@ -180,6 +168,25 @@ export type ResultadoPrincipal<T> =
 
 /** El único rol con el que corren las consultas de una persona en modo `oidc`. */
 export const ROL_RESTRINGIDO = 'risk_persona'
+
+/**
+ * El rol de conexión del modo `oidc` (0009). No lee ninguna tabla y no pasa por
+ * `legado_risk_app`: admite con las funciones `admision_*` y después asume `risk_persona`.
+ */
+export const ROL_CONEXION_OIDC = 'risk_oidc'
+
+const CONEXION_NO_OIDC = `el modo oidc corre sólo con la conexión de ${ROL_CONEXION_OIDC} (T-0035)`
+
+/**
+ * Falla si la conexión no es la de `oidc`. Con la de `legacy` (`risk_app`, que ve todo por
+ * `legado_risk_app`) o la del dueño (exento de RLS), una consulta fuera de la transacción
+ * restringida leería sin RLS: por eso el camino `oidc` no corre con ellas, ni siquiera mal
+ * configurado (T-0035, decisión del owner del 2026-11-04).
+ */
+export const afirmarConexionOidc = async (db: Db): Promise<void> => {
+  const [f] = await db<{ rol: string }[]>`select current_user as rol`
+  if (f?.rol !== ROL_CONEXION_OIDC) throw new Error(CONEXION_NO_OIDC)
+}
 
 /**
  * Falla si la transacción no corre como `risk_persona` con un principal declarado. Una consulta
@@ -212,6 +219,7 @@ export const conPrincipal = async <T>(
     const [previo] = await tx<{ rol: string; principal: string }[]>`
       select current_user as rol, coalesce(current_setting('authz.persona_id', true), '') as principal`
     if (previo === undefined) throw new Error('sin estado previo de la transacción')
+    if (previo.rol !== ROL_CONEXION_OIDC) throw new Error(CONEXION_NO_OIDC)
     const restaurar = async (): Promise<void> => {
       await tx`set local role ${tx(previo.rol)}`
       await tx`select set_config('authz.persona_id', ${previo.principal}, true)`
