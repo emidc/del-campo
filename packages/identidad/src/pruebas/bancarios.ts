@@ -33,13 +33,20 @@ const luhn = (n: string): boolean => {
 }
 
 /**
+ * Un UUID entero. Sus grupos de dígitos, unidos por los guiones, pueden formar una ventana
+ * que pasa Luhn (`4d411132-2559-4605-…` da `4111322559460`); como un `uuid` es una columna
+ * tipada, que no puede llevar lo que escribe un cliente, se saca antes de buscar.
+ */
+const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi
+
+/**
  * Lo que tiene forma de dato bancario en `texto`, independiente del formato: los formatos
  * conocidos tal cual, toda ventana de 13 a 19 dígitos (ignorando separadores) que empiece
  * con 3–6 y pase Luhn, como el prototipo, y todo CBU (22 dígitos seguidos o separados).
  */
 export const datosBancariosEn = (texto: string): string[] => {
   const literales = FORMATOS_BANCARIOS.filter((f) => texto.includes(f))
-  const tramos = texto.split(/[^\d ./_-]+/).map((t) => t.replace(/\D/g, ''))
+  const tramos = texto.replace(UUID, ' ').split(/[^\d ./_-]+/).map((t) => t.replace(/\D/g, ''))
   const tarjetas = tramos.flatMap((x) => {
     const r: string[] = []
     for (let a = 0; a < x.length; a++) {

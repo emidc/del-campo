@@ -189,3 +189,104 @@ describe('legacy: nada cambia', () => {
     assert.deepEqual(r, { admitido: false, motivo: 'OUTSIDE_WORKSPACE' })
   })
 })
+
+// Condición previa a la fase 2 (plan de migración, «Condiciones antes de ejecutar la fase
+// 2»): una negativa de la base responde igual que una cuenta no admitida, y el motivo
+// específico queda sólo en `audit_event`. Se comparan las respuestas enteras —status,
+// cada header y cuerpo— y no sólo el status: un header de más ya distinguiría un caso.
+describe('oidc: las negativas de la base no revelan el motivo', () => {
+  /** Lo que ve quien está afuera: status, todos los headers y el cuerpo. */
+  const externa_ = async (respuesta: Response): Promise<{ status: number; headers: [string, string][]; cuerpo: string }> => ({
+    status: respuesta.status,
+    headers: [...respuesta.headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    cuerpo: await respuesta.text(),
+  })
+
+  interface Evento { outcome: string; reason_code: string | null; actor_user_id: string | null; object_id: string | null }
+  /** Lo auditado con `accion` después del evento `desde`. */
+  const motivosDe = async (tx: postgres.TransactionSql, accion: string, desde: string): Promise<Evento[]> => [
+    ...(await tx<Evento[]>`
+      select outcome, reason_code, actor_user_id, object_id from audit_event
+      where action = ${accion} and id > ${desde} order by id
+    `),
+  ]
+
+  /**
+   * Un Administrador y, para cada caso, una persona: `baja` (credencial vinculada y dada de
+   * baja), `sinrol` (credencial vinculada, activa y sin rol) y `vencida` (invitación vencida,
+   * sin credencial). `nadie` no existe en la base. Devuelve el último evento auditado de la
+   * siembra: la auditoría es de sólo inserción, y lo que interesa es lo que viene después.
+   */
+  const sembrar = async (tx: postgres.TransactionSql): Promise<string> => {
+    const admin = ok(await invitar(tx, { actor: null, email: 'admin@sintetico.test', rol: 'ADMINISTRADOR' }))
+    await admitirLogin(externa('sub-admin', 'admin@sintetico.test'), OIDC, tx)
+    const baja = ok(await invitar(tx, { actor: admin.usuarioId, email: 'baja@gmail-sintetico.test', rol: 'OPERADOR' }))
+    await admitirLogin(externa('sub-baja', 'baja@gmail-sintetico.test'), OIDC, tx)
+    ok(await darDeBaja(tx, { actor: admin.usuarioId, usuarioId: baja.usuarioId }))
+    const sinRol = ok(await invitar(tx, { actor: admin.usuarioId, email: 'sinrol@gmail-sintetico.test', rol: 'OPERADOR' }))
+    await admitirLogin(externa('sub-sinrol', 'sinrol@gmail-sintetico.test'), OIDC, tx)
+    await tx`update app_user set role = null where id = ${sinRol.usuarioId}`
+    const vencida = ok(await invitar(tx, { actor: admin.usuarioId, email: 'vencida@gmail-sintetico.test', rol: 'OPERADOR' }))
+    await tx`update user_invitation set expires_at = now() - interval '1 day' where user_id = ${vencida.usuarioId}`
+    const [ultimo] = await tx<{ id: string }[]>`select coalesce(max(id), 0)::text as id from audit_event`
+    return ultimo?.id ?? '0'
+  }
+
+  it('al volver de Google, no invitada, de baja, sin rol y sin credencial reciben el mismo NOT_ADMITTED y ninguna sesión', async () => {
+    const r = await descartable(async (tx) => {
+      const desde = await sembrar(tx)
+      const resultados = {
+        noInvitada: await admitirLogin(externa('sub-nadie', 'nadie@gmail-sintetico.test'), OIDC, tx),
+        baja: await admitirLogin(externa('sub-baja', 'baja@gmail-sintetico.test'), OIDC, tx),
+        sinRol: await admitirLogin(externa('sub-sinrol', 'sinrol@gmail-sintetico.test'), OIDC, tx),
+        sinCredencial: await admitirLogin(externa('sub-vencida', 'vencida@gmail-sintetico.test'), OIDC, tx),
+      }
+      return {
+        resultados,
+        ingresar: await motivosDe(tx, 'acceso.ingresar', desde),
+        consultar: await motivosDe(tx, 'acceso.consultar', desde),
+        vinculadaVencida: await credenciales(tx, 'sub-vencida'),
+      }
+    })
+    // El callback (`apps/web/.../callback/route.ts`) arma la redirección sólo con este
+    // resultado, y emite la cookie de sesión sólo si `admitido`: un resultado idéntico es
+    // la misma redirección (`/login?motivo=NOT_ADMITTED`), el mismo texto del login y
+    // ninguna cookie de sesión.
+    const NEGATIVA = { admitido: false, motivo: 'NOT_ADMITTED' }
+    assert.deepEqual(r.resultados, { noInvitada: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA, sinCredencial: NEGATIVA })
+    assert.equal(r.vinculadaVencida, 0)
+    // El motivo, sólo en la auditoría, sin actor, sin objeto y sin payload.
+    assert.deepEqual(
+      r.ingresar.filter((e) => e.outcome === 'denied'),
+      [
+        { outcome: 'denied', reason_code: 'NO_INVITADO', actor_user_id: null, object_id: null },
+        { outcome: 'denied', reason_code: 'DADO_DE_BAJA', actor_user_id: null, object_id: null },
+        { outcome: 'denied', reason_code: 'NO_INVITADO', actor_user_id: null, object_id: null },
+      ],
+    )
+    // Sin rol, la credencial existe y `ingresar` la reconoce; la base no la admite y eso
+    // queda como cualquier otra negativa de la base.
+    assert.deepEqual(r.consultar, [{ outcome: 'denied', reason_code: 'SIN_ACCESO', actor_user_id: null, object_id: null }])
+  })
+
+  it('con la sesión ya abierta, sin credencial, de baja y sin rol reciben la misma respuesta que una cuenta no admitida', async () => {
+    const r = await descartable(async (tx) => {
+      const desde = await sembrar(tx)
+      const respuestas = {
+        noInvitada: await externa_(await pedir(tx, externa('sub-nadie', 'nadie@gmail-sintetico.test'))),
+        baja: await externa_(await pedir(tx, externa('sub-baja', 'baja@gmail-sintetico.test'))),
+        sinRol: await externa_(await pedir(tx, externa('sub-sinrol', 'sinrol@gmail-sintetico.test'))),
+        sinCredencial: await externa_(await pedir(tx, externa('sub-vencida', 'vencida@gmail-sintetico.test'))),
+      }
+      return { respuestas, consultar: await motivosDe(tx, 'acceso.consultar', desde) }
+    })
+    const NEGATIVA = {
+      status: 403,
+      headers: [['cache-control', 'no-store'], ['x-vs01-denial', 'NOT_ADMITTED']],
+      cuerpo: '',
+    }
+    assert.deepEqual(r.respuestas, { noInvitada: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA, sinCredencial: NEGATIVA })
+    const negada = (reason_code: string) => ({ outcome: 'denied', reason_code, actor_user_id: null, object_id: null })
+    assert.deepEqual(r.consultar, [negada('SIN_CREDENCIAL'), negada('SIN_ACCESO'), negada('SIN_ACCESO'), negada('SIN_CREDENCIAL')])
+  })
+})

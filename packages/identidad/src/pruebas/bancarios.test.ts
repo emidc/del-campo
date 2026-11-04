@@ -25,4 +25,12 @@ describe('detector de datos bancarios para los tests de auditoría', () => {
     })
     assert.deepEqual(datosBancariosEn(fila), [])
   })
+
+  it('no confunde un uuid cuyos grupos de dígitos, unidos, pasan Luhn', () => {
+    // Salió de un `actor_user_id` real de la base de prueba de Communication OS, que no se
+    // revierte: cada corrida suma uuids y, tarde o temprano, uno así hacía fallar AM-10b.
+    assert.deepEqual(datosBancariosEn(JSON.stringify({ actor: '4d411132-2559-4605-8feb-b086c26ba31d' })), [])
+    // Pero la misma tarjeta, escrita por un cliente con guiones, sigue apareciendo.
+    assert.ok(datosBancariosEn('4539-1488-0343-6467').includes('4539148803436467'))
+  })
 })

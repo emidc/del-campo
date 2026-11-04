@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
 import {
-  emitirToken, generarParDeClaves, jwksDe, registroJtiEnMemoria, sellarHandshake, type Identidad, type ParDeClaves, type Verificacion,
+  emitirToken, generarParDeClaves, jwksDe, registroJtiEnMemoria, sellarHandshake, sellarSesion, type Identidad, type ParDeClaves, type Verificacion,
 } from '@del-campo/identidad'
 import {
   asignar, cambiarRol, connect, darDeBaja, registroJtiPostgres, organizaciones, EXPLICACION, importarLote, invitar, leerArchivosDeLote, leerContrato, migrate, SIN_ORDEN_PREVIO,
@@ -30,7 +30,7 @@ import { callbackResponse } from './entrada.ts'
 import { admitirLlamada, AUDIENCIA_RISK } from './entre-contextos.ts'
 import { withSesion, type Deps } from './guard.ts'
 import { detalleResponse, loginResponse, logoutResponse, organizacionesResponse, vistaDeOrganizacionResponse } from './handlers.ts'
-import { COOKIE_HANDSHAKE, COOKIE_IDENTIDAD, PROPOSITO } from './identidad.ts'
+import { configEntrada, COOKIE_HANDSHAKE, COOKIE_IDENTIDAD, PROPOSITO } from './identidad.ts'
 import { sesionDePagina } from './pagina.ts'
 import { issueSession, SESSION_COOKIE } from './sesion.ts'
 
@@ -413,6 +413,105 @@ describe('revocación y modo legacy', () => {
       const p = await sesionDePagina({ env: LEGACY, cookie: (n) => (n === SESSION_COOKIE ? cookie.split('=').slice(1).join('=') : undefined), db: () => e.tx, alLogin: () => { throw new Error('al login') } })
       assert.equal(p?.rol, undefined)
       assert.equal(p?.nombre, 'Persona de siempre')
+    })
+  })
+})
+
+// Condición previa a la fase 2 (plan de migración, «Condiciones antes de ejecutar la fase
+// 2»): una negativa de la base responde igual que una cuenta no admitida, y el motivo
+// específico queda sólo en `evento_auditoria`. Se comparan las respuestas enteras —status,
+// cada header (también cada `set-cookie`) y cuerpo—: un header de más ya distinguiría un caso.
+//
+// En Risk OS «sin rol vigente» y «de baja» son el mismo estado: una baja es una fila de
+// `rol_persona` sin rol (0006). Se prueban por los dos caminos: la baja de la CLI del owner y
+// una fila sin rol cargada directo.
+describe('las negativas de la base no revelan el motivo (condición de la fase 2)', () => {
+  /** Lo que ve quien está afuera: status, todos los headers y el cuerpo. */
+  const deAfuera = async (r: Response): Promise<{ status: number; headers: [string, string][]; cuerpo: string }> => ({
+    status: r.status,
+    headers: [...r.headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    cuerpo: await r.text(),
+  })
+
+  interface Evento { actor: string | null; resultado: string; motivo: string | null; idObjeto: string | null }
+  const ultimoId = async (tx: TransactionSql): Promise<string> => {
+    const [f] = await tx<{ id: string }[]>`select coalesce(max(id), 0)::text as id from risk.evento_auditoria`
+    return f?.id ?? '0'
+  }
+  /** Lo auditado con `accion` después del evento `desde`. */
+  const eventosDesde = async (tx: TransactionSql, accion: string, desde: string): Promise<Evento[]> => [
+    ...(await tx<Evento[]>`
+      select actor_persona_id as actor, resultado, motivo, id_objeto as "idObjeto"
+      from risk.evento_auditoria where accion = ${accion} and id > ${desde} order by id`),
+  ]
+  const negada = (motivo: string): Evento => ({ actor: null, resultado: 'denied', motivo, idObjeto: null })
+
+  /** La operadora, de baja por la CLI; el revisor, sin rol por una fila cargada directo. */
+  const sembrar = async (e: Equipo): Promise<void> => {
+    assert.ok((await darDeBaja(e.tx, { actor: e.ids.admin, personaId: e.ids.operadora })).ok)
+    await e.tx`insert into risk.rol_persona (persona_id, rol, autor_persona_id) values (${e.ids.revisor}, null, ${e.ids.admin})`
+  }
+
+  it('al volver de Google, no invitada, de baja y sin rol reciben la misma redirección y ninguna sesión', async () => {
+    await conEquipo(async (e) => {
+      await sembrar(e)
+      const desde = await ultimoId(e.tx)
+      const respuestas = {
+        noInvitada: await deAfuera(await e.volverDeGoogle(identidad('nadie'))),
+        baja: await deAfuera(await e.volverDeGoogle(identidad('operadora'))),
+        sinRol: await deAfuera(await e.volverDeGoogle(identidad('revisor'))),
+      }
+      const NEGATIVA = {
+        status: 303,
+        headers: [
+          ['cache-control', 'no-store'],
+          ['location', `${ORIGIN}/login?error=1`],
+          // Sólo se borra el handshake: ninguna cookie de sesión.
+          ['set-cookie', `${COOKIE_HANDSHAKE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`],
+        ],
+        cuerpo: '',
+      }
+      assert.deepEqual(respuestas, { noInvitada: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA })
+      assert.deepEqual(await eventosDesde(e.tx, 'acceso.ingresar', desde), [negada('NO_INVITADO'), negada('DADO_DE_BAJA'), negada('DADO_DE_BAJA')])
+      assert.deepEqual(await eventosDesde(e.tx, 'acceso.consultar', desde), [])
+    })
+  })
+
+  it('con la sesión ya abierta, sin credencial, de baja y sin rol reciben la misma respuesta que una cuenta no admitida', async () => {
+    await conEquipo(async (e) => {
+      // Invitada y nunca vinculada: su cookie trae una identidad sin credencial externa.
+      const pendiente = identidad('pendiente')
+      assert.ok((await invitar(e.tx, { actor: e.ids.admin, email: pendiente.email, rol: 'OPERADOR', nombre: 'Pendiente de prueba' })).ok)
+      const sesion = configEntrada(OIDC)?.sesion
+      assert.ok(sesion !== undefined)
+      const cookies = {
+        ajena: await sellarSesion(identidad('nadie'), sesion),
+        pendiente: await sellarSesion(pendiente, sesion),
+        baja: e.cookies.operadora,
+        sinRol: e.cookies.revisor,
+      }
+      await sembrar(e)
+      const desde = await ultimoId(e.tx)
+      const respuestas = {
+        ajena: await deAfuera(await e.get(cookies.ajena, '/api/organizaciones')),
+        pendiente: await deAfuera(await e.get(cookies.pendiente, '/api/organizaciones')),
+        baja: await deAfuera(await e.get(cookies.baja, '/api/organizaciones')),
+        sinRol: await deAfuera(await e.get(cookies.sinRol, '/api/organizaciones')),
+      }
+      const NEGATIVA = {
+        status: 401,
+        headers: [['cache-control', 'no-store'], ['content-type', 'application/json; charset=utf-8']],
+        cuerpo: JSON.stringify({ error: 'sin credencial válida' }),
+      }
+      assert.deepEqual(respuestas, { ajena: NEGATIVA, pendiente: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA })
+      // Y es la misma que la de una cookie adulterada: desde afuera, no hay sesión.
+      assert.deepEqual(await deAfuera(await e.get('no-es-una-sesion', '/api/organizaciones')), NEGATIVA)
+      assert.deepEqual(await eventosDesde(e.tx, 'acceso.consultar', desde), [
+        negada('SIN_CREDENCIAL'), negada('SIN_CREDENCIAL'), negada('SIN_ACCESO'), negada('SIN_ACCESO'),
+      ])
+
+      // Las páginas: las cuatro van al login, igual que sin cookie (`page-guard.ts` redirige con `null`).
+      for (const cookie of [...Object.values(cookies), 'no-es-una-sesion']) assert.equal(await e.pagina(cookie), null)
     })
   })
 })

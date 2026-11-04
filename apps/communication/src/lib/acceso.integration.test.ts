@@ -244,6 +244,110 @@ describe('revocación inmediata (D-0022, condición 6)', () => {
   })
 })
 
+// Condición previa a la fase 2 (plan de migración, «Condiciones antes de ejecutar la fase
+// 2»): una negativa de la base responde igual que una cuenta no admitida, y el motivo
+// específico queda sólo en `audit_event`. Se comparan las respuestas enteras —status,
+// cada header (también cada `set-cookie`) y cuerpo—: un header de más ya distinguiría un caso.
+describe('las negativas de la base no revelan el motivo (condición de la fase 2)', () => {
+  /** Lo que ve quien está afuera: status, todos los headers y el cuerpo. */
+  const deAfuera = async (response: Response): Promise<{ status: number; headers: [string, string][]; cuerpo: string }> => ({
+    status: response.status,
+    headers: [...response.headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    cuerpo: await response.text(),
+  })
+
+  interface Evento { actor: string | null; outcome: string; reason: string | null; object_id: string | null }
+  /** Lo auditado con `accion` después del evento `desde`. La base no se revierte: se mira sólo lo nuevo. */
+  const eventosDesde = async (accion: string, desde: string): Promise<Evento[]> => [
+    ...(await sql<Evento[]>`
+      select actor_user_id as actor, outcome, reason_code as reason, object_id
+      from communication.audit_event where action = ${accion} and id > ${desde} order by id`),
+  ]
+  const ultimoId = async (): Promise<string> => {
+    const [f] = await sql<{ id: string }[]>`select coalesce(max(id), 0)::text as id from communication.audit_event`
+    return f?.id ?? '0'
+  }
+
+  /**
+   * Una persona por caso: `baja` (credencial vinculada y dada de baja), `sinrol` (credencial
+   * vinculada, activa y sin rol) y `vencida` (invitación vencida, sin credencial). `ajena`
+   * no existe en la base. Devuelve las cookies que el callback les emitió cuando entraron.
+   * `caso` separa las personas de cada test, porque la base no se revierte.
+   */
+  const sembrar = async (caso: string) => {
+    const quienes = {
+      ajena: identidad(`${caso}-ajena`), baja: identidad(`${caso}-baja`), sinRol: identidad(`${caso}-sinrol`), vencida: identidad(`${caso}-vencida`),
+    }
+    const baja = await invitar(quienes.baja.email, 'OPERADOR')
+    const sinRol = await invitar(quienes.sinRol.email, 'OPERADOR')
+    await invitar(quienes.vencida.email, 'OPERADOR', -1)
+    const cookies = {
+      ajena: await sellarSesion(quienes.ajena, config().sesion),
+      baja: await entrar(quienes.baja),
+      sinRol: await entrar(quienes.sinRol),
+      vencida: await sellarSesion(quienes.vencida, config().sesion),
+    }
+    await sql`update communication.app_user set status = 'INACTIVE' where id = ${baja}`
+    await sql`update communication.app_user set role = null where id = ${sinRol}`
+    return { quienes, cookies }
+  }
+
+  it('al volver de Google, no invitada, de baja, sin rol y sin credencial reciben la misma redirección y ninguna sesión', async () => {
+    const { quienes } = await sembrar('neg-login')
+    const desde = await ultimoId()
+    const respuestas = {
+      ajena: await deAfuera(await volverDeGoogle(quienes.ajena)),
+      baja: await deAfuera(await volverDeGoogle(quienes.baja)),
+      sinRol: await deAfuera(await volverDeGoogle(quienes.sinRol)),
+      vencida: await deAfuera(await volverDeGoogle(quienes.vencida)),
+    }
+    const NEGATIVA = {
+      status: 303,
+      headers: [
+        ['cache-control', 'no-store'],
+        ['location', `${ORIGIN}/login?error=1`],
+        // Sólo se borra el handshake: ninguna cookie de sesión.
+        ['set-cookie', `${COOKIE_HANDSHAKE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`],
+      ],
+      cuerpo: '',
+    }
+    assert.deepEqual(respuestas, { ajena: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA, vencida: NEGATIVA })
+
+    const negada = (reason: string): Evento => ({ actor: null, outcome: 'denied', reason, object_id: null })
+    assert.deepEqual(
+      (await eventosDesde('acceso.ingresar', desde)).filter((e) => e.outcome === 'denied'),
+      [negada('NO_INVITADO'), negada('DADO_DE_BAJA'), negada('NO_INVITADO')],
+    )
+    // Sin rol, la credencial existe y `ingresar` la reconoce; la base no la admite y eso
+    // queda como cualquier otra negativa de la base.
+    assert.deepEqual(await eventosDesde('acceso.consultar', desde), [negada('SIN_ACCESO')])
+  })
+
+  it('con la sesión ya abierta, sin credencial, de baja y sin rol reciben la misma respuesta que una cuenta no admitida', async () => {
+    const { cookies } = await sembrar('neg-sesion')
+    const desde = await ultimoId()
+    const respuestas = {
+      ajena: await deAfuera(await lista(cookies.ajena)),
+      baja: await deAfuera(await lista(cookies.baja)),
+      sinRol: await deAfuera(await lista(cookies.sinRol)),
+      vencida: await deAfuera(await lista(cookies.vencida)),
+    }
+    const NEGATIVA = {
+      status: 401,
+      headers: [['cache-control', 'no-store'], ['content-type', 'application/json; charset=utf-8']],
+      cuerpo: JSON.stringify({ error: 'sin credencial válida' }),
+    }
+    assert.deepEqual(respuestas, { ajena: NEGATIVA, baja: NEGATIVA, sinRol: NEGATIVA, vencida: NEGATIVA })
+    // Y es la misma que la de una cookie adulterada: desde afuera, no hay sesión.
+    assert.deepEqual(await deAfuera(await lista('basura')), NEGATIVA)
+
+    const negada = (reason: string): Evento => ({ actor: null, outcome: 'denied', reason, object_id: null })
+    assert.deepEqual(await eventosDesde('acceso.consultar', desde), [
+      negada('SIN_CREDENCIAL'), negada('SIN_ACCESO'), negada('SIN_ACCESO'), negada('SIN_CREDENCIAL'),
+    ])
+  })
+})
+
 describe('permisos por rol en la app (matriz de permisos.js)', () => {
   it('el Revisor profesional no ve Comunicación: 403 con quién sí puede', async () => {
     const quien = identidad('revisor')

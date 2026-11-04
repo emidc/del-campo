@@ -8,6 +8,10 @@
 //
 // Sólo si esto admite se emite la cookie de sesión. La cookie lleva la identidad, no
 // permisos: en cada consulta, `conDatos` vuelve a preguntarle a la base.
+//
+// `ingresar` mira la credencial y el estado, no el rol: una persona activa y sin rol pasaría
+// y recibiría una sesión que no lee nada, y esa sesión la distinguiría hacia afuera de una
+// cuenta no invitada. Por eso, antes de admitir, la misma pregunta que hace cada consulta.
 
 import type { Identidad } from '@del-campo/identidad'
 
@@ -16,6 +20,7 @@ import type { AdmissionConfig, AdmissionDenial, IdentityClaims } from '../sessio
 import { evaluateAdmission } from '../session/admission.ts'
 import type { Conexion } from './base.ts'
 import { ingresar } from './base.ts'
+import { AccesoDenegado, conDatos } from './datos.ts'
 
 export type ResultadoLogin =
   | { readonly admitido: true }
@@ -40,5 +45,14 @@ export const admitirLogin = async (
   if (!('modo' in config)) return { admitido: true }
 
   const decision = await ingresar(conexion, identidadDeClaims(claims), ahora)
-  return decision.tipo === 'RECHAZA' ? { admitido: false, motivo: 'NOT_ADMITTED' } : { admitido: true }
+  if (decision.tipo === 'RECHAZA') return { admitido: false, motivo: 'NOT_ADMITTED' }
+
+  try {
+    // Sin credencial, de baja o sin rol: `conDatos` lo deja auditado (`acceso.consultar`).
+    await conDatos(conexion, outcome.principal, () => Promise.resolve(), 'oidc')
+  } catch (error) {
+    if (error instanceof AccesoDenegado) return { admitido: false, motivo: 'NOT_ADMITTED' }
+    throw error
+  }
+  return { admitido: true }
 }
