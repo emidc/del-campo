@@ -20,20 +20,28 @@ Los arreglos van en el PR #112, antes de su merge.
 
 ## Consider
 
-Ninguno se corrige en este PR. El owner decidió (2026-11-03) que el 2, el 3 y el 6 se
-corrigen en un PR aparte antes de la fase 4. El 4 y el 5 quedan como condiciones antes de la
-fase que los activa.
+Ninguno se corrige en el #112. El owner decidió (2026-11-03) que el 2, el 3 y el 6 se
+corrigen en un PR aparte antes de la fase 4: los corrige la migración `0008` de Risk OS. El
+4 y el 5 quedan como condiciones antes de la fase que los activa.
 
 - **2. Orden previo vacío.** La base exige que exista el orden previo, no que cubra los
-  riesgos. Sólo se explota con SQL directo como `risk_persona`. Antes de la fase 4.
+  riesgos. Sólo se explota con SQL directo como `risk_persona`. **Corregido en `0008`:**
+  `authz_ve_resultados` exige que el orden previo cubra cada riesgo y cada padre de la
+  organización registrados hasta él, y el Revisor ya no elige `registrado_en`.
 - **3. `authz_*` invocables con cualquier argumento.** Dejan ver el rol de cualquier
   persona y el riesgo de una evaluación ajena. Mismo vector: SQL directo como
-  `risk_persona`. Antes de la fase 4.
+  `risk_persona`. **Corregido en `0008`:** `authz_rol_de`, `authz_organizaciones_asignadas` y
+  `authz_autor_de` dejan de ser ejecutables por `risk_persona`; `authz_riesgo_de` devuelve el
+  riesgo sólo si quien consulta lo ve, y las de autor o revisor, el id sólo si es el suyo.
 - **4. `legado_risk_app` abierta con `oidc`.** Falta en el plan de migración el paso que la
   retira después de la fase 4.
 - **5. `jti` sin registro persistente.** Ya era condición de la primera llamada real entre
   contextos; el revisor agrega que el verificador hoy acepta `registroJti: null`.
 - **6. Eventos de auditoría arbitrarios a nombre propio.** Mismo vector que 2 y 3.
+  **Corregido en `0008` para Risk OS:** `risk_persona` sólo escribe acciones `riesgo.*`. Una
+  persona todavía puede escribir a su nombre un `riesgo.*` que no hizo; lo que ya no puede es
+  fingir una acción administrativa o de acceso. Communication OS y Broker OS tienen la misma
+  política (`0005:235-236`, `0007:271-272`) y no entran en este cambio.
 
 ## Noted
 
@@ -42,3 +50,33 @@ fase que los activa.
 - **Recuento de Communication OS.** La evidencia anotaba «fail 1» porque el suite padre de
   los 4 cancelados cuenta como fallido en esa salida; el revisor contó 0 fallas y los
   mismos 4 cancelados. Es el mismo resultado.
+
+## Revisión ciega del PR de `0008`
+
+`REVIEWS/T-0035-0008-blind-review.md`, sobre `5ea8aa5`, antes del merge (D-0052). Sondas en
+`REVIEWS/T-0035-0008/`.
+
+- **Act on 1. Importación concurrente con el registro del orden previo. Arreglado.** La
+  primera versión de `0008` comparaba `registrado_en` de riesgo y orden previo, que son la
+  hora de inicio de cada transacción: una importación que empezaba antes y confirmaba
+  después dejaba al Revisor sin resultados para siempre. Ahora no se comparan instantes. Un
+  constraint trigger diferido (`orden_previo_cubre_el_material`) rechaza al confirmar un
+  orden previo que deje sin ítem algún riesgo o padre ya confirmado, y
+  `authz_ve_resultados` acepta un orden previo de una transacción anterior (ya pasó el
+  trigger) o, dentro de la propia, uno que cubra lo que esa transacción ve. Sonda con dos
+  conexiones reales (`REVIEWS/T-0035-0008/sonda-arreglo-carrera.txt`): con la importación
+  confirmando después, el Revisor sigue viendo resultados; confirmando antes, el registro
+  falla y el reintento entra.
+- **Consider 2. Transacción abierta antes de una importación. Cerrado por el mismo
+  arreglo.** En `READ COMMITTED` el Revisor ve el riesgo nuevo y tiene que ordenarlo (en la
+  sonda, `ve_sin_ordenar_d = f` y el `commit` falla). Con `REPEATABLE READ` no lo ve y el
+  orden cubre su material; el riesgo queda como material posterior, igual que uno importado
+  después.
+- **Consider 3. `authz_riesgo_de` antes del orden previo. Arreglado.** Devuelve el riesgo
+  sólo si quien consulta ve sus resultados; la prueba cubre al Revisor antes y después de
+  su orden previo. Los booleanos `authz_ve_*` siguen ejecutables: dicen si un id existe en
+  lo que la persona ve, no su contenido. No los cambio.
+- **Consider 4. Auditoría.** Arreglado lo barato: el actor tiene que ser el principal, nunca
+  `null`. Sigue abierto que una persona escriba a su nombre un `riesgo.*` falso o sobre un
+  objeto que no ve: la app arma la acción como `riesgo.<op>`, así que una lista cerrada o
+  la visibilidad del objeto en la política son un cambio aparte, si el owner lo quiere.

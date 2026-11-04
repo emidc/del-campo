@@ -251,6 +251,46 @@ describe('independencia del orden previo (RO01 §6, A8a)', () => {
       assert.equal(directo, '42501', 'ni el Administrador lo registra salteando la app')
     }))
 
+  it('un orden previo escrito por SQL abre los resultados sólo si cubre todo el material ciego, y no se confirma si no lo cubre', () =>
+    conEquipo(async (e) => {
+      const opr = 'OPR-00000000000000000000000079'
+      const ciegos = (await e.tx<{ id: string }[]>`
+        select id from risk.riesgo where organizacion_id = ${ORG} and tipo_objeto in ('riesgo', 'padre') order by id`).map((r) => r.id)
+      assert.ok(ciegos.length > 1)
+      const evaluaciones = async (): Promise<number> => (await como(e.tx, e.revisor, (t) => t<{ n: number }[]>`
+        select count(*)::int as n from risk.evaluacion x join risk.riesgo r on r.id = x.risk_id where r.organizacion_id = ${ORG}`))[0]?.n ?? -1
+
+      // Con fecha atrasada no entra: si entrara, ningún riesgo quedaría antes de él.
+      const atrasado = await como(e.tx, e.revisor, (t) => codigo(t, (u) => u`
+        insert into risk.orden_previo (id, organizacion_id, revisor_persona_id, material_ref, registrado_en)
+        values (${opr}, ${ORG}, ${e.revisor}, 'MAT', '2000-01-01')`))
+      assert.equal(atrasado, '42501')
+
+      await como(e.tx, e.revisor, (t) => t`
+        insert into risk.orden_previo (id, organizacion_id, revisor_persona_id, material_ref) values (${opr}, ${ORG}, ${e.revisor}, 'MAT')`)
+      assert.equal(await evaluaciones(), 0, 'vacío')
+      const item = (riskId: string, posicion: number) => como(e.tx, e.revisor, (t) => t`
+        insert into risk.orden_previo_item (orden_previo_id, organizacion_id, risk_id, posicion) values (${opr}, ${ORG}, ${riskId}, ${posicion})`)
+      // Lo que exige el trigger al confirmar, adelantado con SET CONSTRAINTS.
+      const alConfirmar = (): Promise<string> => codigo(e.tx, (u) => u`set constraints risk.orden_previo_cubre_el_material immediate`)
+      for (const [i, riskId] of ciegos.slice(1).entries()) await item(riskId, i + 1)
+      assert.equal(await evaluaciones(), 0, 'le falta uno')
+      assert.equal(await alConfirmar(), '23514', 'y no se confirma')
+      await item(ciegos[0] ?? '', ciegos.length)
+      assert.ok(await evaluaciones() > 0, 'completo')
+
+      // Un riesgo que otra transacción confirma antes que el registro lo deja sin cubrir: el
+      // registro no se confirma y se reintenta, en vez de quedar trabado.
+      const importado = 'RSK-00000000000000000000000079'
+      await e.tx`
+        insert into risk.riesgo (id, organizacion_id, tipo_objeto, titulo, origen, autor_persona_id)
+        values (${importado}, ${ORG}, 'riesgo', 'Riesgo importado a la vez', 'sesion', ${e.operador})`
+      assert.equal(await evaluaciones(), 0)
+      assert.equal(await alConfirmar(), '23514')
+      await item(importado, ciegos.length + 1)
+      assert.equal(await alConfirmar(), 'sin error')
+    }))
+
   it('el Revisor no carga datos: lo explica la app y lo exige la base', () =>
     conEquipo(async (e) => {
       await como(e.tx, e.revisor, ordenPrevio)
@@ -438,13 +478,64 @@ describe('condiciones de D-0022 en la base de Risk OS', () => {
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'risk' and p.proname like 'authz\\_%'`
     assert.ok(fs.length >= 18)
+    // Sólo las usan otras funciones, que corren como su dueño (0008).
+    const internas = ['risk.authz_rol_de(text)', 'risk.authz_organizaciones_asignadas()', 'risk.authz_autor_de(text,text,text)']
     for (const f of fs) {
       assert.ok(f.definer, f.f)
       assert.deepEqual(f.config, ['search_path=""'], f.f)
       assert.equal(f.publico, false, f.f)
-      assert.equal(f.persona, true, f.f)
+      assert.equal(f.persona, !internas.includes(f.f), f.f)
     }
+    assert.equal(fs.filter((f) => internas.includes(f.f)).length, internas.length)
   })
+
+  it('las authz_* no le dicen a quien consulta lo que RLS le oculta', () =>
+    conEquipo(async (e) => {
+      const riesgoAjeno = id('S07-R06')
+      const [ajena] = await e.tx<{ ev: string }[]>`select id as ev from risk.evaluacion where risk_id = ${riesgoAjeno} limit 1`
+      const [propia] = await e.tx<{ ev: string }[]>`select id as ev from risk.evaluacion where risk_id = ${RIESGO} limit 1`
+      assert.ok(ajena !== undefined && propia !== undefined)
+
+      const internas: readonly [string, (u: TransactionSql) => Promise<unknown>][] = [
+        ['authz_rol_de', (u) => u`select risk.authz_rol_de(${e.admin})`],
+        ['authz_organizaciones_asignadas', (u) => u`select risk.authz_organizaciones_asignadas()`],
+        ['authz_autor_de', (u) => u`select risk.authz_autor_de(${ajena.ev}, null, null)`],
+      ]
+      for (const [nombre, consulta] of internas) {
+        assert.equal(await como(e.tx, e.operador, (t) => codigo(t, consulta)), '42501', nombre)
+      }
+
+      const riesgoDe = (quien: string, ev: string) => como(e.tx, quien, (t) => t<{ r: string | null }[]>`
+        select risk.authz_riesgo_de(${ev}, null, null) as r`).then((f) => f[0]?.r)
+      assert.equal(await riesgoDe(e.operador, ajena.ev), null, 'de otra organización')
+      assert.equal(await riesgoDe(e.operador, propia.ev), RIESGO)
+      assert.equal(await riesgoDe(e.revisor, propia.ev), null, 'el Revisor, antes de su orden previo')
+
+      // Autor de un reordenamiento y revisor de un orden previo: sólo si es quien consulta.
+      await como(e.tx, e.revisor, ordenPrevio)
+      assert.equal(await riesgoDe(e.revisor, propia.ev), RIESGO, 'y después')
+      const { reordenamientoId } = await como(e.tx, e.revisor, (t, s) => reordenar(t, s, V, ORG, {
+        tipo: 'banda', riskId: RIESGO, banda: 'Crítica', causa: 'desacuerdo_de_criterio_profesional', fundamento: 'Criterio profesional.', patron: 'otro',
+      }))
+      const [opr] = await e.tx<{ id: string }[]>`select id from risk.orden_previo where revisor_persona_id = ${e.revisor} and organizacion_id = ${ORG}`
+      const autores = (quien: string) => como(e.tx, quien, (t) => t<{ ror: string | null; opr: string | null }[]>`
+        select risk.authz_autor_reordenamiento(${reordenamientoId}) as ror, risk.authz_revisor_orden_previo(${opr?.id ?? ''}) as opr`)
+        .then((f) => ({ ...f[0] }))
+      assert.deepEqual(await autores(e.operador), { ror: null, opr: null })
+      assert.deepEqual(await autores(e.revisor), { ror: e.revisor, opr: e.revisor })
+    }))
+
+  it('la auditoría sólo acepta de una persona acciones riesgo.*, y siempre con ella como actor', () =>
+    conEquipo(async (e) => {
+      const evento = (accion: string, actor: string | null = e.operador) => como(e.tx, e.operador, (t) => codigo(t, (u) => u`
+        insert into risk.evento_auditoria (actor_persona_id, origen, accion, tipo_objeto, id_objeto, resultado)
+        values (${actor}, 'app', ${accion}, 'persona', ${e.admin}, 'ok')`))
+      assert.equal(await evento('persona.dar_de_baja'), '42501')
+      assert.equal(await evento('acceso.ingresar'), '42501')
+      assert.equal(await evento('riesgo.consultar', null), '42501', 'sin actor')
+      assert.equal(await evento('riesgo.consultar', e.admin), '42501', 'a nombre de otra persona')
+      assert.equal(await evento('riesgo.consultar'), 'sin error')
+    }))
 
   it('el principal es local a la transacción: termina con ella, y conPrincipal restaura lo que había', () =>
     conEquipo(async (e) => {

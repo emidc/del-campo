@@ -1,0 +1,120 @@
+# Sondas de carrera contra Postgres (base descartable revision_0008_down: 0001-0007, 0008, down 0008, 0008 de nuevo). Personas e ids sintéticos.
+
+## C1: importación que empieza antes y confirma después del orden previo
+### conexión de importación (dueño)
+BEGIN
+      inicio_importacion       
+-------------------------------
+ 2026-11-04 00:02:14.937025+00
+(1 row)
+
+INSERT 0 1
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+
+### conexión del Revisor (risk_persona)
+BEGIN
+SET
+ principal 
+-----------
+ t
+(1 row)
+
+               id               |         registrado_en         
+--------------------------------+-------------------------------
+ RSK-0000000000000000000000000A | 2026-11-04 00:02:04.351313+00
+(1 row)
+
+INSERT 0 1
+INSERT 0 1
+ ve_resultados_al_registrar 
+----------------------------
+ t
+(1 row)
+
+COMMIT
+BEGIN
+SET
+ principal 
+-----------
+ t
+(1 row)
+
+               id               |         registrado_en         |      orden_registrado_en      
+--------------------------------+-------------------------------+-------------------------------
+ RSK-0000000000000000000000000A | 2026-11-04 00:02:04.351313+00 | 2026-11-04 00:02:15.937191+00
+ RSK-0000000000000000000000000B | 2026-11-04 00:02:14.937025+00 | 2026-11-04 00:02:15.937191+00
+(2 rows)
+
+ ve_resultados_despues 
+-----------------------
+ f
+(1 row)
+
+SAVEPOINT
+ERROR:  risk.orden_previo_item: las posiciones de OPR-00000000000000000000000001 van en la misma transacción que su registro
+CONTEXT:  PL/pgSQL function risk.orden_previo_item_en_su_registro() line 4 at RAISE
+
+### reintento de registro
+ERROR:  duplicate key value violates unique constraint "orden_previo_uno_por_revisor_y_empresa"
+
+## C2: transacción del Revisor abierta antes de una importación
+BEGIN
+SET
+ principal 
+-----------
+ t
+(1 row)
+
+       inicio_tx_revisor       
+-------------------------------
+ 2026-11-04 00:02:43.342744+00
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+               id               |         registrado_en         
+--------------------------------+-------------------------------
+ RSK-0000000000000000000000000C | 2026-11-04 00:02:43.295931+00
+ RSK-0000000000000000000000000D | 2026-11-04 00:02:44.35386+00
+(2 rows)
+
+INSERT 0 1
+INSERT 0 1
+ ve_resultados_sin_ordenar_d 
+-----------------------------
+ t
+(1 row)
+
+ROLLBACK
+
+## Reversa: diff de pg_dump -s -n risk antes de 0008 y después de 0008 + down
+5c5
+< \restrict 5gutJhOL56pKt3BICZFUhQqZksV6o1TnYcvhmqV8f3s4qn5sDvt5zxNIaMeUFTO
+---
+> \restrict 0Zz9EF3r6ZDVMFUqpPfIiRDmJFIzHxxzd09o7h4cEWYRq171xhA7BmhlOvA4s8B
+4052c4052
+< \unrestrict 5gutJhOL56pKt3BICZFUhQqZksV6o1TnYcvhmqV8f3s4qn5sDvt5zxNIaMeUFTO
+---
+> \unrestrict 0Zz9EF3r6ZDVMFUqpPfIiRDmJFIzHxxzd09o7h4cEWYRq171xhA7BmhlOvA4s8B
+## ACL de funciones: antes vs después de down (vacío = igual)
+## ACL de funciones: antes vs con 0008
+13c13
+< risk.authz_rol_de(text)|{root=X/root,risk_persona=X/root}
+---
+> risk.authz_rol_de(text)|{root=X/root}
+17c17
+< risk.authz_organizaciones_asignadas()|{root=X/root,risk_persona=X/root}
+---
+> risk.authz_organizaciones_asignadas()|{root=X/root}
+24c24
+< risk.authz_autor_de(text,text,text)|{root=X/root,risk_persona=X/root}
+---
+> risk.authz_autor_de(text,text,text)|{root=X/root}
