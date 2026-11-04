@@ -4,6 +4,9 @@
 // Sale de `staging_import_batch` (T-0013) y no de una variable de entorno: una fecha
 // configurada a mano puede quedar desactualizada respecto de la base sin que nada falle,
 // que es exactamente el modo de falla que este requisito existe para evitar.
+//
+// Las notas del lote no se leen: son texto libre de quien importa, y en `AUTH_MODE=oidc`
+// `broker_app` no tiene permiso sobre esa columna (migración 0011).
 
 import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
@@ -15,20 +18,17 @@ export interface BatchStamp {
   readonly importedAt: string | null
   /** Primeros caracteres del SHA-256 del manifiesto: identifica el lote sin exponerlo entero. */
   readonly manifestPrefix: string | null
-  readonly notes: string | null
 }
 
 interface BatchRow {
   readonly started_at: Date | string
   readonly source_manifest_sha256: string
-  readonly notes: string | null
 }
 
 const UNKNOWN: BatchStamp = {
   known: false,
   importedAt: null,
   manifestPrefix: null,
-  notes: null,
 }
 
 /**
@@ -38,7 +38,7 @@ const UNKNOWN: BatchStamp = {
  */
 export const latestBatch = async (principal: Principal): Promise<BatchStamp> => {
   const rows = await conDatos(sql(), principal, (executor) => executor<BatchRow[]>`
-    select started_at, source_manifest_sha256, notes
+    select started_at, source_manifest_sha256
     from staging_import_batch
     order by started_at desc
     limit 1
@@ -49,7 +49,6 @@ export const latestBatch = async (principal: Principal): Promise<BatchStamp> => 
     known: true,
     importedAt: row.started_at instanceof Date ? row.started_at.toISOString() : row.started_at,
     manifestPrefix: row.source_manifest_sha256.slice(0, 12),
-    notes: row.notes,
   }
 }
 
@@ -58,7 +57,5 @@ export const batchLabel = (stamp: BatchStamp): string => {
   if (!stamp.known || stamp.importedAt === null) {
     return 'Lote desconocido — esta base no declara ninguna importación'
   }
-  const date = stamp.importedAt.slice(0, 10)
-  const suffix = stamp.notes === null || stamp.notes.trim() === '' ? '' : ` · ${stamp.notes.trim()}`
-  return `Datos del lote importado el ${date}${suffix}`
+  return `Datos del lote importado el ${stamp.importedAt.slice(0, 10)}`
 }
