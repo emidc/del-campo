@@ -176,7 +176,7 @@ días y la aprobación explícita del owner.
 | Variables de Vercel y despliegues a producción | Owner |
 | Borrar la credencial compartida y cerrar el modo legacy (fases 3 y 5) | Owner, con aprobación explícita |
 
-## 5. Decisiones del owner (2026-11-03)
+## 5. Decisiones del owner (2026-11-03, con agregados posteriores)
 
 Respondidas en el hilo de T-0035 al aprobar este plan.
 
@@ -193,6 +193,12 @@ Respondidas en el hilo de T-0035 al aprobar este plan.
    administre Google Cloud. Se evalúan clientes separados por app (fase 1).
 4. **Orden.** Broker OS, Communication OS y Risk OS. Se prioriza eliminar la credencial
    compartida y Risk OS va último para proteger la identidad y la autoría históricas.
+5. **Sin observación de siete días después de la fase 2** (decisión del owner,
+   2026-11-04). La fase 3 no espera a que Broker OS lleve siete días estable en `oidc`.
+   Los plazos de la fase 3 (paso 4) y de la fase 5 siguen como están escritos.
+6. **Fase 2 sólo con el owner** (decisión del owner, 2026-11-05). Broker OS pasó a `oidc` con
+   el owner como único Administrador. El resto del equipo se invita después, según el
+   punto 2.
 
 ### Condiciones antes de ejecutar la fase 2
 
