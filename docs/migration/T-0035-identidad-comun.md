@@ -205,6 +205,9 @@ Respondidas en el hilo de T-0035 al aprobar este plan.
 8. **Fase 4 postergada** (decisión del owner, 2026-11-06). Se ejecuta más cerca de producción,
    sólo con el owner como Administrador. Hoy el proyecto de Supabase de Risk OS está pausado
    por el límite del plan gratuito.
+9. **El hash de la credencial compartida se queda** (decisión del owner, 2026-11-06). El paso 4
+   de la fase 3 no se ejecuta por ahora: el owner asume el riesgo de que `AUTH_MODE=legacy` la
+   vuelva a habilitar.
 
 ### Condiciones antes de ejecutar la fase 2
 
