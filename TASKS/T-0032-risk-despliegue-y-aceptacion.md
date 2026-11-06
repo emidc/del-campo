@@ -2,7 +2,7 @@
 id: T-0032
 title: Desplegar Risk OS y ejecutar la aceptación de RO01
 kind: FEATURE
-status: ACTIVE
+status: BLOCKED
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -20,6 +20,11 @@ contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               SPIKES/T-0021/v0/fase-13/dossier-cierre-emi15.md, ENGINEERING_RULES.md]
 decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068, D-0070]
 ---
+
+> **BLOCKED desde el 2026-11-06** por decisión del owner: Risk OS queda postergado hasta
+> estar más cerca de producción. Su proyecto de Supabase está pausado por el límite de dos
+> proyectos activos del plan Free (`ops/evidence/T-0035.md`, fase 4). Se libera con la
+> configuración de infraestructura de `T-0037` (`docs/migration/zoho/T-0037-infraestructura.md`).
 
 ## Why
 

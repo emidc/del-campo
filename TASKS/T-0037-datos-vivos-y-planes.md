@@ -2,14 +2,16 @@
 id: T-0037
 title: Refrescar los datos de clientes y pólizas y ajustar la infraestructura al presupuesto (C3)
 kind: MIGRATION
-status: DRAFT
+status: ACTIVE
 workstream: MIG
 riskClass: HIGH
 size: M
 created: 2026-11-02
 blockedBy: [T-0034]
 contextRefs: [PROJECT.md, docs/migration/zoho, DECISIONS/0064-enlaces-de-zoho-sin-comprobar.md,
-              docs/despliegue/vercel-vs01.md]
+              docs/despliegue/vercel-vs01.md, DECISIONS/0076-presupuesto-de-infraestructura.md,
+              docs/migration/zoho/T-0037-infraestructura.md,
+              docs/migration/zoho/T-0037-refresco.md]
 decisionRefs: [D-0062, D-0064, D-0068, D-0076]
 ---
 
