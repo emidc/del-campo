@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * Receptor de Meta (T-0024). Fuera de la credencial de D-0066: lo protege la firma
+ * Receptor de Meta (T-0024). Fuera de la sesión de la UI: lo protege la firma
  * `X-Hub-Signature-256`. Responde primero y procesa después, con `after`.
  */
 const handle = async (request: Request): Promise<Response> => {

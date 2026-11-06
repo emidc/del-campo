@@ -30,10 +30,9 @@ export const requireAdmitted = async (): Promise<Principal> => {
 }
 
 /**
- * Las consultas de una página. En `oidc`, la base puede negar aunque la sesión sea válida
- * (sin credencial vinculada, de baja o sin rol): la página vuelve al login con el mismo
- * motivo que una cuenta no admitida, y el detalle queda en la auditoría (T-0035). En
- * `legacy`, `AccesoDenegado` no se lanza nunca.
+ * Las consultas de una página. La base puede negar aunque la sesión sea válida (sin
+ * credencial vinculada, de baja o sin rol): la página vuelve al login con el mismo motivo
+ * que una cuenta no admitida, y el detalle queda en la auditoría (T-0035).
  */
 export const consultar = async <T>(consultas: Promise<T>): Promise<T> => {
   try {

@@ -1,4 +1,4 @@
-// T-0035 — `conDatos`: las consultas reales de VS01 en `legacy` y en `oidc`. Contra un
+// T-0035 — `conDatos`: las consultas reales de VS01, como `broker_app`. Contra un
 // Postgres real (R-26), con datos sintéticos y cada caso en una transacción revertida
 // (R-19). Requiere DATABASE_URL con las migraciones hasta 0010 aplicadas.
 
@@ -131,21 +131,7 @@ const motivo = async (promesa: Promise<unknown>): Promise<string> => {
   }
 }
 
-describe('conDatos en legacy: nada cambia', () => {
-  it('corre con la conexión de la app, sin rol restringido ni filtro por cliente', async () => {
-    const r = await descartable(async (tx) => {
-      const m = await sembrar(tx)
-      return conDatos(tx, principal('sub-cualquiera'), async (ejecutor) => ({
-        rol: uno(await ejecutor<{ rol: string }[]>`select current_user as rol`).rol,
-        personal: await getPolicyDetail(ejecutor, m.polP1, new Date().toISOString().slice(0, 10)),
-      }), 'legacy')
-    })
-    assert.notEqual(r.rol, 'broker_app')
-    assert.notEqual(r.personal, null)
-  })
-})
-
-describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
+describe('conDatos: las consultas de VS01 corren restringidas', () => {
   it('la consulta corre como broker_app, y el Operador de E1 no ve la póliza personal de su empleado', async () => {
     const hoy = new Date().toISOString().slice(0, 10)
     const r = await descartable(async (tx) => {
@@ -154,25 +140,25 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
         rol: uno(await ejecutor<{ rol: string }[]>`select current_user as rol`).rol,
         deEmpresa: await getPolicyDetail(ejecutor, m.polE1, hoy),
         personal: await getPolicyDetail(ejecutor, m.polP1, hoy),
-      }), 'oidc')
+      }))
     })
     assert.equal(r.rol, 'broker_app')
     assert.notEqual(r.deEmpresa, null)
     assert.equal(r.personal, null)
   })
 
-  it('la referencia documental y el lote se leen igual que en legacy: sin 42501 por falta de grants (0010)', async () => {
+  it('la referencia documental y el lote se leen igual que con la conexión dueña: sin 42501 por falta de grants (0010)', async () => {
     const leer = async (ejecutor: postgres.Sql | postgres.TransactionSql, polizas: readonly string[]) => ({
       acceso: await getDocumentAccessForPolicies(ejecutor, polizas),
       lote: await leerLote(ejecutor),
     })
     const r = await descartable(async (tx) => {
       const m = await sembrar(tx)
-      const legacy = await conDatos(tx, principal('sub-op'), (e) => leer(e, [m.polE1]), 'legacy')
-      const oidc = await conDatos(tx, principal('sub-op'), (e) => leer(e, [m.polE1]), 'oidc')
-      return { legacy, oidc }
+      const duena = await leer(tx, [m.polE1])
+      const oidc = await conDatos(tx, principal('sub-op'), (e) => leer(e, [m.polE1]))
+      return { duena, oidc }
     })
-    assert.deepEqual(r.oidc, r.legacy)
+    assert.deepEqual(r.oidc, r.duena)
     assert.equal(r.oidc.lote.known, true)
     assert.equal(r.oidc.lote.manifestPrefix, 'a'.repeat(12))
   })
@@ -188,7 +174,7 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
           } catch (error) {
             return (error as { code?: string }).code
           }
-        }, 'oidc').catch((error: unknown) => (error as { code?: string }).code)
+        }).catch((error: unknown) => (error as { code?: string }).code)
       })
       assert.equal(r, '42501', columna)
     }
@@ -202,8 +188,8 @@ describe('conDatos en oidc: las consultas de VS01 corren restringidas', () => {
         corrio = true
         return Promise.resolve()
       }
-      const sinCredencial = await motivo(conDatos(tx, principal('sub-desconocido'), consulta, 'oidc'))
-      const baja = await motivo(conDatos(tx, principal('sub-baja'), consulta, 'oidc'))
+      const sinCredencial = await motivo(conDatos(tx, principal('sub-desconocido'), consulta))
+      const baja = await motivo(conDatos(tx, principal('sub-baja'), consulta))
       const auditados = [
         ...(await tx<{ outcome: string; reason_code: string; origin: string }[]>`
           select outcome, reason_code, origin from audit_event

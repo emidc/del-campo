@@ -1,10 +1,9 @@
 const MOTIVO: Record<string, string> = {
-  NO_SESSION: 'Iniciá sesión con tu cuenta corporativa para continuar.',
+  NO_SESSION: 'Iniciá sesión con tu cuenta de Google para continuar.',
   INVALID_TOKEN: 'Tu sesión no es válida. Iniciá sesión de nuevo.',
   EXPIRED: 'Tu sesión venció. Iniciá sesión de nuevo.',
   EMAIL_UNVERIFIED: 'Esa cuenta no tiene el correo verificado.',
-  OUTSIDE_WORKSPACE: 'Esa cuenta no pertenece al Workspace de la correduría.',
-  NOT_ADMITTED: 'Esa cuenta no está en la lista de acceso. Pedíselo al owner.',
+  NOT_ADMITTED: 'No se pudo entrar con esa cuenta. Si te invitaron, pedile ayuda a un Administrador.',
 }
 
 export const dynamic = 'force-dynamic'

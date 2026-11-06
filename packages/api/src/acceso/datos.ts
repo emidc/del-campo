@@ -1,13 +1,10 @@
-// Por dónde pasa toda consulta de datos de Broker OS, según `AUTH_MODE` (T-0035, plan de
-// migración §3):
-//
-// - `legacy`: como hasta hoy, con la conexión de la app. La admisión ya la hizo el guard
-//   de sesión de VS01 (D-0059) y no hay alcance por cliente. Desplegar esto no cambia nada.
-// - `oidc`: dentro de `conPrincipal`, como `broker_app` con el principal declarado, y
-//   `afirmarRestringida` antes de correr la consulta. La consulta recibe sólo esa
-//   transacción: no hay forma de que lea con la conexión privilegiada, que es dueña de
-//   las tablas y no está sujeta a RLS. Si la persona no tiene credencial vinculada, fue
-//   dada de baja o no tiene rol, la consulta no corre y se lanza `AccesoDenegado`.
+// Por dónde pasa toda consulta de datos de Broker OS (T-0035, plan de migración §3): dentro
+// de `conPrincipal`, como `broker_app` con el principal declarado, y `afirmarRestringida`
+// antes de correr la consulta. El camino `legacy`, con la conexión de la app, se retiró en
+// la fase 5. La consulta recibe sólo esa transacción: no hay forma de que lea con la
+// conexión privilegiada, que es dueña de las tablas y no está sujeta a RLS. Si la persona
+// no tiene credencial vinculada, fue dada de baja o no tiene rol, la consulta no corre y se
+// lanza `AccesoDenegado`.
 
 import type { Identidad } from '@del-campo/identidad'
 import type postgres from 'postgres'
@@ -15,10 +12,8 @@ import type postgres from 'postgres'
 import type { Principal } from '../session/admission.ts'
 import type { Conexion } from './base.ts'
 import { afirmarRestringida, auditar, conPrincipal } from './base.ts'
-import type { ModoAcceso } from './modo.ts'
-import { modoAcceso } from './modo.ts'
 
-/** Lo que recibe una consulta: la conexión en `legacy`, la transacción restringida en `oidc`. */
+/** Lo que recibe una consulta: la transacción restringida, como `broker_app`. */
 export type Ejecutor = postgres.Sql | postgres.TransactionSql
 
 export type MotivoDenegado = 'SIN_CREDENCIAL' | 'SIN_ACCESO'
@@ -50,10 +45,7 @@ export const conDatos = async <T>(
   conexion: Conexion,
   principal: Principal,
   consulta: (ejecutor: Ejecutor) => Promise<T>,
-  modo: ModoAcceso = modoAcceso(),
 ): Promise<T> => {
-  if (modo === 'legacy') return consulta(conexion)
-
   const resultado = await conPrincipal(conexion, identidadDe(principal), async (tx) => {
     await afirmarRestringida(tx)
     return consulta(tx)

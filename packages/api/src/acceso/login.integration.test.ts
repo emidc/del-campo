@@ -10,7 +10,7 @@ import { after, describe, it } from 'node:test'
 import postgres from 'postgres'
 
 import { guarded, jsonResponse } from '../http.ts'
-import type { IdentityClaims, LegacyAdmissionConfig, OidcAdmissionConfig } from '../session/admission.ts'
+import type { AdmissionConfig, IdentityClaims } from '../session/admission.ts'
 import type { GuardConfig } from '../session/guard.ts'
 import { SESSION_COOKIE, sealSession } from '../session/session.ts'
 import { darDeBaja, invitar } from './admin.ts'
@@ -48,7 +48,7 @@ const ok = <T>(r: { readonly ok: true; readonly valor: T } | { readonly ok: fals
   return r.valor
 }
 
-const OIDC: OidcAdmissionConfig = { modo: 'oidc' }
+const OIDC: AdmissionConfig = { modo: 'oidc' }
 const SECRET = 'secreto-sintetico-de-prueba-suficientemente-largo'
 
 /** Una cuenta de Google cualquiera: sin `hd`, como cualquier cuenta externa. */
@@ -81,7 +81,7 @@ const pedir = async (
     headers: { cookie: `${SESSION_COOKIE}=${cookie}` },
   })
   return guarded(request, config, async (principal) =>
-    jsonResponse(await conDatos(tx, principal, async (e) => [...(await e`select current_user as rol`)], 'oidc')),
+    jsonResponse(await conDatos(tx, principal, async (e) => [...(await e`select current_user as rol`)])),
   )
 }
 
@@ -165,28 +165,6 @@ describe('oidc: sesión vencida y revocación', () => {
     assert.equal(r.despues, 403)
     assert.equal(r.denial, 'NOT_ADMITTED')
     assert.deepEqual(r.login, { admitido: false, motivo: 'NOT_ADMITTED' })
-  })
-})
-
-describe('legacy: nada cambia', () => {
-  const LEGACY: LegacyAdmissionConfig = {
-    workspaceDomain: 'ejemplo-sintetico.test',
-    admitted: [{ email: 'operadora@ejemplo-sintetico.test', sub: null }],
-  }
-  /** Una conexión que falla si alguien la usa: en legacy el login no toca la base. */
-  const sinBase = new Proxy({}, { get: () => { throw new Error('legacy no debe consultar la base') } }) as postgres.Sql
-
-  it('admite por Workspace y lista, sin consultar la base', async () => {
-    const claims = externa('sub-ws', 'operadora@ejemplo-sintetico.test', { hostedDomain: 'ejemplo-sintetico.test' })
-    assert.deepEqual(await admitirLogin(claims, LEGACY, sinBase), { admitido: true })
-  })
-
-  it('una cuenta externa invitada en la base no entra en legacy', async () => {
-    const r = await descartable(async (tx) => {
-      ok(await invitar(tx, { actor: null, email: 'admin@sintetico.test', rol: 'ADMINISTRADOR' }))
-      return admitirLogin(externa('sub-admin', 'admin@sintetico.test'), LEGACY, tx)
-    })
-    assert.deepEqual(r, { admitido: false, motivo: 'OUTSIDE_WORKSPACE' })
   })
 })
 

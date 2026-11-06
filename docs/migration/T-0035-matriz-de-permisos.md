@@ -23,7 +23,8 @@ decisión: dice qué acción de producción cubre cada caso del prototipo.
 
 Los roles son tres en los tres contextos: **Administrador**, **Operador Del Campo** y
 **Revisor profesional** (`ADMINISTRADOR`, `OPERADOR`, `REVISOR`). La matriz rige con
-`AUTH_MODE=oidc`; en `legacy` cada contexto se comporta como antes de T-0035.
+`AUTH_MODE=oidc`, el único modo de Broker OS y Communication OS desde la fase 5. En Risk OS,
+con `legacy`, se comporta como antes de T-0035.
 
 ## 1. Acciones implementadas
 
@@ -119,7 +120,6 @@ apps/communication/src/app/api/conversations/[id]/route.ts
 apps/communication/src/app/api/conversations/route.ts
 apps/communication/src/app/api/jobs/reprocess/route.ts
 apps/communication/src/app/api/jobs/retention/route.ts
-apps/communication/src/app/api/login/route.ts
 apps/communication/src/app/api/logout/route.ts
 apps/communication/src/app/c/[id]/page.tsx
 apps/communication/src/app/login/page.tsx

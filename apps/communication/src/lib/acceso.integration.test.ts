@@ -29,7 +29,6 @@ import { datosBancariosEn, TEXTO_CON_DATOS_BANCARIOS } from '@del-campo/identida
 
 import { GET as listGET } from '../app/api/conversations/route.ts'
 import { GET as threadGET } from '../app/api/conversations/[id]/route.ts'
-import { POST as loginPOST } from '../app/api/login/route.ts'
 import { GET as startGET } from '../app/api/auth/google/start/route.ts'
 import { GET as callbackGET } from '../app/api/auth/google/callback/route.ts'
 import { withSession } from './guard.ts'
@@ -477,42 +476,30 @@ describe('permisos por rol en la app (matriz de permisos.js)', () => {
   })
 })
 
-describe('compatibilidad con legacy', () => {
-  it('con AUTH_MODE=oidc la contraseña compartida no entra', async () => {
-    const response = await loginPOST(
-      new Request(`${ORIGIN}/api/login`, {
-        method: 'POST',
-        headers: { origin: ORIGIN, 'content-type': 'application/x-www-form-urlencoded' },
-        body: 'user=x&password=y',
-      }),
-    )
-    assert.equal(response.status, 404)
-    assert.equal(response.headers.get('set-cookie'), null)
-  })
-
-  it('sin AUTH_MODE, la entrada con Google no existe y una sesión de Google no sirve', async () => {
-    const quien = identidad('legacy')
+describe('AUTH_MODE: sólo oidc (fase 5 de T-0035)', () => {
+  it('sin AUTH_MODE es oidc: la entrada con Google existe y la sesión sirve', async () => {
+    const quien = identidad('sin-modo')
     await invitar(quien.email, 'OPERADOR')
     const sesion = await entrar(quien)
     delete process.env.AUTH_MODE
     try {
-      assert.equal((await startGET()).status, 404)
-      assert.equal((await callbackGET(new Request(`${ORIGIN}/api/auth/google/callback?code=c`))).status, 404)
-      // En legacy manda la credencial compartida: sin ella configurada, 503; con la cookie
-      // de Google, nada.
-      const response = await lista(sesion)
-      assert.ok(response.status === 401 || response.status === 503, String(response.status))
+      assert.equal((await startGET()).status, 303)
+      assert.equal((await lista(sesion)).status, 200)
     } finally {
       process.env.AUTH_MODE = 'oidc'
     }
   })
 
-  it('un AUTH_MODE desconocido no elige un modo en silencio', async () => {
-    process.env.AUTH_MODE = 'oidcc'
-    try {
-      await assert.rejects(lista('x'), /no es un modo válido/)
-    } finally {
-      process.env.AUTH_MODE = 'oidc'
+  it('legacy o un valor desconocido lanzan: no eligen otra regla en silencio', async () => {
+    for (const [valor, error] of [['legacy', /se retiró en la fase 5/], ['oidcc', /no es un modo válido/]] as const) {
+      process.env.AUTH_MODE = valor
+      try {
+        await assert.rejects(lista('x'), error)
+        await assert.rejects(startGET(), error)
+        await assert.rejects(callbackGET(new Request(`${ORIGIN}/api/auth/google/callback?code=c`)), error)
+      } finally {
+        process.env.AUTH_MODE = 'oidc'
+      }
     }
   })
 })

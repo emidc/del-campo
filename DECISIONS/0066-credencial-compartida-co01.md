@@ -1,13 +1,13 @@
 # ADR-0066 — La UI de Communication OS usa una credencial compartida durante CO01
 
 - **Id en `decisions.yaml`:** D-0066
-- **Estado:** PROVISIONAL
+- **Estado:** SUPERSEDED
 - **Fecha:** 2026-10-03
 - **Supersede:** —
 
-> **Vigencia (2026-11-02).** `D-0072` la reemplaza cuando el acceso individual con
-> Google y roles (corte C1, `T-0035`) entre en servicio en este contexto. Hasta entonces
-> sigue rigiendo.
+> **Reemplazada (2026-11-06).** `D-0072` la reemplazó al entrar en servicio el acceso
+> individual con Google en Communication OS (fase 3 de `T-0035`). En la fase 5 se borró
+> el hash de producción y se retiró el código de la credencial compartida.
 
 ## Contexto
 

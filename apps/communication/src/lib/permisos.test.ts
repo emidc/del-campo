@@ -27,8 +27,8 @@ describe('permiso de responder', () => {
     assert.equal(puede('REVISOR', 'conversacion.consultar'), false)
   })
 
-  it('con la credencial compartida (legacy) se responde como siempre', () => {
-    assert.equal(actorPuede({ autor: null, rol: null }, 'conversacion.responder'), true)
+  it('actorPuede sigue al rol de la persona', () => {
+    assert.equal(actorPuede({ autor: 'x', rol: 'OPERADOR' }, 'conversacion.responder'), true)
     assert.equal(actorPuede({ autor: 'x', rol: 'REVISOR' }, 'conversacion.responder'), false)
   })
 

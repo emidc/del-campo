@@ -19,9 +19,8 @@ export const dynamic = 'force-dynamic'
  * La ruta que hay que registrar en el cliente OAuth es exactamente ésta:
  * `/api/auth/google/callback`. → `docs/despliegue/vercel-vs01.md`
  *
- * El canje del código establece **quién** es. La admisión —en `legacy`, email verificado,
- * Workspace y lista del owner; en `oidc`, invitación o credencial vinculada en la base— se
- * decide después y con código propio, y sólo entonces
+ * El canje del código establece **quién** es. La admisión —invitación o credencial
+ * vinculada en la base— se decide después y con código propio, y sólo entonces
  * se emite la cookie de sesión. Una cuenta no admitida vuelve al login sin sesión: el
  * login de Google no es, por sí solo, una autorización.
  */
@@ -46,8 +45,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const claims = await claimsFromCallback(config, currentUrl, handshake)
-    // En `legacy`, la regla de D-0059; en `oidc`, la invitación o la credencial vinculada
-    // en la base (T-0035). Ver `packages/api/src/acceso/login.ts`.
+    // La invitación o la credencial vinculada en la base (T-0035). Ver
+    // `packages/api/src/acceso/login.ts`.
     const resultado = await admitirLogin(claims, admissionConfig())
     if (resultado.admitido) {
       cookieValue = await sealSession(claims, session.secret)

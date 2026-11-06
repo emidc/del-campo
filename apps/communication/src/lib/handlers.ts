@@ -1,6 +1,6 @@
 // La lógica de los route handlers, sin Next.js, para probarla con `Request` estándar.
 // Cada `route.ts` es un envoltorio de una línea sobre esto, siempre detrás de
-// `withSession` salvo el login, el logout y el webhook.
+// `withSession` salvo la entrada con Google, el logout y el webhook.
 
 import {
   conversationList,
@@ -16,9 +16,7 @@ import {
 
 import { actorPuede, type Datos } from './acceso.ts'
 import { cookiesDeSalida } from './entrada.ts'
-import { modoAcceso } from './modo.ts'
-import { authConfigFromEnv, issueSession, SESSION_COOKIE, sessionCookieHeader, verifyCredentials } from './auth.ts'
-import { FOREIGN_ORIGIN, json, NOT_CONFIGURED, sameOrigin, type Env } from './guard.ts'
+import { FOREIGN_ORIGIN, json, sameOrigin, type Env } from './guard.ts'
 import type { SendSetup } from './server.ts'
 
 /** Ids de conversación: enteros positivos, sin ceros a la izquierda. */
@@ -107,7 +105,7 @@ const REPLY_MESSAGE: Record<ReplyResult['kind'], string> = {
 }
 
 export interface ReplyHandlerDeps {
-  /** La conexión de la app: el contexto la usa sólo en `legacy` (ver `phase`). */
+  /** La conexión de la app: `sendReply` la pide, pero cada fase corre por `phase`. */
   readonly sql: () => Sql
   readonly datos: Datos
   readonly setup: SendSetup | null
@@ -160,44 +158,10 @@ export const replyResponse = async (request: Request, rawId: string, deps: Reply
   return json({ kind: result.kind, message: REPLY_MESSAGE[result.kind], ...detail }, REPLY_STATUS[result.kind])
 }
 
-const redirectTo = (request: Request, path: string, cookie?: string): Response =>
-  new Response(null, {
-    status: 303,
-    headers: {
-      location: new URL(path, request.url).toString(),
-      'cache-control': 'no-store',
-      ...(cookie === undefined ? {} : { 'set-cookie': cookie }),
-    },
-  })
-
-/** Formulario de login. Sin configuración, 503: no hay modo abierto. */
-export const loginResponse = async (request: Request, env: Env): Promise<Response> => {
-  // Con AUTH_MODE=oidc la contraseña compartida no entra: un solo método vivo (T-0035).
-  if (modoAcceso(env.AUTH_MODE) === 'oidc') return json({ error: 'no disponible' }, 404)
-  const result = authConfigFromEnv(env)
-  if (!result.ok) return NOT_CONFIGURED()
-  if (!sameOrigin(request)) return FOREIGN_ORIGIN()
-  let user = ''
-  let password = ''
-  try {
-    const form = await request.formData()
-    const u = form.get('user')
-    const p = form.get('password')
-    user = typeof u === 'string' ? u : ''
-    password = typeof p === 'string' ? p : ''
-  } catch {
-    return redirectTo(request, '/login?error=1')
-  }
-  if (password.length > 1024 || !(await verifyCredentials(result.config, user, password))) {
-    return redirectTo(request, '/login?error=1')
-  }
-  return redirectTo(request, '/', sessionCookieHeader(issueSession(result.config), request.url))
-}
-
-/** Borra la cookie de la credencial compartida y, si el modo `oidc` está configurado, la de Google. */
+/** Borra la cookie de sesión de Google y vuelve al login. */
 export const logoutResponse = (request: Request, env: Env = process.env): Response => {
   if (!sameOrigin(request)) return FOREIGN_ORIGIN()
-  const response = redirectTo(request, '/login', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`)
-  for (const cookie of cookiesDeSalida(env)) response.headers.append('set-cookie', cookie)
-  return response
+  const headers = new Headers({ location: new URL('/login', request.url).toString(), 'cache-control': 'no-store' })
+  for (const cookie of cookiesDeSalida(env)) headers.append('set-cookie', cookie)
+  return new Response(null, { status: 303, headers })
 }

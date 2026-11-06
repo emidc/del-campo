@@ -1,4 +1,4 @@
-// La entrada con Google del modo `oidc` (T-0035, D-0072, D-0077), sin Next.js para
+// La entrada con Google (T-0035, D-0072, D-0077), sin Next.js para
 // probarla con `Request` estándar. Las rutas `api/auth/google/*` son envoltorios de una
 // línea sobre esto.
 //
@@ -44,21 +44,15 @@ const redirigir = (destino: string, cookies: readonly string[] = []): Response =
   return new Response(null, { status: 303, headers })
 }
 
-const noDisponible = (): Response =>
-  new Response(JSON.stringify({ error: 'no disponible' }), {
-    status: 404,
-    headers: { 'content-type': 'application/json; charset=utf-8', ...NO_STORE },
-  })
-
 const NO_CONFIGURADA = (): Response =>
   new Response(JSON.stringify({ error: 'la UI no está configurada' }), {
     status: 503,
     headers: { 'content-type': 'application/json; charset=utf-8', ...NO_STORE },
   })
 
-/** En `legacy` estas rutas no existen: la entrada sigue siendo la credencial compartida. */
+/** Sin configuración de Google, 503. Un `AUTH_MODE` retirado o desconocido lanza. */
 const configOidc = (env: Env): ConfigEntrada | Response => {
-  if (modoAcceso(env.AUTH_MODE) !== 'oidc') return noDisponible()
+  modoAcceso(env.AUTH_MODE)
   return configEntrada(env) ?? NO_CONFIGURADA()
 }
 
@@ -112,7 +106,7 @@ export const callbackResponse = async (request: Request, env: Env, deps: DepsEnt
   }
 }
 
-/** Las dos cookies de sesión, la de la credencial compartida y la de Google. */
+/** La cookie de sesión de Google, borrada. Sin configuración, nada que borrar. */
 export const cookiesDeSalida = (env: Env): string[] => {
   const config = configEntrada(env)
   return config === null ? [] : [serializarCookie(cookieBorrada(config.sesion))]

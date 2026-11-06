@@ -2,9 +2,9 @@
 // y T-0017 (`document-linking/query.ts`) sin redefinirlas (D-0058).
 //
 // Todos reciben un `Principal` como primer parámetro, para que sea imposible escribir una
-// consulta de datos sin haber pasado por el guard. Y todos corren por `conDatos`: en
-// `legacy`, con la conexión de la app como hasta hoy; en `oidc`, como `broker_app` con el
-// principal declarado, donde filtran las políticas RLS de D-0022 y D-0027 (T-0035).
+// consulta de datos sin haber pasado por el guard. Y todos corren por `conDatos`, como
+// `broker_app` con el principal declarado, donde filtran las políticas RLS de D-0022 y
+// D-0027 (T-0035).
 
 import type {
   PartyOverview,

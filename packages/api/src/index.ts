@@ -1,12 +1,11 @@
 // Superficie pública de `@del-campo/api`. `apps/web` importa sólo de acá: R-25 le
 // prohíbe alcanzar `@del-campo/db`, y esa frontera es la razón de existir del paquete.
 
-export { denialStatus, evaluateAdmission, parseAdmittedAccounts } from './session/admission.ts'
+export { denialStatus, evaluateAdmission } from './session/admission.ts'
 export type {
   AdmissionConfig,
   AdmissionDenial,
   AdmissionOutcome,
-  AdmittedAccount,
   IdentityClaims,
   Principal,
   SessionState,
@@ -66,8 +65,8 @@ export type {
 } from './vs01/queries.ts'
 export type { PartyOverview } from '@del-campo/db'
 
-// T-0035: acceso individual de Broker OS. Las consultas de VS01 ya pasan por `conDatos`; con
-// `AUTH_MODE=legacy`, que es el valor por defecto, nada cambia.
+// T-0035: acceso individual de Broker OS. Toda consulta de VS01 pasa por `conDatos`, como
+// `broker_app`; desde la fase 5 no hay otro modo.
 export { modoAcceso } from './acceso/modo.ts'
 export type { ModoAcceso } from './acceso/modo.ts'
 export { conPrincipal, ingresar } from './acceso/base.ts'

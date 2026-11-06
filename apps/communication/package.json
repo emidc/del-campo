@@ -7,7 +7,6 @@
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start --port 3100",
-    "hash-password": "node scripts/hash-password.ts",
     "fake-meta": "node scripts/fake-meta.ts"
   },
   "dependencies": {
