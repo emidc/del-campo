@@ -1,7 +1,7 @@
-// Denegación (R-28) contra los route handlers reales de la app: sin credencial, con
-// credencial inválida y sin configuración, cada endpoint de datos y el de envío
-// responden con un cuerpo fijo, sin datos, y sin tocar la base. Además, un test de
-// estructura falla si una página o un endpoint nuevo no pasa por el guard.
+// Denegación (R-28) contra los route handlers reales de la app: sin sesión, con una sesión
+// inválida y sin configuración, cada endpoint de datos y el de envío responden con un
+// cuerpo fijo, sin datos, y sin tocar la base. Además, un test de estructura falla si una
+// página o un endpoint nuevo no pasa por el guard.
 
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -9,51 +9,62 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { after, before, describe, it } from 'node:test'
 
+import { sellarSesion, type Identidad } from '@del-campo/identidad'
+
 import { GET as threadGET } from '../app/api/conversations/[id]/route.ts'
 import { POST as replyPOST } from '../app/api/conversations/[id]/reply/route.ts'
 import { GET as listGET } from '../app/api/conversations/route.ts'
-import { POST as loginPOST } from '../app/api/login/route.ts'
 import { GET as reprocessGET } from '../app/api/jobs/reprocess/route.ts'
 import { GET as retentionGET } from '../app/api/jobs/retention/route.ts'
 import { POST as logoutPOST } from '../app/api/logout/route.ts'
-import { authConfigFromEnv, hashPassword, issueSession, SESSION_COOKIE } from './auth.ts'
+import { COOKIE_IDENTIDAD, PROPOSITO } from './identidad.ts'
 
 const ORIGIN = 'http://localhost:3100'
-const USER = 'operador-de-prueba'
-const PASSWORD = 'contraseña-de-prueba-larga-0001'
 const SECRET = 'secreto-de-sesion-de-prueba-0123456789abcdef'
-const VARS = ['COMMUNICATION_UI_USER', 'COMMUNICATION_UI_PASSWORD_HASH', 'COMMUNICATION_UI_SESSION_SECRET', 'COMMUNICATION_DATABASE_URL'] as const
+const CONFIG: Record<string, string> = {
+  COMMUNICATION_BASE_URL: ORIGIN,
+  COMMUNICATION_GOOGLE_CLIENT_ID: 'cliente-de-prueba.apps.example.test',
+  COMMUNICATION_GOOGLE_CLIENT_SECRET: 'secreto-de-cliente-de-prueba',
+  COMMUNICATION_UI_SESSION_SECRET: SECRET,
+  // Una base que no existe: si un handler llegara a consultarla, el test fallaría.
+  COMMUNICATION_DATABASE_URL: 'postgres://localhost:1/no_existe_dev',
+}
+const VARS = [...Object.keys(CONFIG), 'AUTH_MODE'] as const
 
-const saved: Partial<Record<(typeof VARS)[number], string | undefined>> = {}
-let hash: string
-let validCookie: string
+const saved = new Map<string, string | undefined>()
 
 const configure = (): void => {
-  process.env.COMMUNICATION_UI_USER = USER
-  process.env.COMMUNICATION_UI_PASSWORD_HASH = hash
-  process.env.COMMUNICATION_UI_SESSION_SECRET = SECRET
-  // Una base que no existe: si un handler llegara a consultarla, el test fallaría.
-  process.env.COMMUNICATION_DATABASE_URL = 'postgres://localhost:1/no_existe_dev'
+  for (const [k, v] of Object.entries(CONFIG)) process.env[k] = v
+  delete process.env.AUTH_MODE
 }
 const unconfigure = (): void => {
-  delete process.env.COMMUNICATION_UI_USER
-  delete process.env.COMMUNICATION_UI_PASSWORD_HASH
+  delete process.env.COMMUNICATION_GOOGLE_CLIENT_ID
+  delete process.env.COMMUNICATION_GOOGLE_CLIENT_SECRET
   delete process.env.COMMUNICATION_UI_SESSION_SECRET
 }
 
+const IDENTIDAD: Identidad = {
+  proveedor: 'google',
+  sujeto: 'sub-sintetico-deny',
+  email: 'persona@sintetico.test',
+  emailVerificado: true,
+  nombre: null,
+}
+const sesionCon = (secreto: string): Promise<string> =>
+  sellarSesion(IDENTIDAD, { cookie: COOKIE_IDENTIDAD, proposito: PROPOSITO, secreto, segura: false })
+
+/** Una sesión válida: sólo se usa donde la negativa llega antes que la base. */
+let validCookie: string
+
 before(async () => {
-  for (const v of VARS) saved[v] = process.env[v]
-  hash = await hashPassword(PASSWORD)
+  for (const v of VARS) saved.set(v, process.env[v])
   configure()
-  const result = authConfigFromEnv(process.env)
-  if (!result.ok) throw new Error(result.reason)
-  validCookie = issueSession(result.config)
+  validCookie = await sesionCon(SECRET)
 })
 after(() => {
-  for (const v of VARS) {
-    const value = saved[v]
-    if (value === undefined) Reflect.deleteProperty(process.env, v)
-    else process.env[v] = value
+  for (const [k, v] of saved) {
+    if (v === undefined) Reflect.deleteProperty(process.env, k)
+    else process.env[k] = v
   }
 })
 
@@ -84,33 +95,23 @@ const ENDPOINTS: Endpoint[] = [
   },
 ]
 
-const otherSecretCookie = (): string => {
-  const other = authConfigFromEnv({ ...process.env, COMMUNICATION_UI_SESSION_SECRET: `${SECRET}-otro` })
-  if (!other.ok) throw new Error(other.reason)
-  return issueSession(other.config)
-}
-
-const CREDENTIALS: { readonly name: string; readonly headers: () => Record<string, string> }[] = [
-  { name: 'sin cookie', headers: () => ({}) },
-  { name: 'cookie basura', headers: () => ({ cookie: `${SESSION_COOKIE}=basura` }) },
-  { name: 'cookie con otro secreto', headers: () => ({ cookie: `${SESSION_COOKIE}=${otherSecretCookie()}` }) },
+const CREDENTIALS: { readonly name: string; readonly headers: () => Promise<Record<string, string>> }[] = [
+  { name: 'sin cookie', headers: () => Promise.resolve({}) },
+  { name: 'cookie basura', headers: () => Promise.resolve({ cookie: `${COOKIE_IDENTIDAD}=basura` }) },
+  { name: 'sesión sellada con otro secreto', headers: async () => ({ cookie: `${COOKIE_IDENTIDAD}=${await sesionCon(`${SECRET}-otro`)}` }) },
   {
-    name: 'cookie vencida',
-    headers: () => {
-      const r = authConfigFromEnv(process.env)
-      if (!r.ok) throw new Error(r.reason)
-      return { cookie: `${SESSION_COOKIE}=${issueSession(r.config, new Date(Date.now() - 9 * 3600 * 1000))}` }
-    },
+    name: 'la sesión válida bajo el nombre de la cookie retirada de D-0066',
+    headers: () => Promise.resolve({ cookie: `co01_session=${validCookie}` }),
   },
-  { name: 'Basic Auth con la contraseña correcta', headers: () => ({ authorization: `Basic ${Buffer.from(`${USER}:${PASSWORD}`).toString('base64')}` }) },
+  { name: 'Basic Auth', headers: () => Promise.resolve({ authorization: `Basic ${Buffer.from('usuario:contraseña').toString('base64')}` }) },
 ]
 
-describe('denegación sin credencial válida (R-28)', () => {
+describe('denegación sin sesión válida (R-28)', () => {
   for (const endpoint of ENDPOINTS) {
     for (const credential of CREDENTIALS) {
       it(`${endpoint.name}, ${credential.name}: 401 sin datos`, async () => {
         configure()
-        const response = await endpoint.call(credential.headers())
+        const response = await endpoint.call(await credential.headers())
         assert.equal(response.status, 401)
         assert.deepEqual(await response.json(), { error: 'sin credencial válida' })
         assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -119,12 +120,12 @@ describe('denegación sin credencial válida (R-28)', () => {
   }
 })
 
-describe('sin configuración se niega todo (D-0066)', () => {
+describe('sin configuración se niega todo', () => {
   for (const endpoint of ENDPOINTS) {
-    it(`${endpoint.name}, aun con una cookie que antes era válida: 503 sin datos`, async () => {
+    it(`${endpoint.name}, aun con una sesión que antes era válida: 503 sin datos`, async () => {
       unconfigure()
       try {
-        const response = await endpoint.call({ cookie: `${SESSION_COOKIE}=${validCookie}` })
+        const response = await endpoint.call({ cookie: `${COOKIE_IDENTIDAD}=${validCookie}` })
         assert.equal(response.status, 503)
         assert.deepEqual(await response.json(), { error: 'la UI no está configurada' })
       } finally {
@@ -132,50 +133,29 @@ describe('sin configuración se niega todo (D-0066)', () => {
       }
     })
   }
-
-  it('el login sin configuración responde 503 y no emite cookie', async () => {
-    unconfigure()
-    try {
-      const response = await loginPOST(loginRequest(USER, PASSWORD))
-      assert.equal(response.status, 503)
-      assert.equal(response.headers.get('set-cookie'), null)
-    } finally {
-      configure()
-    }
-  })
 })
 
-const loginRequest = (user: string, password: string, origin: string | null = ORIGIN): Request =>
-  new Request(`${ORIGIN}/api/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', ...(origin === null ? {} : { origin }) },
-    body: new URLSearchParams({ user, password }).toString(),
-  })
-
-describe('login y origen', () => {
-  it('con la credencial correcta emite la cookie y redirige a la lista', async () => {
-    const response = await loginPOST(loginRequest(USER, PASSWORD))
-    assert.equal(response.status, 303)
-    assert.equal(response.headers.get('location'), `${ORIGIN}/`)
-    assert.match(response.headers.get('set-cookie') ?? '', /^co01_session=v1\.\d+\.[A-Za-z0-9_-]{43}; Path=\/; HttpOnly; SameSite=Strict/)
-  })
-
-  it('con la credencial incorrecta vuelve al login sin cookie', async () => {
-    for (const [user, password] of [[USER, 'otra-contraseña-de-prueba-larga'], ['otro', PASSWORD], ['', '']] as const) {
-      const response = await loginPOST(loginRequest(user, password))
-      assert.equal(response.status, 303)
-      assert.equal(response.headers.get('location'), `${ORIGIN}/login?error=1`)
-      assert.equal(response.headers.get('set-cookie'), null)
+describe('AUTH_MODE retirado o desconocido (fase 5 de T-0035)', () => {
+  for (const valor of ['legacy', 'oidcc']) {
+    for (const endpoint of ENDPOINTS) {
+      it(`${endpoint.name} con AUTH_MODE=${valor}: lanza, no entra por otra regla`, async () => {
+        process.env.AUTH_MODE = valor
+        try {
+          await assert.rejects(endpoint.call({ cookie: `${COOKIE_IDENTIDAD}=${validCookie}` }), /se retiró en la fase 5|no es un modo válido/)
+        } finally {
+          configure()
+        }
+      })
     }
-  })
+  }
+})
 
-  it('un POST de otro origen o sin Origin se niega, también con cookie válida', async () => {
-    assert.equal((await loginPOST(loginRequest(USER, PASSWORD, 'https://otro.example.test'))).status, 403)
-    assert.equal((await loginPOST(loginRequest(USER, PASSWORD, null))).status, 403)
+describe('origen', () => {
+  it('un POST de otro origen se niega, también con sesión válida', async () => {
     const reply = await replyPOST(
       new Request(`${ORIGIN}/api/conversations/1/reply`, {
         method: 'POST',
-        headers: { origin: 'https://otro.example.test', cookie: `${SESSION_COOKIE}=${validCookie}`, 'content-type': 'application/json' },
+        headers: { origin: 'https://otro.example.test', cookie: `${COOKIE_IDENTIDAD}=${validCookie}`, 'content-type': 'application/json' },
         body: '{}',
       }),
       params('1'),
@@ -183,6 +163,15 @@ describe('login y origen', () => {
     assert.equal(reply.status, 403)
     const logout = logoutPOST(new Request(`${ORIGIN}/api/logout`, { method: 'POST', headers: { origin: 'https://otro.example.test' } }))
     assert.equal(logout.status, 403)
+  })
+
+  it('el logout del mismo origen borra la sesión de Google y vuelve al login', () => {
+    const logout = logoutPOST(new Request(`${ORIGIN}/api/logout`, { method: 'POST', headers: { origin: ORIGIN } }))
+    assert.equal(logout.status, 303)
+    assert.equal(logout.headers.get('location'), `${ORIGIN}/login`)
+    const cookies = logout.headers.getSetCookie()
+    assert.equal(cookies.length, 1)
+    assert.match(cookies[0] ?? '', new RegExp(`^${COOKIE_IDENTIDAD}=; .*Max-Age=0`))
   })
 })
 
@@ -197,7 +186,7 @@ describe('tareas programadas: sin CRON_SECRET no corre nada (T-0026)', () => {
     { name: 'otro secreto', headers: () => ({ authorization: `Bearer ${CRON}-otro` }) },
     { name: 'el secreto sin Bearer', headers: () => ({ authorization: CRON }) },
     { name: 'Bearer vacío', headers: () => ({ authorization: 'Bearer ' }) },
-    { name: 'la cookie válida de la UI', headers: () => ({ cookie: `${SESSION_COOKIE}=${validCookie}` }) },
+    { name: 'la sesión válida de la UI', headers: () => ({ cookie: `${COOKIE_IDENTIDAD}=${validCookie}` }) },
   ]
   let savedCron: string | undefined
   before(() => {
@@ -239,19 +228,17 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
     )
   const files = walk(APP).map((f) => relative(APP, f).split('\\').join('/'))
 
-  // Las únicas excepciones, con su motivo: el login es donde se obtiene la credencial,
-  // el logout solo borra la cookie, y el webhook lo protege la firma de Meta (D-0066). La
-  // entrada con Google es donde se obtiene la sesión del modo oidc, y en legacy no existe
-  // (T-0035).
+  // Las únicas excepciones, con su motivo: el login y la entrada con Google son donde se
+  // obtiene la sesión (T-0035), el logout solo borra la cookie, y el webhook lo protege la
+  // firma de Meta.
   const PUBLIC = new Set([
     'login/page.tsx',
-    'api/login/route.ts',
     'api/logout/route.ts',
     'webhook/route.ts',
     'api/auth/google/start/route.ts',
     'api/auth/google/callback/route.ts',
   ])
-  // Las tareas programadas no usan la credencial de la UI sino su propio secreto (T-0026).
+  // Las tareas programadas no usan la sesión de la UI sino su propio secreto (T-0026).
   const JOBS = 'api/jobs/'
 
   it('hay páginas y endpoints que revisar', () => {

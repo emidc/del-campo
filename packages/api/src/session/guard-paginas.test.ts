@@ -15,10 +15,7 @@ const WORKSPACE = 'ejemplo-sintetico.test'
 const SECRET = 'secreto-sintetico-de-prueba-suficientemente-largo'
 
 const config: GuardConfig = {
-  admission: {
-    workspaceDomain: WORKSPACE,
-    admitted: [{ email: `operadora@${WORKSPACE}`, sub: null }],
-  },
+  admission: { modo: 'oidc' },
   session: { secret: SECRET, secureCookies: false },
 }
 
@@ -37,21 +34,13 @@ const reasonOfCookie = async (cookie: string | undefined): Promise<string> => {
 }
 
 describe('admitCookie — la regla en las páginas', () => {
-  it('niega los mismos seis casos que en las consultas de datos', async () => {
+  it('niega los mismos casos que en las consultas de datos', async () => {
     assert.equal(await reasonOfCookie(undefined), 'NO_SESSION')
     assert.equal(await reasonOfCookie('no-es-un-token'), 'INVALID_TOKEN')
     assert.equal(await reasonOfCookie(await sealSession(claims(), SECRET, -1)), 'EXPIRED')
     assert.equal(
       await reasonOfCookie(await sealSession(claims({ emailVerified: false }), SECRET)),
       'EMAIL_UNVERIFIED',
-    )
-    assert.equal(
-      await reasonOfCookie(await sealSession(claims({ hostedDomain: 'otro.test' }), SECRET)),
-      'OUTSIDE_WORKSPACE',
-    )
-    assert.equal(
-      await reasonOfCookie(await sealSession(claims({ email: `ajena@${WORKSPACE}` }), SECRET)),
-      'NOT_ADMITTED',
     )
   })
 

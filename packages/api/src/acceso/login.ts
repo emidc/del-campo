@@ -1,10 +1,8 @@
-// La admisión al volver de Google, en los dos modos (T-0035, plan de migración §3).
-//
-// - `legacy`: la regla de D-0059 (email verificado, Workspace y lista del owner), sin base.
-// - `oidc`: email verificado y después `ingresar`, que exige una credencial ya vinculada o
-//   una invitación vigente para ese email y, si la hay, vincula la credencial (D-0077).
-//   Cualquier rechazo de la base sale como NOT_ADMITTED, igual que una cuenta fuera de la
-//   lista: el motivo específico queda en `audit_event` (`acceso.ingresar`), no en la URL.
+// La admisión al volver de Google (T-0035, plan de migración §3): email verificado y
+// después `ingresar`, que exige una credencial ya vinculada o una invitación vigente para
+// ese email y, si la hay, vincula la credencial (D-0077). Cualquier rechazo de la base sale
+// como NOT_ADMITTED: el motivo específico queda en `audit_event` (`acceso.ingresar`), no en
+// la URL. El modo `legacy` (D-0059) se retiró en la fase 5.
 //
 // Sólo si esto admite se emite la cookie de sesión. La cookie lleva la identidad, no
 // permisos: en cada consulta, `conDatos` vuelve a preguntarle a la base.
@@ -42,14 +40,13 @@ export const admitirLogin = async (
 ): Promise<ResultadoLogin> => {
   const outcome = evaluateAdmission({ kind: 'CLAIMS', claims }, config)
   if (!outcome.admitted) return { admitido: false, motivo: outcome.reason }
-  if (!('modo' in config)) return { admitido: true }
 
   const decision = await ingresar(conexion, identidadDeClaims(claims), ahora)
   if (decision.tipo === 'RECHAZA') return { admitido: false, motivo: 'NOT_ADMITTED' }
 
   try {
     // Sin credencial, de baja o sin rol: `conDatos` lo deja auditado (`acceso.consultar`).
-    await conDatos(conexion, outcome.principal, () => Promise.resolve(), 'oidc')
+    await conDatos(conexion, outcome.principal, () => Promise.resolve())
   } catch (error) {
     if (error instanceof AccesoDenegado) return { admitido: false, motivo: 'NOT_ADMITTED' }
     throw error

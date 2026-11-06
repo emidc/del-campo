@@ -45,9 +45,9 @@ export const guarded = async (
   try {
     return await handler(outcome.principal, request)
   } catch (error) {
-    // En `oidc`, la base también admite (T-0035). Sin credencial vinculada, de baja o sin
-    // rol, la respuesta es idéntica a la de una cuenta que no está en la lista: el motivo
-    // específico no sale del servidor; `conDatos` lo dejó en la auditoría.
+    // La base también admite (T-0035). Sin credencial vinculada, de baja o sin rol, la
+    // respuesta es idéntica a la de cualquier cuenta no admitida: el motivo específico no
+    // sale del servidor; `conDatos` lo dejó en la auditoría.
     if (error instanceof AccesoDenegado) return deniedResponse('NOT_ADMITTED')
     throw error
   }

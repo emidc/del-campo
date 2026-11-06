@@ -4,6 +4,11 @@
 - **Fecha:** 2026-09-23
 - **Supersede:** —
 
+> **Reemplazada en parte (2026-11-06).** Desde la fase 5 de `T-0035`, `D-0072` reemplaza
+> la audiencia Internal, la pertenencia al Workspace y la lista explícita de cuentas. El
+> código de esa admisión se retiró; lo que sigue vigente es el OIDC en el servidor, los
+> scopes de identidad, el `sub` como identidad y la verificación en páginas y consultas.
+
 ## Contexto
 
 D-0059 fijó la regla: token válido, email verificado, pertenencia al Workspace y

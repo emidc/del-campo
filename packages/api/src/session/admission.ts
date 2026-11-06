@@ -1,4 +1,4 @@
-// La regla de admisión de D-0059, como función pura sobre claims. Vive fuera de la
+// La regla de admisión del guard de sesión, como función pura sobre claims. Vive fuera de la
 // biblioteca de OIDC a propósito (D-0060): lo que hay que probar es *nuestra* regla, no
 // que hayamos configurado bien la de otro. Sin red, sin base y sin navegador, para que
 // las pruebas negativas que D-0059 exige sean baratas y por lo tanto existan.
@@ -10,9 +10,9 @@ export interface IdentityClaims {
   readonly email: string
   readonly emailVerified: boolean
   /**
-   * Claim `hd`: Google lo emite sólo para cuentas de un Workspace. Se compara este
-   * claim y no el sufijo del email porque `SLICES/VS01.md` §5 dice, con todas las
-   * letras, que un sufijo por sí solo no es prueba de identidad.
+   * Claim `hd`: Google lo emite sólo para cuentas de un Workspace. Desde la fase 5 de
+   * T-0035 no decide la admisión (la decide la base); se conserva para no cambiar el
+   * formato de la cookie de sesión.
    */
   readonly hostedDomain: string | null
   readonly displayName: string | null
@@ -34,7 +34,6 @@ export type AdmissionDenial =
   | 'INVALID_TOKEN'
   | 'EXPIRED'
   | 'EMAIL_UNVERIFIED'
-  | 'OUTSIDE_WORKSPACE'
   | 'NOT_ADMITTED'
 
 /** Lo único que el resto de la app conoce de quien consulta. Sólo lo construye el guard. */
@@ -49,67 +48,25 @@ export type AdmissionOutcome =
   | { readonly admitted: false; readonly reason: AdmissionDenial }
 
 /**
- * Una entrada de la lista del owner. `sub` es opcional porque lo que el owner puede
- * administrar son direcciones; fijar el `sub` es la defensa opcional contra que una
- * dirección se reasigne a otra persona. → `DECISIONS/0059-sesion-y-admision-vs01.md`
+ * `oidc` (T-0035, D-0072, D-0077), el único modo desde la fase 5: cualquier cuenta de Google
+ * con email verificado pasa este guard, y quien decide es la base. Al volver de Google,
+ * `ingresar` exige una credencial vinculada o una invitación vigente; en cada consulta,
+ * `conDatos` exige que la persona siga ACTIVE y con rol. El Workspace y la lista del owner
+ * (D-0059) se retiraron con el modo `legacy`.
  */
-export interface AdmittedAccount {
-  readonly email: string
-  readonly sub: string | null
-}
-
-/** `legacy`: Workspace y lista del owner (D-0059). */
-export interface LegacyAdmissionConfig {
-  readonly workspaceDomain: string
-  readonly admitted: readonly AdmittedAccount[]
-}
-
-/**
- * `oidc` (T-0035, D-0072, D-0077): cualquier cuenta de Google con email verificado pasa
- * este guard, y quien decide es la base. Al volver de Google, `ingresar` exige una
- * credencial vinculada o una invitación vigente; en cada consulta, `conDatos` exige que
- * la persona siga ACTIVE y con rol. Sin `hd` ni lista: lo que las reemplaza está en la base.
- */
-export interface OidcAdmissionConfig {
+export interface AdmissionConfig {
   readonly modo: 'oidc'
 }
-
-export type AdmissionConfig = LegacyAdmissionConfig | OidcAdmissionConfig
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase()
 
 /**
- * Parsea la lista de cuentas admitidas. Formato: entradas separadas por coma o salto de
- * línea, cada una `persona@dominio` o `persona@dominio=<sub>`.
- *
- * Una entrada vacía se ignora; una entrada sin arroba **lanza**. Descartarla en silencio
- * dejaría fuera de la lista a alguien que el owner creyó haber agregado, y el síntoma
- * sería una negación de acceso sin causa visible.
- */
-export const parseAdmittedAccounts = (raw: string | undefined): AdmittedAccount[] => {
-  if (raw === undefined) return []
-  const accounts: AdmittedAccount[] = []
-  for (const chunk of raw.split(/[\n,;]/)) {
-    const entry = chunk.trim()
-    if (entry === '') continue
-    const separator = entry.indexOf('=')
-    const email = normalizeEmail(separator === -1 ? entry : entry.slice(0, separator))
-    const sub = separator === -1 ? null : entry.slice(separator + 1).trim()
-    if (!email.includes('@')) {
-      throw new Error(`lista de cuentas admitidas: "${entry}" no es una dirección de correo`)
-    }
-    accounts.push({ email, sub: sub === null || sub === '' ? null : sub })
-  }
-  return accounts
-}
-
-/**
- * Las cuatro condiciones de D-0059, en orden. El orden importa para el diagnóstico, no
- * para la seguridad: cualquiera que falle niega el acceso.
+ * Lo que el guard puede decidir sin la base, en orden: que haya una sesión utilizable y un
+ * email verificado. El resto (invitación, credencial, estado y rol) lo decide la base.
  */
 export const evaluateAdmission = (
   session: SessionState,
-  config: AdmissionConfig,
+  _config: AdmissionConfig,
 ): AdmissionOutcome => {
   if (session.kind === 'NONE') return { admitted: false, reason: 'NO_SESSION' }
   if (session.kind === 'INVALID') return { admitted: false, reason: 'INVALID_TOKEN' }
@@ -121,32 +78,9 @@ export const evaluateAdmission = (
   }
   if (!claims.emailVerified) return { admitted: false, reason: 'EMAIL_UNVERIFIED' }
 
-  if ('modo' in config) {
-    return {
-      admitted: true,
-      principal: { sub: claims.sub, email: normalizeEmail(claims.email), displayName: claims.displayName },
-    }
-  }
-
-  const domain = claims.hostedDomain?.trim().toLowerCase() ?? ''
-  if (domain === '' || domain !== config.workspaceDomain.trim().toLowerCase()) {
-    return { admitted: false, reason: 'OUTSIDE_WORKSPACE' }
-  }
-
-  const email = normalizeEmail(claims.email)
-  const entry = config.admitted.find((account) => account.email === email)
-  if (entry === undefined) return { admitted: false, reason: 'NOT_ADMITTED' }
-
-  // Una cuenta del Workspace, en la lista, pero cuyo `sub` no es el que el owner fijó:
-  // la dirección se reasignó a otra persona. Se niega con el mismo motivo que si no
-  // estuviera en la lista, porque desde afuera es la misma situación.
-  if (entry.sub !== null && entry.sub !== claims.sub) {
-    return { admitted: false, reason: 'NOT_ADMITTED' }
-  }
-
   return {
     admitted: true,
-    principal: { sub: claims.sub, email, displayName: claims.displayName },
+    principal: { sub: claims.sub, email: normalizeEmail(claims.email), displayName: claims.displayName },
   }
 }
 

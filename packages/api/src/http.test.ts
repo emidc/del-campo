@@ -10,7 +10,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { AccesoDenegado } from './acceso/datos.ts'
-import { guarded, jsonResponse } from './http.ts'
+import { deniedResponse, guarded, jsonResponse } from './http.ts'
 import type { IdentityClaims } from './session/admission.ts'
 import type { GuardConfig } from './session/guard.ts'
 import { SESSION_COOKIE, sealSession } from './session/session.ts'
@@ -19,10 +19,7 @@ const WORKSPACE = 'ejemplo-sintetico.test'
 const SECRET = 'secreto-sintetico-de-prueba-suficientemente-largo'
 
 const config: GuardConfig = {
-  admission: {
-    workspaceDomain: WORKSPACE,
-    admitted: [{ email: `operadora@${WORKSPACE}`, sub: null }],
-  },
+  admission: { modo: 'oidc' },
   session: { secret: SECRET, secureCookies: false },
 }
 
@@ -74,16 +71,6 @@ describe('consultas directas de datos — deny by default', () => {
     await expectDenied(requestWith(cookie), 403, 'EMAIL_UNVERIFIED')
   })
 
-  it('cuenta fuera del Workspace: 403 y cuerpo vacío', async () => {
-    const cookie = await sealSession(claims({ hostedDomain: 'otro.test' }), SECRET)
-    await expectDenied(requestWith(cookie), 403, 'OUTSIDE_WORKSPACE')
-  })
-
-  it('cuenta del Workspace fuera de la lista: 403 y cuerpo vacío', async () => {
-    const cookie = await sealSession(claims({ email: `ajena@${WORKSPACE}` }), SECRET)
-    await expectDenied(requestWith(cookie), 403, 'NOT_ADMITTED')
-  })
-
   it('una cookie emitida con otro secreto no sirve', async () => {
     const cookie = await sealSession(claims(), 'un-secreto-distinto-igual-de-largo-aca')
     await expectDenied(requestWith(cookie), 401, 'INVALID_TOKEN')
@@ -116,14 +103,10 @@ describe('consultas directas de datos — deny by default', () => {
   })
 })
 
-describe('T-0035: la base también admite en oidc', () => {
+describe('T-0035: la base también admite', () => {
   it('AccesoDenegado es idéntico a una cuenta no admitida: no revela el motivo', async () => {
     const cookie = await sealSession(claims(), SECRET)
-    const noAdmitida = await guarded(
-      requestWith(await sealSession(claims({ email: `otra@${WORKSPACE}`, sub: 'sub-otra' }), SECRET)),
-      config,
-      handler,
-    )
+    const noAdmitida = deniedResponse('NOT_ADMITTED')
     for (const motivo of ['SIN_CREDENCIAL', 'SIN_ACCESO'] as const) {
       const response = await guarded(requestWith(cookie), config, () => Promise.reject(new AccesoDenegado(motivo)))
       assert.equal(response.status, noAdmitida.status)

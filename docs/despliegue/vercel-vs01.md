@@ -49,28 +49,26 @@ cliente.
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Cadena de conexión al Postgres de Supabase (D-0013). Usar el **pooler** de Supabase, no la conexión directa. | Production, Preview, Development | Owner, desde el panel de Supabase |
 | `VS01_SESSION_SECRET` | Cifra la cookie de sesión y la del handshake de OIDC. Cadena aleatoria de 32+ caracteres (`openssl rand -base64 48`). **Distinta por entorno.** | Production, Preview, Development | Owner, generada por él |
-| `GOOGLE_OAUTH_CLIENT_ID` | Identificador del cliente OAuth web (D-0059). | Production, Preview, Development | Manuel → owner |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Secreto de ese cliente. | Production, Preview, Development | Manuel → owner |
-| `VS01_GOOGLE_WORKSPACE_DOMAIN` | Dominio del Workspace de la correduría. La admisión compara contra el claim `hd` del ID token, no contra el sufijo del email. | Production, Preview, Development | Owner |
-| `VS01_ADMITTED_ACCOUNTS` | Lista explícita de cuentas admitidas, separadas por coma o salto de línea. **Vive acá y no en Git** (D-0059). | Production, Preview, Development | Owner, antes del piloto |
+| `GOOGLE_OAUTH_CLIENT_ID` | Identificador del cliente OAuth web External de Broker OS (T-0035, fase 1). | Production, Preview, Development | Owner |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Secreto de ese cliente. | Production, Preview, Development | Owner |
 | `VS01_BASE_URL` | URL pública de la app. De acá se deriva el `redirect_uri`; nunca se usa el header `Host`, que un cliente controla. | Production, Preview, Development | Owner, tras el primer deploy |
-| `AUTH_MODE` | `legacy` (default si falta) u `oidc` (T-0035). En `oidc` la admisión es la de la base —invitación o credencial vinculada, y usuario ACTIVE con rol en cada consulta— y no se leen `VS01_GOOGLE_WORKSPACE_DOMAIN` ni `VS01_ADMITTED_ACCOUNTS`. Un valor desconocido impide arrancar. **Pasar a `oidc` requiere la aprobación del owner** (plan de migración de T-0035, fase 2). | Production, Preview, Development | Owner |
+| `AUTH_MODE` | Opcional. Sin valor, u `oidc`, la admisión es la de la base: invitación o credencial vinculada, y usuario ACTIVE con rol en cada consulta (T-0035). `legacy` se retiró en la fase 5 y, como un valor desconocido, impide arrancar. | Production, Preview, Development | Owner |
 
 Notas de uso:
 
-- **`VS01_ADMITTED_ACCOUNTS`** admite `persona@dominio` o, si querés fijar la identidad,
-  `persona@dominio=<sub de Google>`. Sin el `sub`, si esa dirección se reasignara a otra
-  persona, la nueva entraría. Con el `sub`, no. Empezá sin fijarlos y fijalos después del
-  primer login, que es cuando los conocés.
 - **`VS01_BASE_URL`** hay que cargarla después del primer despliegue, cuando Vercel te dé
   el dominio. Si cambiás a un dominio propio, actualizala junto con las URIs de Google.
 - Cambiar cualquiera de estas variables **exige un redespliegue** para que tome efecto.
-  Sacar una cuenta de la lista corta su acceso en el siguiente request tras ese
-  redespliegue; una sesión ya emitida vence sola a las 8 horas.
+- **Quién entra lo decide la base**, no una variable: se invita y se da de baja con
+  `pnpm acceso` (T-0035). Una baja corta el acceso en el request siguiente, sin
+  redesplegar. `VS01_ADMITTED_ACCOUNTS` y `VS01_GOOGLE_WORKSPACE_DOMAIN` se retiraron en
+  la fase 5 y el código ya no las lee.
 
-## 4. Cliente OAuth — qué pasarle a Manuel
+## 4. Cliente OAuth
 
-- Tipo: **aplicación web**, audiencia **Internal** (sólo el Workspace).
+- Tipo: **aplicación web**, audiencia **External** (T-0035, D-0072): se admiten cuentas de
+  Google fuera del Workspace, y la admisión la decide la invitación en la base. El cliente
+  Internal original se retiró en la fase 5.
 - Scopes: **`openid`, `email`, `profile`** y nada más. **Sin ningún scope de Drive**:
   D-0057 y D-0059 los excluyen, y la app no llama a la API de Drive.
 - **URI de redirección autorizada — exacta, con esta ruta literal:**
@@ -83,8 +81,8 @@ Notas de uso:
   La ruta es `/api/auth/google/callback`. Un carácter distinto y Google rechaza el
   intercambio con `redirect_uri_mismatch`.
 - Orígenes JavaScript autorizados: no hacen falta (el intercambio ocurre en el servidor).
-- **Manuel no necesita crear una cuenta de servicio, ni delegación de dominio, ni tocar
-  permisos de Drive.** Si algo de eso aparece en la conversación, está fuera de D-0057.
+- **No hace falta una cuenta de servicio, ni delegación de dominio, ni tocar permisos de
+  Drive.** Si algo de eso aparece en la conversación, está fuera de D-0057.
 
 ## 5. Supabase
 
@@ -233,7 +231,7 @@ Supabase exportada**; las pruebas abortan si lo detectan.
    ```
 
 5. **Vercel.** Production: `DATABASE_URL` con el Transaction pooler (6543) del proyecto
-   nuevo y `?sslmode=require`, `VS01_ADMITTED_ACCOUNTS` con la lista del piloto y
+   nuevo y `?sslmode=require`, y
    `VS01_BASE_URL` con el dominio de producción; Production Branch `main`. Preview
    conserva la cadena del proyecto sintético. Redesplegá producción y comprobá que la
    cabecera ya no diga «LOTE SINTÉTICO».

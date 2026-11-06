@@ -1,4 +1,4 @@
-// Configuración de la entrada con Google (AUTH_MODE=oidc, T-0035, D-0077). La sesión y el
+// Configuración de la entrada con Google (T-0035, D-0077). La sesión y el
 // canje son los de `@del-campo/identidad`; acá sólo se leen del entorno los valores de
 // esta app. Ninguno está en el repositorio (R-18).
 
@@ -11,7 +11,7 @@ import {
 
 import type { Env } from './guard.ts'
 
-/** La cookie de la sesión con Google. Distinta de la de la credencial compartida. */
+/** La cookie de la sesión con Google. */
 export const COOKIE_IDENTIDAD = 'co01_identidad'
 export const COOKIE_HANDSHAKE = 'co01_handshake'
 /** Propósito de las claves derivadas del secreto: no sirven para otra app. */
@@ -25,8 +25,8 @@ export interface ConfigEntrada {
 }
 
 /**
- * Lo que el modo `oidc` necesita, o `null` si falta algo: entonces la UI se niega, como
- * hoy sin la credencial compartida. No hay modo abierto.
+ * Lo que la entrada con Google necesita, o `null` si falta algo: entonces la UI se niega.
+ * No hay modo abierto.
  */
 export const configEntrada = (env: Env): ConfigEntrada | null => {
   const baseUrl = env.COMMUNICATION_BASE_URL ?? ''

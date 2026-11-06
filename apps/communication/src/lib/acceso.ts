@@ -1,12 +1,8 @@
-// Por dónde pasa toda consulta y todo envío de la UI, según AUTH_MODE (T-0035):
-//
-// - `legacy`: como hasta hoy, con la conexión de la app y la credencial compartida
-//   (D-0066). Desplegar esto no cambia nada.
-// - `oidc`: dentro de `conPrincipal`, como `communication_app` con el principal
-//   declarado. La consulta recibe sólo esa transacción: no hay forma de que lea con la
-//   conexión de la app, que es dueña de las tablas y no está sujeta a RLS. Antes de
-//   correrla, la app decide si el rol puede hacer esa acción y, si no, la explica; RLS
-//   decide las filas (D-0022).
+// Por dónde pasa toda consulta y todo envío de la UI (T-0035): dentro de `conPrincipal`,
+// como `communication_app` con el principal declarado. La consulta recibe sólo esa
+// transacción: no hay forma de que lea con la conexión de la app, que es dueña de las
+// tablas y no está sujeta a RLS. Antes de correrla, la app decide si el rol puede hacer
+// esa acción y, si no, la explica; RLS decide las filas (D-0022).
 //
 // Si la persona no tiene credencial vinculada, fue dada de baja o no tiene rol, nada
 // corre y se lanza `AccesoDenegado`, que el guard responde igual que una cookie inválida:
@@ -26,20 +22,16 @@ import {
 } from '@del-campo/communication'
 import { decidirLogin, type Identidad } from '@del-campo/identidad'
 
-/**
- * Quién actúa. Con la credencial compartida (`legacy`) no hay persona: `autor` y `rol`
- * son `null`, y la UI se comporta como antes de T-0035.
- */
+/** Quién actúa: la persona admitida por la base y su rol. */
 export interface Actor {
-  readonly autor: string | null
-  readonly rol: RolInterno | null
+  readonly autor: string
+  readonly rol: RolInterno
 }
 
 export type Operacion<T> = (sql: Conexion, actor: Actor) => Promise<T>
 
-/** Si quien actúa puede hacer la acción. Sin persona (`legacy`), lo de siempre: sí. */
-export const actorPuede = (actor: Actor, accion: AccionCommunication): boolean =>
-  actor.rol === null || puede(actor.rol, accion)
+/** Si quien actúa puede hacer la acción. */
+export const actorPuede = (actor: Actor, accion: AccionCommunication): boolean => puede(actor.rol, accion)
 
 export type Datos = <T>(accion: AccionCommunication, op: Operacion<T>) => Promise<T>
 
@@ -75,12 +67,6 @@ const auditarNegativa = (conexion: Conexion, motivo: MotivoDenegado): Promise<vo
     resultado: 'denied',
     motivo,
   })
-
-/** `legacy`: la conexión tal cual. La conexión se pide recién al usarla. */
-export const datosLegacy =
-  (conexion: () => Sql): Datos =>
-  (_accion, op) =>
-    op(conexion(), { autor: null, rol: null })
 
 export const datosOidc =
   (conexion: () => Sql, identidad: Pick<Identidad, 'proveedor' | 'sujeto'>): Datos =>

@@ -1,12 +1,9 @@
-// Configuración de sesión y admisión leída del entorno. Nada de esto se versiona: la
-// lista de cuentas vive en configuración y no en Git (D-0059), y los secretos tampoco
+// Configuración de sesión y admisión leída del entorno. Los secretos no se versionan
 // (R-18). Este módulo es el único lugar que nombra las variables; la ficha de despliegue
 // (`docs/despliegue/vercel-vs01.md`) las documenta una por una.
 
-import type { ModoAcceso } from '../acceso/modo.ts'
 import { modoAcceso } from '../acceso/modo.ts'
 import type { AdmissionConfig } from './admission.ts'
-import { parseAdmittedAccounts } from './admission.ts'
 
 export interface OidcConfig {
   readonly issuer: string
@@ -39,16 +36,11 @@ const required = (name: string): string => {
 }
 
 /**
- * En `oidc` no se leen ni el dominio del Workspace ni la lista: la admisión es la de la
- * base (T-0035). En `legacy`, que es el default, todo sigue como en D-0059.
+ * La admisión es la de la base (T-0035). `modoAcceso()` se llama igual: con
+ * `AUTH_MODE=legacy` u otro valor desconocido lanza y la app no arranca. El dominio del
+ * Workspace y la lista del owner (D-0059) ya no se leen.
  */
-export const admissionConfig = (modo: ModoAcceso = modoAcceso()): AdmissionConfig =>
-  modo === 'oidc'
-    ? { modo: 'oidc' }
-    : {
-        workspaceDomain: required('VS01_GOOGLE_WORKSPACE_DOMAIN'),
-        admitted: parseAdmittedAccounts(required('VS01_ADMITTED_ACCOUNTS')),
-      }
+export const admissionConfig = (): AdmissionConfig => ({ modo: modoAcceso() })
 
 export const sessionConfig = (): SessionConfig => ({
   secret: required('VS01_SESSION_SECRET'),

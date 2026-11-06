@@ -207,6 +207,11 @@ Respondidas en el hilo de T-0035 al aprobar este plan.
    por el límite del plan gratuito.
 9. **Borrado del hash adelantado** (decisión del owner, 2026-11-06). El paso 4 de la fase 3 se
    ejecutó el mismo día de la fase, sin esperar los siete días estables.
+10. **Fase 5 partida** (decisión del owner, 2026-11-06). Broker OS y Communication OS se
+    cierran ya, sin esperar los 14 días estables: se quitan las variables de la lista y el
+    Workspace, se retira el cliente Internal, se quita `legacy` de su código, y D-0066 y las
+    cláusulas de D-0059 que reemplaza D-0072 pasan a SUPERSEDED. La parte de Risk OS (bajas de
+    contraseñas, su `legacy`, D-0069) espera a la fase 4.
 
 ### Condiciones antes de ejecutar la fase 2
 

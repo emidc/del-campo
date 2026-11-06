@@ -13,45 +13,29 @@ hace cumplir `pnpm lint` (R-25).
 
 | Ruta | Qué es | Protección |
 |---|---|---|
-| `/login`, `POST /api/login`, `POST /api/logout` | Entrar y salir | Mismo origen (`Origin`). Sin configuración, se niegan. |
-| `/` | Lista de conversaciones | Credencial compartida |
-| `/c/{id}` | Hilo y respuesta | Credencial compartida |
-| `GET /api/conversations` | Datos de la lista | Credencial compartida |
-| `GET /api/conversations/{id}` | Datos del hilo | Credencial compartida |
-| `POST /api/conversations/{id}/reply` | Envío | Credencial compartida y mismo origen |
-| `GET`/`POST /webhook` | Receptor de Meta (T-0024) | Firma `X-Hub-Signature-256`, **no** la credencial |
-| `GET /api/jobs/retention` | Retención de D-0065 (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la credencial |
-| `GET /api/jobs/reprocess` | Reproceso de entregas `failed` y atascadas (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la credencial |
+| `/login`, `GET /api/auth/google/start`, `GET /api/auth/google/callback`, `POST /api/logout` | Entrar con Google y salir | Logout: mismo origen (`Origin`). Sin configuración, se niegan. |
+| `/` | Lista de conversaciones | Sesión de Google |
+| `/c/{id}` | Hilo y respuesta | Sesión de Google |
+| `GET /api/conversations` | Datos de la lista | Sesión de Google |
+| `GET /api/conversations/{id}` | Datos del hilo | Sesión de Google |
+| `POST /api/conversations/{id}/reply` | Envío | Sesión de Google y mismo origen |
+| `GET`/`POST /webhook` | Receptor de Meta (T-0024) | Firma `X-Hub-Signature-256`, **no** la sesión |
+| `GET /api/jobs/retention` | Retención de D-0065 (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la sesión |
+| `GET /api/jobs/reprocess` | Reproceso de entregas `failed` y atascadas (T-0026) | `Authorization: Bearer $CRON_SECRET`, **no** la sesión |
 
 El `{id}` de una conversación es opaco: no codifica el teléfono ni el `wamid`.
 
-## Credencial compartida (D-0066)
+## Sesión
 
-Formulario con cookie firmada, no Basic Auth: la lista y el hilo se consultan cada 3 s,
-y con Basic Auth cada consulta recalcularía el hash de la contraseña.
+Se entra con Google, sólo por invitación (ver «Acceso por persona»). La sesión es la cookie
+`co01_identidad`, cifrada con `@del-campo/identidad` y una clave derivada de
+`COMMUNICATION_UI_SESSION_SECRET`. Dura 8 h y lleva la identidad, no permisos.
 
-- **Contraseña:** aleatoria, de **20 caracteres o más** (por ejemplo,
-  `openssl rand -base64 24`). La genera y la guarda el owner (R-16). El script del hash
-  rechaza las más cortas.
-- **Hash:** `scrypt` de `node:crypto` (N=2^15, r=8, p=1, sal de 16 bytes), con el
-  formato `scrypt:N:r:p:<sal>:<hash>`. El separador no es `$` porque Next.js expande
-  `$VAR` en los `.env`. Se genera con:
-
-  ```bash
-  node apps/communication/scripts/hash-password.ts     # pide la contraseña sin eco
-  ```
-
-- **Al entrar:** el usuario y el hash se comparan en tiempo constante. El scrypt se
-  calcula siempre, aunque el usuario esté mal.
-- **Sesión:** cookie `co01_session` = `v1.<vencimiento>.<HMAC-SHA256>`. Dura 8 h y no
-  lleva datos. Se emite con `HttpOnly`, `SameSite=Strict` y, fuera de `localhost`,
-  `Secure`. La firma cubre una huella del hash: rotar la contraseña cierra todas las
-  sesiones.
-- **Sin configuración, se niega todo:** si falta o es inválida cualquiera de las tres
-  variables, las páginas mandan a `/login`, que dice que la UI no está configurada, y
-  los endpoints responden 503. No hay modo abierto.
-- **Sin límite de intentos de login** en T-0025, porque la UI solo corre en local. Sigue
-  sin límite en la app; ver `docs/communication-os/t-0026-hardening-report.md` (H7).
+- **Sin configuración, se niega todo:** si falta cualquiera de las variables de Google o el
+  secreto, las páginas mandan a `/login`, que dice que la UI no está configurada, y los
+  endpoints responden 503. No hay modo abierto.
+- **La credencial compartida de D-0066 se retiró** en la fase 5 de T-0035, junto con
+  `POST /api/login` y el script del hash.
 
 ## Variables de entorno
 
@@ -61,12 +45,10 @@ locales viven en un `.env.local` de esta carpeta, que está gitignored.
 | Variable | Para qué | Obligatoria |
 |---|---|---|
 | `COMMUNICATION_DATABASE_URL` | Base del contexto | Sí |
-| `COMMUNICATION_UI_USER` | Usuario compartido | Sí, o la UI se niega |
-| `COMMUNICATION_UI_PASSWORD_HASH` | Hash de la contraseña (ver arriba) | Sí, o la UI se niega |
-| `COMMUNICATION_UI_SESSION_SECRET` | Clave de la firma de la cookie, de 32 caracteres o más. En `oidc` también cifra la sesión de Google, con otra clave derivada | Sí, o la UI se niega |
-| `AUTH_MODE` | `legacy` (credencial compartida) u `oidc` (Google por invitación, T-0035). Sin valor, `legacy`; un valor desconocido falla | No |
-| `COMMUNICATION_BASE_URL` | Origen público de la app, por ejemplo `https://…vercel.app`. La URI de redirección es este origen más `/api/auth/google/callback` | Sólo en `oidc` |
-| `COMMUNICATION_GOOGLE_CLIENT_ID`, `COMMUNICATION_GOOGLE_CLIENT_SECRET` | Cliente OAuth External de Google (fase 1 del plan de T-0035) | Sólo en `oidc` |
+| `COMMUNICATION_UI_SESSION_SECRET` | Cifra la sesión de Google, de 32 caracteres o más | Sí, o la UI se niega |
+| `COMMUNICATION_BASE_URL` | Origen público de la app, por ejemplo `https://…vercel.app`. La URI de redirección es este origen más `/api/auth/google/callback` | Sí, o la UI se niega |
+| `COMMUNICATION_GOOGLE_CLIENT_ID`, `COMMUNICATION_GOOGLE_CLIENT_SECRET` | Cliente OAuth External de Google (fase 1 del plan de T-0035) | Sí, o la UI se niega |
+| `AUTH_MODE` | Sin valor u `oidc`. `legacy` se retiró en la fase 5 de T-0035 y, como un valor desconocido, falla | No |
 | `WHATSAPP_ACCESS_TOKEN` | Token de usuario del sistema de Meta | Para enviar |
 | `WHATSAPP_PHONE_NUMBER_ID` | Número desde el que se envía, y el único cuyos webhooks se persisten (CO01 §3) | Para enviar, recibir y reprocesar |
 | `WHATSAPP_GRAPH_API_VERSION` | Versión de la Graph API, por ejemplo `v23.0` | Para enviar |
@@ -79,10 +61,9 @@ Sin la configuración de envío, la UI muestra las conversaciones y deshabilita 
 respuesta. Sin la del webhook (incluido `WHATSAPP_PHONE_NUMBER_ID`), `/webhook` responde
 503 y Meta reintenta. Sin `CRON_SECRET`, las tareas responden 503.
 
-## Acceso por persona (T-0035, AUTH_MODE=oidc)
+## Acceso por persona (T-0035)
 
-Con `AUTH_MODE=oidc` no entra la credencial compartida: se entra con Google, sólo con
-una invitación de un Administrador (D-0072), y la identidad es el `sub` de Google
+Se entra con Google, sólo con una invitación de un Administrador (D-0072), y la identidad es el `sub` de Google
 (D-0077). En cada request, la base vuelve a admitir a la persona y las consultas corren
 como `communication_app` con RLS (migración 0005, D-0022): una baja corta el acceso en
 el request siguiente. El Administrador y el Operador Del Campo ven y responden las
@@ -92,12 +73,11 @@ nombre de quien lo hizo y en `audit_event`, sin texto ni teléfono.
 
 Las invitaciones se cargan con la CLI del contexto
 (`pnpm --filter @del-campo/communication acceso`, ver
-`contexts/communication/src/application/acceso-cli.ts`). Activar `oidc` en producción e
-invitar a personas reales es la fase 3 del plan (`docs/migration/T-0035-identidad-comun.md`)
-y la hace o la aprueba el owner.
+`contexts/communication/src/application/acceso-cli.ts`). Invitar a personas reales en
+producción lo hace o lo aprueba el owner (`docs/migration/T-0035-identidad-comun.md`).
 
-El webhook y las tareas programadas no cambian con el modo: los protegen la firma de
-Meta y `CRON_SECRET`, y no actúan en nombre de una persona.
+El webhook y las tareas programadas no usan la sesión: los protegen la firma de Meta y
+`CRON_SECRET`, y no actúan en nombre de una persona.
 
 ## Entregas sin procesar y tareas programadas (T-0026)
 
@@ -153,8 +133,9 @@ pnpm --filter ./apps/communication dev                    # http://localhost:310
 ```
 
 `.env.local` de esta carpeta, con valores de prueba (nunca los reales):
-`COMMUNICATION_DATABASE_URL=postgres://localhost:5432/delcampo_communication_dev`, las
-tres variables de la credencial, `WHATSAPP_GRAPH_BASE_URL=http://127.0.0.1:4010`, un
+`COMMUNICATION_DATABASE_URL=postgres://localhost:5432/delcampo_communication_dev`,
+`COMMUNICATION_BASE_URL=http://localhost:3100`, un cliente OAuth de prueba y el secreto de
+sesión, `WHATSAPP_GRAPH_BASE_URL=http://127.0.0.1:4010`, un
 token y un `phone_number_id` inventados, y `WHATSAPP_APP_SECRET` y
 `WHATSAPP_VERIFY_TOKEN` de prueba para mandar webhooks firmados.
 

@@ -46,24 +46,24 @@ procedimiento habitual para revertir una versión de la app.
 
 ## Variables y credencial
 
-La lista canónica, obligatoriedad y generación del hash están en
+La lista canónica y su obligatoriedad están en
 [README de la app](../../apps/communication/README.md#variables-de-entorno).
 Configurar para el entorno Production:
 
 - `COMMUNICATION_DATABASE_URL`.
-- `COMMUNICATION_UI_USER`, `COMMUNICATION_UI_PASSWORD_HASH` y
+- `COMMUNICATION_BASE_URL`, `COMMUNICATION_GOOGLE_CLIENT_ID`,
+  `COMMUNICATION_GOOGLE_CLIENT_SECRET` (cliente External) y
   `COMMUNICATION_UI_SESSION_SECRET`.
 - `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_API_VERSION`,
   `WHATSAPP_APP_SECRET` y `WHATSAPP_VERIFY_TOKEN`.
 - `CRON_SECRET`.
-- `AUTH_MODE`: no configurarla, o `legacy`, hasta la fase 3 del plan de T-0035. Con
-  `oidc` hacen falta además `COMMUNICATION_BASE_URL`, `COMMUNICATION_GOOGLE_CLIENT_ID` y
-  `COMMUNICATION_GOOGLE_CLIENT_SECRET`, y la migración 0005 aplicada; la contraseña
-  compartida deja de entrar.
+- `AUTH_MODE`: opcional; sin valor u `oidc`. La credencial compartida de D-0066 y el modo
+  `legacy` se retiraron en la fase 5 de T-0035: `legacy` impide responder, igual que un
+  valor desconocido. `COMMUNICATION_UI_USER` y `COMMUNICATION_UI_PASSWORD_HASH` ya no se
+  leen.
 
 No configurar `WHATSAPP_GRAPH_BASE_URL` en producción: es exclusivamente para el
-simulador local. El hash es scrypt, generado con el script de la app; el secreto de
-sesión y el de cron tienen al menos 32 caracteres. Usar token de usuario del sistema
+simulador local. El secreto de sesión y el de cron tienen al menos 32 caracteres. Usar token de usuario del sistema
 y una versión de Graph API habilitada para la app. Los carga el owner y vuelve a
 desplegar para que entren en vigencia. No exponerlos mediante variables NEXT_PUBLIC.
 
