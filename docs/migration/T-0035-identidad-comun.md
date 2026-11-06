@@ -202,6 +202,11 @@ Respondidas en el hilo de T-0035 al aprobar este plan.
 7. **Fase 3 sólo con el owner** (decisión del owner, 2026-11-06). Communication OS pasó a
    `oidc` con el owner como único Administrador, no con las personas que compartían la
    credencial (paso 1 de la fase 3). Se invitan después, según el punto 2.
+8. **Fase 4 postergada** (decisión del owner, 2026-11-06). Se ejecuta más cerca de producción,
+   sólo con el owner como Administrador. Hoy el proyecto de Supabase de Risk OS está pausado
+   por el límite del plan gratuito.
+9. **Borrado del hash adelantado** (decisión del owner, 2026-11-06). El paso 4 de la fase 3 se
+   ejecutó el mismo día de la fase, sin esperar los siete días estables.
 
 ### Condiciones antes de ejecutar la fase 2
 
