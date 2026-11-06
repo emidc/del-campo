@@ -199,6 +199,9 @@ Respondidas en el hilo de T-0035 al aprobar este plan.
 6. **Fase 2 sólo con el owner** (decisión del owner, 2026-11-05). Broker OS pasó a `oidc` con
    el owner como único Administrador. El resto del equipo se invita después, según el
    punto 2.
+7. **Fase 3 sólo con el owner** (decisión del owner, 2026-11-06). Communication OS pasó a
+   `oidc` con el owner como único Administrador, no con las personas que compartían la
+   credencial (paso 1 de la fase 3). Se invitan después, según el punto 2.
 
 ### Condiciones antes de ejecutar la fase 2
 
