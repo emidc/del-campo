@@ -6,6 +6,10 @@ cruza esas decisiones con el [plan de paso a producción](09-plan-de-produccion.
 sección 3 es una **propuesta** de etapas: no autoriza implementar, contratar servicios,
 migrar bases ni cambiar permisos de producción.
 
+> **Actualización del 07/11/2026.** El tope de USD 45 de `D-0076` ya no rige: `D-0079` fijó la
+> configuración y `D-0081` el presupuesto (objetivo USD 55, techo USD 66). El plan vigente
+> está en [12-plan-hacia-la-north-star.md](12-plan-hacia-la-north-star.md), con `D-0080` a `D-0084`.
+
 ## 1. Qué quedó decidido y qué falta verificar
 
 | Punto del plan | Decisión | Estado | Pendiente de verificación |

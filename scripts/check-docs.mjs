@@ -195,9 +195,18 @@ for (const { file, fm } of tasks) {
   }
 }
 
-const active = tasks.filter((task) => task.fm?.status === 'ACTIVE')
-if (active.length > 2)
-  fail(`WIP limit superado: ${active.length} tareas ACTIVE (máximo 2). ${active.map((task) => task.fm.id).join(', ')}`)
+// D-0080: máximo cinco tareas ACTIVE; una espera pasiva declara `waiting` y no cuenta.
+for (const task of tasks) {
+  const waiting = task.fm?.waiting
+  if (waiting === undefined) continue
+  if (typeof waiting !== 'string' || !waiting.trim())
+    fail(`TASKS/${task.file}: "waiting" debe ser un texto con la condición de salida y la próxima comprobación (D-0080)`)
+  else if (task.fm?.status !== 'ACTIVE')
+    fail(`TASKS/${task.file}: "waiting" sólo vale en una tarea ACTIVE (D-0080)`)
+}
+const active = tasks.filter((task) => task.fm?.status === 'ACTIVE' && !task.fm?.waiting)
+if (active.length > 5)
+  fail(`WIP limit superado: ${active.length} tareas ACTIVE sin espera pasiva (máximo 5, D-0080). ${active.map((task) => task.fm.id).join(', ')}`)
 const activeSpikes = active.filter((task) => task.fm?.kind === 'SPIKE')
 if (activeSpikes.length > 1) fail(`WIP limit superado: ${activeSpikes.length} spikes ACTIVE (máximo 1)`)
 

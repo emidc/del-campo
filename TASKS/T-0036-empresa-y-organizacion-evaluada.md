@@ -11,7 +11,7 @@ blockedBy: [T-0032, T-0034]
 contextRefs: [DOMAIN.md, SLICES/RO01.md, DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0071-integracion-por-api-y-correspondencia-de-empresas.md]
-decisionRefs: [D-0063, D-0067, D-0071]
+decisionRefs: [D-0063, D-0067, D-0071, D-0084]
 ---
 
 ## Why

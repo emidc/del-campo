@@ -7,7 +7,7 @@ workstream: BOS
 riskClass: HIGH
 size: L
 created: 2026-10-14
-blockedBy: [T-0030, T-0031]
+blockedBy: [T-0030, T-0031, T-0040, T-0041]
 contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
@@ -18,13 +18,19 @@ contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               docs/despliegue/vercel-communication.md, docs/despliegue/vercel-vs01.md,
               ops/evidence/T-0026-aceptacion.md, contexts/risk/README.md,
               SPIKES/T-0021/v0/fase-13/dossier-cierre-emi15.md, ENGINEERING_RULES.md]
-decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068, D-0070]
+decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068, D-0070, D-0083, D-0084]
 ---
 
 > **BLOCKED desde el 2026-11-06** por decisión del owner: Risk OS queda postergado hasta
 > estar más cerca de producción. Su proyecto de Supabase está pausado por el límite de dos
 > proyectos activos del plan Free (`ops/evidence/T-0035.md`, fase 4). Se libera con la
 > configuración de infraestructura de `T-0037` (`docs/migration/zoho/T-0037-infraestructura.md`).
+>
+> **Desde el 2026-11-07** (plan de `docs/north-star/12-plan-hacia-la-north-star.md`): el
+> destino de Risk OS lo decide el spike `T-0040` antes de cargar las históricas, y los
+> ciclos de actualización necesitan la aprobación interna por operador único de `T-0041`
+> (D-0083). La aceptación se rige por D-0084: sin revisor profesional, A8 queda como no
+> verificado y la aceptación habilita sólo el uso interno.
 
 ## Why
 
@@ -101,9 +107,11 @@ Comprobaciones humanas, registradas en `ops/evidence/T-0032.md`:
 - [ ] Ninguna preview tiene la cadena de conexión de la base real.
 - [ ] Las cinco históricas están importadas, y el informe sin valores de cada intento
       está en el acta.
-- [ ] El revisor, distinto del evaluador original, registró su orden y sus bandas de
-      cada empresa con material ciego que preparó el owner fuera del repositorio
-      (R-19), antes de su primer acceso a resultados según el registro de sesiones.
+- [ ] A8 (D-0084): si hay un revisor distinto del evaluador original, registró su orden
+      y sus bandas de cada empresa con material ciego que preparó el owner fuera del
+      repositorio (R-19), antes de su primer acceso a resultados según el registro de
+      sesiones. Si no lo hay, el acta lo registra como no verificado, sin reemplazarlo con
+      un orden propio ni con una IA, y la aceptación queda limitada al uso interno.
 - [ ] `ops/evidence/T-0032-aceptacion.md` tiene los trece criterios de RO01 §6 con su
       valor medido.
 - [ ] El repositorio, el acta y la evidencia no contienen valores de las históricas ni

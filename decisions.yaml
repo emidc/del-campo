@@ -257,11 +257,15 @@ decisions:
     date: 2026-09-07
     source: revisión externa del Charter
     statement: >
-      El arnés inicial soporta únicamente Claude Code. La asignación de proveedores por
+      Desde el 2026-11-07, el arnés admite Claude Code, Codex y Gemini como agentes de
+      ejecución (D-0082). La asignación de proveedores por
       tipo de tarea es una hipótesis no testeada y no se adopta como política hasta
       que exista un experimento pareado con n suficiente. Esta decisión alcanza
       únicamente al arnés de Project OS y no restringe la arquitectura de IA de Broker OS
       como producto, que es una decisión separada.
+    superseded_in_part_by:
+      - clause: El arnés inicial soporta únicamente Claude Code
+        by: D-0082
 
   - id: D-0017
     title: Toda tarea tiene criterios verificables
@@ -328,7 +332,8 @@ decisions:
       según su identidad, las empresas asignadas y el contexto; la aplicación controla
       qué acciones están permitidas y explica quién puede hacerlas. Las restricciones
       críticas, empezando por que quien redacta una evaluación o un informe no lo
-      aprueba ni lo acepta, se hacen cumplir en las dos capas. La app, los workers y los
+      aprueba ni lo acepta, se hacen cumplir en las dos capas; para uso interno rige la
+      excepción de operador único de D-0083, que tampoco habilita entregar al cliente. La app, los workers y los
       agentes usan roles de mínimo privilegio, sin BYPASSRLS; el service role queda para
       migraciones y operación del owner. Cada contexto verifica sus propios permisos y no
       confía ciegamente en una identidad reenviada por otro. Decisiones funcionales: el
@@ -339,6 +344,9 @@ decisions:
       privilegiadas, la cobertura de RLS y la revocación inmediata son criterios de
       implementación y aceptación de C1 (T-0035), no investigación pendiente.
 
+    superseded_in_part_by:
+      - clause: Quien redacta una evaluación o un informe no lo aprueba ni lo acepta (sólo para uso interno)
+        by: D-0083
   - id: D-0023
     title: Detalle de InsurerProfile
     status: OPEN
@@ -1549,7 +1557,8 @@ decisions:
     adr: DECISIONS/0079-tope-de-infraestructura-usd-55.md
     statement: >
       El gasto mensual total de infraestructura de Broker OS, Risk OS y Communication
-      OS, incluidos impuestos y consumos variables, no supera USD 55. Reemplaza el tope
+      OS, incluidos impuestos y consumos variables, tiene como objetivo USD 55 y como
+      techo USD 66 (D-0081). Reemplaza el tope
       de USD 45 de D-0076; el resto de D-0076 sigue vigente. Se aprueba esta
       configuración: una organización de Supabase en plan Pro con un único proyecto, la
       producción de VS01, transferida desde la organización Free; y el equipo de Vercel
@@ -1560,3 +1569,100 @@ decisions:
       tope. Los dos servicios se contratan con un límite de gasto que impida consumos por
       encima del plan. La contratación y la transferencia del proyecto las hace el owner
       (R-13, R-14).
+    superseded_in_part_by:
+      - clause: El gasto mensual total no supera USD 55
+        by: D-0081
+
+  - id: D-0080
+    title: Como máximo cinco frentes activos, sin contar las esperas pasivas
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Respuestas del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
+      Gantt» del proyecto de Claude («5 frentes totales, no importa si son de construcción,
+      productivos o spike»; «esperas pasivas fuera del WIP activo»); plan hacia la north
+      star (docs/north-star/12-plan-hacia-la-north-star.md); PROJECT.md §5.
+    adr: DECISIONS/0080-cinco-frentes-activos.md
+    statement: >
+      Como máximo cinco tareas ACTIVE al mismo tiempo, sin sublímites por tipo:
+      construcción, producción y spikes cuentan igual. Una tarea ACTIVE cuyo único trabajo
+      pendiente es una espera pasiva (una factura, la respuesta de un tercero, un período
+      de observación, la pausa de 24 h del operador único) declara `waiting` con la
+      condición de salida y la próxima comprobación, y no cuenta. Cuando la espera exige
+      trabajo (analizar logs, corregir, ejecutar), quita `waiting` y vuelve a contar.
+      Reemplaza el límite de dos tareas ACTIVE y un spike de PROJECT.md §5.
+
+  - id: D-0081
+    title: El presupuesto de infraestructura tiene objetivo USD 55 y techo USD 66
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Respuesta del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
+      Gantt» («55 USD más 20 % de contingencia, minimizar siempre que sea posible»); D-0079;
+      D-0076.
+    adr: DECISIONS/0081-presupuesto-con-contingencia.md
+    statement: >
+      El gasto mensual total de infraestructura de Broker OS, Risk OS y Communication OS,
+      con impuestos y consumos variables, tiene como objetivo USD 55 y una contingencia de
+      hasta 20 %: el techo es USD 66. Por encima de USD 55 primero se buscan ahorros; una
+      previsión por encima de USD 66 frena cualquier expansión hasta reducirla. La
+      configuración aprobada por D-0079 no cambia. Las suscripciones de IA del owner no
+      cuentan en este total.
+
+  - id: D-0082
+    title: Claude Code, Codex y Gemini trabajan como agentes del repositorio
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Respuestas del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
+      Gantt» («disponemos de 3 cuentas premium», «sí, inmediatamente»); D-0016; D-0043;
+      D-0074; AGENTS.md.
+    adr: DECISIONS/0082-tres-proveedores-de-agentes.md
+    statement: >
+      Claude Code, Codex y Gemini pueden ejecutar tareas del repositorio con el mismo
+      contrato: AGENTS.md, la tarea en TASKS/, revisión ciega y aprobación humana según
+      R-13 y R-14. Una tarea tiene un solo agente implementador a la vez. Hasta que T-0039
+      deje la protección local de rutas y la captura de AgentRun funcionando para Codex y
+      Gemini, esos dos trabajan sólo con datos sintéticos y sin credenciales de
+      producción. Ningún proveedor recibe información de nivel 2 sin una cuenta
+      registrada según D-0074. Elegir un proveedor distinto para la revisión ciega está
+      permitido, pero no resuelve D-0043, que sigue OPEN.
+
+  - id: D-0083
+    title: Aprobación interna por operador único
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Elección del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
+      Gantt» (tarjeta de decisión, «Operador único interno», con la excepción explícita de
+      su mensaje de las 18:31 UTC); D-0022; DA-8 (docs/north-star/01-arquitectura-funcional.md).
+    adr: DECISIONS/0083-aprobacion-interna-por-operador-unico.md
+    statement: >
+      Mientras Emiliano sea la única persona que opera Broker OS y Risk OS, puede aprobar
+      o aceptar lo que él mismo redactó, sólo para uso interno, si hay una revisión de IA
+      registrada y pasaron 24 horas desde el último cambio material; un cambio material
+      reinicia la espera. Quedan registrados la versión, los hallazgos, las correcciones y
+      la aprobación humana. La aprobación se identifica como «aprobación interna por
+      operador único» y no habilita publicar, exportar ni entregar al cliente: eso sigue
+      exigiendo otra persona humana habilitada, que puede ser interna. La restricción se
+      hace cumplir en el servidor y en los permisos de la base. Las 24 horas son una pausa
+      para reconsiderar, no evidencia de independencia profesional.
+
+  - id: D-0084
+    title: RO01 se acepta para uso interno sin revisor profesional, con A8 no verificado
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Respuestas del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
+      Gantt» («no tendremos revisor profesional, Emiliano revisa y aprueba con ayuda de
+      agentes IA»; «una observación mínima de Emiliano es suficiente»); SLICES/RO01.md §6;
+      T-0032; D-0083.
+    adr: DECISIONS/0084-aceptacion-interna-de-ro01.md
+    statement: >
+      La aceptación de RO01 (T-0032) mide los trece criterios de RO01 §6 y la firma
+      Emiliano. Sin una segunda persona idónea, A8 (revisor distinto del evaluador, con
+      orden previo ciego) queda registrado como no verificado y no se reemplaza con un
+      orden propio ni con una IA. Así aceptada, RO01 habilita el uso interno de Risk OS y
+      destraba T-0036, pero no permite afirmar validación profesional independiente ni
+      presentar resultados de Risk OS a un cliente. Si más adelante hay un revisor, A8 se
+      mide sin repetir el resto.
