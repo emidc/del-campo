@@ -1,7 +1,8 @@
 # T-0037 · Propuesta de infraestructura dentro de USD 45 (D-0076)
 
-**Estado: propuesta para el owner, sin aprobar.** Nada de esto se contrata, se mueve ni se
-cambia hasta que el owner apruebe una opción concreta (D-0076, R-13, R-14). Escrita el
+**Estado: decidido el 2026-11-07 (D-0079).** El owner eligió la opción D, Supabase Pro para
+VS01 más Vercel Pro, y subió el tope a USD 55 con impuestos. Los pasos para contratar están
+en el §8. Las secciones 1 a 7 son la propuesta tal como se presentó. Escrita el
 2026-11-06 en la rama `task/T-0037-infra-y-diseno-del-refresco`.
 
 ## 1. Qué hay hoy
@@ -123,3 +124,32 @@ Todos los hace el owner, en los paneles; ningún agente tiene acceso (R-13, R-14
 - Que Supabase y Vercel estén en el listado de IVA de ARCA, y si Del Campo puede tomar el
   IVA como crédito fiscal.
 - El precio final en la pantalla de checkout de Supabase para esta cuenta.
+
+## 8. Lo que decidió el owner y cómo se contrata
+
+El 2026-11-07 el owner eligió la opción D y subió el tope a USD 55 con impuestos (D-0079).
+Con 21 % de IVA y el resumen pagado en dólares, la opción D cuesta unos USD 54,45: el
+margen es de USD 0,55, así que los límites de gasto de los pasos 3 y 5 son obligatorios.
+
+Todos los pasos los hace el owner, en los paneles (R-13, R-14).
+
+1. `pg_dump` de la producción de VS01 a `~/del-campo-privado/` como backup previo
+   (`vercel-vs01.md` §9.1).
+2. Crear en Supabase una organización nueva y pasarla a Pro.
+3. En esa organización, dejar activado el **spend cap**, para que el cargo no pase de
+   USD 25 más impuestos.
+4. Transferir **sólo** el proyecto de producción de VS01 a la organización Pro. Comprobar
+   en *Connect* que las cadenas de conexión no cambiaron y que VS01 sigue respondiendo. Si
+   cambiaron, actualizar `DATABASE_URL` en Vercel y redesplegar.
+5. En Vercel, pasar el equipo que tiene los tres proyectos a Pro, con un solo asiento que
+   despliega. En *Spend Management*, poner el monto en USD 20 (el crédito incluido) y
+   activar la pausa de los proyectos al alcanzarlo. El aviso que viene por defecto es de
+   USD 200.
+6. Pagar los dos cargos con la tarjeta en dólares. Pagados en pesos, se suma la
+   percepción del 30 % y el total llega a unos USD 68.
+7. Pausar o borrar la Preview sintética de VS01. Con eso, Communication OS y Risk OS
+   tienen los dos lugares de la organización Free, y Risk OS se puede reanudar cuando se
+   retome T-0032.
+8. Registrar el primer cargo real de cada servicio, con impuestos, en
+   `ops/evidence/T-0037.md`. Si la suma pasa USD 55, se vuelve a decidir antes del
+   segundo mes (D-0079, criterio de falsación).
