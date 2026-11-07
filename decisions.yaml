@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-11-02
+updated: 2026-11-07
 
 decisions:
 
@@ -1486,6 +1486,11 @@ decisions:
     title: La infraestructura de los tres contextos tiene un tope de USD 45 mensuales
     status: ACCEPTED
     date: 2026-11-02
+    superseded_in_part_by:
+      - clause: Tope de USD 45 mensuales con impuestos incluidos
+        by: D-0079
+      - clause: La combinación de Vercel Pro y Supabase Pro no queda autorizada por sí sola
+        by: D-0079
     source: >
       Decisión del owner del 2026-11-02 («Decisiones de cierre Q4 — Del Campo OS», punto
       4, D-0062 y D-0068) en el hilo de T-0034; precios base de Vercel Pro y Supabase Pro
@@ -1493,12 +1498,11 @@ decisions:
     adr: DECISIONS/0076-presupuesto-de-infraestructura.md
     statement: >
       El gasto mensual total de infraestructura de Broker OS, Risk OS y Communication
-      OS, incluidos impuestos y consumos variables, no supera USD 45. Los planes pagos se
+      OS, incluidos impuestos y consumos variables, no supera el tope que fija D-0079. Los planes pagos se
       activan sólo ante una necesidad concreta y después de que el owner apruebe una
       configuración concreta que respete el tope; si no es viable, se proponen
-      alternativas para su aprobación. Vercel Pro (USD 20) y Supabase Pro (USD 25)
-      suman USD 45 antes de impuestos y cargos variables, así que esa combinación no
-      queda autorizada por sí sola. Se aprovecha la infraestructura existente, se usan
+      alternativas para su aprobación. La configuración con Vercel Pro y Supabase Pro
+      es la que aprueba D-0079. Se aprovecha la infraestructura existente, se usan
       planes gratuitos cuando son adecuados a la criticidad y la disponibilidad que se
       necesitan, se comparte infraestructura cuando es técnica y operativamente
       conveniente manteniendo la separación lógica y los controles entre contextos
@@ -1532,3 +1536,27 @@ decisions:
       la arquitectura no lo impide. Supabase Auth sigue como alternativa futura si
       mantener la autenticación propia llega a justificar una migración. Reemplaza la
       cláusula de D-0072 que prioriza Supabase Auth.
+
+  - id: D-0079
+    title: El tope de infraestructura sube a USD 55 mensuales y se aprueba Supabase Pro para VS01 con Vercel Pro
+    status: ACCEPTED
+    date: 2026-11-07
+    source: >
+      Elección del owner del 2026-11-07 en el hilo de T-0037 («VS01 a Supabase Pro y Vercel
+      Pro», y «Subir el tope a USD 55 con impuestos» en la tarjeta de decisión), sobre la
+      propuesta de docs/migration/zoho/T-0037-infraestructura.md; precios de lista
+      consultados el 2026-11-06; D-0062, D-0068, D-0076; R-13, R-14; T-0037.
+    adr: DECISIONS/0079-tope-de-infraestructura-usd-55.md
+    statement: >
+      El gasto mensual total de infraestructura de Broker OS, Risk OS y Communication
+      OS, incluidos impuestos y consumos variables, no supera USD 55. Reemplaza el tope
+      de USD 45 de D-0076; el resto de D-0076 sigue vigente. Se aprueba esta
+      configuración: una organización de Supabase en plan Pro con un único proyecto, la
+      producción de VS01, transferida desde la organización Free; y el equipo de Vercel
+      en plan Pro con un solo asiento que despliega, para los proyectos de VS01,
+      Communication OS y Risk OS. Communication OS y Risk OS siguen en Supabase Free. El
+      cálculo supone 21 % de IVA como costo y el resumen pagado en dólares, para que no
+      se aplique la percepción del 30 %; pagado en pesos, la configuración supera el
+      tope. Los dos servicios se contratan con un límite de gasto que impida consumos por
+      encima del plan. La contratación y la transferencia del proyecto las hace el owner
+      (R-13, R-14).
