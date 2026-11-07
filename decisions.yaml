@@ -1566,11 +1566,13 @@ decisions:
       Communication OS y Risk OS. Communication OS y Risk OS siguen en Supabase Free. El
       cálculo supone 21 % de IVA como costo y el resumen pagado en dólares, para que no
       se aplique la percepción del 30 %; pagado en pesos, la configuración supera el
-      tope. Los dos servicios se contratan con un límite de gasto que impida consumos por
-      encima del plan. La contratación y la transferencia del proyecto las hace el owner
+      tope. Los dos servicios se contratan con su límite de gasto activado; esos límites
+      no garantizan el total (D-0081). La contratación y la transferencia del proyecto las hace el owner
       (R-13, R-14).
     superseded_in_part_by:
       - clause: El gasto mensual total no supera USD 55
+        by: D-0081
+      - clause: Un límite de gasto que impida consumos por encima del plan
         by: D-0081
 
   - id: D-0080
@@ -1606,8 +1608,11 @@ decisions:
       con impuestos y consumos variables, tiene como objetivo USD 55 y una contingencia de
       hasta 20 %: el techo es USD 66. Por encima de USD 55 primero se buscan ahorros; una
       previsión por encima de USD 66 frena cualquier expansión hasta reducirla. La
-      configuración aprobada por D-0079 no cambia. Las suscripciones de IA del owner no
-      cuentan en este total.
+      configuración aprobada por D-0079 no cambia, pero sus límites de gasto no son una
+      garantía: el spend cap de Supabase no cubre cómputo, y el presupuesto de Vercel
+      cuenta sólo el uso que excede el crédito del plan y pausa con minutos de demora.
+      El total se controla con la previsión del checkout y la conciliación de cada
+      factura. Las suscripciones de IA del owner no cuentan en este total.
 
   - id: D-0082
     title: Claude Code, Codex y Gemini trabajan como agentes del repositorio

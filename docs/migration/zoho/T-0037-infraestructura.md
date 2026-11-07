@@ -108,8 +108,8 @@ Todos los hace el owner, en los paneles; ningún agente tiene acceso (R-13, R-14
 
 1. `pg_dump` de la producción de VS01 a `~/del-campo-privado/`, como backup previo
    (`vercel-vs01.md` §9.1).
-2. Crear la organización Pro en Supabase, con el **límite de gasto activado** (spend cap),
-   para que el cargo no supere los USD 25 más impuestos.
+2. Crear la organización Pro en Supabase, con el **límite de gasto activado** (spend cap).
+   El spend cap no cubre cómputo (ver §8, paso 3).
 3. Transferir el proyecto de producción de VS01 a esa organización. Comprobar en *Connect*
    que las cadenas de conexión no cambiaron y que VS01 sigue respondiendo; si cambiaron,
    actualizar `DATABASE_URL` en Vercel y redesplegar.
@@ -129,22 +129,34 @@ Todos los hace el owner, en los paneles; ningún agente tiene acceso (R-13, R-14
 
 El 2026-11-07 el owner eligió la opción D y subió el tope a USD 55 con impuestos (D-0079).
 Con 21 % de IVA y el resumen pagado en dólares, la opción D cuesta unos USD 54,45: el
-margen es de USD 0,55, así que los límites de gasto de los pasos 3 y 5 son obligatorios.
+margen es de USD 0,55. Después, D-0081 fijó USD 55 como objetivo y USD 66 como techo. Los
+límites de gasto de los pasos 3 y 5 son obligatorios, pero **ninguno garantiza el total**:
+cada uno cubre sólo una parte de los cargos, como se detalla abajo. El total se controla
+con la previsión del checkout (INF-CHK) y la conciliación de la primera factura (INF-04).
 
 Todos los pasos los hace el owner, en los paneles (R-13, R-14).
 
 1. `pg_dump` de la producción de VS01 a `~/del-campo-privado/` como backup previo
    (`vercel-vs01.md` §9.1).
 2. Crear en Supabase una organización nueva y pasarla a Pro.
-3. En esa organización, dejar activado el **spend cap**, para que el cargo no pase de
-   USD 25 más impuestos.
+3. En esa organización, dejar activado el **spend cap**. Frena los excesos de uso (disco,
+   egress, usuarios activos, Realtime, Storage, logs), pero **no cubre cómputo**, réplicas,
+   branching, IPv4, PITR ni dominio propio
+   ([Supabase, *Spend cap*](https://supabase.com/docs/guides/platform/spend-cap),
+   consultado el 2026-11-07). El cómputo de un segundo proyecto en la organización, o
+   un tamaño de instancia mayor que el incluido, se cobra igual con el cap activo. Por
+   eso, la organización Pro tiene un solo proyecto hasta que T-0040 decida otra cosa.
 4. Transferir **sólo** el proyecto de producción de VS01 a la organización Pro. Comprobar
    en *Connect* que las cadenas de conexión no cambiaron y que VS01 sigue respondiendo. Si
    cambiaron, actualizar `DATABASE_URL` en Vercel y redesplegar.
 5. En Vercel, pasar el equipo que tiene los tres proyectos a Pro, con un solo asiento que
-   despliega. En *Spend Management*, poner el monto en USD 20 (el crédito incluido) y
-   activar la pausa de los proyectos al alcanzarlo. El aviso que viene por defecto es de
-   USD 200.
+   despliega. Activar *Spend Management* con la pausa de los despliegues de producción.
+   El monto (*On-Demand Budget*) cuenta **sólo el uso que excede el crédito mensual del
+   plan** y no incluye asientos ni adicionales, así que va bajo: USD 5, no los USD 20 del
+   crédito, que permitirían hasta USD 20 más de consumo. Vercel revisa el gasto cada
+   pocos minutos, así que la pausa llega tarde y no es un tope exacto
+   ([Vercel, *Spend Management*](https://vercel.com/docs/spend-management), consultado el
+   2026-11-07).
 6. Pagar los dos cargos con la tarjeta en dólares. Pagados en pesos, se suma la
    percepción del 30 % y el total llega a unos USD 68.
 7. Pausar o borrar la Preview sintética de VS01. Con eso, Communication OS y Risk OS

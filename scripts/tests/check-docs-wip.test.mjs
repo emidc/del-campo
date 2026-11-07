@@ -100,3 +100,17 @@ test('waiting vacío o fuera de ACTIVE falla', (t) => {
   assert.match(r.output, /T-9907.*waiting/)
   assert.match(r.output, /T-9908.*sólo vale en una tarea ACTIVE/)
 })
+
+test('una espera que vuelve a exigir trabajo cuenta otra vez', (t) => {
+  const dir = fixture(t)
+  const free = 5 - existingActive()
+  addActive(dir, ['T-9901', 'T-9902', 'T-9903', 'T-9904', 'T-9905'].slice(0, free))
+  const waiting = 'waiting: "observación de 14 días · próxima comprobación 2026-12-18"\n'
+  addActive(dir, ['T-9906'], waiting)
+  assert.equal(check(dir).status, 0)
+  // Al retomar trabajo se quita `waiting`: la misma tarea pasa a ser el sexto frente.
+  addActive(dir, ['T-9906'])
+  const r = check(dir)
+  assert.notEqual(r.status, 0)
+  assert.match(r.output, /T-9906/)
+})

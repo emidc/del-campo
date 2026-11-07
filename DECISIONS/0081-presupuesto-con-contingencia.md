@@ -24,6 +24,14 @@ y el presupuesto de Vercel no corta en el acto, así que ninguno garantiza el to
 - Una previsión por encima de USD 66 frena cualquier expansión hasta reducirla.
 - Antes de contratar, el owner verifica en el checkout el total y qué cubren los límites
   de gasto (tarea INF-CHK del plan). La primera factura se concilia con este techo.
+- Los límites de gasto acotan una parte de los cargos, no el total: el *spend cap* de
+  Supabase no cubre cómputo, réplicas ni PITR, y el *On-Demand Budget* de Vercel cuenta
+  sólo el uso por encima del crédito mensual, sin asientos, y pausa con minutos de
+  demora. Por eso el presupuesto de Vercel va en un monto bajo (USD 5) y la organización
+  Pro de Supabase tiene un solo proyecto. Fuentes oficiales consultadas el 2026-11-07:
+  supabase.com/docs/guides/platform/spend-cap y vercel.com/docs/spend-management. Esto
+  reemplaza la cláusula de D-0079 que presentaba esos límites como un freno a todo
+  consumo por encima del plan.
 - Las suscripciones de IA del owner no cuentan en este total.
 
 ## Alternativas consideradas
