@@ -10,6 +10,7 @@ created: 2026-09-07
 blockedBy: []            # ids de otras tareas
 contextRefs: []          # obligatorio siempre; vacío solo si no hay contexto externo
 decisionRefs: []         # ids de decisions.yaml que esta tarea aplica o toca
+# waiting: "condición de salida · próxima comprobación AAAA-MM-DD"  # sólo ACTIVE en espera pasiva (D-0080)
 ---
 
 <!--

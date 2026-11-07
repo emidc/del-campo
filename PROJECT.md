@@ -137,9 +137,11 @@ Enunciado explícitamente para que no reaparezca por la ventana:
 
 ## 5. Límite de trabajo en curso
 
-**Como máximo dos tareas en estado `ACTIVE` al mismo tiempo, y como máximo un spike en curso.**
+**Como máximo cinco tareas en estado `ACTIVE` al mismo tiempo, sin sublímites por tipo.** Una tarea que sólo espera algo pasivo (una factura, un tercero, un período de observación) declara `waiting` con su condición de salida y su próxima comprobación, y no cuenta. Cuando vuelve a exigir trabajo (analizar logs, corregir, responder), se le quita `waiting` y cuenta otra vez; las comprobaciones mismas no cuentan, pero sí consumen horas del owner. → `D-0080`
 
-Con un solo desarrollador, el límite no es una preferencia de método: es la única defensa contra el modo de falla dominante del programa, que es que el meta-trabajo desplace al producto. Si hace falta empezar algo, primero se cierra o se suelta algo.
+El validador sólo ve las tareas de `TASKS/`. Un frente que vive fuera del repo (un trámite, un cambio en un panel) también cuenta en los cinco, y lo cuenta el owner a mano. Una tarea y sus partes, en el repo o en Linear, son un solo frente.
+
+El límite sigue siendo la defensa contra el modo de falla dominante del programa: que el meta-trabajo desplace al producto. Con tres agentes (`D-0082`), el cuello de botella es la revisión del owner: si la revisión pendiente supera las horas de los próximos dos días, no se abre otro frente. Si hace falta empezar algo y el límite está lleno, primero se cierra o se suelta algo.
 
 ---
 

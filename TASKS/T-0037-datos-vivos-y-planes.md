@@ -12,7 +12,7 @@ contextRefs: [PROJECT.md, docs/migration/zoho, DECISIONS/0064-enlaces-de-zoho-si
               docs/despliegue/vercel-vs01.md, DECISIONS/0076-presupuesto-de-infraestructura.md,
               docs/migration/zoho/T-0037-infraestructura.md,
               docs/migration/zoho/T-0037-refresco.md]
-decisionRefs: [D-0062, D-0064, D-0068, D-0076, D-0079]
+decisionRefs: [D-0062, D-0064, D-0068, D-0076, D-0079, D-0081]
 ---
 
 ## Why
@@ -26,8 +26,8 @@ infraestructura acorde.
 
 Clientes, pólizas y enlaces documentales se refrescan desde Zoho (o su reemplazo) con
 un procedimiento repetible, y la fecha de corte se ve en la interfaz. Producción corre
-sobre una configuración de infraestructura que el owner aprobó dentro del tope de USD 45
-mensuales de D-0076, con impuestos y consumos incluidos. Se conoce la proporción de pólizas con documento comprobado, sin
+sobre la configuración de infraestructura que el owner aprobó (D-0079), dentro del
+presupuesto de D-0081 (objetivo USD 55, techo USD 66), con impuestos y consumos incluidos. Se conoce la proporción de pólizas con documento comprobado, sin
 comprobar o pendiente (U8).
 
 ## Non-scope
