@@ -20,8 +20,8 @@ const paths = (name) => ({
   AGENTRUN_DIR: join(auditDir, name, 'runs'),
   AGENTRUN_STATE_DIR: join(auditDir, name, 'state'),
 })
-const invoke = (input, env, expectedStatus = 0) => {
-  const result = spawnSync(process.execPath, [hookScript], {
+const invoke = (input, env, expectedStatus = 0, args = []) => {
+  const result = spawnSync(process.execPath, [hookScript, ...args], {
     cwd: root,
     env: { ...process.env, ...env },
     input: typeof input === 'string' ? input : JSON.stringify(input),
@@ -138,6 +138,25 @@ try {
     { ...sources, AGENTRUN_EXECUTION_KEY: 'source-invalid', AGENTRUN_SETTING_SOURCES: 'bare' },
   )
 
+  // Codex y Gemini CLI (T-0039): mismo contrato, otro `provider`. Sin clave de proceso:
+  // los dos lanzan el hook a través de un shell y el padre no es estable.
+  const providers = paths('providers')
+  const noKey = { ...providers, AGENTRUN_EXECUTION_KEY: '' }
+  for (const [provider, sessionId] of [['codex', 'codex-session'], ['gemini-cli', 'gemini-session']]) {
+    const args = ['--provider', provider]
+    invoke({ ...base, session_id: sessionId, hook_event_name: 'SessionStart', source: 'startup' }, noKey, 0, args)
+    invoke({ ...base, session_id: sessionId, hook_event_name: 'SessionEnd', reason: 'other' }, noKey, 0, args)
+  }
+  invoke({ ...base, session_id: 'codex-fork', hook_event_name: 'SessionStart', source: 'fork' }, noKey, 0, ['--provider', 'codex'])
+  invoke({ ...base, session_id: 'gemini-fork', hook_event_name: 'SessionStart', source: 'fork' }, noKey, 1, ['--provider', 'gemini-cli'])
+  invoke({ ...base, session_id: 'nobody', hook_event_name: 'SessionStart', source: 'startup' }, noKey, 1, ['--provider', 'otro'])
+  const providerEvents = eventsFrom(providers.AGENTRUN_DIR)
+  check(providerEvents.length === 5, `proveedores: esperaba 5 eventos, hay ${providerEvents.length}`)
+  for (const provider of ['codex', 'gemini-cli']) {
+    const own = providerEvents.filter((event) => event.provider === provider && event.providerSessionId !== 'codex-fork')
+    check(own.length === 2 && own[0].runId === own[1].runId, `${provider}: start y end no correlacionan`)
+  }
+
   const lifecycleEvents = eventsFrom(lifecycle.AGENTRUN_DIR)
   check(lifecycleEvents.length === 4, `lifecycle: esperaba 4 eventos, hay ${lifecycleEvents.length}`)
   const [start, end, resumed, resumedEnd] = lifecycleEvents
@@ -160,7 +179,8 @@ try {
   check(sourceEvents[0].settingSources === 'project', 'settingSources válido ignorado')
   check(sourceEvents[1].settingSources === 'unknown', 'settingSources inválido aceptado')
 
-  const allEvents = [...lifecycleEvents, ...concurrentEvents, ...sourceEvents]
+  check(lifecycleEvents.every((event) => event.provider === 'claude-code'), 'sin --provider no es claude-code')
+  const allEvents = [...lifecycleEvents, ...concurrentEvents, ...sourceEvents, ...providerEvents]
   check(new Set(allEvents.map((event) => event.eventId)).size === allEvents.length, 'eventId duplicado')
   for (const event of allEvents) {
     check(event.eventId.length === 43, `eventId sin UUID completo: ${event.eventId}`)
@@ -168,7 +188,29 @@ try {
     check(!('transcript_path' in event.providerRaw), 'providerRaw expone transcript_path')
   }
 
-  console.log(`✓ AgentRun: ${allEvents.length} eventos; lifecycle, concurrencia y fallos verificados`)
+  console.log(`✓ AgentRun: ${allEvents.length} eventos; lifecycle, concurrencia, proveedores y fallos verificados`)
+
+  // El ledger versionado en ops/runs/ cumple el esquema de ops/AGENTRUN.md.
+  const ledger = eventsFrom(join(root, 'ops', 'runs'))
+  const RAW_ALLOWED = new Set(['session_id', 'hook_event_name', 'source', 'reason', 'model', 'permission_mode'])
+  const byProvider = {}
+  for (const event of ledger) {
+    const where = `ops/runs: ${event.eventId ?? 'evento sin eventId'}`
+    check(/^e_\d{8}_[0-9a-f]+$/.test(event.eventId ?? ''), `${where}: eventId inválido`)
+    check(/^r_[0-9a-f]+$/.test(event.runId ?? ''), `${where}: runId inválido`)
+    check(['RUN_STARTED', 'RUN_ENDED'].includes(event.eventType), `${where}: eventType inválido`)
+    check(!Number.isNaN(Date.parse(event.occurredAt)), `${where}: occurredAt inválido`)
+    check(typeof event.providerSessionId === 'string' && event.providerSessionId, `${where}: falta providerSessionId`)
+    check(['claude-code', 'codex', 'gemini-cli'].includes(event.provider), `${where}: provider inválido`)
+    check(event.repoSha === null || /^[0-9a-f]{40}$/.test(event.repoSha), `${where}: repoSha inválido`)
+    check(typeof event.settingSources === 'string', `${where}: falta settingSources`)
+    check(event.providerRaw && typeof event.providerRaw === 'object', `${where}: falta providerRaw`)
+    const extra = Object.keys(event.providerRaw).filter((key) => !RAW_ALLOWED.has(key))
+    check(!extra.length, `${where}: providerRaw con campos no permitidos: ${extra.join(', ')}`)
+    byProvider[event.provider] = (byProvider[event.provider] ?? 0) + 1
+  }
+  const summary = Object.entries(byProvider).map(([provider, count]) => `${provider} ${count}`).join(', ')
+  console.log(`✓ ops/runs: ${ledger.length} eventos con el esquema vigente (${summary})`)
 } finally {
   rmSync(auditDir, { recursive: true, force: true })
 }
