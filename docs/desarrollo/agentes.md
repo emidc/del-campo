@@ -57,8 +57,8 @@ del PR por el owner (R-17). Los hooks evitan el error común y lo hacen visible.
 
 1. Salir del CLI normalmente: así corre `SessionEnd` y el run queda `ENDED`.
 2. `pnpm check` antes de abrir el PR. Valida también el ledger de `ops/runs/`.
-3. El PR lo revisa un proveedor distinto del implementador cuando la tarea lo pide, y
-   lo mergea el owner.
+3. La revisión ciega la hace un subagente aislado, del mismo proveedor o de otro (R-33);
+   la independencia viene de no compartir contexto. El PR lo mergea el owner.
 
 ## Propuesta para `.claude/settings.json` (no aplicada)
 

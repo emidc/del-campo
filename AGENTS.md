@@ -34,6 +34,8 @@ Del Campo Broker es una correduría de seguros real, en operación. Los datos so
 | Cómo se escribe una tarea | `TASKS/_TEMPLATE.md` |
 | Qué se registra de cada ejecución | `ops/AGENTRUN.md` |
 | Qué protege y registra Claude Code, Codex y Gemini | `docs/desarrollo/agentes.md` |
+| Contratos de aceptación de cada incremento | `SLICES/` |
+| Hacia dónde va Broker OS y el plan vigente | `docs/north-star/` |
 
 No inventar requisitos porque puedan ser útiles más adelante. El alcance de cada capacidad se refina en su POC.
 
@@ -63,10 +65,28 @@ unlocked` lo es en `SPIKE` y `POC`.
 Las reglas completas están en `ENGINEERING_RULES.md` (R-13 y R-14). El resumen que hay que tener presente siempre:
 
 - **Autónomo:** leer, analizar, correr checks, editar en una rama, abrir un PR.
-- **Requiere aprobación humana:** merge a `main`, cualquier cosa contra producción, cambios a `.claude/` o a CI, y **toda acción de negocio con efecto externo** — comunicaciones a clientes o aseguradoras, cotizaciones, emisiones, endosos, cancelaciones, accesos externos, modificación de archivos existentes en Drive.
+- **Requiere aprobación humana:** merge a `main`, cualquier cosa contra producción, cambios a `.claude/` o a CI, y **toda acción de negocio con efecto externo** — comunicaciones a clientes, aseguradoras o terceros, pedidos de cotización, emisiones, endosos, cancelaciones, otorgamiento de accesos externos, y toda creación, movimiento, renombrado, modificación o eliminación de un archivo o carpeta en Drive.
 - **Toda acción de negocio no listada tiene default prohibida.**
 
 No se infiere permiso de la capacidad técnica. Poder hacer algo no es estar autorizado a hacerlo.
+
+---
+
+## Límites que rigen desde el arranque
+
+- **Un implementador por tarea.** Claude Code, Codex y Gemini trabajan con este mismo
+  contrato, pero una tarea tiene un solo agente implementador a la vez. → `D-0082`
+- **Datos de clientes.** Un agente de desarrollo no recibe PII real de clientes; usa
+  identificadores internos, datos sintéticos o redacción. Nunca recibe secretos, tokens ni
+  credenciales productivas. → `ENGINEERING_RULES.md` R-16, R-18 y R-19
+- **Información confidencial de clientes (nivel 2)** sólo se envía a un proveedor de IA por
+  una cuenta registrada antes en `decisions.yaml`. Una cuenta sin registro queda excluida.
+  → `D-0074`
+- **Aprobación interna por operador único.** Mientras Emiliano sea el único que opera
+  Broker OS y Risk OS, puede aprobar lo que él mismo redactó **sólo para uso interno**, con
+  una revisión de IA registrada y 24 horas sin cambios materiales. No habilita publicar,
+  exportar ni entregar nada a un cliente, y no reemplaza ninguna aprobación de R-13 o R-14.
+  → `D-0083`
 
 ---
 
@@ -99,13 +119,8 @@ Si hay información contradictoria entre documentos: identificar el conflicto, i
 
 ---
 
-## Estado actual del programa
+## Estado del programa
 
-Project OS sigue en fase **Project OS Zero**: documentos, decisiones y tareas, sin
-aplicación propia. **Broker OS ya tiene código**: desde el 21/09/2026 existen el
-workspace ejecutable de `T-0010` y el schema de `T-0012`, con las invariantes del
-dominio como constraints de Postgres. No hay importación, ni UI, ni endpoints, ni
-autorización. `T-0002` no bloquea VS01 y se activa recién antes del primer acceso
-multi-principal, portal externo o proceso privilegiado sobre Broker OS.
-
-**No iniciar trabajo grande de implementación de Broker OS salvo pedido explícito.**
+No se escribe acá. La fase, lo que existe y los frentes activos están en `PROJECT.md` §3,
+y el plan vigente en `docs/north-star/`. Un estado copiado en este archivo envejece sin que
+nadie lo note, y este es el archivo que todo agente carga primero.
