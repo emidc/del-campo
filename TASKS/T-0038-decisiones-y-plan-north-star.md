@@ -2,7 +2,7 @@
 id: T-0038
 title: Registrar las decisiones de operación de noviembre y el plan hacia la north star
 kind: REVIEW
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: M
@@ -48,5 +48,5 @@ pnpm decisions
 node --test scripts/tests/check-docs-wip.test.mjs
 ```
 
-- [ ] El owner aprueba D-0080 a D-0084 en la revisión del PR.
-- [ ] El owner confirma que el plan publicado es la versión que quiere seguir.
+- [x] El owner aprueba D-0080 a D-0084 en la revisión del PR.
+- [x] El owner confirma que el plan publicado es la versión que quiere seguir.
