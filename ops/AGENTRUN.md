@@ -16,10 +16,23 @@ cliente. → `D-0011`
 - El par `RUN_STARTED`/`RUN_ENDED` comparte `runId`. Un mismo `providerSessionId`
   puede aparecer en varios runs cuando una sesión se reanuda.
 
-`fork` no es un valor de `SessionStart.source`. La opción `--fork-session` crea un
+En Claude Code `fork` no es un valor de `SessionStart.source`. La opción `--fork-session` crea un
 nuevo id de sesión al reanudar y, por lo tanto, no necesita un caso especial en el
 ledger. El contrato de eventos se contrasta con
 <https://code.claude.com/docs/en/hooks>.
+
+### Codex y Gemini CLI
+
+El mismo script registra las sesiones de Codex y de Gemini CLI, invocado con
+`--provider codex` o `--provider gemini-cli` desde `.codex/hooks.json` y
+`.gemini/settings.json` (`T-0039`). Los dos emiten `SessionStart` y `SessionEnd` con
+`session_id`, `source` y `reason`. Codex agrega `fork` como `source`: la sesión
+bifurcada trae `session_id` nuevo y abre su propio run. Gemini no emite `compact`.
+
+Los dos lanzan el hook a través de un shell, así que el proceso padre cambia en cada
+invocación. Para ellos la clave de correlación es sólo el `session_id`: dos
+reanudaciones simultáneas de la misma sesión chocan, y la segunda falla de forma
+visible al reservar el estado. → `docs/desarrollo/agentes.md`
 
 `Stop` no se usa: ocurre al terminar cada turno y multiplicaría falsamente los runs
 de una sesión. El ledger registra eventos porque JSONL append-only no permite completar
@@ -68,15 +81,18 @@ bloqueables, por lo que el error queda visible sin impedir el lifecycle de Claud
 | `eventType` | sí | `RUN_STARTED` · `RUN_ENDED` |
 | `occurredAt` | sí | Timestamp ISO 8601 UTC del evento |
 | `providerSessionId` | sí | Id de sesión del proveedor; puede repetirse entre runs |
-| `provider` | sí | `claude-code` por ahora → `D-0016` |
+| `provider` | sí | `claude-code`, `codex` o `gemini-cli` → `D-0082`, `T-0039` |
 | `taskId` | no | Derivado de la rama `task/T-XXXX-…` |
 | `repoSha` | sí | SHA completo en el momento del evento; `null` antes del primer commit |
-| `harnessSha` | no | SHA del último commit que tocó `.claude/` o `scripts/record-agent-run.mjs` |
+| `harnessSha` | no | SHA del último commit que tocó la configuración del proveedor (`.claude/`, o `.codex/` / `.gemini/` más `.agents/hooks/`) o `scripts/record-agent-run.mjs` |
 | `settingSources` | sí | `unknown` salvo declaración explícita vía `AGENTRUN_SETTING_SOURCES` (`default`/`project`/`user`/`local`, o combinación). `bare` no es capturable: sin settings cargados el hook no corre |
 | `branch` | no | Rama activa |
 | `transcriptPath` | no | Ruta al transcript del proveedor |
 | `terminationReason` | no | Razón nativa de `SessionEnd`, sin inferir éxito |
 | `providerRaw` | sí | Subconjunto permitido del payload del hook: `session_id`, `hook_event_name`, `source`, `reason`, `model`, `permission_mode`. `providerRaw` no incluye `cwd` ni `transcript_path` |
+
+`pnpm check` valida cada evento versionado en `ops/runs/` contra este esquema
+(`scripts/check-agent-run.mjs`).
 
 ## Proyección normalizada
 

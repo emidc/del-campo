@@ -33,6 +33,7 @@ Del Campo Broker es una correduría de seguros real, en operación. Los datos so
 | Qué está decidido, qué es provisional, qué está abierto | `decisions.yaml` y `DECISIONS/` |
 | Cómo se escribe una tarea | `TASKS/_TEMPLATE.md` |
 | Qué se registra de cada ejecución | `ops/AGENTRUN.md` |
+| Qué protege y registra Claude Code, Codex y Gemini | `docs/desarrollo/agentes.md` |
 
 No inventar requisitos porque puedan ser útiles más adelante. El alcance de cada capacidad se refina en su POC.
 

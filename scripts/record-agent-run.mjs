@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Registra eventos append-only del lifecycle de una sesión de Claude Code.
+// Registra eventos append-only del lifecycle de una sesión de agente: Claude Code,
+// Codex o Gemini CLI (T-0039). El proveedor llega por `--provider`; sin argumento es
+// `claude-code`, que es lo que invoca `.claude/settings.json`.
 //
-//   SessionStart(startup|resume|clear)      → RUN_STARTED con runId nuevo
+//   SessionStart(startup|resume|clear|fork) → RUN_STARTED con runId nuevo
 //   SessionStart(compact)                   → no-op: el run en curso continúa
 //   SessionEnd                              → RUN_ENDED con el runId correlacionado
 //
@@ -32,7 +34,19 @@ const RAW_ALLOWED = new Set([
 // settingSources solo acepta declaración explícita con estos tokens. Sin declaración
 // es "unknown". "bare" no es capturable: sin settings cargados este hook no corre.
 const SETTING_SOURCE_TOKENS = new Set(['default', 'project', 'user', 'local'])
-const SESSION_START_SOURCES = new Set(['startup', 'resume', 'clear', 'compact'])
+// Valores de SessionStart.source que documenta cada proveedor. `fork` sólo lo emite
+// Codex: la sesión bifurcada tiene session_id nuevo y abre su propio run.
+const SESSION_START_SOURCES = {
+  'claude-code': new Set(['startup', 'resume', 'clear', 'compact']),
+  codex: new Set(['startup', 'resume', 'clear', 'compact', 'fork']),
+  'gemini-cli': new Set(['startup', 'resume', 'clear']),
+}
+const HARNESS_PATHS = {
+  'claude-code': ['.claude'],
+  codex: ['.codex', '.agents/hooks'],
+  'gemini-cli': ['.gemini', '.agents/hooks'],
+}
+const PROVIDERS = new Set(Object.keys(SESSION_START_SOURCES))
 
 const die = (kind, message) => {
   console.error(`[record-agent-run] error de ${kind}: ${message}`)
@@ -40,6 +54,10 @@ const die = (kind, message) => {
 }
 
 // --- entrada ---------------------------------------------------------------
+const providerFlag = process.argv.indexOf('--provider')
+const provider = providerFlag === -1 ? 'claude-code' : process.argv[providerFlag + 1]
+if (!PROVIDERS.has(provider)) die('entrada', `proveedor desconocido: ${provider ?? 'ausente'}`)
+
 let raw
 try {
   raw = readFileSync(0, 'utf8')
@@ -59,14 +77,17 @@ const eventType = { SessionStart: 'RUN_STARTED', SessionEnd: 'RUN_ENDED' }[hook.
 if (!eventType) process.exit(0) // un evento que este hook no proyecta
 
 if (typeof hook.session_id !== 'string' || !hook.session_id) die('entrada', 'falta session_id')
-if (eventType === 'RUN_STARTED' && !SESSION_START_SOURCES.has(hook.source))
+if (eventType === 'RUN_STARTED' && !SESSION_START_SOURCES[provider].has(hook.source))
   die('entrada', `source de SessionStart inválido: ${hook.source ?? 'ausente'}`)
 
 // compact no abre un run: la sesión continúa con el runId ya asignado.
 if (eventType === 'RUN_STARTED' && hook.source === 'compact') process.exit(0)
 
 // --- contexto de repo ----------------------------------------------------
-const root = resolve(process.env.CLAUDE_PROJECT_DIR || hook.cwd || process.cwd())
+// Codex y Gemini pasan el cwd de la sesión, que puede ser un subdirectorio.
+let root = resolve(
+  (provider === 'claude-code' && process.env.CLAUDE_PROJECT_DIR) || hook.cwd || process.cwd(),
+)
 const git = (...args) => {
   try {
     return (
@@ -79,12 +100,18 @@ const git = (...args) => {
   }
 }
 
+root = git('rev-parse', '--show-toplevel') ?? root
+
 const stateDir = process.env.AGENTRUN_STATE_DIR
   ? resolve(process.env.AGENTRUN_STATE_DIR)
   : resolve(root, git('rev-parse', '--git-path', 'agentrun-state') || join('.git', 'agentrun-state'))
-// Cada invocación del hook es hija del proceso de Claude Code que aloja la sesión.
+// Claude Code lanza el hook como hijo directo del proceso que aloja la sesión. Codex y
+// Gemini lo lanzan a través de un shell, así que el padre cambia en cada invocación y
+// la clave queda en el session_id solo: dos reanudaciones simultáneas de una misma
+// sesión chocan, y la segunda falla de forma visible al reservar el estado (`wx`).
 // El override existe sólo para reproducir procesos independientes en tests.
-const executionKey = process.env.AGENTRUN_EXECUTION_KEY || String(process.ppid)
+const executionKey =
+  process.env.AGENTRUN_EXECUTION_KEY || (provider === 'claude-code' ? String(process.ppid) : provider)
 const stateKey = createHash('sha256')
   .update(`${hook.session_id}\0${executionKey}`)
   .digest('hex')
@@ -148,11 +175,11 @@ const record = {
   eventType,
   occurredAt: iso,
   taskId: branch?.match(/\b(T-\d{4})\b/)?.[1],
-  provider: 'claude-code',
+  provider,
   providerSessionId: hook.session_id,
   transcriptPath: hook.transcript_path,
   repoSha: git('rev-parse', 'HEAD') ?? null,
-  harnessSha: git('log', '-1', '--format=%H', '--', '.claude', 'scripts/record-agent-run.mjs'),
+  harnessSha: git('log', '-1', '--format=%H', '--', ...HARNESS_PATHS[provider], 'scripts/record-agent-run.mjs'),
   settingSources,
   branch,
   terminationReason: eventType === 'RUN_ENDED' ? hook.reason : undefined,

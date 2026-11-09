@@ -2,7 +2,7 @@
 id: T-0039
 title: Proteger rutas y capturar AgentRun también para Codex y Gemini
 kind: CHORE
-status: READY
+status: ACTIVE
 workstream: POS
 riskClass: MEDIUM
 size: S
