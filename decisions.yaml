@@ -252,7 +252,7 @@ decisions:
       script ad-hoc escrito para consultarlos.
 
   - id: D-0016
-    title: Un solo execution provider de punta a punta
+    title: Proveedores de ejecución del arnés, sin asignación por tipo de tarea
     status: ACCEPTED
     date: 2026-09-07
     source: revisión externa del Charter

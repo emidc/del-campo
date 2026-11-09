@@ -195,7 +195,8 @@ for (const { file, fm } of tasks) {
   }
 }
 
-// D-0080: máximo cinco tareas ACTIVE; una espera pasiva declara `waiting` y no cuenta.
+// D-0080: máximo cinco tareas ACTIVE, sin sublímites por tipo; una espera pasiva declara
+// `waiting` y no cuenta.
 for (const task of tasks) {
   const waiting = task.fm?.waiting
   if (waiting === undefined) continue
@@ -207,8 +208,6 @@ for (const task of tasks) {
 const active = tasks.filter((task) => task.fm?.status === 'ACTIVE' && !task.fm?.waiting)
 if (active.length > 5)
   fail(`WIP limit superado: ${active.length} tareas ACTIVE sin espera pasiva (máximo 5, D-0080). ${active.map((task) => task.fm.id).join(', ')}`)
-const activeSpikes = active.filter((task) => task.fm?.kind === 'SPIKE')
-if (activeSpikes.length > 1) fail(`WIP limit superado: ${activeSpikes.length} spikes ACTIVE (máximo 1)`)
 
 // Los slices participan del mismo control de referencias y fuente única de estados.
 function markdownFiles(directory) {
