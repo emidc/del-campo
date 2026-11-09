@@ -14,14 +14,24 @@
 //   https://learn.chatgpt.com/docs/hooks.md (Codex hooks)
 //   https://geminicli.com/docs/hooks/reference/ (Gemini CLI hooks)
 
-import { readFileSync, realpathSync } from 'node:fs'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // Rutas que ningún agente modifica desde la máquina local: los guardrails de los tres
-// proveedores, este hook y los workflows de CI.
+// proveedores, este hook, los workflows de CI y los validadores (R-15, T-0043).
 export const PROTECTED = ['.claude', '.github/workflows', '.codex', '.gemini', '.agents']
+export const VALIDATOR = /^(check-[\w-]+|guard-db-tests)\.mjs$/
 const MENTION = /\.claude(?![\w-])|\.github[\\/]+workflows|\.codex(?![\w-])|\.gemini(?![\w-])|\.agents(?![\w-])/i
+
+export function validators(root) {
+  try {
+    return readdirSync(resolve(root, 'scripts')).filter((name) => VALIDATOR.test(name))
+      .map((name) => `scripts/${name}`)
+  } catch {
+    return []
+  }
+}
 
 const SHELL_TOOLS = new Set(['Bash', 'shell', 'local_shell', 'exec_command', 'unified_exec', 'run_shell_command'])
 const PATCH_TOOLS = new Set(['apply_patch'])
@@ -97,6 +107,17 @@ function touchesProtected(root, cwd, target, { ancestors = true } = {}) {
     (ancestors && (contains(path, p) || contains(actual, p))))
 }
 
+// Un validador se ejecuta todo el tiempo; sólo cuenta escribirlo, moverlo o borrarlo.
+const WRITERS = new Set(['sed', 'mv', 'cp', 'rm', 'tee', 'truncate', 'ln', 'chmod', 'perl', 'awk', 'install', 'rsync'])
+// El destino puede ser el validador o, para un programa que escribe, el directorio que lo
+// contiene (`cp x scripts/`, `rm -r scripts`).
+function touchesValidator(root, cwd, target, { ancestors = false } = {}) {
+  const path = resolve(cwd, target)
+  const actual = canonical(path)
+  return validators(root).map((p) => resolve(root, p)).flatMap((p) => [p, canonical(p)])
+    .some((p) => p === path || p === actual || (ancestors && (contains(path, p) || contains(actual, p))))
+}
+
 function shellCommand(input) {
   const value = input?.command ?? input?.cmd
   if (typeof value === 'string') return { text: value, tokens: words(value) }
@@ -122,6 +143,7 @@ function evaluateShell(root, cwd, command) {
   for (const arg of args) {
     if (!arg || arg.startsWith('-')) continue
     if (touchesProtected(root, cwd, arg)) return `el comando alcanza una ruta protegida (${arg}).`
+    if (WRITERS.has(name) && touchesValidator(root, cwd, arg, { ancestors: true })) return `el comando modifica un validador (${arg}).`
   }
   return null
 }
@@ -147,11 +169,13 @@ export function evaluate(input) {
   if (PATCH_TOOLS.has(tool) || (FILE_TOOLS.has(tool) && typeof toolInput.file_path !== 'string')) {
     const targets = patchTargets(toolInput)
     if (!targets.length) return MENTION.test(JSON.stringify(toolInput)) ? 'parche opaco que nombra una ruta protegida.' : null
-    const hit = targets.find((target) => touchesProtected(root, cwd, target, { ancestors: false }))
+    const hit = targets.find((target) => touchesProtected(root, cwd, target, { ancestors: false }) ||
+      touchesValidator(root, cwd, target))
     return hit ? `el parche escribe una ruta protegida (${hit}).` : null
   }
   if (FILE_TOOLS.has(tool))
-    return touchesProtected(root, cwd, toolInput.file_path, { ancestors: false })
+    return touchesProtected(root, cwd, toolInput.file_path, { ancestors: false }) ||
+      touchesValidator(root, cwd, toolInput.file_path)
       ? `escritura en una ruta protegida (${toolInput.file_path}).` : null
   if (READ_TOOLS.has(tool)) return null
   // Herramienta desconocida (MCP, extensiones): se bloquea sólo si nombra una ruta protegida.

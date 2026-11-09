@@ -4,7 +4,7 @@
 // y pide revisión ante hardlinks. Lo indeterminado vuelve al flujo normal de permisos
 // (sin salida), para que el modo de la sesión decida: Manual pregunta y ofrece
 // "don't ask again"; auto usa el clasificador; bypassPermissions ejecuta.
-import { readFileSync, realpathSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -12,7 +12,7 @@ const result = (permissionDecision, permissionDecisionReason) => ({
   hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision, permissionDecisionReason },
 })
 const deny = (reason) => result('deny', `T-0008 / R-15: ${reason}`)
-const ask = () => result('ask', 'T-0008 / D-0056: el comando escribe un archivo con hardlinks; podría alcanzar .claude o .github/workflows. Confirmar el destino real.')
+const ask = () => result('ask', 'T-0008 / D-0056: el comando escribe un archivo con hardlinks; podría alcanzar una ruta protegida. Confirmar el destino real.')
 // Sin decisión: el flujo normal de permisos y el modo de la sesión deciden (D-0056).
 const defer = () => null
 
@@ -42,6 +42,24 @@ function words(command) {
   return out
 }
 
+export const PROTECTED_DIRS = ['.claude', '.github/workflows', '.codex', '.gemini', '.agents']
+export const VALIDATOR = /^(check-[\w-]+|guard-db-tests)\.mjs$/
+const MENTION = /\.claude(?![\w-])|\.github[\\/]+workflows|\.codex(?![\w-])|\.gemini(?![\w-])|\.agents(?![\w-])/i
+// Los validadores se ejecutan todo el tiempo (`node scripts/check-docs.mjs`), así que sólo
+// se deniega cuando un programa que escribe o mueve archivos los nombra. Un comando opaco
+// que los modifica no se detecta acá: lo frenan permissions.deny, la revisión exigida por
+// CI y la del owner.
+const WRITERS = new Set(['sed', 'mv', 'cp', 'rm', 'tee', 'truncate', 'ln', 'chmod', 'perl', 'awk', 'install', 'rsync'])
+
+export function validators(root) {
+  try {
+    return readdirSync(resolve(root, 'scripts')).filter((name) => VALIDATOR.test(name))
+      .map((name) => `scripts/${name}`)
+  } catch {
+    return []
+  }
+}
+
 function canonical(path) {
   try { return realpathSync(path) } catch (error) {
     if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error
@@ -66,11 +84,15 @@ function evaluate(input, projectRoot) {
   const root = realpathSync(projectRoot)
   const cwd = realpathSync(input.cwd)
   if (!contains(root, cwd)) return defer()
-  const protectedPaths = [resolve(root, '.claude'), resolve(root, '.github/workflows')]
+  // R-15 (T-0043): los guardrails de los tres proveedores, los workflows de CI y los
+  // validadores. Las mismas rutas que .agents/hooks/protect-paths.mjs.
+  const protectedPaths = PROTECTED_DIRS.map((p) => resolve(root, p))
+    .flatMap((p) => [p, canonical(p)])
+  const validatorPaths = validators(root).map((p) => resolve(root, p))
     .flatMap((p) => [p, canonical(p)])
   const tokens = words(command)
   if (!tokens?.length) {
-    if (/\.claude(?:\/|\b)|\.github\/workflows(?:\/|\b)/i.test(command))
+    if (MENTION.test(command))
       return deny('comando compuesto u opaco menciona una ruta protegida; ejecutar la modificación desde revisión humana.')
     return defer()
   }
@@ -88,6 +110,10 @@ function evaluate(input, projectRoot) {
     if (protectedPaths.some((p) => contains(p, path) || contains(p, actual) ||
         contains(path, p) || contains(actual, p)))
       return deny('destino protegido o directorio que lo contiene. El humano aplica el cambio.')
+    // El destino puede ser el validador o el directorio que lo contiene (`cp x scripts/`).
+    if (WRITERS.has(program.split('/').pop()) &&
+        validatorPaths.some((p) => contains(p, path) || contains(p, actual) || contains(path, p) || contains(actual, p)))
+      return deny('el comando modifica un validador. El humano aplica el cambio.')
     try {
       if (statSync(actual).isFile() && statSync(actual).nlink > 1) return ask()
     } catch (error) {

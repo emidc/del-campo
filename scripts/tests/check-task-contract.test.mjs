@@ -89,11 +89,11 @@ test('una rama task/T-xxxx-... es válida y expone el task id', () => {
   assert.deepEqual(result, { ok: true, taskId: 'T-0042' })
 })
 
-test('un prefijo exento (docs/) no requiere task id', () => {
+test('un prefijo sin tarea (docs/) no requiere task id', () => {
   assert.deepEqual(checkBranchName('docs/typo'), { ok: true, taskId: null })
 })
 
-test('un prefijo exento (chore/) no requiere task id', () => {
+test('un prefijo sin tarea (chore/) no requiere task id', () => {
   assert.deepEqual(checkBranchName('chore/algo'), { ok: true, taskId: null })
 })
 
@@ -227,4 +227,82 @@ test('splitSections no confunde un header real que sigue a un bloque de código'
   const text = '## Verification\n\n```bash\npnpm check\n```\n\n## Notes\n\nlibre\n'
   const sections = splitSections(text)
   assert.deepEqual(sections.map((s) => s.name), ['## Verification', '## Notes'])
+})
+
+// --- T-0043: enmiendas y borrados ---------------------------------------------------
+
+test('una rama amend/T-xxxx-… puede cambiar el contrato si sólo toca esa tarea', (t) => {
+  const dir = repoWithBranch(t, {
+    branchName: 'amend/T-0001-ajuste',
+    mutate: (d) => writeFileSync(join(d, 'TASKS/T-0001-prueba.md'), TASK('pnpm check && pnpm lint')),
+  })
+  const result = runIn(dir)
+  assert.equal(result.ok, true, result.errors.join('\n'))
+})
+
+test('una rama amend/ que además toca otro archivo falla', (t) => {
+  const dir = repoWithBranch(t, {
+    branchName: 'amend/T-0001-ajuste',
+    mutate: (d) => {
+      writeFileSync(join(d, 'TASKS/T-0001-prueba.md'), TASK('pnpm check && pnpm lint'))
+      writeFileSync(join(d, 'codigo.ts'), 'export {}\n')
+    },
+  })
+  const result = runIn(dir)
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /sólo puede tocar el archivo de T-0001/)
+})
+
+test('borrar o renombrar una tarea existente desde una rama falla', (t) => {
+  const dir = repoWithBranch(t, {
+    branchName: 'chore/limpieza',
+    mutate: (d) => git(d, ['mv', 'TASKS/T-0001-prueba.md', 'TASKS/T-0001-otro-nombre.md']),
+  })
+  const result = runIn(dir)
+  assert.equal(result.ok, false)
+  assert.match(result.errors.join('\n'), /no se borra ni se renombra/)
+})
+
+test('una tarea con acentos en el nombre no se cuela del congelamiento', (t) => {
+  const dir = repoWithBranch(t, {
+    branchName: 'chore/x',
+    mutate: (d) => {
+      git(d, ['mv', 'TASKS/T-0001-prueba.md', 'TASKS/T-0001-revisión.md'])
+    },
+  })
+  // El renombre ya falla; además el archivo nuevo con acento se ve como alta, no se ignora.
+  const result = runIn(dir)
+  assert.equal(result.ok, false)
+  assert.match(result.errors.join('\n'), /no se borra ni se renombra/)
+})
+
+test('una casilla marcada dentro de un bloque de código es un cambio de contrato', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'del-campo-contract-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  git(dir, ['init', '-q', '-b', 'main'])
+  git(dir, ['config', 'user.email', 'test@example.com'])
+  git(dir, ['config', 'user.name', 'Test'])
+  mkdirSync(join(dir, 'TASKS'))
+  writeFileSync(join(dir, 'TASKS/T-0001-prueba.md'), TASK('- [ ] dentro del bloque'))
+  git(dir, ['add', '.'])
+  git(dir, ['commit', '-q', '-m', 'base'])
+  git(dir, ['checkout', '-q', '-b', 'chore/x'])
+  writeFileSync(join(dir, 'TASKS/T-0001-prueba.md'), TASK('- [x] dentro del bloque'))
+  git(dir, ['commit', '-qam', 'rama'])
+  const result = runIn(dir)
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /## Verification/)
+})
+
+test('una enmienda puede llevar su reporte de revisión en REVIEWS/', (t) => {
+  const dir = repoWithBranch(t, {
+    branchName: 'amend/T-0001-ajuste',
+    mutate: (d) => {
+      writeFileSync(join(d, 'TASKS/T-0001-prueba.md'), TASK('pnpm check && pnpm lint'))
+      mkdirSync(join(d, 'REVIEWS'))
+      writeFileSync(join(d, 'REVIEWS/T-0001-enmienda.md'), 'reporte\n')
+    },
+  })
+  const result = runIn(dir)
+  assert.equal(result.ok, true, result.errors.join('\n'))
 })

@@ -11,8 +11,18 @@
       "Edit(./.env.*)",
       "Edit(./.claude/**)",
       "Edit(./.github/workflows/**)",
+      "Edit(./.codex/**)",
+      "Edit(./.gemini/**)",
+      "Edit(./.agents/**)",
+      "Edit(./scripts/check-*.mjs)",
+      "Edit(./scripts/guard-db-tests.mjs)",
       "Write(./.claude/**)",
       "Write(./.github/workflows/**)",
+      "Write(./.codex/**)",
+      "Write(./.gemini/**)",
+      "Write(./.agents/**)",
+      "Write(./scripts/check-*.mjs)",
+      "Write(./scripts/guard-db-tests.mjs)",
       "Bash(git push --force *)",
       "Bash(git push origin main *)",
       "Bash(git reset --hard *)",
@@ -20,30 +30,6 @@
     ]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/scripts/record-agent-run.mjs"],
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/scripts/record-agent-run.mjs"],
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

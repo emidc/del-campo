@@ -26,3 +26,4 @@ apps/communication/.next/
 apps/communication/*.tsbuildinfo
 apps/risk/.next/
 apps/risk/*.tsbuildinfo
+.ci-base/

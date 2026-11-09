@@ -7,27 +7,21 @@ import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
-const patch = join(root, 'REVIEWS/T-0008/protected-paths.patch')
-const proposal = join(root, 'REVIEWS/T-0008/protect-paths.proposed.mjs')
+const installed = join(root, '.claude/hooks/protect-paths.mjs')
 const originalSettings = readFileSync(join(root, '.claude/settings.json'), 'utf8')
 
+// T-0043: se prueba el hook instalado. El circuito de propuesta y parche de T-0008
+// (REVIEWS/T-0008/*.proposed.*) queda como historia.
 function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), 'del-campo-t0008-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
-  for (const folder of ['.claude', '.github/workflows', 'TASKS', 'sub']) mkdirSync(join(dir, folder), { recursive: true })
+  for (const folder of ['.claude/hooks', '.github/workflows', '.codex', 'TASKS', 'sub', 'scripts'])
+    mkdirSync(join(dir, folder), { recursive: true })
   writeFileSync(join(dir, '.claude/settings.json'), originalSettings)
-  if (JSON.parse(originalSettings).hooks.PreToolUse?.some((entry) =>
-    entry.hooks?.some((hook) => hook.args?.includes('${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-paths.mjs')))) {
-    const reversed = spawnSync('git', ['apply', '-R', '--include=.claude/settings.json', patch], { cwd: dir, encoding: 'utf8' })
-    assert.equal(reversed.status, 0, reversed.stderr)
-  }
+  writeFileSync(join(dir, '.claude/hooks/protect-paths.mjs'), readFileSync(installed, 'utf8'))
   writeFileSync(join(dir, '.github/workflows/check.yml'), 'name: before\n')
   writeFileSync(join(dir, 'TASKS/example.md'), 'before\n')
-  const applied = spawnSync('git', ['apply', '--check', patch], { cwd: dir, encoding: 'utf8' })
-  assert.equal(applied.status, 0, applied.stderr)
-  const apply = spawnSync('git', ['apply', patch], { cwd: dir, encoding: 'utf8' })
-  assert.equal(apply.status, 0, apply.stderr)
-  assert.equal(readFileSync(join(dir, '.claude/hooks/protect-paths.mjs'), 'utf8'), readFileSync(proposal, 'utf8'))
+  writeFileSync(join(dir, 'scripts/check-docs.mjs'), '// validador\n')
   return dir
 }
 
@@ -40,18 +34,6 @@ function invoke(dir, command, cwd = dir, raw) {
   return result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput.permissionDecision : 'continue'
 }
 
-test('patch conserva deny rules y captura AgentRun; agrega solo PreToolUse', (t) => {
-  const dir = fixture(t)
-  const before = JSON.parse(originalSettings)
-  const after = JSON.parse(readFileSync(join(dir, '.claude/settings.json'), 'utf8'))
-  assert.deepEqual(after.permissions, before.permissions)
-  assert.deepEqual(after.hooks.SessionStart, before.hooks.SessionStart)
-  assert.deepEqual(after.hooks.SessionEnd, before.hooks.SessionEnd)
-  assert.equal(after.hooks.PreToolUse[0].matcher, 'Bash')
-  assert.equal(after.hooks.PreToolUse[0].hooks[0].args[0], '${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-paths.mjs')
-  assert.equal(readFileSync(join(root, '.claude/settings.json'), 'utf8'), originalSettings)
-})
-
 for (const [name, command] of [
   ['sed settings', "sed -i '' 's/before/after/' .claude/settings.json"],
   ['sed workflow', "sed -i '' 's/before/after/' .github/workflows/check.yml"],
@@ -62,6 +44,11 @@ for (const [name, command] of [
   ['redirección', "printf bad > .claude/settings.json"],
   ['comando compuesto', "cd .claude && sed -i '' 's/before/after/' settings.json"],
   ['traversal explícito', "sed -i '' 's/before/after/' TASKS/../.claude/settings.json"],
+  ['escritura en .codex', 'cp TASKS/example.md .codex/hooks.json'],
+  ['sed sobre un validador', "sed -i '' 's/before/after/' scripts/check-docs.mjs"],
+  ['borrar un validador', 'rm scripts/check-docs.mjs'],
+  ['copiar hacia el directorio de un validador', 'cp TASKS/example.md scripts/'],
+  ['borrar con ruta absoluta del programa', '/usr/bin/rm -r scripts'],
 ]) {
   test(`deniega ${name} sin ejecutar ni cambiar la entrada`, (t) => {
     const dir = fixture(t)
@@ -131,16 +118,20 @@ test('JSON inválido, herramienta equivocada y path ilegible se deniegan', (t) =
 })
 
 
-test('si el hook está instalado, coincide con la propuesta probada y está conectado', () => {
-  const installed = join(root, '.claude/hooks/protect-paths.mjs')
+test('el hook instalado está conectado una sola vez sobre Bash', () => {
   const configured = JSON.parse(originalSettings).hooks.PreToolUse?.filter((entry) =>
     entry.hooks?.some((hook) => hook.args?.includes('${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-paths.mjs'))) ?? []
-  if (!existsSync(installed) && configured.length === 0) return
-  assert.equal(existsSync(installed), true, 'Configuración sin archivo instalado')
-  assert.equal(configured.length, 1, 'Hook instalado sin configuración única')
-  assert.deepEqual(configured[0], {
+  assert.equal(existsSync(installed), true)
+  assert.deepEqual(configured, [{
     matcher: 'Bash',
     hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-paths.mjs'], timeout: 5 }],
-  })
-  assert.equal(readFileSync(installed, 'utf8'), readFileSync(proposal, 'utf8'), 'El hook instalado diverge de la propuesta probada')
+  }])
+})
+
+test('permissions.deny cubre las cinco rutas protegidas y los validadores (R-15)', () => {
+  const deny = JSON.parse(originalSettings).permissions.deny
+  for (const tool of ['Edit', 'Write'])
+    for (const path of ['.claude/**', '.github/workflows/**', '.codex/**', '.gemini/**', '.agents/**',
+      'scripts/check-*.mjs', 'scripts/guard-db-tests.mjs'])
+      assert.ok(deny.includes(`${tool}(./${path})`), `falta ${tool}(./${path})`)
 })
