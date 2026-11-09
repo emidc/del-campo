@@ -47,6 +47,8 @@ for (const [name, command] of [
   ['escritura en .codex', 'cp TASKS/example.md .codex/hooks.json'],
   ['sed sobre un validador', "sed -i '' 's/before/after/' scripts/check-docs.mjs"],
   ['borrar un validador', 'rm scripts/check-docs.mjs'],
+  ['copiar hacia el directorio de un validador', 'cp TASKS/example.md scripts/'],
+  ['borrar con ruta absoluta del programa', '/usr/bin/rm -r scripts'],
 ]) {
   test(`deniega ${name} sin ejecutar ni cambiar la entrada`, (t) => {
     const dir = fixture(t)

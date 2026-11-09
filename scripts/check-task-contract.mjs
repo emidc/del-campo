@@ -13,7 +13,8 @@
 
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 
 export const FROZEN_SECTIONS = ['## Why', '## Outcome', '## Non-scope', '## Verification',
@@ -73,8 +74,9 @@ export function checkBranchName(branchName) {
   }
 }
 
+// core.quotePath=false: sin esto git cita las rutas con acentos y ningún filtro coincide.
 function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8' })
+  return execFileSync('git', ['-c', 'core.quotePath=false', ...args], { encoding: 'utf8' })
 }
 
 function findTaskFileAtRef(taskId, ref) {
@@ -202,9 +204,10 @@ export function run({ branchName, baseRef } = {}) {
 
   if (branchCheck.amendId) {
     const changed = git(['diff', '--name-only', '--no-renames', mergeBase, 'HEAD']).split('\n').filter(Boolean)
-    const foreign = changed.filter((path) => !path.startsWith(`TASKS/${branchCheck.amendId}-`))
+    const foreign = changed.filter((path) => !path.startsWith(`TASKS/${branchCheck.amendId}-`) &&
+      !(path.startsWith('REVIEWS/') && path.includes(branchCheck.amendId)))
     if (foreign.length)
-      errors.push(`una rama amend/ sólo puede tocar el archivo de ${branchCheck.amendId}; también toca: ${foreign.join(', ')}`)
+      errors.push(`una rama amend/ sólo puede tocar el archivo de ${branchCheck.amendId} y su reporte en REVIEWS/; también toca: ${foreign.join(', ')}`)
     return { ok: errors.length === 0, errors }
   }
 
@@ -220,7 +223,7 @@ export function run({ branchName, baseRef } = {}) {
   return { ok: errors.length === 0, errors }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const result = run()
   for (const error of result.errors) console.error(`error  ${error}`)
   console.log(result.ok ? '✓ contrato de tarea intacto' : `\n✗ ${result.errors.length} error(es)`)

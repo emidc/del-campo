@@ -67,7 +67,7 @@ test('una FEATURE exige revisión aunque no toque rutas sensibles (D-0052)', (t)
 test('un cambio sensible desde una rama sin tarea falla', (t) => {
   const result = repo(t, { branch: 'chore/limpieza', files: { 'scripts/check-docs.mjs': '\n' } })
   assert.equal(result.ok, false)
-  assert.match(result.errors[0], /no nombra una tarea/)
+  assert.match(result.errors[0], /nombran una tarea/)
 })
 
 test('un archivo nuevo en apps/*/src/lib cuenta como control de acceso; uno modificado sin nombre listado no', () => {
@@ -76,4 +76,24 @@ test('un archivo nuevo en apps/*/src/lib cuenta como control de acceso; uno modi
   assert.equal(sensitiveArea('apps/risk/src/lib/guard.ts', 'M'), 'controles de acceso de las apps')
   assert.equal(sensitiveArea('apps/web/src/app/api/vs01/route.ts', 'M'), 'endpoints y webhook')
   assert.equal(sensitiveArea('.agents/hooks/protect-paths.mjs', 'M'), 'guardrails')
+})
+
+test('una FEATURE implementada desde una rama sin id igual exige revisión (por la tarea que toca)', (t) => {
+  const result = repo(t, { branch: 'chore/impl', kind: 'FEATURE', files: {
+    'TASKS/T-9001-prueba.md': TASK('FEATURE') + '\nnota\n',
+  } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9001 es FEATURE/)
+})
+
+test('rutas con acentos no se cuelan: un endpoint con ñ cuenta como sensible', (t) => {
+  const result = repo(t, { branch: 'task/T-9001-x', files: { 'apps/web/src/app/api/niño/route.ts': 'export {}\n' } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /niño/)
+})
+
+test('la lógica de los endpoints y los tests de denegación cuentan como sensibles', () => {
+  assert.equal(sensitiveArea('apps/risk/src/lib/handlers.ts'), 'controles de acceso de las apps')
+  assert.equal(sensitiveArea('packages/api/src/http.ts'), 'endpoints y webhook')
+  assert.equal(sensitiveArea('apps/communication/src/lib/deny.test.ts'), 'controles de acceso de las apps')
 })

@@ -61,6 +61,8 @@ const cases = [
   // T-0043: los validadores se ejecutan libremente; escribirlos se rechaza.
   ['codex', 'correr un validador', 'Bash', { command: 'node scripts/check-docs.mjs' }, 0],
   ['codex', 'sed sobre un validador', 'Bash', { command: "sed -i 's/a/b/' scripts/check-docs.mjs" }, 2],
+  ['codex', 'copiar hacia el directorio de un validador', 'Bash', { command: 'cp /tmp/x.mjs scripts/' }, 2],
+  ['codex', 'borrar el directorio de los validadores', 'Bash', { command: 'rm -r scripts' }, 2],
   ['codex', 'apply_patch sobre un validador', 'apply_patch', { command: patch('scripts/check-docs.mjs') }, 2],
   // Gemini CLI
   ['gemini', 'write_file sobre un validador', 'write_file', { file_path: 'scripts/check-docs.mjs', content: '' }, 2],

@@ -35,6 +35,10 @@ huecos, comprobados con 19 pruebas de aceptación contra el checker de `6d27aba`
   `SENSITIVE`. Un archivo nuevo en `apps/*/src/lib/` cuenta. La lista no exime: el revisor
   o el owner pueden escalar otro cambio.
 - El workflow corre los dos controles con la versión de la rama y con la de la base.
+  Límite: en un `pull_request` el YAML del workflow es el de la rama, así que un PR podría
+  quitar la corrida de la base. Ese cambio toca `.github/workflows/`, exige revisión ciega
+  y lo ve el owner al mergear; cerrarlo del todo exige un ruleset o un workflow requerido
+  desde `main`, que esta decisión no toma.
 - `.claude/settings.json`, `.claude/hooks/protect-paths.mjs` y
   `.agents/hooks/protect-paths.mjs` protegen las mismas cinco rutas y los validadores.
   Ejecutar un validador sigue libre; escribirlo, moverlo o borrarlo, no.
@@ -56,7 +60,8 @@ huecos, comprobados con 19 pruebas de aceptación contra el checker de `6d27aba`
 
 ## Consecuencias
 
-**Más fácil:** cerrar una tarea en su propio PR; una rama no puede aflojar sus controles.
+**Más fácil:** cerrar una tarea en su propio PR; una rama no puede aflojar sus controles
+sin que el cambio quede a la vista del owner.
 **Más difícil:** un PR que toca una ruta sensible queda rojo hasta que tenga su reporte de
 revisión; un cambio de contrato necesita su propio PR de enmienda.
 

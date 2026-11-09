@@ -108,12 +108,14 @@ function touchesProtected(root, cwd, target, { ancestors = true } = {}) {
 }
 
 // Un validador se ejecuta todo el tiempo; sólo cuenta escribirlo, moverlo o borrarlo.
-const WRITERS = new Set(['sed', 'mv', 'cp', 'rm', 'tee', 'truncate', 'ln', 'chmod', 'perl', 'awk'])
-function touchesValidator(root, cwd, target) {
+const WRITERS = new Set(['sed', 'mv', 'cp', 'rm', 'tee', 'truncate', 'ln', 'chmod', 'perl', 'awk', 'install', 'rsync'])
+// El destino puede ser el validador o, para un programa que escribe, el directorio que lo
+// contiene (`cp x scripts/`, `rm -r scripts`).
+function touchesValidator(root, cwd, target, { ancestors = false } = {}) {
   const path = resolve(cwd, target)
   const actual = canonical(path)
   return validators(root).map((p) => resolve(root, p)).flatMap((p) => [p, canonical(p)])
-    .some((p) => p === path || p === actual)
+    .some((p) => p === path || p === actual || (ancestors && (contains(path, p) || contains(actual, p))))
 }
 
 function shellCommand(input) {
@@ -141,7 +143,7 @@ function evaluateShell(root, cwd, command) {
   for (const arg of args) {
     if (!arg || arg.startsWith('-')) continue
     if (touchesProtected(root, cwd, arg)) return `el comando alcanza una ruta protegida (${arg}).`
-    if (WRITERS.has(name) && touchesValidator(root, cwd, arg)) return `el comando modifica un validador (${arg}).`
+    if (WRITERS.has(name) && touchesValidator(root, cwd, arg, { ancestors: true })) return `el comando modifica un validador (${arg}).`
   }
   return null
 }

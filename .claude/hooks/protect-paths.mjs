@@ -49,8 +49,7 @@ const MENTION = /\.claude(?![\w-])|\.github[\\/]+workflows|\.codex(?![\w-])|\.ge
 // se deniega cuando un programa que escribe o mueve archivos los nombra. Un comando opaco
 // que los modifica no se detecta acá: lo frenan permissions.deny, la revisión exigida por
 // CI y la del owner.
-const WRITERS = new Set(['sed', '/usr/bin/sed', 'mv', '/bin/mv', 'cp', '/bin/cp', 'rm', '/bin/rm',
-  'tee', '/usr/bin/tee', 'truncate', 'ln', '/bin/ln', 'chmod', '/bin/chmod', 'perl', 'awk'])
+const WRITERS = new Set(['sed', 'mv', 'cp', 'rm', 'tee', 'truncate', 'ln', 'chmod', 'perl', 'awk', 'install', 'rsync'])
 
 export function validators(root) {
   try {
@@ -111,7 +110,9 @@ function evaluate(input, projectRoot) {
     if (protectedPaths.some((p) => contains(p, path) || contains(p, actual) ||
         contains(path, p) || contains(actual, p)))
       return deny('destino protegido o directorio que lo contiene. El humano aplica el cambio.')
-    if (WRITERS.has(program) && validatorPaths.some((p) => p === path || p === actual))
+    // El destino puede ser el validador o el directorio que lo contiene (`cp x scripts/`).
+    if (WRITERS.has(program.split('/').pop()) &&
+        validatorPaths.some((p) => contains(p, path) || contains(p, actual) || contains(path, p) || contains(actual, p)))
       return deny('el comando modifica un validador. El humano aplica el cambio.')
     try {
       if (statSync(actual).isFile() && statSync(actual).nlink > 1) return ask()

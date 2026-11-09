@@ -12,7 +12,8 @@
 // fuera de ella lo puede escalar el revisor o el owner.
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // Cada entrada: [área, expresión sobre el path relativo a la raíz].
 export const SENSITIVE = [
@@ -21,8 +22,11 @@ export const SENSITIVE = [
   ['identidad y autorización', /^packages\/identidad\//],
   ['identidad y autorización', /^packages\/api\/src\/(session|acceso)\//],
   ['controles de acceso de las apps',
-    /^apps\/[^/]+\/src\/lib\/(acceso|auth|entrada|entre-contextos|guard|identidad|modo|page-guard|permisos|sesion)(\.[^/]*)?\.ts$/],
+    /^apps\/[^/]+\/src\/lib\/(acceso|auth|entrada|entre-contextos|guard|identidad|modo|page-guard|permisos|sesion|handlers|server|jobs|criterios)(\.[^/]*)?\.ts$/],
+  ['controles de acceso de las apps', /(^|\/)deny\.test\.ts$/],
   ['endpoints y webhook', /^apps\/[^/]+\/src\/app\/(api|webhook)\//],
+  ['endpoints y webhook', /^packages\/api\/src\/(http\.ts|vs01\/)/],
+  ['migraciones', /^packages\/db\/src\/migraciones\.ts$/],
   ['operaciones y persistencia', /^contexts\/[^/]+\/src\/(application|persistence)\//],
   ['operaciones y persistencia', /^packages\/db\/src\/import\//],
   ['integraciones externas', /^contexts\/[^/]+\/src\/integration\//],
@@ -30,6 +34,7 @@ export const SENSITIVE = [
   ['guardrails', /^\.github\/workflows\//],
   ['validadores', /^scripts\/check-[^/]+\.mjs$/],
   ['validadores', /^scripts\/guard-db-tests\.mjs$/],
+  ['validadores', /^scripts\/tests\//],
   ['validadores', /^eslint\.config\.js$/],
   ['validadores', /^(package\.json|tsconfig\.json|apps\/[^/]+\/tsconfig\.json)$/],
 ]
@@ -44,16 +49,19 @@ export function sensitiveArea(path, status = 'M') {
   return null
 }
 
+// core.quotePath=false: sin esto git cita las rutas con acentos y ningún patrón coincide.
 function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8' })
+  return execFileSync('git', ['-c', 'core.quotePath=false', ...args], { encoding: 'utf8' })
 }
 
-function taskKind(taskId) {
-  const listing = git(['ls-files', 'TASKS/'])
+// El kind de una tarea en un ref, o null si no existe ahí.
+function kindAt(ref, taskId) {
+  const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'TASKS/'])
   const file = listing.split('\n').find((path) => path.startsWith(`TASKS/${taskId}-`))
   if (!file) return null
-  return readFileSync(file, 'utf8').match(/^kind:\s*(\w+)/m)?.[1] ?? null
+  return git(['show', `${ref}:${file}`]).match(/^kind:\s*(\w+)/m)?.[1] ?? null
 }
+const NEEDS_REVIEW = new Set(['FEATURE', 'MIGRATION'])
 
 export function run({ branchName, baseRef } = {}) {
   branchName ??= process.env.CHECK_BRANCH_NAME ?? git(['rev-parse', '--abbrev-ref', 'HEAD']).trim()
@@ -72,36 +80,44 @@ export function run({ branchName, baseRef } = {}) {
       return { status, path }
     })
 
-  const taskId = branchName.match(/\b(T-\d{4})\b/)?.[1] ?? null
+  // Las tareas en juego: la de la rama y toda tarea que el diff toque. Una FEATURE o
+  // MIGRATION exige revisión por su kind en la base o en la rama, el mayor de los dos: ni
+  // el nombre de rama ni una enmienda que baje el kind la eximen.
+  const branchId = branchName.match(/\b(T-\d{4})\b/)?.[1] ?? null
+  const touchedIds = changes.map(({ path }) => path.match(/^TASKS\/(T-\d{4})-/)?.[1]).filter(Boolean)
+  const taskIds = [...new Set([branchId, ...touchedIds].filter(Boolean))]
+  const reviewFor = (id) => changes.find(({ status, path }) =>
+    status !== 'D' && path.startsWith('REVIEWS/') && path.includes(id))?.path ?? null
+
+  const errors = []
   const reasons = []
+  for (const id of taskIds) {
+    const kinds = [kindAt(mergeBase, id), kindAt('HEAD', id)].filter(Boolean)
+    const kind = kinds.find((k) => NEEDS_REVIEW.has(k))
+    if (!kind) continue
+    reasons.push(`${id} es ${kind} (D-0052)`)
+    if (!reviewFor(id))
+      errors.push(`${id} es ${kind} y la rama no agrega ni modifica un reporte en REVIEWS/ que la nombre (R-33)`)
+  }
+
+  const sensitive = []
   for (const { status, path } of changes) {
     const area = sensitiveArea(path, status)
-    if (area) reasons.push(`${path} (${area})`)
+    if (area) sensitive.push(`${path} (${area})`)
   }
-  const kind = taskId ? taskKind(taskId) : null
-  if (kind === 'FEATURE' || kind === 'MIGRATION') reasons.unshift(`${taskId} es ${kind} (D-0052)`)
-
-  if (!reasons.length) return { ok: true, errors: [], reasons }
-
-  if (!taskId)
-    return {
-      ok: false,
-      reasons,
-      errors: [`el diff exige revisión ciega pero la rama "${branchName}" no nombra una tarea T-xxxx: ${reasons.join('; ')}`],
-    }
-
-  const review = changes.find(({ status, path }) =>
-    status !== 'D' && path.startsWith('REVIEWS/') && path.includes(taskId))
-  if (review) return { ok: true, errors: [], reasons, review: review.path }
-
-  return {
-    ok: false,
-    reasons,
-    errors: [`el diff exige revisión ciega (R-33) y no agrega ni modifica un reporte en REVIEWS/ que nombre ${taskId}. Motivos: ${reasons.join('; ')}`],
+  if (sensitive.length) {
+    reasons.push(...sensitive)
+    if (!taskIds.length)
+      errors.push(`el diff toca rutas sensibles pero ni la rama "${branchName}" ni el diff nombran una tarea T-xxxx: ${sensitive.join('; ')}`)
+    else if (!taskIds.some(reviewFor))
+      errors.push(`el diff toca rutas sensibles y no agrega ni modifica un reporte en REVIEWS/ que nombre ${taskIds.join(' o ')} (R-33). Rutas: ${sensitive.join('; ')}`)
   }
+
+  const review = taskIds.map(reviewFor).find(Boolean) ?? null
+  return { ok: errors.length === 0, errors, reasons, review }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const result = run()
   for (const error of result.errors) console.error(`error  ${error}`)
   console.log(result.ok

@@ -153,7 +153,7 @@ Los agentes no entregan a un cliente contenido que constituya asesoramiento sin 
 
 ### R-15 · Los guardrails no se autoeditan — ACTIVA
 
-Un agente que puede modificar sus propios límites no tiene límites. Las rutas protegidas son las mismas para los tres proveedores: `.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.github/workflows/` y los validadores (`scripts/check-*.mjs`, `scripts/guard-db-tests.mjs`). Las protegen `permissions.deny` y el hook de Bash de Claude Code, y `.agents/hooks/protect-paths.mjs` para Codex y Gemini. Ejecutar un validador está permitido; escribirlo, moverlo o borrarlo, no. CI exige revisión ciega para todo cambio en esas rutas (R-33) y corre los controles en su versión de la base. → `D-0086`
+Un agente que puede modificar sus propios límites no tiene límites. Las rutas protegidas son las mismas para los tres proveedores: `.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.github/workflows/` y los validadores (`scripts/check-*.mjs`, `scripts/guard-db-tests.mjs`). Las protegen `permissions.deny` y el hook de Bash de Claude Code, y `.agents/hooks/protect-paths.mjs` para Codex y Gemini. Ejecutar un validador está permitido; escribirlo, moverlo o borrarlo, no. CI exige revisión ciega para todo cambio en esas rutas (R-33) y corre los controles también en su versión de la base; el YAML del workflow sigue siendo el de la rama, así que un cambio al workflow lo frena la revisión del owner. → `D-0086`
 
 Los hooks locales cubren las rutas conocidas y los comandos que las nombran, no un comando opaco que las alcance por otro camino. Lo que no se puede omitir es CI y la revisión del owner (R-17).
 

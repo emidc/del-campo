@@ -54,7 +54,7 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 | GOV-02a | Registrar la aprobación interna por operador único (excepción a DA-8) | decision | P0 | 09/11–11/11 | — | la decisión fija revisión de IA registrada, 24 h desde el último cambio material y que no habilita entregar al cliente. | `T-0038` |
 | GOV-02b | Registrar la aceptación reducida de RO01 sin segunda persona (A8 no verificado) | decision | P0 | 12/11–15/11 | GOV-02a | T-0032 dice qué criterios mide, que A8 queda no verificado y qué uso interno habilita. | `T-0038` |
 | GOV-04a | Proteger las rutas sensibles en local también para Codex y Gemini | tarea | P1 | 16/11–24/11 | GOV-01c | una prueba por proveedor muestra que no puede escribir una ruta protegida, sin duplicar lo que ya cubre CI. | `T-0039` |
-| GOV-04b | Capturar AgentRun en las corridas de Codex y Gemini | tarea | P1 | 19/11–24/11 | GOV-01c | una corrida de cada proveedor deja su AgentRun con el formato de T-0006. | `T-0039` |
+| GOV-04b | Capturar AgentRun en las corridas de Codex y Gemini (hecho en T-0039; la captura se retiró por D-0085) | tarea | P1 | 19/11–24/11 | GOV-01c | una corrida de cada proveedor deja su AgentRun con el formato de T-0006. | `T-0039` |
 | IA-01 | Registrar las cuentas de IA: proveedor, plan, condiciones, modelos y datos permitidos | humana | P0 | 12/11–16/11 | GOV-01c | cada cuenta usada con nivel 2 tiene modelo y condiciones registrados; una cuenta sin registro queda excluida. | — |
 
 ### Etapa 1 · Fundación
