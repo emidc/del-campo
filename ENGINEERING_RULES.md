@@ -1,6 +1,6 @@
 # Del Campo — ENGINEERING_RULES.md
 
-**Estado:** baseline v0.1 · **Actualizado:** 2026-09-07
+**Estado:** baseline v0.1 · **Actualizado:** 2026-11-09
 
 Reglas de trabajo. **Un solo archivo para humanos y para agentes**: la distinción es real en muy pocas reglas, y esas están marcadas. Dos archivos paralelos derivan en duplicación y la duplicación derivó, en la revisión del Charter, en la mitad de las contradicciones encontradas.
 
@@ -57,19 +57,27 @@ comandos se corren igual desde una shell humana, desde CI y desde un agente.
 
 Una tarea sin alcance negativo explícito es el mejor predictor de scope creep en trabajo agéntico.
 
-### R-09 · Definition of Done — LATENTE (parcial)
+### R-09 · Definition of Done — ACTIVA, salvo lo marcado
 
 Se considera terminada una tarea cuando:
 
 - los comandos de `## Verification` pasan (**ACTIVA**);
-- el AgentRun quedó registrado y vinculado al PR (**ACTIVA** cuando haya PRs);
-- cero nuevos errores de tipo, cero nuevos errores de lint (**LATENTE**);
+- cero nuevos errores de tipo, cero nuevos errores de lint (**ACTIVA**: `pnpm check` y CI
+  los hacen fallar);
 - ningún test nuevo marcado como `skip`, y ningún test existente modificado sin justificación explícita en el PR (**LATENTE**);
 - existe `ops/evidence/T-xxxx.md` conforme a R-09b (**ACTIVA**);
 - ADR creado si aplica R-05 (**ACTIVA**);
 - aprobación humana obtenida si aplica R-13 o R-14 (**ACTIVA**).
 
 No se declara terminado nada cuya verificación no se haya ejecutado.
+
+Una tarea pasa a `DONE` en su propio PR cuando su outcome está verificado y sus
+aprobaciones obtenidas: el merge incorpora ese estado y las casillas se marcan ahí mismo.
+Si falta una aceptación posterior (producción, uso real, una aprobación que llega
+después), sigue `ACTIVE` mientras haya trabajo, con `waiting` sólo si la espera es pasiva,
+o `BLOCKED` si necesita una intervención. → `D-0086`
+
+AgentRun ya no es parte del Definition of Done. → `D-0085`
 
 ---
 
@@ -79,8 +87,7 @@ Toda tarea que pase a `status: DONE` tiene un archivo `ops/evidence/T-xxxx.md`. 
 checker lo exige y falla sin él, nombrando el archivo que falta. El archivo contiene:
 
 - un **encabezado de procedencia** que declara el SHA de `main` y el SHA de la rama
-  sobre los que se ejecutó la verificación, y los `runId` de los AgentRuns
-  involucrados — o la constancia explícita de que no hay ninguno;
+  sobre los que se ejecutó la verificación, y qué agentes trabajaron en la tarea;
 - `## Comandos y salida literal` — cada comando de `## Verification` con su salida
   **textual**. Una descripción de la salida no es la salida: lo que se resume deja de
   ser comprobable por un tercero;
@@ -109,17 +116,17 @@ digan la verdad; esa lectura es del revisor humano. → `R-30`
 
 Solo preferencias y credenciales personales. Configuración del proyecto en el repositorio, versionada y revisada como código. Un proyecto cuya conducta depende de configuración no versionada deja de ser reproducible, y con eso se cae la premisa entera de medir proveedores.
 
-### R-11 · Los runs de benchmark se ejecutan sin configuración de usuario — ACTIVA
+### R-11 · Los runs de benchmark se ejecutan sin configuración de usuario — LATENTE
 
 Todo run destinado a comparación se corre con `--bare` o con `--setting-sources` acotado, y esa condición queda registrada en el campo `settingSources` del AgentRun. Sin esto se está midiendo una variable no controlada.
 
+LATENTE desde `D-0085`: no hay ningún experimento de comparación en curso. Se activa con el primero que se autorice, por ejemplo para `D-0043`, que registra sus runs a propósito.
+
 ### R-12 · La versión de contexto es el SHA del repo — ACTIVA
 
-No se construye ningún sistema de versionado de contexto. Los eventos
-`RUN_STARTED` y `RUN_ENDED` registran respectivamente el SHA inicial y final; la
-proyección del AgentRun los expone como `repoShaBefore` / `repoShaAfter`, junto a
-los `contextRefs` declarados por la tarea. “¿Qué contexto vio este run?” se responde
-con `git show <sha>:DOMAIN.md`.
+No se construye ningún sistema de versionado de contexto. El contexto que vio un
+trabajo es el del SHA de la base de su PR, junto a los `contextRefs` declarados por la
+tarea. “¿Qué contexto vio esta tarea?” se responde con `git show <sha>:DOMAIN.md`.
 
 ### R-12b · Referenciar documentos por path, no importarlos — ACTIVA
 
@@ -133,7 +140,7 @@ En `CLAUDE.md` y `AGENTS.md`, los documentos canónicos se nombran entre backtic
 
 - **Autónomo:** leer el repo; correr checks y tests; editar en una rama de feature; crear rama; crear PR; migraciones contra base local.
 - **Autónomo con auditoría:** agregar dependencias; escribir migraciones de schema; **modificar tests existentes** — permitido, pero dispara revisión humana obligatoria y queda marcado en el PR.
-- **Aprobación humana:** merge a `main`; deploy y migración en producción; rotación de secretos; **cambios a `.claude/`, a los hooks o a los workflows de CI**; alta de una integración externa.
+- **Aprobación humana:** merge a `main`; deploy y migración en producción; rotación de secretos; **cambios a los guardrails de los agentes (`.claude/`, `.codex/`, `.gemini/`, `.agents/`), a los hooks, a los workflows de CI o a los validadores de `scripts/`**; alta de una integración externa. Una aprobación puede cubrir el trabajo previsto completo de una tarea; no hace falta repetirla por cada edición. El agente prepara el cambio en su rama y lo presenta como diff en un PR; cuando la protección local le impide escribirlo, el owner aplica el parche o habilita un entorno acotado para ese cambio.
 - **Prohibido:** tocar datos de producción; deshabilitar hooks o checks; `push --force` a `main`; commitear secretos; usar credenciales productivas desde una sesión de desarrollo.
 
 ### R-14 · Acciones de negocio — ACTIVA
@@ -146,7 +153,9 @@ Los agentes no entregan a un cliente contenido que constituya asesoramiento sin 
 
 ### R-15 · Los guardrails no se autoeditan — ACTIVA
 
-Un agente que puede modificar sus propios límites no tiene límites. `.claude/**` y los workflows de CI están en `permissions.deny` y bajo revisión humana obligatoria.
+Un agente que puede modificar sus propios límites no tiene límites. Las rutas protegidas son las mismas para los tres proveedores: `.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.github/workflows/` y los validadores (`scripts/check-*.mjs`, `scripts/guard-db-tests.mjs`). Las protegen `permissions.deny` y el hook de Bash de Claude Code, y `.agents/hooks/protect-paths.mjs` para Codex y Gemini. Ejecutar un validador está permitido; escribirlo, moverlo o borrarlo, no. CI exige revisión ciega para todo cambio en esas rutas (R-33) y corre los controles en su versión de la base. → `D-0086`
+
+Los hooks locales cubren las rutas conocidas y los comandos que las nombran, no un comando opaco que las alcance por otro camino. Lo que no se puede omitir es CI y la revisión del owner (R-17).
 
 ### R-16 · Los agentes reciben autorización, no credenciales — ACTIVA
 
@@ -208,13 +217,13 @@ La sección entera estuvo LATENTE hasta T-0010, que levantó el workspace, el ty
 
 Todo borde (HTTP, mensaje de cola, task spec, payload de integración) tiene un schema validado y se **valida en runtime**, no solo en tipos. Es lo que permite que un agente compruebe su propio trabajo.
 
-Sigue LATENTE y conviene decir por qué: todavía no existe ningún borde —ni HTTP, ni cola, ni payload de integración— y la biblioteca de validación en runtime es una dependencia nueva. La elige la primera tarea que tenga un borde, con su ADR por R-05. Marcarla cumplible hoy sería declarar exigible una regla sin herramienta que la haga cumplir, que es precisamente lo que la distinción ACTIVA/LATENTE existe para evitar.
+Sigue LATENTE y conviene decir por qué: los bordes ya existen (los endpoints de las tres apps y el webhook de WhatsApp) y validan su entrada a mano, sin una biblioteca de schema. La biblioteca de validación en runtime es una dependencia nueva y la elige una tarea con su ADR por R-05. Hasta entonces la regla no tiene herramienta que la haga cumplir de forma uniforme, que es lo que la distinción ACTIVA/LATENTE existe para no disimular.
 
 ### R-25 · Los límites de módulo se hacen cumplir por herramienta — ACTIVA
 
 `packages/domain` no importa nada. `packages/db` no importa `api`. `apps/web` no importa `db` directamente. Regla de lint, no convención: un agente que no ve el límite lo cruza.
 
-Los tres límites están escritos en `eslint.config.js` y hacen fallar `pnpm lint`. Los de `api` y `web` están escritos aunque esos paquetes todavía no existan: la regla ya rige, y transcribirla cuesta una línea por límite.
+Los tres límites están escritos en `eslint.config.js` y hacen fallar `pnpm lint`.
 
 ### R-26 · Capas de test — ACTIVA en la capa unit; las demás entran con su primer caso
 
@@ -226,9 +235,9 @@ Unit sobre lógica de dominio pura; integration contra un Postgres real; contrac
 
 Durante cada spike de integración se capturan y guardan las respuestas reales como fixtures. Cuestan cero en ese momento —las llamadas ya se están haciendo— y son la única forma de tener tests de contrato que signifiquen algo.
 
-### R-28 · Deny-by-default probado — LATENTE
+### R-28 · Deny-by-default probado — ACTIVA
 
-Todo endpoint expuesto al exterior tiene un test explícito de denegación. El portal no se lanza sobre "chequeamos el rol en el handler".
+Todo endpoint expuesto al exterior tiene un test explícito de denegación. El portal no se lanza sobre "chequeamos el rol en el handler". Hoy lo cumplen `apps/communication/src/lib/deny.test.ts`, `apps/risk/src/lib/deny.test.ts` y `packages/api/src/http.test.ts`.
 
 ---
 
@@ -236,7 +245,7 @@ Todo endpoint expuesto al exterior tiene un test explícito de denegación. El p
 
 ### R-29 · Rama por tarea, con el id en el nombre — ACTIVA
 
-`task/T-0042-descripcion-corta`. Es lo que permite unir automáticamente AgentRuns con diffs y PRs sin construir nada, y es de donde el hook de captura lee el `taskId`.
+`task/T-0042-descripcion-corta`. CI lee de ahí el `taskId` para congelar el contrato y para buscar el reporte de revisión. Sin tarea se admiten `docs/` y `chore/`; una enmienda de contrato va en `amend/T-xxxx-…` y sólo toca esa tarea. Ningún prefijo exime del congelamiento. → `D-0086`
 
 ### R-30 · `main` protegida, ramas cortas — ACTIVA
 
@@ -253,9 +262,9 @@ no vuelve obligatorio el paso donde R-30 lo menciona — eso lo decide T-0009 en
 
 ## 8. Higiene periódica
 
-### R-31 · Revisión mensual de contexto — ACTIVA
+### R-31 · Revisión mensual de contexto — RETIRADA
 
-Correr `/context` y `/skill-doctor` y mirar los números. `CLAUDE.md` por debajo de ~150 líneas. Lo que crece se mueve a `.claude/rules/` con `paths:` o a un skill.
+Se retiró el 09/11/2026 en `T-0043`: en dos meses no hubo una sola ejecución registrada. Lo que protegía (que `CLAUDE.md` y `AGENTS.md` no crezcan ni envejezcan) se sostiene con una sola fuente de estado en `PROJECT.md`.
 
 ### R-32 · El dominio crece por evidencia — ACTIVA
 
@@ -301,10 +310,25 @@ Un reporte sin ningún `Act on` es un resultado legítimo, pero entonces lo dice
 el argumento por el cual no encontró nada que ameritara cambio, en vez de inflar
 `Noted` para simular actividad.
 
-**Cuándo es obligatoria.** Todo PR de una tarea `FEATURE` o `MIGRATION` pasa por este
-procedimiento antes del merge, y su reporte queda versionado en `REVIEWS/`. En `CHORE`,
-`SPIKE` y `REVIEW` es opcional y la pide quien implementa o quien revisa. El alcance
-está registrado como decisión en `decisions.yaml`, bajo `D-0052`.
+**Cuándo es obligatoria.** Todo PR de una tarea `FEATURE` o `MIGRATION`, y todo PR cuyo
+diff toque una ruta sensible —migraciones, identidad y autorización, controles de acceso
+de las apps, endpoints y webhook, operaciones y persistencia de los contextos,
+integraciones externas, guardrails de los agentes, workflows y validadores— pasa por este
+procedimiento antes del merge, y su reporte queda versionado en `REVIEWS/` con el id de la
+tarea en el path. La lista vive en `scripts/check-review-required.mjs`, que CI corre en la
+versión de la rama y en la de la base. La etiqueta no exime: un CHORE/LOW que toca una
+migración la necesita igual. La lista tampoco exime: el revisor o el owner pueden escalar
+un cambio sensible que no figure. En los demás casos es opcional. → `D-0052`, `D-0086`
+
+**Proveedor.** El revisor puede ser un subagente del mismo proveedor que implementó: la
+independencia viene de no compartir contexto.
+
+**Prototipo y Gauntlet.** El prototipo de `docs/north-star/prototipo` trabaja con una
+tarea por versión y sólo con datos sintéticos. Su revisión de Gauntlet vale como esta
+revisión si cumple sus propiedades: revisor aislado del implementador, contrato leído
+desde `main`, diff completo, comprobaciones propias y reporte ligado a la versión
+revisada. Es una equivalencia, no una exención. Si el prototipo incorpora datos reales,
+efectos externos o publicación para clientes, se reevalúa el alcance antes de hacerlo.
 
 El alcance no se eligió por principio sino por el contraste entre las dos primeras
 revisiones reales. Sobre T-0010 —`CHORE`, `riskClass: LOW`, sin lógica de dominio— el
@@ -315,8 +339,6 @@ cuatro invariantes que el ADR y la evidencia declaraban cubiertas sin estarlo. E
 rendimiento del procedimiento sigue al riesgo del diff, así que su obligatoriedad
 también.
 
-La regla **no** conecta la revisión a CI: el disparo sigue siendo manual. Automatizarlo
-es una decisión separada que todavía no se tomó, y hacerla cumplir por herramienta
-exigiría algo que hoy no existe — un modo de comprobar que el reviewer estuvo
-efectivamente aislado, que es la propiedad que da valor al procedimiento y la única que
-un check no puede observar desde afuera.
+CI comprueba que el reporte exista, no que el reviewer haya estado efectivamente
+aislado: esa es la propiedad que da valor al procedimiento y la única que un check no
+puede observar desde afuera. Sigue siendo responsabilidad de quien dispara la revisión.

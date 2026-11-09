@@ -1,32 +1,10 @@
 {
   "context": {
-    "fileName": ["AGENTS.md"]
+    "fileName": [
+      "AGENTS.md"
+    ]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "name": "agentrun-start",
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/record-agent-run.mjs\" --provider gemini-cli",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "name": "agentrun-end",
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/scripts/record-agent-run.mjs\" --provider gemini-cli",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
     "BeforeTool": [
       {
         "matcher": ".*",

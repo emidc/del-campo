@@ -10,7 +10,7 @@ Todo lo anterior viene de `AGENTS.md` y rige para cualquier proveedor. Lo de ac�
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm check          # docs, decisiones, tareas, AgentRun, tests de scripts, tipos, lint y tests
+pnpm check          # docs, decisiones, tareas, ledger histórico, tests de scripts, tipos, lint y tests
 pnpm decisions      # estado de las decisiones desde decisions.yaml
 pnpm dev            # app interna de Broker OS (apps/web)
 pnpm db:create      # base local y migraciones pendientes; db:reset la recrea desde cero
@@ -28,8 +28,8 @@ Usar plan mode para: cambios a `DOMAIN.md`, a `decisions.yaml` o a cualquier ADR
 
 ### Guardrails propios
 
-`.claude/**` no se edita sin aprobación humana explícita: un agente que edita sus propios guardrails no tiene guardrails (R-15). La rama sigue `task/T-xxxx-descripcion-corta`, porque el hook de captura lee de ahí el `taskId` (R-29). Los runs de benchmark se corren como pide R-11.
+`.claude/**` no se edita sin aprobación humana explícita: un agente que edita sus propios guardrails no tiene guardrails (R-15). La rama sigue `task/T-xxxx-descripcion-corta`, porque CI lee de ahí el `taskId` (R-29).
 
 ### Higiene
 
-R-31: revisión mensual de contexto y este archivo por debajo de 150 líneas.
+Este archivo por debajo de 150 líneas. Lo que crece se mueve a `.claude/rules/` con `paths:`, o a un skill.

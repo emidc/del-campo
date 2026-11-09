@@ -1,5 +1,11 @@
 # AgentRun — eventos y proyección
 
+> **Histórico desde `T-0043` (09/11/2026).** La captura dejó de ser obligatoria y el
+> capturador `scripts/record-agent-run.mjs` se retiró: ningún consumidor usaba el ledger
+> para decidir, y cerrar cada sesión dejaba cambios sin commitear. `ops/runs/` se conserva
+> y `scripts/check-agent-run.mjs` sigue validando su esquema. Un experimento deliberado
+> (por ejemplo, para `D-0043`) puede registrar eventos con este mismo esquema. → `D-0085`
+
 Un `AgentRun` es la proyección de **una sesión de un agente sobre este repositorio**.
 Pertenece a Project OS. No es un `BusinessAuditEvent` y nunca contiene datos de
 cliente. → `D-0011`

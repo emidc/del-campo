@@ -246,10 +246,14 @@ decisions:
     source: revisión externa del Charter
     adr: DECISIONS/0015-project-os-zero.md
     statement: >
-      Project OS empieza como TASKS/, DECISIONS/ y un ledger ops/runs/ escrito por un
-      hook. Sin base de datos, sin servicio, sin adapters, sin UI.
-      Criterio de promoción a aplicación: 30 AgentRuns reales registrados Y el tercer
-      script ad-hoc escrito para consultarlos.
+      Project OS es TASKS/, DECISIONS/ y el ledger histórico ops/runs/. Sin base de datos,
+      sin servicio, sin adapters, sin UI. Desde el 2026-11-09 la captura de AgentRun no es
+      obligatoria y el criterio de promoción por conteo de runs se retiró (D-0085): Project
+      OS se promueve a aplicación sólo por una decisión explícita del owner que nombre el
+      caso de uso concreto que los archivos no resuelven.
+    superseded_in_part_by:
+      - clause: Criterio de promoción a aplicación con 30 AgentRuns reales y el tercer script ad-hoc
+        by: D-0085
 
   - id: D-0016
     title: Proveedores de ejecución del arnés, sin asignación por tipo de tarea
@@ -818,9 +822,12 @@ decisions:
     statement: >
       Todo PR de una tarea de kind FEATURE o MIGRATION pasa por el procedimiento de
       revisión ciega de D-0048 antes del merge, y el reporte queda versionado en
-      REVIEWS/. En CHORE, SPIKE y REVIEW la revisión es opcional y la pide quien
-      implementa o quien revisa. La obligatoriedad es de procedimiento y no se hace
-      cumplir por CI: automatizar el disparo es una decisión separada que esta no toma.
+      REVIEWS/. Desde el 2026-11-09 también la exige todo diff que toque una ruta
+      sensible, sea cual sea el kind, y CI comprueba que el reporte exista (D-0086). En
+      los demás casos la revisión es opcional y la pide quien implementa o quien revisa.
+    superseded_in_part_by:
+      - clause: La obligatoriedad es de procedimiento y no se hace cumplir por CI
+        by: D-0086
   # ── T-0012 ───────────────────────────────────────────────────────────────
 
   - id: D-0049
@@ -1626,12 +1633,17 @@ decisions:
     statement: >
       Claude Code, Codex y Gemini pueden ejecutar tareas del repositorio con el mismo
       contrato: AGENTS.md, la tarea en TASKS/, revisión ciega y aprobación humana según
-      R-13 y R-14. Una tarea tiene un solo agente implementador a la vez. Hasta que T-0039
-      deje la protección local de rutas y la captura de AgentRun funcionando para Codex y
-      Gemini, esos dos trabajan sólo con datos sintéticos y sin credenciales de
-      producción. Ningún proveedor recibe información de nivel 2 sin una cuenta
-      registrada según D-0074. Elegir un proveedor distinto para la revisión ciega está
-      permitido, pero no resuelve D-0043, que sigue OPEN.
+      R-13 y R-14. Una tarea tiene un solo agente implementador a la vez. Un proveedor usa
+      una capacidad protegida sólo cuando sus protecciones locales aplicables están
+      configuradas y comprobadas en el PR que las incorpora o cambia; la captura de
+      AgentRun ya no es condición (D-0085). Ningún agente de desarrollo recibe PII real de
+      clientes ni credenciales de producción (R-19), y ningún proveedor recibe
+      información de nivel 2 sin una cuenta registrada según D-0074. La revisión ciega
+      puede hacerla un subagente aislado del mismo proveedor o de otro, sin que eso
+      resuelva D-0043.
+    superseded_in_part_by:
+      - clause: Codex y Gemini sólo con datos sintéticos hasta que T-0039 deje funcionando la captura de AgentRun
+        by: D-0085
 
   - id: D-0083
     title: Aprobación interna por operador único
@@ -1671,3 +1683,45 @@ decisions:
       destraba T-0036, pero no permite afirmar validación profesional independiente ni
       presentar resultados de Risk OS a un cliente. Si más adelante hay un revisor, A8 se
       mide sin repetir el resto.
+
+  # ── T-0043 ───────────────────────────────────────────────────────────────
+  - id: D-0085
+    title: La captura de AgentRun deja de ser obligatoria
+    status: ACCEPTED
+    date: 2026-11-09
+    source: >
+      Revisión de las reglas de gobierno del 2026-11-09, con una segunda revisión
+      independiente hecha con Codex; aprobación del owner en el hilo «Revisar las reglas de
+      gobierno del repo» («puedes continuar con el siguiente PR»). T-0043.
+    adr: DECISIONS/0085-agentrun-opcional.md
+    statement: >
+      Ninguna sesión de agente está obligada a registrar AgentRun, y el capturador se
+      retira de Claude Code, Codex y Gemini. ops/runs/ se conserva como histórico y
+      check-agent-run sigue validando su esquema. Un experimento deliberado puede
+      registrar eventos con el mismo esquema. AgentRun deja de ser requisito del
+      Definition of Done y de la evidencia de nuevas tareas. Reemplaza el criterio de
+      promoción por conteo de D-0015 y la condición de captura de D-0082.
+
+  - id: D-0086
+    title: El control del cambio mira el diff, no el nombre de la rama ni la etiqueta
+    status: ACCEPTED
+    date: 2026-11-09
+    source: >
+      Revisión de las reglas de gobierno del 2026-11-09, con una segunda revisión
+      independiente hecha con Codex y sus 19 pruebas de aceptación del congelamiento;
+      aprobación del owner en el hilo «Revisar las reglas de gobierno del repo». T-0043.
+    adr: DECISIONS/0086-control-del-cambio-por-diff.md
+    statement: >
+      El contrato de toda tarea existente que una rama modifique queda congelado, con
+      cualquier nombre de rama: Why, Outcome, Non-scope, Verification y Data effects, más
+      id, kind y workstream; riskClass sólo puede subir y contextRefs sólo puede sumar.
+      Marcar una casilla sin cambiar su texto está permitido, y una tarea pasa a DONE en
+      su propio PR cuando su outcome está verificado y sus aprobaciones obtenidas. Una
+      enmienda del contrato va en una rama amend/ que sólo toca esa tarea. La revisión
+      ciega es obligatoria para FEATURE y MIGRATION y para todo diff que toque una ruta
+      sensible (migraciones, identidad y autorización, controles de acceso, endpoints,
+      operaciones y persistencia, integraciones, guardrails y validadores), y CI exige su
+      reporte en REVIEWS/. CI corre estos controles también en su versión de la base.
+      Los guardrails de los tres proveedores y los validadores no se modifican sin
+      aprobación humana. La revisión de Gauntlet del prototipo vale como revisión ciega
+      si cumple las propiedades de R-33.

@@ -32,7 +32,7 @@ Del Campo Broker es una correduría de seguros real, en operación. Los datos so
 | Cómo se trabaja: reglas, permisos, DoD, seguridad | `ENGINEERING_RULES.md` |
 | Qué está decidido, qué es provisional, qué está abierto | `decisions.yaml` y `DECISIONS/` |
 | Cómo se escribe una tarea | `TASKS/_TEMPLATE.md` |
-| Qué se registra de cada ejecución | `ops/AGENTRUN.md` |
+| El ledger histórico de ejecuciones | `ops/AGENTRUN.md` |
 | Qué protege y registra Claude Code, Codex y Gemini | `docs/desarrollo/agentes.md` |
 | Contratos de aceptación de cada incremento | `SLICES/` |
 | Hacia dónde va Broker OS y el plan vigente | `docs/north-star/` |

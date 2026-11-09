@@ -17,6 +17,8 @@ function fixture(t) {
   for (const folder of ['.git', '.claude', '.codex', '.gemini', '.agents/hooks', '.github/workflows', 'TASKS', 'sub'])
     mkdirSync(join(dir, folder), { recursive: true })
   writeFileSync(join(dir, 'TASKS/x.md'), 'antes\n')
+  mkdirSync(join(dir, 'scripts'))
+  writeFileSync(join(dir, 'scripts/check-docs.mjs'), '// validador\n')
   symlinkSync(join(dir, '.claude'), join(dir, 'sub/atajo'))
   return dir
 }
@@ -56,7 +58,12 @@ const cases = [
   ['codex', 'git add .', 'Bash', { command: 'git add .' }, 0],
   ['codex', 'comando sin rutas protegidas', 'Bash', { command: 'pnpm check && git status' }, 0],
   ['codex', 'MCP que nombra .gemini', 'mcp__fs__write', { path: '.gemini/settings.json' }, 2],
+  // T-0043: los validadores se ejecutan libremente; escribirlos se rechaza.
+  ['codex', 'correr un validador', 'Bash', { command: 'node scripts/check-docs.mjs' }, 0],
+  ['codex', 'sed sobre un validador', 'Bash', { command: "sed -i 's/a/b/' scripts/check-docs.mjs" }, 2],
+  ['codex', 'apply_patch sobre un validador', 'apply_patch', { command: patch('scripts/check-docs.mjs') }, 2],
   // Gemini CLI
+  ['gemini', 'write_file sobre un validador', 'write_file', { file_path: 'scripts/check-docs.mjs', content: '' }, 2],
   ['gemini', 'write_file en .gemini', 'write_file', { file_path: '.gemini/settings.json', content: '{}' }, 2],
   ['gemini', 'replace en .claude', 'replace', { file_path: '.claude/settings.json', old_string: 'a', new_string: 'b' }, 2],
   ['gemini', 'write_file a través de un symlink', 'write_file', { file_path: 'sub/atajo/x.json', content: '{}' }, 2],

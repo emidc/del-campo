@@ -31,7 +31,7 @@ Están relacionados pero se mantienen conceptualmente separados. Todo trabajo pe
 ## 3. Fase actual
 
 **Project OS sigue en Project OS Zero.** No es una aplicación: son `TASKS/`, `DECISIONS/`
-con `decisions.yaml` y el ledger `ops/runs/`, validados por `pnpm check` y CI. Sin base de
+con `decisions.yaml` y el ledger histórico `ops/runs/`, validados por `pnpm check` y CI. Sin base de
 datos, servicio, adapters ni UI propios. → `D-0015`
 
 **Broker OS está en construcción hacia su north star.** Ya existen:
@@ -48,8 +48,8 @@ hacia la north star, con hitos y camino crítico, es
 `docs/north-star/12-plan-hacia-la-north-star.md`. La historia de cómo se llegó hasta acá
 está en `docs/history/cronologia-programa-2026-09-a-11.md`.
 
-**Criterio de promoción de Project OS a aplicación:** al menos 30 AgentRuns reales **y** el
-tercer script ad-hoc para consultarlos. → `D-0015`
+**Criterio de promoción de Project OS a aplicación:** una decisión explícita del owner que
+nombre el caso de uso concreto que los archivos no resuelven. → `D-0015`, `D-0085`
 
 El spike de enforcement de autorización (`T-0002`, `D-0022`) se activa antes del primer
 acceso multi-principal, del portal externo o de un worker o agente con acceso privilegiado
@@ -105,7 +105,7 @@ El límite sigue siendo la defensa contra el modo de falla dominante del program
 | `SLICES/RO01.md` | Contrato de software y aceptación de Risk OS v1 | Antes de implementar Risk OS |
 | `docs/north-star/` | La north star de Broker OS, el prototipo y el plan para llegar | Antes de planificar o priorizar trabajo de Broker OS |
 | `docs/desarrollo/agentes.md` | Qué protege y registra cada agente y cómo se abre y cierra una sesión | Antes de trabajar con Codex o Gemini |
-| `ops/AGENTRUN.md` | Esquema del registro de ejecución | Al tocar el hook o analizar runs |
+| `ops/AGENTRUN.md` | Esquema del ledger histórico de AgentRun | Al analizar runs viejos o registrar un experimento |
 | `docs/history/SOURCES.md` | Procedencia del bundle y fuentes citadas pero no recibidas | Al auditar el baseline |
 
 ### Documentos que todavía no existen, a propósito

@@ -57,6 +57,8 @@ comprobaciones humanas explícitas.**
 
 Al pasar a `DONE`, la ejecución de estos comandos queda registrada en
 `ops/evidence/T-xxxx.md` — R-09b. El checker exige ese archivo.
+Las casillas se marcan y la tarea pasa a `DONE` en su propio PR cuando el outcome está
+verificado (R-09, D-0086); el texto de cada casilla queda congelado.
 
 ---
 

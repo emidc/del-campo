@@ -2,7 +2,7 @@
 id: T-0042
 title: Corregir la deriva de AGENTS, CLAUDE y PROJECT y alinear el validador con D-0080
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: LOW
 size: S
@@ -53,7 +53,7 @@ grep -c "No hay importación, ni UI, ni endpoints" AGENTS.md CLAUDE.md PROJECT.m
 grep -n "activeSpikes" scripts/check-docs.mjs && exit 1 || true
 ```
 
-- [ ] `AGENTS.md` lista crear, mover, renombrar, modificar y eliminar en Drive, igual que R-14.
-- [ ] El resumen de D-0083 en `AGENTS.md` conserva su alcance: uso interno, no habilita
+- [x] `AGENTS.md` lista crear, mover, renombrar, modificar y eliminar en Drive, igual que R-14.
+- [x] El resumen de D-0083 en `AGENTS.md` conserva su alcance: uso interno, no habilita
       publicar, exportar ni entregar al cliente, ni aprobar sin la revisión y la pausa.
-- [ ] Ningún hecho de la crónica de `PROJECT.md` se perdió: está en `docs/history/`.
+- [x] Ningún hecho de la crónica de `PROJECT.md` se perdió: está en `docs/history/`.
