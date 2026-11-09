@@ -2,7 +2,7 @@
 id: T-0039
 title: Proteger rutas y capturar AgentRun también para Codex y Gemini
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: S
@@ -43,5 +43,5 @@ Dos partes, cada una con su aceptación:
 pnpm check
 ```
 
-- [ ] Una prueba por proveedor muestra el rechazo de escritura en una ruta protegida.
-- [ ] `ops/runs/` contiene un AgentRun de Codex y uno de Gemini que el checker valida.
+- [x] Una prueba por proveedor muestra el rechazo de escritura en una ruta protegida.
+- [x] `ops/runs/` contiene un AgentRun de Codex y uno de Gemini que el checker valida.
