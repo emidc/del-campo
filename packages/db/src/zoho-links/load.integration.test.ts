@@ -21,7 +21,8 @@ import { after, describe, it } from 'node:test'
 import postgres from 'postgres'
 
 import { getDocumentAccessForPolicies, countDocumentLinkingCategories } from '../document-linking/query.ts'
-import { DIRECTORIOS_MODULO } from '../import/lote.ts'
+import { FORMATO_LOTE, MODULOS } from '../import/lote.ts'
+import type { Modulo } from '../import/lote.ts'
 import { loadZohoLinks } from './load.ts'
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -75,8 +76,9 @@ const one = <T>(rows: readonly T[], context: string): T => {
 }
 
 // ── Lote sintético en disco ──────────────────────────────────────────────────
-// Misma forma que un lote real (`raw/<file_id>/0001.csv`) para que el cargador se
-// ejercite por la ruta por la que de verdad se usa, con contenido inventado.
+// Misma forma que un lote real (`raw/<file_id>/0001.csv` y su `lote.json`, T-0037) para
+// que el cargador se ejercite por la ruta por la que de verdad se usa, con contenido
+// inventado.
 
 const HEADER_POLIZAS = 'ID de registro,Número de póliza,URL drive doc poliza'
 const HEADER_CLIENTES = 'ID de registro,Nombre,Drive URL'
@@ -91,12 +93,8 @@ const campo = (valor: string): string => `"${valor.replaceAll('"', '""')}"`
 
 const escribirLote = (lote: LoteSintetico): string => {
   const raiz = mkdtempSync(join(tmpdir(), 't0022-lote-'))
-  const escribir = (
-    modulo: keyof typeof DIRECTORIOS_MODULO,
-    header: string,
-    filas: readonly (readonly [string, string])[],
-  ): void => {
-    const dir = join(raiz, 'raw', DIRECTORIOS_MODULO[modulo])
+  const escribir = (modulo: Modulo, header: string, filas: readonly (readonly [string, string])[]): void => {
+    const dir = join(raiz, 'raw', modulo)
     mkdirSync(dir, { recursive: true })
     const cuerpo = filas.map(([id, url]) => [id, `registro ${id}`, url].map(campo).join(','))
     writeFileSync(join(dir, '0001.csv'), [header, ...cuerpo].join('\n') + '\n', 'utf8')
@@ -104,6 +102,15 @@ const escribirLote = (lote: LoteSintetico): string => {
   escribir('polizas', HEADER_POLIZAS, lote.polizas ?? [])
   escribir('contactos', HEADER_CLIENTES, lote.contactos ?? [])
   escribir('cuentas', HEADER_CLIENTES, lote.cuentas ?? [])
+  escribir('endosos', 'ID de registro', [])
+  const modulos = Object.fromEntries(
+    MODULOS.map((modulo) => [modulo, { csv: `raw/${modulo}/0001.csv`, exportadoEl: '2026-09-16' }]),
+  )
+  writeFileSync(
+    join(raiz, 'lote.json'),
+    JSON.stringify({ formato: FORMATO_LOTE, perfil: 'profile/sintetico.json', modulos }),
+    'utf8',
+  )
   return raiz
 }
 

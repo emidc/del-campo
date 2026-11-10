@@ -57,9 +57,9 @@ export interface ConteoParties {
   readonly membresias: number
 }
 
-export const importarContactos = async (sql: Ejecutor): Promise<number> => {
+export const importarContactos = async (sql: Ejecutor, batchId: string): Promise<number> => {
   const filas = await sql<{ source_record_id: string; raw: Record<string, string> }[]>`
-    select source_record_id, raw from staging_contact
+    select source_record_id, raw from staging_contact where batch_id = ${batchId}
   `
   let contador = 0
   for (const fila of filas) {
@@ -96,9 +96,9 @@ export const importarContactos = async (sql: Ejecutor): Promise<number> => {
   return contador
 }
 
-export const importarCuentas = async (sql: Ejecutor): Promise<number> => {
+export const importarCuentas = async (sql: Ejecutor, batchId: string): Promise<number> => {
   const filas = await sql<{ source_record_id: string; raw: Record<string, string> }[]>`
-    select source_record_id, raw from staging_account
+    select source_record_id, raw from staging_account where batch_id = ${batchId}
   `
   let contador = 0
   for (const fila of filas) {
@@ -123,7 +123,7 @@ export const importarCuentas = async (sql: Ejecutor): Promise<number> => {
 }
 
 /** Cuenta↔Contacto → OrganizationMembership. §17: la relación persona-organización, no un rol contractual. */
-export const importarMembresias = async (sql: Ejecutor): Promise<number> => {
+export const importarMembresias = async (sql: Ejecutor, batchId: string): Promise<number> => {
   const filas = await sql<{ contacto_party_id: string; cuenta_party_id: string }[]>`
     select psl_contacto.party_id as contacto_party_id, psl_cuenta.party_id as cuenta_party_id
     from staging_contact sc
@@ -133,7 +133,7 @@ export const importarMembresias = async (sql: Ejecutor): Promise<number> => {
     join party_source_link psl_cuenta
       on psl_cuenta.source_system = 'Zoho' and psl_cuenta.source_entity_type = 'Cuentas'
       and psl_cuenta.source_record_id = sc.account_source_id
-    where sc.account_source_id is not null
+    where sc.batch_id = ${batchId} and sc.account_source_id is not null
   `
   let contador = 0
   for (const fila of filas) {

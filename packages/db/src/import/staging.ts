@@ -1,5 +1,6 @@
-// T-0013, paso 3 — carga cada módulo fuente en su tabla de staging, upsert por
-// (module, source_record_id) para que correr esto dos veces deje la misma fila, no dos.
+// T-0013, paso 3 — carga cada módulo fuente en su tabla de staging. Desde T-0037 la clave
+// es (lote, source_record_id): recargar el mismo lote deja la misma fila, no dos, y un
+// lote nuevo convive con los anteriores en vez de pisarlos (hallazgo H2).
 
 import type { Ejecutor } from './db.ts'
 
@@ -38,7 +39,7 @@ const cargarModulo = async (
     // `staging.integration.test.ts`.
     const valores = [sourceRecordId, batchId, ...Object.values(extra), fila]
     const asignaciones = columnas
-      .filter((c) => c !== 'source_record_id')
+      .filter((c) => c !== 'source_record_id' && c !== 'batch_id')
       .map((c) => `${c} = excluded.${c}`)
       .join(', ')
     const placeholders = columnas.map((columna, i) =>
@@ -47,7 +48,7 @@ const cargarModulo = async (
 
     await sql.unsafe(
       `insert into ${tabla} (${columnas.join(', ')}) values (${placeholders.join(', ')}) ` +
-        `on conflict (source_record_id) do update set ${asignaciones}`,
+        `on conflict (batch_id, source_record_id) do update set ${asignaciones}`,
       valores,
     )
     contador += 1
