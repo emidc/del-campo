@@ -1727,3 +1727,30 @@ decisions:
       Los guardrails de los tres proveedores y los validadores no se modifican sin
       aprobación humana. La revisión de Gauntlet del prototipo vale como revisión ciega
       si cumple las propiedades de R-33.
+
+  # ── Hilo «Decidir cuándo consolidar Broker y Risk» ─────────────────────────
+  - id: D-0087
+    title: Los proyectos Supabase Free se alternan por bloques y cada base con datos se copia fuera de Supabase
+    status: ACCEPTED
+    date: 2026-11-10
+    source: >
+      Revisión de la consolidación de Broker OS y Risk OS del 2026-11-10, con ajustes de
+      una segunda revisión hecha con Codex; respuesta del owner en el hilo «Decidir cuándo
+      consolidar Broker y Risk» («adelante puedes preparar el segundo PR»), aprobada con el
+      merge de este cambio. D-0068, D-0076, D-0081.
+    adr: DECISIONS/0087-alternancia-y-copias-en-free.md
+    statement: >
+      Mientras los proyectos de Supabase sigan en Free, el de Broker OS queda siempre
+      activo y Risk OS y Communication OS se alternan el segundo lugar por bloques de
+      trabajo, nunca durante una observación que exija disponibilidad continua. Antes de
+      pausar un proyecto se comprueba que no reciba escrituras externas y se hace una copia;
+      pausar Communication OS exige además la confirmación del owner cada vez, porque los
+      mensajes que lleguen durante la pausa pueden perderse. Se prefiere pausar a borrar, y
+      borrar un proyecto exige una decisión explícita. El owner copia cada base con datos
+      fuera de Supabase con pg_dump: una vez por día cuando hubo cambios relevantes, y
+      siempre antes de una carga, una migración o un cambio material. Las copias van
+      cifradas a dos lugares privados y se restauran en local una vez por mes. Ante una
+      falla, primero se atiende su causa: un proyecto pausado se reanuda, una configuración
+      se corrige, una saturación se diagnostica. Una restauración se usa sólo para datos
+      dañados, con los escritores detenidos y el estado actual preservado. Esto no cambia
+      el plan de ningún proyecto: el paso a Pro lo decide el owner.
