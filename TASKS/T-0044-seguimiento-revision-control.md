@@ -2,7 +2,7 @@
 id: T-0044
 title: Leer el kind como YAML, eximir las altas de planificación y escribir los límites del control
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: S
@@ -54,7 +54,7 @@ CHECK_BASE_REF=origin/main node scripts/check-review-required.mjs
 grep -n 'match(/\^kind' scripts/check-review-required.mjs && exit 1 || true
 ```
 
-- [ ] Un subagente aislado revisó el diff según R-33 y su reporte está en `REVIEWS/`.
+- [x] Un subagente aislado revisó el diff según R-33 y su reporte está en `REVIEWS/`.
 
 ## Data effects
 
