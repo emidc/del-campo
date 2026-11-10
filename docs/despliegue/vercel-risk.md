@@ -217,8 +217,9 @@ anterior de la app sigue leyendo. No se revierten migraciones para volver atrás
 
 ## 8. Copia, restauración, pausa y apagado
 
-**Copia manual** (el plan Free no tiene copias automáticas). Al menos antes de cada carga, al
-terminar cada semana de ciclos y antes de cualquier reversa. Con la cadena de administración
+**Copia manual** (el plan Free no tiene copias automáticas). La frecuencia la fija D-0087: una
+por día cuando hubo cambios relevantes, y siempre antes de una carga, una migración, una pausa o
+cualquier reversa. Con la cadena de administración
 (Session pooler) y un `pg_dump` de la misma mayor que el servidor:
 
 ```bash
