@@ -80,6 +80,20 @@ Cuenta las pólizas del lote vigente según su mejor nivel documental:
 
 La salida es una tabla de cuatro conteos con su proporción y va a `ops/evidence/T-0037.md`.
 
+**Cómo se mide (I1c).** `node packages/db/src/document-linking/cli.ts coverage` imprime
+esa tabla, en una transacción de sólo lectura (`document-linking/cobertura.ts`). Tres
+lecturas que conviene conocer antes de leer el número:
+
+- **Qué pólizas entran:** todas las del dominio. El refresco nunca borra una póliza ausente
+  de un lote nuevo y la app la sigue mostrando, así que U8 mide lo que el equipo puede
+  abrir. Hoy el dominio tiene sólo las del lote del 16/09.
+- **Cómo se clasifica:** con la misma consulta que usa VS01 para la pantalla
+  (`getDocumentAccessForPolicies`). Comprobado es «Abrir documento»; Sin comprobar,
+  «Abrir documento (según Zoho)»; Pendiente, ningún documento y un pendiente a la vista,
+  incluido el ambiguo de dos vínculos humanos; Sin documento, el resto.
+- **La carpeta del cliente no cuenta:** no es el documento de la póliza (D-0057, D-0064).
+  Una póliza con carpeta y sin documento queda en Pendiente o Sin documento.
+
 ## 5. Incrementos
 
 | # | Qué entrega | Toca producción | Revisión |
