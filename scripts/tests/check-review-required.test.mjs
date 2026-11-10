@@ -97,3 +97,41 @@ test('la lógica de los endpoints y los tests de denegación cuentan como sensib
   assert.equal(sensitiveArea('packages/api/src/http.ts'), 'endpoints y webhook')
   assert.equal(sensitiveArea('apps/communication/src/lib/deny.test.ts'), 'controles de acceso de las apps')
 })
+
+test('un kind entre comillas es el mismo kind: "FEATURE" exige revisión', (t) => {
+  for (const kind of ['"FEATURE"', "'MIGRATION'", 'FEATURE   # comentario']) {
+    const result = repo(t, { branch: 'task/T-9001-x', kind, files: { 'README.md': 'y\n' } })
+    assert.equal(result.ok, false, kind)
+    assert.match(result.errors[0], /T-9001 es (FEATURE|MIGRATION)/)
+  }
+})
+
+test('una tarea cuyo kind no se puede leer falla en vez de pasar', (t) => {
+  const result = repo(t, { branch: 'task/T-9001-x', kind: '[sin, cerrar', files: { 'README.md': 'y\n' } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /no se pudo leer su kind/)
+})
+
+test('un PR que sólo planifica una FEATURE nueva no exige revisión', (t) => {
+  const result = repo(t, { branch: 'docs/plan', files: {
+    'TASKS/T-9002-nueva.md': '---\nid: T-9002\nkind: FEATURE\nstatus: READY\n---\n',
+    'docs/plan.md': 'plan\n',
+  } })
+  assert.equal(result.ok, true, result.errors.join('\n'))
+  assert.match(result.reasons[0], /sólo la planifica/)
+})
+
+test('agregar la FEATURE junto con código sí exige revisión', (t) => {
+  const result = repo(t, { branch: 'task/T-9002-nueva', files: {
+    'TASKS/T-9002-nueva.md': '---\nid: T-9002\nkind: FEATURE\nstatus: ACTIVE\n---\n',
+    'apps/web/src/components/boton.tsx': 'export {}\n',
+  } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9002 es FEATURE/)
+})
+
+test('una vez planificada, implementarla exige revisión aunque el diff sea sólo documentación', (t) => {
+  const result = repo(t, { branch: 'task/T-9001-x', kind: 'FEATURE', files: { 'docs/nota.md': 'x\n' } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9001 es FEATURE/)
+})
