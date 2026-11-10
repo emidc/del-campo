@@ -824,8 +824,8 @@ decisions:
       revisión ciega de D-0048 antes del merge, y el reporte queda versionado en
       REVIEWS/. Desde el 2026-11-09 también la exige todo diff que toque una ruta
       sensible, sea cual sea el kind, y CI comprueba que el reporte exista (D-0086). El PR
-      que sólo planifica la tarea, sin implementación ni rutas sensibles, no la exige
-      (T-0044). En los demás casos la revisión es opcional y la pide quien implementa o
+      que sólo planifica una tarea nueva (la agrega y el resto del diff es texto de la lista
+      del ADR de D-0086) no la exige (T-0044). En los demás casos la revisión es opcional y la pide quien implementa o
       quien revisa.
     superseded_in_part_by:
       - clause: La obligatoriedad es de procedimiento y no se hace cumplir por CI

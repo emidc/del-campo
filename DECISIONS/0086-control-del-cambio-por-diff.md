@@ -33,11 +33,12 @@ huecos, comprobados con 19 pruebas de aceptación contra el checker de `6d27aba`
 - `scripts/check-review-required.mjs` exige un archivo en `REVIEWS/` que nombre la tarea
   cuando la tarea es FEATURE o MIGRATION o cuando el diff toca una ruta de su lista
   `SENSITIVE`. Un archivo nuevo en `apps/*/src/lib/` cuenta. La lista no exime: el revisor
-  o el owner pueden escalar otro cambio. El kind se lee del frontmatter como YAML, y un
-  kind ilegible falla. Un PR que agrega una tarea FEATURE o MIGRATION y sólo toca
-  documentación (`TASKS/`, `docs/`, `SLICES/`, `DECISIONS/`, `decisions.yaml`, los `.md` de
-  la raíz) la planifica y no exige revisión; el que la implementa sí, porque el kind ya
-  está en la base (T-0044).
+  o el owner pueden escalar otro cambio. El kind se lee como YAML del `.md` de la tarea
+  en `TASKS/`, y un kind ilegible falla. Un PR que agrega una tarea FEATURE o MIGRATION que
+  la base no tiene, y cuyo resto del diff son `.md` de `TASKS/`, `docs/`, `SLICES/`,
+  `DECISIONS/` o de la raíz, o `decisions.yaml`, la planifica y no exige revisión. El
+  prototipo (`docs/north-star/prototipo/`) es código y no cuenta. El PR que la implementa
+  sí la exige, porque el kind ya está en la base (T-0044).
 - El workflow corre los dos controles con la versión de la rama y con la de la base.
   Límite: en un `pull_request` el YAML del workflow es el de la rama, así que un PR podría
   quitar la corrida de la base. Ese cambio toca `.github/workflows/`, exige revisión ciega

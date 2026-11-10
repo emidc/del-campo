@@ -9,7 +9,7 @@ import { run, sensitiveArea } from '../check-review-required.mjs'
 
 const TASK = (kind) => `---\nid: T-9001\nkind: ${kind}\n---\n`
 
-function repo(t, { branch, kind = 'CHORE', files = {} }) {
+function repo(t, { branch, kind = 'CHORE', files = {}, rename = null }) {
   const dir = mkdtempSync(join(tmpdir(), 'del-campo-review-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
   const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8',
@@ -25,6 +25,7 @@ function repo(t, { branch, kind = 'CHORE', files = {} }) {
   git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'base')
   git('checkout', '-qb', branch)
   for (const [path, text] of Object.entries(files)) write(path, text)
+  if (rename) git('mv', ...rename)
   git('add', '-A')
   git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'rama', '--allow-empty')
   const previous = process.cwd()
@@ -134,4 +135,44 @@ test('una vez planificada, implementarla exige revisión aunque el diff sea sól
   const result = repo(t, { branch: 'task/T-9001-x', kind: 'FEATURE', files: { 'docs/nota.md': 'x\n' } })
   assert.equal(result.ok, false)
   assert.match(result.errors[0], /T-9001 es FEATURE/)
+})
+
+test('un alta de planificación que toca código del prototipo en docs/ exige revisión', (t) => {
+  const result = repo(t, { branch: 'docs/plan', files: {
+    'TASKS/T-9002-nueva.md': '---\nid: T-9002\nkind: FEATURE\nstatus: READY\n---\n',
+    'docs/north-star/prototipo/pruebas/permisos.js': 'export {}\n',
+  } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9002 es FEATURE/)
+  const html = repo(t, { branch: 'docs/plan', files: {
+    'TASKS/T-9002-nueva.md': '---\nid: T-9002\nkind: FEATURE\nstatus: READY\n---\n',
+    'docs/pagina.html': '<p>x</p>\n',
+  } })
+  assert.equal(html.ok, false)
+})
+
+test('renombrar una FEATURE de la base no la vuelve un alta de planificación', (t) => {
+  const result = repo(t, { branch: 'amend/T-9001-x', kind: 'FEATURE', rename: ['TASKS/T-9001-prueba.md', 'TASKS/T-9001-otra.md'] })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9001 es FEATURE/)
+})
+
+test('un archivo que no es .md con el prefijo de la tarea no decide el kind', (t) => {
+  const result = repo(t, { branch: 'task/T-9001-x', kind: 'FEATURE', files: {
+    'TASKS/T-9001-0.txt': '---\nid: T-9001\nkind: CHORE\n---\n',
+    'apps/web/src/components/boton.tsx': 'export {}\n',
+  } })
+  assert.equal(result.ok, false)
+  assert.match(result.errors[0], /T-9001 es FEATURE/)
+})
+
+test('una tarea cuyo único archivo no es .md no queda invisible', (t) => {
+  for (const name of ['TASKS/T-9003-x.MD', 'TASKS/T-9003-x.txt']) {
+    const result = repo(t, { branch: 'task/T-9003-impl', files: {
+      [name]: '---\nid: T-9003\nkind: FEATURE\n---\n',
+      'apps/web/src/components/boton.tsx': 'export {}\n',
+    } })
+    assert.equal(result.ok, false, name)
+    assert.match(result.errors[0], /no se pudo leer su kind/)
+  }
 })

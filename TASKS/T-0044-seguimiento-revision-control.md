@@ -28,12 +28,13 @@ owner aprobó corregir los cinco puntos el 10/11/2026.
 
 `check-review-required.mjs` lee el kind del frontmatter con el parser YAML de
 `check-task-contract.mjs`, y una tarea cuyo kind no se puede leer falla. Un PR que agrega
-una tarea FEATURE o MIGRATION y no toca más que documentación (`TASKS/`, `docs/`,
-`SLICES/`, `DECISIONS/`, `decisions.yaml` y los `.md` de la raíz) no exige revisión; la
-exige el PR que la implementa, porque el kind ya está en la base. R-33, D-0052 y D-0086
+una tarea FEATURE o MIGRATION que la base no tiene, y cuyo resto del diff es texto de la lista
+del ADR de D-0086, no exige revisión; la exige el PR que la implementa,
+porque el kind ya está en la base. Un renombre no cuenta como alta. R-33, D-0052 y D-0086
 dicen eso, y D-0086 nombra como límites que `.ci-base/` no aísla las dependencias y que
 el control es de presencia. Las pruebas de `check-review-required.test.mjs` cubren el kind
-entre comillas, el kind ilegible, el alta de planificación y el alta con código.
+entre comillas, el kind ilegible, la tarea sin `.md`, el alta de planificación, el alta
+con código y el renombre.
 
 ## Non-scope
 
