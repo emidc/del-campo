@@ -35,14 +35,39 @@ export interface CoberturaDocumental {
 /**
  * - Comprobado: «Abrir documento» con un vínculo que comprobó una persona (`HUMAN`, D-0057).
  * - Sin comprobar: «Abrir documento (según Zoho)», el enlace del lote (D-0064).
- * - Pendiente: sin documento, con un pendiente registrado. Incluye el ambiguo que la
- *   consulta deriva de dos vínculos humanos, porque la pantalla lo muestra igual.
+ * - Pendiente: sin documento, con un pendiente del documento de la póliza
+ *   (`pendienteDelDocumento`).
  * - Sin documento: ninguno de los anteriores, tenga o no carpeta del cliente.
+ *
+ * `acceso.pending` no alcanza para Pendiente: la consulta también lo llena con AMBIGUOUS
+ * cuando el tomador tiene dos carpetas comprobadas, y eso es de la carpeta, no del
+ * documento (hallazgo 1 de la revisión R-33 de I1c).
  */
-export const nivelU8 = (acceso: PolicyDocumentAccess): NivelU8 => {
+export const nivelU8 = (acceso: PolicyDocumentAccess, pendienteDelDocumento: boolean): NivelU8 => {
   if (acceso.document !== null) return acceso.document.level === 'HUMAN' ? 'comprobado' : 'sinComprobar'
-  if (acceso.pending !== null) return 'pendiente'
+  if (pendienteDelDocumento) return 'pendiente'
   return 'sinDocumento'
+}
+
+/**
+ * Las pólizas con un pendiente de su documento: una referencia documental sin resolver,
+ * que una persona registró con motivo (T-0017), o más de un vínculo comprobado, que la
+ * consulta de VS01 trata como ambiguo. Son las mismas dos fuentes que `query.ts` usa
+ * para el pendiente, menos la ambigüedad de la carpeta del cliente.
+ */
+const pendientesDelDocumento = async (sql: Ejecutor, policyIds: readonly string[]): Promise<Set<string>> => {
+  const filas = await sql<{ policy_id: string }[]>`
+    select pdr.policy_id
+    from policy_document_reference pdr
+    join external_reference er on er.id = pdr.external_reference_id
+    left join document_link dl
+      on er.resolution_status = 'RESOLVED'
+      and dl.id = er.resolved_target_id and dl.resource_type = 'POLICY' and dl.link_level = 'HUMAN'
+    where pdr.policy_id = any(${policyIds}::uuid[])
+    group by pdr.policy_id
+    having bool_or(er.resolution_status = 'UNRESOLVED') or count(dl.id) > 1
+  `
+  return new Set(filas.map((fila) => fila.policy_id))
 }
 
 /** U8 sobre un conjunto explícito de Policies. Cada id cuenta una vez, aunque se repita. */
@@ -61,8 +86,9 @@ export const coberturaDePolicies = async (
     )
   }
 
+  const pendientes = await pendientesDelDocumento(sql, unicos)
   const niveles: Record<NivelU8, number> = { comprobado: 0, sinComprobar: 0, pendiente: 0, sinDocumento: 0 }
-  for (const acceso of accesos) niveles[nivelU8(acceso)] += 1
+  for (const acceso of accesos) niveles[nivelU8(acceso, pendientes.has(acceso.policyId))] += 1
   return { polizas: unicos.length, niveles }
 }
 

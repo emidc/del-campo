@@ -160,12 +160,17 @@ const pendiente = async (e: Escenario, policyId: string, n: string): Promise<voi
   await e.tx`insert into policy_document_reference (external_reference_id, policy_id) values (${referencia.id}, ${policyId})`
 }
 
-/** Carpeta del cliente comprobada por una persona: no es el documento de la póliza. */
-const carpetaDelCliente = async (e: Escenario, partyId: string, n: string): Promise<void> => {
+/** Carpeta del cliente: no es el documento de la póliza, sea cual sea su nivel. */
+const carpetaDelCliente = async (
+  e: Escenario,
+  partyId: string,
+  n: string,
+  nivel: 'HUMAN' | 'ZOHO_UNVERIFIED' = 'HUMAN',
+): Promise<void> => {
   await e.tx`
     insert into document_link (
       resource_type, resource_id, drive_file_id, drive_url, drive_item_type, reconciliation_status, link_level
-    ) values ('PARTY', ${partyId}, ${n}, ${CARPETA(n)}, 'FOLDER', 'SYNCED', 'HUMAN')
+    ) values ('PARTY', ${partyId}, ${n}, ${CARPETA(n)}, 'FOLDER', 'SYNCED', ${nivel})
   `
 }
 
@@ -217,6 +222,25 @@ describe('U8 · cobertura documental (T-0037 I1c)', () => {
       await carpetaDelCliente(e, otroCliente, '008')
       const soloCarpeta = await crearPoliza(e, 'U8-008', otroCliente)
 
+      // Dos carpetas comprobadas del tomador: la pantalla muestra «ambiguo», pero es de la
+      // carpeta. Sin nada sobre el documento, la póliza queda Sin documento.
+      const clienteDosCarpetas = await crearOrganizacion(tx, 'Cliente Sintetico U8 Dos Carpetas')
+      await carpetaDelCliente(e, clienteDosCarpetas, '009a')
+      await carpetaDelCliente(e, clienteDosCarpetas, '009b')
+      const carpetaAmbigua = await crearPoliza(e, 'U8-009', clienteDosCarpetas)
+
+      // Carpeta del cliente que sólo informa Zoho: tampoco sube de nivel.
+      const clienteCarpetaZoho = await crearOrganizacion(tx, 'Cliente Sintetico U8 Carpeta Zoho')
+      await carpetaDelCliente(e, clienteCarpetaZoho, '011', 'ZOHO_UNVERIFIED')
+      const carpetaDeZoho = await crearPoliza(e, 'U8-011', clienteCarpetaZoho)
+
+      // Con dos carpetas y un pendiente del documento, sigue siendo Pendiente.
+      const clienteDosCarpetasB = await crearOrganizacion(tx, 'Cliente Sintetico U8 Dos Carpetas B')
+      await carpetaDelCliente(e, clienteDosCarpetasB, '012a')
+      await carpetaDelCliente(e, clienteDosCarpetasB, '012b')
+      const carpetaAmbiguaConPendiente = await crearPoliza(e, 'U8-012', clienteDosCarpetasB)
+      await pendiente(e, carpetaAmbiguaConPendiente, '012')
+
       const esperado: Readonly<Record<string, NivelU8>> = {
         [comprobada]: 'comprobado',
         [comprobadaConTodo]: 'comprobado',
@@ -226,6 +250,9 @@ describe('U8 · cobertura documental (T-0037 I1c)', () => {
         [ambigua]: 'pendiente',
         [sinNada]: 'sinDocumento',
         [soloCarpeta]: 'sinDocumento',
+        [carpetaAmbigua]: 'sinDocumento',
+        [carpetaDeZoho]: 'sinDocumento',
+        [carpetaAmbiguaConPendiente]: 'pendiente',
       }
       for (const [policyId, nivel] of Object.entries(esperado)) {
         assert.equal(await nivelDe(tx, policyId), nivel, policyId)
@@ -233,8 +260,8 @@ describe('U8 · cobertura documental (T-0037 I1c)', () => {
 
       const cobertura = await coberturaDePolicies(tx, Object.keys(esperado))
       assert.deepEqual(cobertura, {
-        polizas: 8,
-        niveles: { comprobado: 2, sinComprobar: 2, pendiente: 2, sinDocumento: 2 },
+        polizas: 11,
+        niveles: { comprobado: 2, sinComprobar: 2, pendiente: 3, sinDocumento: 4 },
       })
     })
   })
@@ -251,7 +278,13 @@ describe('U8 · cobertura documental (T-0037 I1c)', () => {
     })
   })
 
-  it('la medición cubre todas las pólizas del dominio y los niveles suman el total', async () => {
+  it('la medición cubre todas las pólizas del dominio y corre en sólo lectura', async () => {
+    let medida: CoberturaDocumental | undefined
+    await sql.begin('read only', async (tx) => {
+      medida = await medirCoberturaDocumental(tx)
+    })
+    assert.equal(medida === undefined ? -1 : suma(medida), medida?.polizas)
+
     await enTransaccionRevertida(async (tx) => {
       const e = await escenario(tx)
       const antes = await medirCoberturaDocumental(tx)
