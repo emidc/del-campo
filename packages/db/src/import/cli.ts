@@ -11,7 +11,9 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import { importarCatalogoAseguradoras, RUTA_CATALOGO_APROBADO } from './catalog.ts'
+import { ComparacionInvalida, compararLotes } from './comparar-lotes.ts'
 import { conectar } from './db.ts'
+import type { Ejecutor } from './db.ts'
 import { leerLote, LoteInvalido, rutaDelPerfil } from './lote.ts'
 import type { Lote } from './lote.ts'
 import { cargarLoteEnStaging, loteRegistrado, otrosLotesConFilas } from './lote-staging.ts'
@@ -45,7 +47,7 @@ const lote = (): Lote => {
 }
 
 /** El lote de staging que corresponde al export indicado. Lo crea `load-staging`. */
-const batchDelLote = async (sql: ReturnType<typeof conectar>, elLote: Lote): Promise<string> => {
+const batchDelLote = async (sql: Ejecutor, elLote: Lote): Promise<string> => {
   const batchId = await loteRegistrado(sql, elLote)
   return batchId ?? morir('ese lote no está en staging; correr load-staging primero')
 }
@@ -107,6 +109,36 @@ const cargarStaging = async (): Promise<void> => {
     )
   } catch (error) {
     if (error instanceof LoteInvalido) morir(`lote inválido: ${error.message}`)
+    throw error
+  } finally {
+    await sql.end()
+  }
+}
+
+// T-0037 (I1b): compara dos lotes ya cargados en staging. Sólo lee, en una transacción de
+// sólo lectura; la salida son conteos y fechas, nunca registros.
+const compararDosLotes = async (): Promise<void> => {
+  const [rutaAnterior, rutaNuevo] = [process.argv[3], process.argv[4]]
+  if (rutaAnterior === undefined || rutaNuevo === undefined) {
+    return morir('uso: node packages/db/src/import/cli.ts compare <ruta-del-lote-anterior> <ruta-del-lote-nuevo>')
+  }
+  const leer = (ruta: string): Lote => {
+    try {
+      return leerLote(resolve(ruta))
+    } catch (error) {
+      if (error instanceof LoteInvalido) return morir(`lote inválido (${ruta}): ${error.message}`)
+      throw error
+    }
+  }
+  const [anterior, nuevo] = [leer(rutaAnterior), leer(rutaNuevo)]
+  const sql = conectar()
+  try {
+    const comparacion = await sql.begin('read only', async (tx) =>
+      compararLotes(tx, await batchDelLote(tx, anterior), await batchDelLote(tx, nuevo)),
+    )
+    process.stdout.write(`${JSON.stringify(comparacion, null, 2)}\n`)
+  } catch (error) {
+    if (error instanceof ComparacionInvalida) morir(error.message)
     throw error
   } finally {
     await sql.end()
@@ -237,6 +269,9 @@ switch (comando) {
   case 'load-policies':
     await importarPoliciesYRenovaciones()
     break
+  case 'compare':
+    await compararDosLotes()
+    break
   case 'report':
     await (async () => {
       const elLote = lote()
@@ -257,6 +292,6 @@ switch (comando) {
     break
   default:
     morir(
-      `comando desconocido: "${comando ?? ''}". Se espera verify-manifest, load-staging, load-catalog, load-parties, load-policies, snapshot-fingerprint, verify-idempotency o report.`,
+      `comando desconocido: "${comando ?? ''}". Se espera verify-manifest, load-staging, load-catalog, load-parties, load-policies, compare, snapshot-fingerprint, verify-idempotency o report.`,
     )
 }
