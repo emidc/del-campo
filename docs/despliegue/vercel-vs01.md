@@ -264,7 +264,9 @@ Cada cambio (por ejemplo, vínculos verificados) se hace en local y se replica e
    deja la base igual. Corre entera en una transacción.
 
    Antes, aplicá la migración `0005_zoho_document_links.sql` en la base local si todavía
-   no está (`pnpm db:migrate` con el mismo `DATABASE_URL`).
+   no está (`pnpm db:migrate` con el mismo `DATABASE_URL`). Desde T-0037 (I1a) la carpeta
+   del lote necesita su `lote.json`; el del 16/09 está en
+   `docs/migration/zoho/lote-manifiesto.md`.
 
    ```bash
    node packages/db/src/zoho-links/cli.ts load ~/repos/del-campo/data/zoho-export-2026-09-16

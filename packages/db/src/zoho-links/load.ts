@@ -17,7 +17,7 @@
 
 import { leerCsv } from '../import/csv.ts'
 import type { Ejecutor } from '../import/db.ts'
-import { rutaDeModulo } from '../import/lote.ts'
+import { leerLote, rutaDeModulo } from '../import/lote.ts'
 import { CAMPOS_CONTACTO, CAMPOS_CUENTA, CAMPOS_POLIZA } from '../import/zoho-fields.ts'
 import { classifyDriveUrl } from './drive-url.ts'
 import type { DriveRejection, DriveTarget } from './drive-url.ts'
@@ -241,14 +241,15 @@ const insertar = async (sql: Ejecutor, links: readonly PendingLink[]): Promise<v
 }
 
 /**
- * Lee los módulos Pólizas, Contactos y Cuentas de `raizDelLote` y reemplaza por completo
- * la foto de enlaces de Zoho. Debe correr dentro de una transacción: entre el borrado de
+ * Lee los módulos Pólizas, Contactos y Cuentas del lote que declara el `lote.json` de
+ * `raizDelLote` (T-0037) y reemplaza por completo la foto de enlaces de Zoho. Debe correr dentro de una transacción: entre el borrado de
  * la foto anterior y la inserción de la nueva, la base no tiene enlaces de Zoho.
  */
 export const loadZohoLinks = async (
   sql: Ejecutor,
   raizDelLote: string,
 ): Promise<ZohoLinkLoadResult> => {
+  const lote = leerLote(raizDelLote)
   const [policies, contactos, cuentas] = await Promise.all([
     mapaDePolicies(sql),
     mapaDeParties(sql, 'Contactos'),
@@ -261,7 +262,7 @@ export const loadZohoLinks = async (
 
   await recorrerModulo(
     {
-      ruta: rutaDeModulo(raizDelLote, 'polizas'),
+      ruta: rutaDeModulo(lote, 'polizas'),
       idColumn: CAMPOS_POLIZA.idDeRegistro,
       urlColumn: CAMPOS_POLIZA.urlDriveDocPoliza,
       resourceType: 'POLICY',
@@ -278,7 +279,7 @@ export const loadZohoLinks = async (
   ] as const) {
     await recorrerModulo(
       {
-        ruta: rutaDeModulo(raizDelLote, modulo),
+        ruta: rutaDeModulo(lote, modulo),
         idColumn,
         urlColumn,
         resourceType: 'PARTY',
