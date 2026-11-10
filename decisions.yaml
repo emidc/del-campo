@@ -823,8 +823,10 @@ decisions:
       Todo PR de una tarea de kind FEATURE o MIGRATION pasa por el procedimiento de
       revisión ciega de D-0048 antes del merge, y el reporte queda versionado en
       REVIEWS/. Desde el 2026-11-09 también la exige todo diff que toque una ruta
-      sensible, sea cual sea el kind, y CI comprueba que el reporte exista (D-0086). En
-      los demás casos la revisión es opcional y la pide quien implementa o quien revisa.
+      sensible, sea cual sea el kind, y CI comprueba que el reporte exista (D-0086). El PR
+      que sólo planifica una tarea nueva (la agrega y el resto del diff es texto de la lista
+      del ADR de D-0086) no la exige (T-0044). En los demás casos la revisión es opcional y la pide quien implementa o
+      quien revisa.
     superseded_in_part_by:
       - clause: La obligatoriedad es de procedimiento y no se hace cumplir por CI
         by: D-0086
@@ -1721,7 +1723,7 @@ decisions:
       ciega es obligatoria para FEATURE y MIGRATION y para todo diff que toque una ruta
       sensible (migraciones, identidad y autorización, controles de acceso, endpoints,
       operaciones y persistencia, integraciones, guardrails y validadores), y CI exige su
-      reporte en REVIEWS/. CI corre estos controles también en su versión de la base.
+      reporte en REVIEWS/; un PR que sólo planifica la tarea no la exige. CI corre estos controles también en su versión de la base.
       Los guardrails de los tres proveedores y los validadores no se modifican sin
       aprobación humana. La revisión de Gauntlet del prototipo vale como revisión ciega
       si cumple las propiedades de R-33.

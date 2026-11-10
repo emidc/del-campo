@@ -318,7 +318,12 @@ procedimiento antes del merge, y su reporte queda versionado en `REVIEWS/` con e
 tarea en el path. La lista vive en `scripts/check-review-required.mjs`, que CI corre en la
 versión de la rama y en la de la base. La etiqueta no exime: un CHORE/LOW que toca una
 migración la necesita igual. La lista tampoco exime: el revisor o el owner pueden escalar
-un cambio sensible que no figure. En los demás casos es opcional. → `D-0052`, `D-0086`
+un cambio sensible que no figure. El PR que sólo planifica una tarea FEATURE o MIGRATION
+—la agrega, la base no la tiene y el resto del diff es texto de la lista de `D-0086`—
+no la exige: la exige el PR que la implementa,
+cuando el kind ya está en `main`. En los demás casos es opcional. CI comprueba que el
+reporte exista, no lo que dice ni si cubre la versión final: es un control de presencia, y
+el reporte lo lee el owner. → `D-0052`, `D-0086`
 
 **Proveedor.** El revisor puede ser un subagente del mismo proveedor que implementó: la
 independencia viene de no compartir contexto.

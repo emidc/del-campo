@@ -33,12 +33,24 @@ huecos, comprobados con 19 pruebas de aceptación contra el checker de `6d27aba`
 - `scripts/check-review-required.mjs` exige un archivo en `REVIEWS/` que nombre la tarea
   cuando la tarea es FEATURE o MIGRATION o cuando el diff toca una ruta de su lista
   `SENSITIVE`. Un archivo nuevo en `apps/*/src/lib/` cuenta. La lista no exime: el revisor
-  o el owner pueden escalar otro cambio.
+  o el owner pueden escalar otro cambio. El kind se lee como YAML del `.md` de la tarea
+  en `TASKS/`, y un kind ilegible falla. Un PR que agrega una tarea FEATURE o MIGRATION que
+  la base no tiene, y cuyo resto del diff son `.md` de `TASKS/`, `docs/`, `SLICES/`,
+  `DECISIONS/` o de la raíz, o `decisions.yaml`, la planifica y no exige revisión. El
+  prototipo (`docs/north-star/prototipo/`) es código y no cuenta. El PR que la implementa
+  sí la exige, porque el kind ya está en la base (T-0044).
 - El workflow corre los dos controles con la versión de la rama y con la de la base.
   Límite: en un `pull_request` el YAML del workflow es el de la rama, así que un PR podría
   quitar la corrida de la base. Ese cambio toca `.github/workflows/`, exige revisión ciega
   y lo ve el owner al mergear; cerrarlo del todo exige un ruleset o un workflow requerido
   desde `main`, que esta decisión no toma.
+- Límite: copiar el script de la base a `.ci-base/` fija el archivo del validador, no el
+  código que carga. Sus imports (`yaml`) se resuelven desde el `node_modules` que instaló
+  el PR, y la corrida va después de `pnpm check` de la rama. Aislarlo exige un entorno
+  aparte con dependencias de la base; queda para un `check-base`, si el owner lo pide.
+- Límite: el control es de presencia. Comprueba que un archivo de `REVIEWS/` nombre la
+  tarea, no su contenido, la independencia del revisor ni que cubra la versión final; un
+  archivo vacío pasa. Lo que vale como revisión lo decide el owner leyendo el reporte.
 - `.claude/settings.json`, `.claude/hooks/protect-paths.mjs` y
   `.agents/hooks/protect-paths.mjs` protegen las mismas cinco rutas y los validadores.
   Ejecutar un validador sigue libre; escribirlo, moverlo o borrarlo, no.
@@ -64,6 +76,12 @@ huecos, comprobados con 19 pruebas de aceptación contra el checker de `6d27aba`
 sin que el cambio quede a la vista del owner.
 **Más difícil:** un PR que toca una ruta sensible queda rojo hasta que tenga su reporte de
 revisión; un cambio de contrato necesita su propio PR de enmienda.
+
+## Revisión posterior
+
+Una revisión independiente del 10/11/2026 sobre el estado mergeado encontró el kind entre
+comillas, la fricción de las altas de planificación y los dos límites anteriores. Se
+corrigieron en T-0044.
 
 ## Criterio de falsación
 
