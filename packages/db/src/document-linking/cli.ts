@@ -5,8 +5,11 @@
 //
 // Salida agregada únicamente: conteos y motivos de rechazo por fila/columna, nunca una
 // URL ni un valor de columna del insumo (R-19/D-0053).
+//
+// T-0037 (I1c) suma `coverage`: la tabla de U8, en una transacción de sólo lectura.
 
 import { conectar } from '../import/db.ts'
+import { medirCoberturaDocumental, tablaU8 } from './cobertura.ts'
 import { loadDocumentVerificationInput } from './load.ts'
 
 const morir = (mensaje: string): never => {
@@ -14,10 +17,29 @@ const morir = (mensaje: string): never => {
   process.exit(1)
 }
 
+const USO =
+  'uso: node packages/db/src/document-linking/cli.ts load <ruta-del-csv>\n' +
+  '     node packages/db/src/document-linking/cli.ts coverage'
+
+const medirU8 = async (): Promise<void> => {
+  const sql = conectar()
+  try {
+    const cobertura = await sql.begin('read only', (tx) => medirCoberturaDocumental(tx))
+    process.stdout.write(`${tablaU8(cobertura)}\n`)
+  } finally {
+    await sql.end()
+  }
+}
+
+if (process.argv[2] === 'coverage') {
+  await medirU8()
+  process.exit(0)
+}
+
 const requerirRutaInsumo = (): string => {
   const ruta = process.argv[3]
   if (process.argv[2] !== 'load' || ruta === undefined) {
-    return morir('uso: node packages/db/src/document-linking/cli.ts load <ruta-del-csv>')
+    return morir(USO)
   }
   return ruta
 }
