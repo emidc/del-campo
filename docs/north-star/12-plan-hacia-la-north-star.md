@@ -27,16 +27,16 @@ Los hitos de Linear usan la fecha probable. Antes de mover un hito se recalcula 
 
 Camino estructural (el más largo por dependencias, con el esfuerzo probable):
 
-`GOV-01b` → `INF-00a` → `INF-00b` → `INF-00c` → `INF-03` → `RO-02a` → `RO-02b` → `C1-11` → `C1-12a` → `C1-16` → `C2-04` → `M1` → `E2-01` → `C4-01a` → `C4-01b` → `C4-01c` → `C6-01` → `C6-02a` → `C6-02b` → `C6-02c` → `C6-03a` → `C6-03b` → `E2-02` → `E2-03` → `M2` → `E3-01` → `C7-01` → `C7-03` → `C8-01` → `C10-01` → `C10-02` → `E3-02` → `M3` → `E4-01` → `INF-05` → `C12-01` → `C12-03` → `E4-02` → `M4`
+`INF-03` → `RO-02a` → `RO-02b` → `C1-11` → `C1-12a` → `C1-16` → `C2-04` → `M1` → `E2-01` → `C4-01a` → `C4-01b` → `C4-01c` → `C6-01` → `C6-02a` → `C6-02b` → `C6-02c` → `C6-03a` → `C6-03b` → `E2-02` → `E2-03` → `M2` → `E3-01` → `C7-01` → `C7-03` → `C8-01` → `C10-01` → `C10-02` → `E3-02` → `M3` → `E4-01` → `INF-05` → `C12-01` → `C12-03` → `E4-02` → `M4`
 
-Lo que no está en el camino crítico se puede adelantar o atrasar sin mover M4, mientras haya frentes libres. INF-00 bloquea el destino de Risk OS (INF-03), pero no el diagnóstico de Zoho ni el trabajo independiente de Broker OS.
+Lo que no está en el camino crítico se puede adelantar o atrasar sin mover M4, mientras haya frentes libres. Desde el 10/11 la consolidación de Broker OS y Risk OS en un proyecto Supabase queda postergada (INF-00a a INF-00c, `T-0040`): INF-03 prepara el proyecto Free dedicado de Risk OS (D-0068) y ya no espera el ADR. Las fechas no se recalcularon con este cambio.
 
 ## 4. Reglas de ejecución
 
 - **Cada parte tiene su aceptación.** "Listo cuando…" es la evidencia mínima; la `## Verification` de la tarea del repo la concreta.
 - **Los agentes trabajan fuera de producción.** Preparar datos e importar son tareas separadas; el paso a producción lo corre o aprueba Emiliano (R-13, R-14).
 - **Ciclos de Linear sólo para lo cercano.** Se comprometen los ciclos 4 y 5; lo demás queda en el backlog con su hito.
-- **INF-00 antes de Risk con datos históricos:** prueba sintética → ADR → destino preparado → carga real. Si compartir falla, se separa y se prueba backup y restauración antes de cargar.
+- **Consolidación postergada, con revisión obligatoria:** Risk OS sigue en su proyecto Free dedicado (D-0068). La consolidación con Broker OS se vuelve a evaluar antes de cargar las históricas de Risk, antes del uso habitual del equipo o cuando hagan falta las tres apps activas a la vez; si se decide consolidar, INF-00a a INF-00c vuelven antes de la carga. En cualquier destino, backup probado antes de cargar datos reales.
 - **La observación de OIDC dura 14 días** con evidencia del período completo; un fallo la reinicia. No hereda excepciones de otros contextos.
 - **Estados de tareas:** aprobar este plan no cambia T-0032 (sigue `BLOCKED`) ni T-0036 (sigue `DRAFT`).
 
@@ -64,10 +64,10 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 | INF-CHK | Verificar en el checkout el precio total con impuestos y qué cubren los límites de gasto | humana | P0 | 12/11–16/11 | GOV-01b | el checkout y los límites sostienen un total de USD 66 o menos, con USD 55 como objetivo. | `T-0037` |
 | INF-01 | Respaldar VS01 y transferir sólo su proyecto a la organización Pro | humana | P0 | 17/11–18/11 | INF-CHK | una restauración de prueba recupera VS01 y, después de la transferencia, la app responde. | `T-0037` |
 | INF-02 | Pasar Vercel a Pro con un asiento y límites compatibles con el techo | humana | P0 | 17/11–19/11 | INF-CHK | el asiento y la pausa están configurados y las tres apps responden. | `T-0037` |
-| **INF-00a** | Probar en sintético un proyecto compartido: roles, RLS y denegaciones cruzadas entre Broker y Risk | tarea | P0 | 12/11–19/11 | GOV-01b | las pruebas negativas entre esquemas, pool y roles sin BYPASSRLS pasan o muestran por qué no conviene. | `T-0040` |
-| **INF-00b** | Probar en sintético la restauración completa, la selectiva y la salida a un proyecto separado | tarea | P0 | 20/11–21/11 | INF-00a | una restauración de un contexto no pisa al otro y la salida queda medida en pasos y tiempo. | `T-0040` |
-| **INF-00c** | Decidir compartir el proyecto Pro o mantener Risk OS separado (ADR) | decision | P0 | 22/11 | INF-00b | un ADR elige con costo, aislamiento y restauración medidos; separar es un resultado válido. | `T-0040` |
-| **INF-03** | Preparar el destino de Risk OS según el ADR (esquema en el proyecto Pro, o Free con backup probado) | humana | P1 | 23/11–24/11 | INF-00c, INF-01 | el destino elegido está listo y un backup de prueba se restauró antes de cargar datos reales. | `T-0032` |
+| INF-00a | Probar en sintético un proyecto compartido: roles, RLS y denegaciones cruzadas entre Broker y Risk (postergada) | tarea | P0 | — | GOV-01b | las pruebas negativas entre esquemas, pool y roles sin BYPASSRLS pasan o muestran por qué no conviene. | `T-0040` |
+| INF-00b | Probar en sintético la restauración completa, la selectiva y la salida a un proyecto separado (postergada) | tarea | P0 | — | INF-00a | una restauración de un contexto no pisa al otro y la salida queda medida en pasos y tiempo. | `T-0040` |
+| INF-00c | Decidir compartir el proyecto o mantener Risk OS separado (ADR) (postergada) | decision | P0 | — | INF-00b | un ADR elige con costo, aislamiento y restauración medidos; separar es un resultado válido. | `T-0040` |
+| **INF-03** | Preparar el proyecto Free dedicado de Risk OS con backup probado (consolidación postergada) | humana | P1 | 23/11–24/11 | — | el proyecto está activo y un backup de prueba se restauró antes de cargar datos reales. | `T-0032` |
 | INF-04 | Esperar la primera factura y conciliar el costo recurrente completo | espera | P1 | 20/11–03/01 | INF-01, INF-02 | la factura concilia el total; sobre USD 55 se revisa y sobre USD 66 se reduce. | `T-0037` |
 | DAT-01 | Exportar Zoho de nuevo (cuatro módulos) con su manifiesto | humana | P0 | 09/11–11/11 | — | los cuatro módulos tienen fecha, hash y conteos locales, y el lote anterior sigue disponible. | `T-0037` |
 | C3-01a | I1a: lote declarado por manifiesto y staging que conserva cada lote | tarea | P0 | 12/11–19/11 | — | dos lotes sintéticos conviven en staging sin pisarse y ninguno exige editar código. | `T-0037` |
