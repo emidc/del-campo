@@ -126,8 +126,15 @@ const cargarDos = async (
   return { anterior: a.batchId, nuevo: n.batchId }
 }
 
+// Los campos comparados que estos lotes traen; los demás quedan en `camposSinComparar`.
+const presentes = (modulo: Modulo): readonly string[] =>
+  CAMPOS_COMPARADOS[modulo].filter((campo) => ENCABEZADOS[modulo].includes(campo))
+
 const ceros = (modulo: Modulo): Record<string, number> =>
-  Object.fromEntries(CAMPOS_COMPARADOS[modulo].map((campo) => [campo, 0]))
+  Object.fromEntries(presentes(modulo).map((campo) => [campo, 0]))
+
+const sinComparar = (modulo: Modulo): readonly string[] =>
+  CAMPOS_COMPARADOS[modulo].filter((campo) => !ENCABEZADOS[modulo].includes(campo))
 
 describe('compararLotes', () => {
   after(async () => {
@@ -157,6 +164,10 @@ describe('compararLotes', () => {
         [CAMPOS_POLIZA.estado]: 1,
         [CAMPOS_POLIZA.vigenciaFin]: 1,
       })
+
+      for (const modulo of MODULOS) {
+        assert.deepEqual(comparacion.modulos[modulo].camposSinComparar, sinComparar(modulo), modulo)
+      }
 
       const contactos = comparacion.modulos.contactos
       assert.deepEqual(
@@ -216,6 +227,83 @@ describe('compararLotes', () => {
       const antes = await foto()
       await compararLotes(tx, anterior, nuevo)
       assert.equal(await foto(), antes)
+    })
+  })
+
+  it('una columna que el export nuevo deja de traer no se compara ni hace cambiados', async () => {
+    const sinPrima = (filas: Filas): Filas => ({
+      ...filas,
+      polizas: filas.polizas.map((fila) => fila.filter((_, i) => i !== ENCABEZADOS.polizas.indexOf(CAMPOS_POLIZA.prima))),
+    })
+    await enTransaccionRevertida(async (tx) => {
+      const anterior = escribirLote({
+        nombre: 'cmp-col-anterior',
+        encabezados: ENCABEZADOS,
+        filas: ANTERIOR,
+        exportadoEl: mismaFecha('2026-09-16'),
+      })
+      const nuevo = escribirLote({
+        nombre: 'cmp-col-nuevo',
+        encabezados: { ...ENCABEZADOS, polizas: ENCABEZADOS.polizas.filter((campo) => campo !== CAMPOS_POLIZA.prima) },
+        filas: sinPrima(ANTERIOR),
+        exportadoEl: mismaFecha('2026-11-03'),
+      })
+      const a = await cargarLoteEnStaging(tx, leerLote(anterior), 'fixture sintética')
+      const n = await cargarLoteEnStaging(tx, leerLote(nuevo), 'fixture sintética')
+      const polizas = (await compararLotes(tx, a.batchId, n.batchId)).modulos.polizas
+      assert.equal(polizas.cambiados, 0)
+      assert.equal(polizas.iguales, ANTERIOR.polizas.length)
+      assert.ok(polizas.camposSinComparar.includes(CAMPOS_POLIZA.prima))
+      assert.ok(!(CAMPOS_POLIZA.prima in polizas.cambiosPorCampo))
+    })
+  })
+
+  it('espacios de más no hacen cambiado, como no cambian lo que guarda el dominio', async () => {
+    const conEspacios: Filas = {
+      ...ANTERIOR,
+      contactos: ANTERIOR.contactos.map(([id, nombre, correo]) => [id ?? '', ` ${nombre ?? ''}  `, correo ?? '']),
+    }
+    await enTransaccionRevertida(async (tx) => {
+      const anterior = escribirLote({
+        nombre: 'cmp-esp-anterior',
+        encabezados: ENCABEZADOS,
+        filas: ANTERIOR,
+        exportadoEl: mismaFecha('2026-09-16'),
+      })
+      const nuevo = escribirLote({
+        nombre: 'cmp-esp-nuevo',
+        encabezados: ENCABEZADOS,
+        filas: conEspacios,
+        exportadoEl: mismaFecha('2026-11-03'),
+      })
+      const a = await cargarLoteEnStaging(tx, leerLote(anterior), 'fixture sintética')
+      const n = await cargarLoteEnStaging(tx, leerLote(nuevo), 'fixture sintética')
+      const contactos = (await compararLotes(tx, a.batchId, n.batchId)).modulos.contactos
+      assert.equal(contactos.cambiados, 0)
+      assert.equal(contactos.iguales, ANTERIOR.contactos.length)
+    })
+  })
+
+  it('rechaza un módulo exportado antes en el lote nuevo, aunque el corte global avance', async () => {
+    await enTransaccionRevertida(async (tx) => {
+      const anterior = escribirLote({
+        nombre: 'cmp-inv-anterior',
+        encabezados: ENCABEZADOS,
+        filas: ANTERIOR,
+        exportadoEl: { polizas: '2026-11-01', endosos: '2026-09-15', contactos: '2026-09-15', cuentas: '2026-09-15' },
+      })
+      const nuevo = escribirLote({
+        nombre: 'cmp-inv-nuevo',
+        encabezados: ENCABEZADOS,
+        filas: NUEVO,
+        exportadoEl: { polizas: '2026-10-01', endosos: '2026-11-03', contactos: '2026-11-03', cuentas: '2026-11-03' },
+      })
+      const a = await cargarLoteEnStaging(tx, leerLote(anterior), 'fixture sintética')
+      const n = await cargarLoteEnStaging(tx, leerLote(nuevo), 'fixture sintética')
+      await assert.rejects(
+        compararLotes(tx, a.batchId, n.batchId),
+        (e: unknown) => e instanceof ComparacionInvalida && e.message.includes('en polizas'),
+      )
     })
   })
 

@@ -103,8 +103,8 @@ Con los dos lotes cargados en staging (`load-staging` de cada uno):
 node packages/db/src/import/cli.ts compare data/zoho-export-2026-09-16 data/zoho-export-AAAA-MM-DD
 ```
 
-Primero va el lote anterior y después el nuevo; si el corte del nuevo es más antiguo, se
-niega. Corre en una transacción de sólo lectura y no escribe ni en staging ni en el
+Primero va el lote anterior y después el nuevo; si en algún módulo el nuevo se exportó
+antes que el anterior, se niega. Corre en una transacción de sólo lectura y no escribe ni en staging ni en el
 dominio. Para cada módulo informa:
 
 - las fechas de export de los dos lotes, y la fecha de corte de cada lote (la más antigua
@@ -114,7 +114,12 @@ dominio. Para cada módulo informa:
   distinto en el export;
 - para los cambiados, cuántos cambiaron **cada campo** que el dominio usa
   (`CAMPOS_COMPARADOS` en `packages/db/src/import/comparar-lotes.ts`). Un cambio en otra
-  columna, como `Premio`, no hace cambiado a un registro. Vacío y ausente valen lo mismo.
+  columna, como `Premio`, no hace cambiado a un registro. Vacío, sólo espacios y ausente
+  valen lo mismo, y los espacios de los extremos no cuentan (los importadores los
+  recortan);
+- `camposSinComparar`: campos que uno de los dos exports no trae como columna. No se
+  comparan, porque harían cambiado a cada registro que antes tenía valor. Si aparece uno,
+  conviene revisar la selección de columnas del export.
 
 La salida son conteos, fechas y nombres de campo: ningún id de registro ni valor del lote.
 Con esos conteos se elige entre versión nueva o corrección (`T-0037-refresco.md` §3,

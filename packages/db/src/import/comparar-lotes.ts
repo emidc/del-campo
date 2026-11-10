@@ -79,8 +79,17 @@ export interface ConteoClases {
 export interface ComparacionModulo extends ConteoClases {
   readonly exportadoAnterior: string
   readonly exportadoNuevo: string
-  /** Por campo comparado, cuántos registros CAMBIADO tienen ese campo distinto. Siempre trae todos los campos. */
+  /**
+   * Por campo comparado, cuántos registros CAMBIADO tienen ese campo distinto. Trae todos
+   * los campos comparados menos los de `camposSinComparar`.
+   */
   readonly cambiosPorCampo: Readonly<Record<string, number>>
+  /**
+   * Campos comparados que ningún registro de uno de los dos lotes trae en su crudo: el
+   * export se armó con otra selección de columnas. No se comparan, porque contarían como
+   * cambiado a todo registro que antes tenía valor.
+   */
+  readonly camposSinComparar: readonly string[]
 }
 
 export interface ComparacionLotes {
@@ -118,11 +127,30 @@ const fechasDeExport = async (sql: Ejecutor, batchId: string): Promise<Record<Mo
 }
 
 /**
- * Un campo vacío y un campo que no está en el crudo valen lo mismo: Zoho escribe la
- * cadena vacía para "sin valor" (`staging.ts`), y un export con otra columna no es un
- * cambio de dato.
+ * Un campo vacío, uno con sólo espacios y uno que el registro no trae valen lo mismo:
+ * Zoho escribe la cadena vacía para "sin valor" (`staging.ts`), y los importadores
+ * recortan espacios antes de guardar (`parties.ts`, `policies.ts`). Una diferencia que
+ * el dominio no vería no es un cambio.
  */
-const valor = (alias: string, campo: number): string => `nullif(${alias}.raw ->> $${String(campo)}, '')`
+const valor = (alias: string, campo: number): string => `nullif(btrim(${alias}.raw ->> $${String(campo)}), '')`
+
+/** Los campos comparados que algún registro del lote trae en su crudo. */
+const camposPresentes = async (
+  sql: Ejecutor,
+  tabla: string,
+  batchId: string,
+  campos: readonly string[],
+): Promise<Set<string>> => {
+  const presentes = new Set<string>()
+  for (const campo of campos) {
+    const [fila] = await sql.unsafe<{ hay: boolean }[]>(
+      `select exists (select 1 from ${tabla} where batch_id = $1 and raw ? $2) as hay`,
+      [batchId, campo],
+    )
+    if (fila?.hay === true) presentes.add(campo)
+  }
+  return presentes
+}
 
 const compararModulo = async (
   sql: Ejecutor,
@@ -130,8 +158,11 @@ const compararModulo = async (
   anterior: string,
   nuevo: string,
 ): Promise<Omit<ComparacionModulo, 'exportadoAnterior' | 'exportadoNuevo'>> => {
-  const campos = CAMPOS_COMPARADOS[modulo]
   const tabla = TABLAS[modulo]
+  const enAnterior = await camposPresentes(sql, tabla, anterior, CAMPOS_COMPARADOS[modulo])
+  const enNuevo = await camposPresentes(sql, tabla, nuevo, CAMPOS_COMPARADOS[modulo])
+  const campos = CAMPOS_COMPARADOS[modulo].filter((campo) => enAnterior.has(campo) && enNuevo.has(campo))
+  const camposSinComparar = CAMPOS_COMPARADOS[modulo].filter((campo) => !campos.includes(campo))
   // $1 y $2 son los lotes; $3… los nombres de los campos. Los nombres de tabla salen de
   // una constante de este archivo, nunca de la entrada.
   const distinto = campos.map((_, i) => `${valor('a', i + 3)} is distinct from ${valor('n', i + 3)}`)
@@ -158,6 +189,7 @@ const compararModulo = async (
     cambiados: fila.cambiados ?? 0,
     ausentes: fila.ausentes ?? 0,
     cambiosPorCampo: Object.fromEntries(campos.map((campo, i) => [campo, fila[`c${String(i)}`] ?? 0])),
+    camposSinComparar,
   }
 }
 
@@ -173,11 +205,14 @@ export const compararLotes = async (sql: Ejecutor, anterior: string, nuevo: stri
   if (anterior === nuevo) throw new ComparacionInvalida('se compara un lote consigo mismo')
   const fechasAnterior = await fechasDeExport(sql, anterior)
   const fechasNuevo = await fechasDeExport(sql, nuevo)
-  // Invertir el orden convierte los NUEVO en AUSENTE y al revés, sin que nada falle.
-  if (corte(fechasNuevo) < corte(fechasAnterior)) {
-    throw new ComparacionInvalida(
-      `el lote nuevo tiene un corte anterior (${corte(fechasNuevo)}) al del lote anterior (${corte(fechasAnterior)}): ¿están invertidos?`,
-    )
+  // Invertir el orden convierte los NUEVO en AUSENTE y al revés, sin que nada falle. Se
+  // controla módulo por módulo: el corte global puede avanzar aunque un módulo retroceda.
+  for (const modulo of MODULOS) {
+    if (fechasNuevo[modulo] < fechasAnterior[modulo]) {
+      throw new ComparacionInvalida(
+        `en ${modulo}, el lote nuevo se exportó antes (${fechasNuevo[modulo]}) que el anterior (${fechasAnterior[modulo]}): ¿están invertidos?`,
+      )
+    }
   }
 
   const modulos = {} as Record<Modulo, ComparacionModulo>
