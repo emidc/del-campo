@@ -3,8 +3,8 @@
 // Hasta T-0037 la carpeta del lote y el CSV de cada módulo estaban fijados acá como
 // constantes del lote del 16/09: importar otro export exigía editar este archivo. Ahora
 // cada lote trae en su raíz un `lote.json` que dice qué perfil de T-0004 lo verifica,
-// qué CSV corresponde a cada módulo y en qué fecha se exportó cada módulo (T-0013
-// registró que los módulos se exportan en días distintos). Formato y ejemplo en
+// qué CSV corresponde a cada módulo y en qué fecha se exportó cada módulo (Zoho no da un
+// corte común entre módulos: T-0004 y T-0013 lo registraron). Formato y ejemplo en
 // `docs/migration/zoho/lote-manifiesto.md`.
 //
 // Este módulo sólo lee y valida el manifiesto del lote: nunca abre los CSV ni imprime
@@ -33,7 +33,7 @@ export const NOMBRE_ZOHO: Readonly<Record<Modulo, string>> = {
 export interface ModuloDelLote {
   /** Ruta del CSV relativa a la raíz del lote, igual que `raw_relative_path` del perfil. */
   readonly csv: string
-  /** Fecha del export de este módulo en Zoho, `AAAA-MM-DD`. La declara el owner (DAT-01). */
+  /** Fecha del export de este módulo en Zoho, `AAAA-MM-DD`. La declara quien prepara el lote. */
   readonly exportadoEl: string
 }
 

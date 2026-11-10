@@ -25,7 +25,8 @@ se corre el importador con la ruta del lote. Diseño en `T-0037-refresco.md` §2
 - `csv` es la ruta del CSV del módulo, exactamente como figura en `raw_relative_path` del
   perfil. Un CSV que el perfil no verifica se rechaza.
 - `exportadoEl` es la fecha en que **ese módulo** se exportó de Zoho. Los módulos pueden
-  tener fechas distintas (T-0013 lo registró en el lote del 16/09). La fecha de corte del
+  tener fechas distintas: Zoho no da un corte común (T-0004 lo registró entre los
+  módulos operativos y los catálogos del 16/09). La fecha de corte del
   lote, que I3b mostrará en la cabecera, será la más antigua de las cuatro.
 - Las rutas son relativas a la carpeta del lote y no pueden salir de ella.
 - Faltan módulos, sobran claves o una fecha no existe: el importador se detiene y dice
@@ -34,18 +35,21 @@ se corre el importador con la ruta del lote. Diseño en `T-0037-refresco.md` §2
 ## El lote del 16/09/2026
 
 Es el `lote.json` que reemplaza a las constantes que vivían en
-`packages/db/src/import/lote.ts`. Los cuatro CSV son los mismos; las fechas de export
-**las completa el owner** (DAT-01). Si un módulo se exportó el 16/09, va `2026-09-16`.
+`packages/db/src/import/lote.ts`. Los cuatro CSV son los mismos. Las fechas salen de
+`REVIEWS/T-0004-insumos-vs01.md` («los módulos operativos fueron exportados el
+16/09/2026»): Pólizas, Endosos, Contactos y Cuentas, `2026-09-16`. Productos y
+Proveedores (18/09) no son módulos del lote. No hace falta un export nuevo para escribirlo;
+DAT-01 es el export siguiente.
 
 ```json
 {
   "formato": "lote-zoho/1",
   "perfil": "profile/profile-20260918T212140075873Z.json",
   "modulos": {
-    "polizas":   { "csv": "raw/025738fc637310e0d368afd49868375c1cce73c263cadf9821055d59dd47bc80/0001.csv", "exportadoEl": "AAAA-MM-DD" },
-    "endosos":   { "csv": "raw/8ca87d205690ef89676c3a21d365d507335fcfe52ccd78206efeba28d971ca2c/0001.csv", "exportadoEl": "AAAA-MM-DD" },
-    "contactos": { "csv": "raw/fef574c156c24cd58a242fe77322b69386977b3c59522969397941732dae5501/0001.csv", "exportadoEl": "AAAA-MM-DD" },
-    "cuentas":   { "csv": "raw/e2c4246d5b98ca59ecc01dac6375f73212a0c308d00b8c7c8e5920054993011e/0001.csv", "exportadoEl": "AAAA-MM-DD" }
+    "polizas":   { "csv": "raw/025738fc637310e0d368afd49868375c1cce73c263cadf9821055d59dd47bc80/0001.csv", "exportadoEl": "2026-09-16" },
+    "endosos":   { "csv": "raw/8ca87d205690ef89676c3a21d365d507335fcfe52ccd78206efeba28d971ca2c/0001.csv", "exportadoEl": "2026-09-16" },
+    "contactos": { "csv": "raw/fef574c156c24cd58a242fe77322b69386977b3c59522969397941732dae5501/0001.csv", "exportadoEl": "2026-09-16" },
+    "cuentas":   { "csv": "raw/e2c4246d5b98ca59ecc01dac6375f73212a0c308d00b8c7c8e5920054993011e/0001.csv", "exportadoEl": "2026-09-16" }
   }
 }
 ```
