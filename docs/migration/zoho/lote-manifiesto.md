@@ -57,6 +57,11 @@ de Git como el resto del lote (D-0053). No contiene datos de clientes.
 
 Todos reciben la carpeta del lote. Corren contra la base local de T-0013 (D-0053).
 
+**En I1 un lote nuevo sólo se carga a staging** (`verify-manifest` y `load-staging`).
+Aplicarlo al dominio es I2 y espera la elección del §3 de `T-0037-refresco.md`: por eso
+`load-parties` y `load-policies` se niegan cuando staging tiene más de un lote con filas.
+Sobre una base nueva, con un solo lote, corren como siempre.
+
 ```bash
 L=data/zoho-export-AAAA-MM-DD
 node packages/db/src/import/cli.ts verify-manifest $L   # hashes de ZIP y CSV contra el perfil
@@ -81,7 +86,10 @@ el lote decía.
   `0012_staging_por_lote.sql`).
 - `staging_import_batch_module` registra, por lote y módulo, el CSV, su SHA-256, la fecha
   de export y las filas cargadas.
-- `load-parties`, `load-policies` y `report` leen sólo el lote indicado.
+- `load-parties`, `load-policies` y `report` leen sólo el lote indicado. En `report`,
+  los conteos de fuente (`polizasFuente`, `endosos.fuente`) son del lote y los de
+  dominio son de toda la base: con más de un lote, `endosos.sinPolicyPadre` no es una
+  diferencia válida.
 
 ## Lo que este incremento no hace
 
@@ -93,5 +101,7 @@ el lote decía.
   módulo, registro y clase, sin lote: un lote nuevo no agrega una fila por una excepción
   ya conocida. `report` cuenta las de los registros del lote indicado.
 - El lote cargado antes de este cambio queda en staging con su `batch_id` y sin módulos
-  registrados. Volver a cargar el 16/09 con su `lote.json` crea un lote nuevo con el mismo
-  crudo; el anterior no se borra (R-23).
+  registrados, y el importador no lo reconoce porque su huella es el nombre del perfil.
+  Volver a cargar el 16/09 con su `lote.json` crea un lote nuevo con el mismo crudo; el
+  anterior no se borra (R-23). Desde ese momento hay dos lotes con filas: el dominio no
+  se reescribe desde staging hasta I2, y `pnpm db:down` de 0012 queda bloqueado.

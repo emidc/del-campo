@@ -34,11 +34,13 @@ create index staging_account_source_record_id_idx on staging_account (source_rec
 
 -- Un mismo export cargado dos veces es el mismo lote: la carga lo reconoce por la huella
 -- del perfil y reutiliza el lote en vez de duplicarlo. La unicidad rige sólo para huellas
--- con forma de SHA-256: el lote anterior a T-0037 guardó el nombre del perfil en esta
--- columna, y las pruebas y el seed sintético usan valores fijos que no son huellas.
+-- con forma de SHA-256, porque el lote anterior a T-0037 guardó el nombre del perfil en
+-- esta columna. Excluye además la huella fija del seed sintético (`'0' × 64`,
+-- `MANIFIESTO_SINTETICO` en packages/api/src/vs01/batch.ts): una base de Preview puede
+-- tener más de un lote sintético, y la migración no debe fallar ahí.
 create unique index staging_import_batch_huella_unica
   on staging_import_batch (source_manifest_sha256)
-  where source_manifest_sha256 ~ '^[0-9a-f]{64}$';
+  where source_manifest_sha256 ~ '^[0-9a-f]{64}$' and source_manifest_sha256 <> repeat('0', 64);
 
 create table staging_import_batch_module (
   batch_id uuid not null references staging_import_batch (id),

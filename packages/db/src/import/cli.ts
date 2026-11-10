@@ -14,7 +14,7 @@ import { importarCatalogoAseguradoras, RUTA_CATALOGO_APROBADO } from './catalog.
 import { conectar } from './db.ts'
 import { leerLote, LoteInvalido, rutaDelPerfil } from './lote.ts'
 import type { Lote } from './lote.ts'
-import { cargarLoteEnStaging, loteRegistrado } from './lote-staging.ts'
+import { cargarLoteEnStaging, loteRegistrado, otrosLotesConFilas } from './lote-staging.ts'
 import { importarContactos, importarCuentas, importarMembresias } from './parties.ts'
 import { importarEndosos, importarPolizas, importarRenovaciones } from './policies.ts'
 import { generarReporte } from './report.ts'
@@ -48,6 +48,23 @@ const lote = (): Lote => {
 const batchDelLote = async (sql: ReturnType<typeof conectar>, elLote: Lote): Promise<string> => {
   const batchId = await loteRegistrado(sql, elLote)
   return batchId ?? morir('ese lote no está en staging; correr load-staging primero')
+}
+
+/**
+ * `load-parties` y `load-policies` escriben en el dominio. En I1 un lote posterior sólo
+ * se carga a staging: aplicarlo al dominio es I2 y espera la elección del owner entre
+ * versión nueva o corrección (`T-0037-refresco.md` §3). Hallazgo A1 de la revisión R-33.
+ */
+const batchUnicoParaDominio = async (sql: ReturnType<typeof conectar>, elLote: Lote): Promise<string> => {
+  const batchId = await batchDelLote(sql, elLote)
+  const otros = await otrosLotesConFilas(sql, batchId)
+  if (otros > 0) {
+    morir(
+      `staging tiene ${String(otros)} lote(s) más con filas. Mientras no exista I2 (T-0037), ` +
+        'el dominio sólo se escribe desde un único lote: un lote nuevo se carga a staging y nada más.',
+    )
+  }
+  return batchId
 }
 
 const verificarManifiesto = async (): Promise<void> => {
@@ -112,7 +129,7 @@ const importarParties = async (): Promise<void> => {
   const elLote = lote()
   const sql = conectar()
   try {
-    const batchId = await batchDelLote(sql, elLote)
+    const batchId = await batchUnicoParaDominio(sql, elLote)
     const contactos = await importarContactos(sql, batchId)
     const cuentas = await importarCuentas(sql, batchId)
     const membresias = await importarMembresias(sql, batchId)
@@ -128,7 +145,7 @@ const importarPoliciesYRenovaciones = async (): Promise<void> => {
   const elLote = lote()
   const sql = conectar()
   try {
-    const batch = { id: await batchDelLote(sql, elLote) }
+    const batch = { id: await batchUnicoParaDominio(sql, elLote) }
 
     const mapaAseguradoras = await importarCatalogoAseguradoras(sql, RUTA_CATALOGO_APROBADO(RAIZ))
     const resultadoPolizas = await importarPolizas(sql, batch.id, mapaAseguradoras)

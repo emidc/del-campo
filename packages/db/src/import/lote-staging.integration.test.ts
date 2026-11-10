@@ -16,8 +16,10 @@ import postgres from 'postgres'
 
 import { FORMATO_LOTE, leerLote, LoteInvalido, MODULOS } from './lote.ts'
 import type { Modulo } from './lote.ts'
-import { cargarLoteEnStaging, loteRegistrado } from './lote-staging.ts'
-import { importarContactos } from './parties.ts'
+import { cargarLoteEnStaging, loteRegistrado, otrosLotesConFilas } from './lote-staging.ts'
+import { importarContactos, importarCuentas, importarMembresias } from './parties.ts'
+import { importarEndosos } from './policies.ts'
+import { generarReporte } from './report.ts'
 import { CAMPOS_CONTACTO, CAMPOS_CUENTA, CAMPOS_ENDOSO, CAMPOS_POLIZA } from './zoho-fields.ts'
 
 const RAIZ = join(import.meta.dirname, '..', '..', '..', '..')
@@ -155,12 +157,18 @@ const LOTE_B: OpcionesLote = {
       ['SINT-P-1', 'NUM-101', 'SINT-C-1', '', 'SINT-ASEG'],
       ['SINT-P-3', 'NUM-300', 'SINT-C-2', '', 'SINT-ASEG'],
     ],
-    endosos: [['SINT-E-1', 'SINT-P-1']],
+    endosos: [
+      ['SINT-E-1', 'SINT-P-1'],
+      ['SINT-E-3', 'SINT-P-3'],
+    ],
     contactos: [
       ['SINT-C-1', 'Persona Uno', 'SINT-CTA-1'],
-      ['SINT-C-2', 'Persona Dos', ''],
+      ['SINT-C-2', 'Persona Dos', 'SINT-CTA-2'],
     ],
-    cuentas: [['SINT-CTA-1', 'Cuenta Uno SA']],
+    cuentas: [
+      ['SINT-CTA-1', 'Cuenta Uno SA'],
+      ['SINT-CTA-2', 'Cuenta Dos SA'],
+    ],
   },
   exportadoEl: mismaFecha('2026-11-03'),
 }
@@ -183,7 +191,7 @@ describe('cargarLoteEnStaging — dos lotes conviven', () => {
       assert.equal(b.nuevo, true)
       assert.notEqual(a.batchId, b.batchId)
       assert.deepEqual(a.filas, { polizas: 2, endosos: 1, contactos: 1, cuentas: 1 })
-      assert.deepEqual(b.filas, { polizas: 2, endosos: 1, contactos: 2, cuentas: 1 })
+      assert.deepEqual(b.filas, { polizas: 2, endosos: 2, contactos: 2, cuentas: 2 })
 
       // P-1 existe en los dos lotes, cada uno con su propio crudo.
       const p1 = await tx<{ batch_id: string; numero: string }[]>`
@@ -302,15 +310,47 @@ describe('cargarLoteEnStaging — dos lotes conviven', () => {
     })
   })
 
-  it('el importador de dominio lee sólo el lote que recibe', async () => {
+  it('cada lector de staging lee sólo el lote que recibe', async () => {
     const raizA = escribirLote(LOTE_A)
     const raizB = escribirLote(LOTE_B)
 
     await enTransaccionRevertida(async (tx) => {
       const a = await cargarLoteEnStaging(tx, leerLote(raizA), 'fixture sintética')
       const b = await cargarLoteEnStaging(tx, leerLote(raizB), 'fixture sintética')
+
+      assert.equal(await importarCuentas(tx, a.batchId), 1)
+      assert.equal(await importarCuentas(tx, b.batchId), 2)
       assert.equal(await importarContactos(tx, a.batchId), 1)
       assert.equal(await importarContactos(tx, b.batchId), 2)
+      // C-1↔CTA-1 está en los dos lotes; C-2↔CTA-2 sólo en el B.
+      assert.equal(await importarMembresias(tx, a.batchId), 1)
+      assert.equal(await importarMembresias(tx, b.batchId), 1)
+
+      // Sin pólizas en el dominio, todo endoso del lote queda sin Policy padre.
+      assert.deepEqual(await importarEndosos(tx, a.batchId), { importados: 0, sinPolicyPadre: 1 })
+      assert.deepEqual(await importarEndosos(tx, b.batchId), { importados: 0, sinPolicyPadre: 2 })
+
+      const reporteA = await generarReporte(tx, a.batchId)
+      const reporteB = await generarReporte(tx, b.batchId)
+      assert.equal(reporteA.endosos.fuente, 1)
+      assert.equal(reporteB.endosos.fuente, 2)
+    })
+  })
+
+  it('cuenta los otros lotes con filas, que impiden escribir el dominio antes de I2', async () => {
+    const raizA = escribirLote(LOTE_A)
+    const raizB = escribirLote(LOTE_B)
+
+    await enTransaccionRevertida(async (tx) => {
+      const a = await cargarLoteEnStaging(tx, leerLote(raizA), 'fixture sintética')
+      const base = await otrosLotesConFilas(tx, a.batchId)
+      const b = await cargarLoteEnStaging(tx, leerLote(raizB), 'fixture sintética')
+      assert.equal(await otrosLotesConFilas(tx, a.batchId), base + 1)
+      assert.equal(await otrosLotesConFilas(tx, b.batchId), base + 1)
+
+      // Un lote sin filas (como el que registra el seed sintético) no cuenta.
+      await tx`insert into staging_import_batch (source_manifest_sha256, notes) values ('vacio', 'fixture sintética')`
+      assert.equal(await otrosLotesConFilas(tx, b.batchId), base + 1)
     })
   })
 })

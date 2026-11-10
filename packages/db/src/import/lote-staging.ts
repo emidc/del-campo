@@ -52,6 +52,24 @@ const verificarModulos = async (lote: Lote): Promise<readonly ModuloVerificable[
   return modulos
 }
 
+/**
+ * Cuántos lotes de staging, además de `batchId`, tienen filas. Mientras no exista I2
+ * (aplicar cambios en el dominio, `T-0037-refresco.md` §3 y §5), el dominio se escribe
+ * desde un único lote: con otro lote presente, leer uno nuevo insertaría las pólizas
+ * nuevas, duplicaría las que cambiaron de número y dejaría las cambiadas como estaban.
+ */
+export const otrosLotesConFilas = async (sql: Ejecutor, batchId: string): Promise<number> => {
+  const [fila] = await sql<{ n: number }[]>`
+    select count(*)::int as n from staging_import_batch b
+    where b.id <> ${batchId}
+      and (exists (select 1 from staging_policy where batch_id = b.id)
+        or exists (select 1 from staging_endorsement where batch_id = b.id)
+        or exists (select 1 from staging_contact where batch_id = b.id)
+        or exists (select 1 from staging_account where batch_id = b.id))
+  `
+  return fila?.n ?? 0
+}
+
 /** El lote ya registrado con esta huella, o `undefined`. */
 export const loteRegistrado = async (sql: Ejecutor, lote: Lote): Promise<string | undefined> => {
   const huella = huellaDelPerfil(lote)
