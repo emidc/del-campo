@@ -90,6 +90,11 @@ La salida es una tabla de cuatro conteos con su proporción y va a `ops/evidence
 | I3 | Refresco de producción en el lugar (H3) y fecha de corte en la cabecera (H4). Reemplaza §10 de `vercel-vs01.md` | Sí, con aprobación del owner antes de cada corrida | Ciega |
 | I4 | El owner refresca producción, compara 20 pólizas contra Zoho y registra U8 (Verification de la tarea) | Sí | Owner |
 
+I1 se parte en tres entregas del plan (`docs/north-star/12-plan-hacia-la-north-star.md`):
+I1a, lote por manifiesto y staging por lote (H5 y H2), formato en `lote-manifiesto.md`;
+I1b, fecha de export por módulo y comparación que sólo cuenta; I1c, la consulta de U8. El
+manifiesto de I1a ya declara y registra la fecha de export de cada módulo; I1b la usa.
+
 La infraestructura (`T-0037-infraestructura.md`) corre en paralelo: el owner puede aprobarla
 y aplicarla en cualquier momento antes de I4.
 

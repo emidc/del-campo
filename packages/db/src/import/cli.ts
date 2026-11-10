@@ -12,34 +12,51 @@ import { join, resolve } from 'node:path'
 
 import { importarCatalogoAseguradoras, RUTA_CATALOGO_APROBADO } from './catalog.ts'
 import { conectar } from './db.ts'
-import { rutaDeModulo } from './lote.ts'
+import { leerLote, LoteInvalido, rutaDelPerfil } from './lote.ts'
+import type { Lote } from './lote.ts'
+import { cargarLoteEnStaging, loteRegistrado } from './lote-staging.ts'
 import { importarContactos, importarCuentas, importarMembresias } from './parties.ts'
 import { importarEndosos, importarPolizas, importarRenovaciones } from './policies.ts'
 import { generarReporte } from './report.ts'
-import { cargarContactos, cargarCuentas, cargarEndosos, cargarPolizas } from './staging.ts'
 import { calcularFingerprint, compararFingerprints } from './verify-idempotency.ts'
 import type { FingerprintPorTabla } from './verify-idempotency.ts'
 import { parsearManifiesto, verificarLote } from './verify-manifest.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..', '..')
-const DIRECTORIO_LOTE = resolve(RAIZ, 'data', 'zoho-export-2026-09-16')
-const MANIFIESTO = resolve(
-  DIRECTORIO_LOTE,
-  'profile',
-  'profile-20260918T212140075873Z.json',
-)
 
 const morir = (mensaje: string): never => {
   process.stderr.write(`✗ ${mensaje}\n`)
   process.exit(1)
 }
 
+// T-0037 (H5): el lote es un argumento. Qué contiene lo declara su `lote.json`
+// (docs/migration/zoho/lote-manifiesto.md); importar otro export no edita este archivo.
+const lote = (): Lote => {
+  const ruta = process.argv[3]
+  if (ruta === undefined || ruta === '') {
+    return morir(`uso: node packages/db/src/import/cli.ts ${process.argv[2] ?? '<comando>'} <ruta-del-lote>`)
+  }
+  try {
+    return leerLote(resolve(ruta))
+  } catch (error) {
+    if (error instanceof LoteInvalido) return morir(`lote inválido: ${error.message}`)
+    throw error
+  }
+}
+
+/** El lote de staging que corresponde al export indicado. Lo crea `load-staging`. */
+const batchDelLote = async (sql: ReturnType<typeof conectar>, elLote: Lote): Promise<string> => {
+  const batchId = await loteRegistrado(sql, elLote)
+  return batchId ?? morir('ese lote no está en staging; correr load-staging primero')
+}
+
 const verificarManifiesto = async (): Promise<void> => {
-  const manifiesto = parsearManifiesto(readFileSync(MANIFIESTO, 'utf8'))
+  const elLote = lote()
+  const manifiesto = parsearManifiesto(readFileSync(rutaDelPerfil(elLote), 'utf8'))
 
   let total = 0
   let mismatches = 0
-  for await (const resultado of verificarLote(manifiesto, DIRECTORIO_LOTE)) {
+  for await (const resultado of verificarLote(manifiesto, elLote.raiz)) {
     total += 1
     if (!resultado.coincide) {
       mismatches += 1
@@ -50,40 +67,30 @@ const verificarManifiesto = async (): Promise<void> => {
   if (mismatches > 0) {
     morir(
       `${String(mismatches)} de ${String(total)} archivo(s) no coinciden con el manifiesto. ` +
-        'No se continúa: el lote no es el declarado por T-0004.',
+        'No se continúa: el lote no es el declarado por su perfil.',
     )
   }
 
   process.stdout.write(`✓ manifiesto verificado: ${String(total)} archivo(s), 0 mismatches\n`)
 }
 
-const RUTAS_MODULO = {
-  polizas: rutaDeModulo(DIRECTORIO_LOTE, 'polizas'),
-  endosos: rutaDeModulo(DIRECTORIO_LOTE, 'endosos'),
-  contactos: rutaDeModulo(DIRECTORIO_LOTE, 'contactos'),
-  cuentas: rutaDeModulo(DIRECTORIO_LOTE, 'cuentas'),
-} as const
-
 const cargarStaging = async (): Promise<void> => {
+  const elLote = lote()
   const sql = conectar()
   try {
-    const [batch] = await sql<{ id: string }[]>`
-      insert into staging_import_batch (source_manifest_sha256, notes)
-      values (${'profile-20260918T212140075873Z.json'}, ${'T-0013 cli run'})
-      returning id
-    `
-    if (batch === undefined) throw new Error('no se pudo crear staging_import_batch')
-
-    const conteoPolizas = await cargarPolizas(sql, batch.id, RUTAS_MODULO.polizas)
-    const conteoEndosos = await cargarEndosos(sql, batch.id, RUTAS_MODULO.endosos)
-    const conteoContactos = await cargarContactos(sql, batch.id, RUTAS_MODULO.contactos)
-    const conteoCuentas = await cargarCuentas(sql, batch.id, RUTAS_MODULO.cuentas)
-
+    const resultado = await sql.begin((tx) => cargarLoteEnStaging(tx, elLote, 'load-staging'))
+    const fechas = Object.entries(elLote.modulos)
+      .map(([modulo, declarado]) => `${modulo} ${declarado.exportadoEl}`)
+      .join(', ')
     process.stdout.write(
-      `✓ staging cargado (batch ${batch.id}): ` +
-        `${String(conteoPolizas)} Polizas, ${String(conteoEndosos)} Endosos, ` +
-        `${String(conteoContactos)} Contactos, ${String(conteoCuentas)} Cuentas\n`,
+      `✓ staging cargado (batch ${resultado.batchId}, ${resultado.nuevo ? 'lote nuevo' : 'mismo lote, recargado'}): ` +
+        `${String(resultado.filas.polizas)} Polizas, ${String(resultado.filas.endosos)} Endosos, ` +
+        `${String(resultado.filas.contactos)} Contactos, ${String(resultado.filas.cuentas)} Cuentas\n` +
+        `  exportados: ${fechas}\n`,
     )
+  } catch (error) {
+    if (error instanceof LoteInvalido) morir(`lote inválido: ${error.message}`)
+    throw error
   } finally {
     await sql.end()
   }
@@ -102,11 +109,13 @@ const importarCatalogo = async (): Promise<void> => {
 }
 
 const importarParties = async (): Promise<void> => {
+  const elLote = lote()
   const sql = conectar()
   try {
-    const contactos = await importarContactos(sql)
-    const cuentas = await importarCuentas(sql)
-    const membresias = await importarMembresias(sql)
+    const batchId = await batchDelLote(sql, elLote)
+    const contactos = await importarContactos(sql, batchId)
+    const cuentas = await importarCuentas(sql, batchId)
+    const membresias = await importarMembresias(sql, batchId)
     process.stdout.write(
       `✓ parties: ${String(contactos)} Contactos, ${String(cuentas)} Cuentas, ${String(membresias)} membresías\n`,
     )
@@ -116,16 +125,14 @@ const importarParties = async (): Promise<void> => {
 }
 
 const importarPoliciesYRenovaciones = async (): Promise<void> => {
+  const elLote = lote()
   const sql = conectar()
   try {
-    const [batch] = await sql<{ id: string }[]>`
-      select id from staging_import_batch order by started_at desc limit 1
-    `
-    if (batch === undefined) throw new Error('no hay staging_import_batch; correr load-staging primero')
+    const batch = { id: await batchDelLote(sql, elLote) }
 
     const mapaAseguradoras = await importarCatalogoAseguradoras(sql, RUTA_CATALOGO_APROBADO(RAIZ))
     const resultadoPolizas = await importarPolizas(sql, batch.id, mapaAseguradoras)
-    const resultadoEndosos = await importarEndosos(sql)
+    const resultadoEndosos = await importarEndosos(sql, batch.id)
     const resultadoRenovaciones = await importarRenovaciones(sql, batch.id)
 
     // El contador de `importarPolizas` es un acumulador de loop; este conteo es una
@@ -215,9 +222,11 @@ switch (comando) {
     break
   case 'report':
     await (async () => {
+      const elLote = lote()
       const sql = conectar()
       try {
-        process.stdout.write(`${JSON.stringify(await generarReporte(sql), null, 2)}\n`)
+        const batchId = await batchDelLote(sql, elLote)
+        process.stdout.write(`${JSON.stringify(await generarReporte(sql, batchId), null, 2)}\n`)
       } finally {
         await sql.end()
       }

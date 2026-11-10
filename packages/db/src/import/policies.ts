@@ -74,6 +74,7 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
   const filas = await sql<FilaPoliza[]>`
     select source_record_id, contact_source_id, account_source_id, insurer_source_id, raw
     from staging_policy
+    where batch_id = ${batchId}
   `
 
   const excepciones: Record<ClaseDeFallo, number> = {
@@ -277,9 +278,12 @@ interface FilaEndoso {
  * nunca se intenta insertar). No produce PolicyVersion adicional — ver nota al inicio
  * del archivo.
  */
-export const importarEndosos = async (sql: Ejecutor): Promise<{ importados: number; sinPolicyPadre: number }> => {
+export const importarEndosos = async (
+  sql: Ejecutor,
+  batchId: string,
+): Promise<{ importados: number; sinPolicyPadre: number }> => {
   const filas = await sql<FilaEndoso[]>`
-    select source_record_id, policy_source_id, raw from staging_endorsement
+    select source_record_id, policy_source_id, raw from staging_endorsement where batch_id = ${batchId}
   `
   let importados = 0
   let sinPolicyPadre = 0
@@ -342,7 +346,8 @@ export const importarRenovaciones = async (sql: Ejecutor, batchId: string): Prom
     select sp.source_record_id, sp.insurer_source_id, sp.raw
     from staging_policy sp
     join policy_version pv on pv.source_event_type = 'Polizas' and pv.source_event_id = sp.source_record_id
-    where coalesce(sp.raw ->> ${CAMPOS_POLIZA.renovadaDePolizaN}, '') <> ''
+    where sp.batch_id = ${batchId}
+      and coalesce(sp.raw ->> ${CAMPOS_POLIZA.renovadaDePolizaN}, '') <> ''
   `
 
   let resueltas = 0

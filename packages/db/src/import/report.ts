@@ -17,19 +17,29 @@ export interface Reporte {
   readonly policiesSinQuoteNiIssuance: number
 }
 
-export const generarReporte = async (sql: Ejecutor): Promise<Reporte> => {
-  const [polizasFuente] = await sql<{ n: number }[]>`select count(*)::int as n from staging_policy`
+/**
+ * `batchId` es el lote de staging que se reporta (T-0037: staging conserva varios lotes).
+ * Las excepciones no son por lote (su identidad es módulo, registro y clase, 0003): se
+ * cuentan las de los registros que el lote trae.
+ */
+export const generarReporte = async (sql: Ejecutor, batchId: string): Promise<Reporte> => {
+  const [polizasFuente] = await sql<{ n: number }[]>`
+    select count(*)::int as n from staging_policy where batch_id = ${batchId}
+  `
   const [polizasImportadas] = await sql<{ n: number }[]>`select count(*)::int as n from policy_version where source_event_type = 'Polizas'`
 
   const excepciones = await sql<{ failure_class: string; n: number }[]>`
     select failure_class, count(*)::int as n from staging_import_exception
     where module = 'Polizas'
+      and source_record_id in (select source_record_id from staging_policy where batch_id = ${batchId})
     group by failure_class
   `
   const excepcionesPorClase = Object.fromEntries(excepciones.map((fila) => [fila.failure_class, fila.n]))
   const polizasEnScope = (polizasFuente?.n ?? 0) - (excepcionesPorClase.NOT_IN_SCOPE ?? 0)
 
-  const [endososFuente] = await sql<{ n: number }[]>`select count(*)::int as n from staging_endorsement`
+  const [endososFuente] = await sql<{ n: number }[]>`
+    select count(*)::int as n from staging_endorsement where batch_id = ${batchId}
+  `
   const [endososImportados] = await sql<{ n: number }[]>`select count(*)::int as n from endorsement`
 
   const [renovacionesResueltas] = await sql<{ n: number }[]>`select count(*)::int as n from policy where renewed_from_policy_id is not null`

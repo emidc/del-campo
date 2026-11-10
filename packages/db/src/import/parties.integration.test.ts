@@ -94,12 +94,10 @@ describe('importarContactos / importarCuentas / importarMembresias', () => {
           null,
         )
 
-        // importarContactos procesa TODA staging_contact, no sólo la fixture: la base ya
-        // trae las filas reales de la corrida sobre el lote (D-0053). Se verifica que
-        // procesó al menos la nuestra, y el resto de las aserciones son específicas al
-        // party_id de esta fixture, no al conteo total.
-        const primera = await importarContactos(tx)
-        assert.ok(primera >= 1)
+        // Desde T-0037 importarContactos procesa sólo el lote que recibe, no toda
+        // staging_contact: aunque la base traiga otros lotes, éste tiene una sola fila.
+        const primera = await importarContactos(tx, batchId)
+        assert.equal(primera, 1)
 
         const [vinculo] = await tx<{ party_id: string }[]>`
           select party_id from party_source_link
@@ -123,7 +121,7 @@ describe('importarContactos / importarCuentas / importarMembresias', () => {
         )
 
         // Segunda corrida sobre la misma fila: mismo party_id, sin duplicar ContactPoint.
-        const segunda = await importarContactos(tx)
+        const segunda = await importarContactos(tx, batchId)
         assert.equal(segunda, primera)
 
         const [mismoVinculo] = await tx<{ party_id: string }[]>`
@@ -163,13 +161,13 @@ describe('importarContactos / importarCuentas / importarMembresias', () => {
           'CTA-TEST-001',
         )
 
-        await importarCuentas(tx)
-        await importarContactos(tx)
+        await importarCuentas(tx, batchId)
+        await importarContactos(tx, batchId)
 
-        const primera = await importarMembresias(tx)
+        const primera = await importarMembresias(tx, batchId)
         assert.equal(primera, 1)
 
-        const segunda = await importarMembresias(tx)
+        const segunda = await importarMembresias(tx, batchId)
         assert.equal(segunda, 0)
 
         const [vinculoCuenta] = await tx<{ party_id: string }[]>`
