@@ -5,6 +5,10 @@ VS01 más Vercel Pro, y subió el tope a USD 55 con impuestos. Los pasos para co
 en el §8. Las secciones 1 a 7 son la propuesta tal como se presentó. Escrita el
 2026-11-06 en la rama `task/T-0037-infra-y-diseno-del-refresco`.
 
+**Postergado el 2026-11-10.** El owner decidió seguir en Free por ahora: los pasos del §8
+(INF-CHK, INF-01, INF-02 e INF-04 del plan 12) no se ejecutan hasta que lo retome. Mientras
+tanto rigen la alternancia y las copias de D-0087. D-0079 sigue aceptada.
+
 ## 1. Qué hay hoy
 
 Inventario armado con `docs/despliegue/` y `ops/evidence/T-0035.md`. Lo que no está en el
