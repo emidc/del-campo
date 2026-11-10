@@ -1463,7 +1463,11 @@ decisions:
       ninguna cuenta registrada para el segundo nivel; la pareja de D-0070 sigue valiendo
       sólo para la preparación de datasets de Risk OS. No se fija un proveedor ni un
       modelo permanente: se priorizan calidad, protección de datos, costo y facilidad de
-      uso. Los agentes de desarrollo conservan R-19 sin cambios.
+      uso. Los agentes de desarrollo conservan R-19 sin cambios. Desde D-0088, una cuenta
+      puede registrarse con todos los modelos que ofrece su plan, sin nombrarlos uno por uno.
+    superseded_in_part_by:
+      - clause: El registro de una cuenta nombra cada modelo que se usa, no la familia
+        by: D-0088
 
   - id: D-0075
     title: Un servidor MCP propio y skills de metodología son la dirección de integración con IA
@@ -1754,3 +1758,27 @@ decisions:
       se corrige, una saturación se diagnostica. Una restauración se usa sólo para datos
       dañados, con los escritores detenidos y el estado actual preservado. Esto no cambia
       el plan de ningún proyecto: el paso a Pro lo decide el owner.
+
+  # ── Hilo «Ejecutar los próximos pasos del plan» (IA-01) ────────────────────
+  - id: D-0088
+    title: Las cuentas de Claude y de ChatGPT/Codex del owner quedan registradas para información de nivel 2
+    status: ACCEPTED
+    date: 2026-11-10
+    source: >
+      Respuestas del owner del 2026-11-10 en el hilo «Ejecutar los próximos pasos del plan»
+      (IA-01 del plan 12): cuentas y planes, entrenamiento apagado en las tres, «no quiero
+      restringir ningún modelo» y «el nivel 2 está permitido con Claude y Codex»; aprobada
+      con el merge de este cambio. D-0074, D-0070, D-0082, R-19.
+    adr: DECISIONS/0088-cuentas-de-ia-registradas.md
+    statement: >
+      Quedan registradas para información de nivel 2 (D-0074) dos cuentas personales de
+      Emiliano del Campo, que es la única persona que las usa: Claude de Anthropic, plan Pro,
+      y ChatGPT/Codex de OpenAI, plan Plus. En las dos, el owner declaró apagado el uso de
+      sus conversaciones para entrenar modelos. El registro abarca todos los modelos que el
+      plan ofrece, sin restringir ninguno; esto reemplaza en parte a D-0074, que pedía
+      nombrar cada modelo. La cuenta de Gemini del Workspace de Del Campo, plan Work Pro,
+      también tiene el entrenamiento apagado pero no queda registrada para el nivel 2: sólo
+      admite el nivel 1. El nivel 3 sigue excluido en todas. Si se vuelve a activar el
+      entrenamiento, cambia el plan o el proveedor cambia sus condiciones, la cuenta deja
+      de valer para el nivel 2 hasta un nuevo registro. Esto no cambia R-19: Claude Code y
+      Codex, como agentes de desarrollo, siguen sin recibir PII real de clientes.
