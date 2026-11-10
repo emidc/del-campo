@@ -6,16 +6,16 @@
 // Corre contra Postgres real (R-26) y revierte su transacción al terminar.
 
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, describe, it } from 'node:test'
 
 import postgres from 'postgres'
 
-import { FORMATO_LOTE, leerLote, LoteInvalido, MODULOS } from './lote.ts'
+import { leerLote, LoteInvalido, MODULOS } from './lote.ts'
 import type { Modulo } from './lote.ts'
+import { borrarLotesSinteticos, escribirLote as escribirLoteSintetico, escribirManifiesto, mismaFecha } from './lote-sintetico.ts'
+import type { OpcionesLote } from './lote-sintetico.ts'
 import { cargarLoteEnStaging, loteRegistrado, otrosLotesConFilas } from './lote-staging.ts'
 import { importarContactos, importarCuentas, importarMembresias } from './parties.ts'
 import { importarEndosos } from './policies.ts'
@@ -66,77 +66,11 @@ const ENCABEZADOS: Readonly<Record<Modulo, readonly string[]>> = {
   cuentas: [CAMPOS_CUENTA.idDeRegistro, CAMPOS_CUENTA.nombreDeCuenta],
 }
 
-type Filas = Readonly<Record<Modulo, readonly (readonly string[])[]>>
-
-interface OpcionesLote {
-  readonly nombre: string
-  readonly filas: Filas
-  readonly exportadoEl: Readonly<Record<Modulo, string>>
-}
-
-const directorios: string[] = []
-
-const sha256 = (contenido: string | Buffer): string => createHash('sha256').update(contenido).digest('hex')
-
-/** Escribe un lote con perfil de T-0004 y `lote.json`, y devuelve su raíz. */
-const escribirLote = ({ nombre, filas, exportadoEl }: OpcionesLote): string => {
-  const raiz = mkdtempSync(join(tmpdir(), `t0037-${nombre}-`))
-  directorios.push(raiz)
-  const archivos = MODULOS.map((modulo) => {
-    const contenido = [ENCABEZADOS[modulo], ...filas[modulo]].map((fila) => fila.join(',')).join('\n') + '\n'
-    const id = sha256(`${nombre}:${modulo}:${contenido}`)
-    const rawRelativePath = `raw/${id}/0001.csv`
-    mkdirSync(join(raiz, 'raw', id), { recursive: true })
-    writeFileSync(join(raiz, rawRelativePath), contenido, 'utf8')
-    return { modulo, rawRelativePath, sha256: sha256(contenido) }
-  })
-
-  mkdirSync(join(raiz, 'profile'))
-  writeFileSync(
-    join(raiz, 'profile', 'perfil.json'),
-    JSON.stringify({
-      mode: 'profile',
-      facts: [
-        {
-          archive_id: `ZIP-${nombre}`,
-          local_archive_name: `${nombre}.zip`,
-          sha256: sha256(`zip:${nombre}`),
-          files: archivos.map((archivo) => ({
-            file_id: archivo.rawRelativePath.split('/')[1],
-            raw_relative_path: archivo.rawRelativePath,
-            sha256: archivo.sha256,
-          })),
-        },
-      ],
-    }),
-  )
-
-  escribirManifiesto(raiz, exportadoEl, archivos)
-  return raiz
-}
-
-const escribirManifiesto = (
-  raiz: string,
-  exportadoEl: Readonly<Record<Modulo, string>>,
-  archivos: readonly { modulo: Modulo; rawRelativePath: string }[],
-): void => {
-  writeFileSync(
-    join(raiz, 'lote.json'),
-    JSON.stringify({
-      formato: FORMATO_LOTE,
-      perfil: 'profile/perfil.json',
-      modulos: Object.fromEntries(
-        archivos.map((archivo) => [archivo.modulo, { csv: archivo.rawRelativePath, exportadoEl: exportadoEl[archivo.modulo] }]),
-      ),
-    }),
-  )
-}
-
-const mismaFecha = (fecha: string): Record<Modulo, string> =>
-  Object.fromEntries(MODULOS.map((modulo) => [modulo, fecha])) as Record<Modulo, string>
+const escribirLote = (opciones: Omit<OpcionesLote, 'encabezados'>): string =>
+  escribirLoteSintetico({ ...opciones, encabezados: ENCABEZADOS })
 
 // Lote A: el export «viejo». Lote B: P-1 cambió de número, P-2 desapareció, P-3 es nueva.
-const LOTE_A: OpcionesLote = {
+const LOTE_A: Omit<OpcionesLote, 'encabezados'> = {
   nombre: 'a',
   filas: {
     polizas: [
@@ -150,7 +84,7 @@ const LOTE_A: OpcionesLote = {
   exportadoEl: { polizas: '2026-09-16', endosos: '2026-09-16', contactos: '2026-09-15', cuentas: '2026-09-15' },
 }
 
-const LOTE_B: OpcionesLote = {
+const LOTE_B: Omit<OpcionesLote, 'encabezados'> = {
   nombre: 'b',
   filas: {
     polizas: [
@@ -176,7 +110,7 @@ const LOTE_B: OpcionesLote = {
 describe('cargarLoteEnStaging — dos lotes conviven', () => {
   after(async () => {
     await sql.end()
-    for (const directorio of directorios) rmSync(directorio, { recursive: true, force: true })
+    borrarLotesSinteticos()
   })
 
   it('un lote nuevo no pisa el crudo del anterior', async () => {

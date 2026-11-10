@@ -95,9 +95,42 @@ el lote decía.
   dominio son de toda la base: con más de un lote, `endosos.sinPolicyPadre` no es una
   diferencia válida.
 
-## Lo que este incremento no hace
+## Comparar dos lotes (I1b)
 
-- No compara lotes ni clasifica registros en nuevos, iguales, cambiados o ausentes (I1b).
+Con los dos lotes cargados en staging (`load-staging` de cada uno):
+
+```bash
+node packages/db/src/import/cli.ts compare data/zoho-export-2026-09-16 data/zoho-export-AAAA-MM-DD
+```
+
+Primero va el lote anterior y después el nuevo; si en algún módulo el nuevo se exportó
+antes que el anterior, se niega. Corre en una transacción de sólo lectura y no escribe ni en staging ni en el
+dominio. Para cada módulo informa:
+
+- las fechas de export de los dos lotes, y la fecha de corte de cada lote (la más antigua
+  de sus módulos);
+- cuántos registros son **nuevos** (sólo en el nuevo), **iguales**, **cambiados** o
+  **ausentes** (sólo en el anterior). Un ausente no se borra nunca: puede ser un filtro
+  distinto en el export;
+- para los cambiados, cuántos cambiaron **cada campo** que el dominio usa
+  (`CAMPOS_COMPARADOS` en `packages/db/src/import/comparar-lotes.ts`). Un cambio en otra
+  columna, como `Premio`, no hace cambiado a un registro. Vacío, sólo espacios y ausente
+  valen lo mismo, y los espacios de los extremos no cuentan (los importadores los
+  recortan);
+- `camposSinComparar`: campos que uno de los dos exports no trae como columna. No se
+  comparan, porque harían cambiado a cada registro que antes tenía valor. Si aparece uno,
+  conviene revisar la selección de columnas del export.
+
+La salida son conteos, fechas y nombres de campo: ningún id de registro ni valor del lote.
+Con esos conteos se elige entre versión nueva o corrección (`T-0037-refresco.md` §3,
+C3-02). Un cambio en `Número de póliza` es el «sexto punto» del diseño: el conteo dice
+cuántas pólizas lo tienen.
+
+El lote cargado antes de T-0037 no registra fechas de export y no se puede comparar:
+primero se recarga el 16/09 con su `lote.json`.
+
+## Lo que I1a no hace
+
 - No cambia qué se escribe en el dominio: el dominio sigue insertando sin actualizar (H1,
   I2).
 - No cambia la cabecera de VS01, que sigue mostrando la fecha de importación (H4, I3b).
