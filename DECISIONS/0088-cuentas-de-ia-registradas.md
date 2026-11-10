@@ -1,4 +1,4 @@
-# ADR-0088 — Las cuentas de Claude y de ChatGPT/Codex del owner quedan registradas para información de nivel 2
+# ADR-0088 — Las cuentas de Claude, ChatGPT/Codex y Gemini del owner quedan registradas para información de nivel 2
 
 - **Id en `decisions.yaml`:** D-0088
 - **Estado:** ACCEPTED
@@ -14,7 +14,8 @@ sólo por cuentas registradas antes en `decisions.yaml`. Al 2026-11-02 no había
 plan 12 lo pide como IA-01, y de eso dependen RO-04a, IA-02, C9-01 y C13-00.
 
 El 2026-11-10 el owner informó sus tres cuentas, dijo que en las tres el entrenamiento está
-apagado, que no quiere restringir modelos y que el nivel 2 vale sólo para Claude y Codex.
+apagado y que no quiere restringir modelos. Primero permitió el nivel 2 sólo en Claude y
+Codex, y ese mismo día sumó Gemini con todos los modelos de su plan.
 
 ## Decisión
 
@@ -22,7 +23,7 @@ apagado, que no quiere restringir modelos y que el nivel 2 vale sólo para Claud
 |---|---|---|---|---|
 | Cuenta personal de Emiliano | Anthropic, Claude Pro | Apagado (declarado por el owner) | Todos los del plan | **Registrada** |
 | Cuenta personal de Emiliano | OpenAI, ChatGPT Plus (incluye Codex) | Apagado (declarado por el owner) | Todos los del plan | **Registrada** |
-| Cuenta de Workspace de Del Campo | Google, Gemini en Workspace (Work Pro) | Apagado (declarado por el owner) | — | No registrada: sólo nivel 1 |
+| Cuenta de Workspace de Del Campo | Google, Gemini en Workspace (Work Pro) | Apagado (declarado por el owner) | Todos los del plan | **Registrada** |
 
 - Las usa sólo Emiliano. Otra persona necesita su propio registro.
 - El registro no guarda direcciones de correo: identifica la cuenta por su dueño y su tipo.
@@ -48,13 +49,12 @@ sigue rigiendo la preparación de datasets de Risk OS.
 | Alternativa | Por qué no |
 |---|---|
 | Registrar con un modelo nombrado, como pide D-0074 | El owner no quiere restringir modelos; el registro envejecería con cada lanzamiento |
-| Registrar también Gemini para el nivel 2 | El owner sólo lo permite con Claude y Codex |
 | Registrar las direcciones de correo | No hacen falta para identificar la cuenta y son datos personales en el repositorio |
 
 ## Consecuencias
 
-**Más fácil:** el owner puede trabajar con información de nivel 2 en Claude y en
-ChatGPT/Codex desde el merge. Se desbloquean RO-04a, IA-02, C9-01 y C13-00 en lo que
+**Más fácil:** el owner puede trabajar con información de nivel 2 en Claude, ChatGPT/Codex
+y Gemini desde el merge. Se desbloquean RO-04a, IA-02, C9-01 y C13-00 en lo que
 dependía de IA-01.
 
 **Más difícil:** no queda registro de qué modelo procesó cada información. Si un caso lo
@@ -64,5 +64,5 @@ exige, se anota en la evidencia de ese caso.
 
 Se revisa si en una de las cuentas registradas se vuelve a activar el entrenamiento,
 cambia el plan o el proveedor cambia sus condiciones de tratamiento de datos; si aparece
-información de nivel 2 en Gemini o en otra cuenta no registrada; o si otra persona empieza
+información de nivel 2 en una cuenta no registrada; o si otra persona empieza
 a usar estas cuentas.

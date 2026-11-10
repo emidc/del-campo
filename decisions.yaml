@@ -1761,24 +1761,24 @@ decisions:
 
   # ── Hilo «Ejecutar los próximos pasos del plan» (IA-01) ────────────────────
   - id: D-0088
-    title: Las cuentas de Claude y de ChatGPT/Codex del owner quedan registradas para información de nivel 2
+    title: Las cuentas de Claude, ChatGPT/Codex y Gemini del owner quedan registradas para información de nivel 2
     status: ACCEPTED
     date: 2026-11-10
     source: >
       Respuestas del owner del 2026-11-10 en el hilo «Ejecutar los próximos pasos del plan»
       (IA-01 del plan 12): cuentas y planes, entrenamiento apagado en las tres, «no quiero
-      restringir ningún modelo» y «el nivel 2 está permitido con Claude y Codex»; aprobada
+      restringir ningún modelo», «el nivel 2 está permitido con Claude y Codex» y, después,
+      «para gemini quiero agregar todos los modelos del plan y registrarla en nivel 2»; aprobada
       con el merge de este cambio. D-0074, D-0070, D-0082, R-19.
     adr: DECISIONS/0088-cuentas-de-ia-registradas.md
     statement: >
-      Quedan registradas para información de nivel 2 (D-0074) dos cuentas personales de
-      Emiliano del Campo, que es la única persona que las usa: Claude de Anthropic, plan Pro,
-      y ChatGPT/Codex de OpenAI, plan Plus. En las dos, el owner declaró apagado el uso de
-      sus conversaciones para entrenar modelos. El registro abarca todos los modelos que el
-      plan ofrece, sin restringir ninguno; esto reemplaza en parte a D-0074, que pedía
-      nombrar cada modelo. La cuenta de Gemini del Workspace de Del Campo, plan Work Pro,
-      también tiene el entrenamiento apagado pero no queda registrada para el nivel 2: sólo
-      admite el nivel 1. El nivel 3 sigue excluido en todas. Si se vuelve a activar el
+      Quedan registradas para información de nivel 2 (D-0074) tres cuentas de Emiliano del
+      Campo, que es la única persona que las usa: Claude de Anthropic, plan Pro, y
+      ChatGPT/Codex de OpenAI, plan Plus, las dos personales; y Gemini de Google en el
+      Workspace de Del Campo, plan Work Pro. En las tres, el owner declaró apagado el uso de
+      sus conversaciones para entrenar modelos. El registro abarca todos los modelos que
+      cada plan ofrece, sin restringir ninguno; esto reemplaza en parte a D-0074, que pedía
+      nombrar cada modelo. El nivel 3 sigue excluido en todas. Si se vuelve a activar el
       entrenamiento, cambia el plan o el proveedor cambia sus condiciones, la cuenta deja
       de valer para el nivel 2 hasta un nuevo registro. Esto no cambia R-19: Claude Code y
       Codex, como agentes de desarrollo, siguen sin recibir PII real de clientes.
