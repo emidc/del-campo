@@ -29,7 +29,7 @@ Camino estructural (el más largo por dependencias, con el esfuerzo probable):
 
 `INF-03` → `RO-02a` → `RO-02b` → `C1-11` → `C1-12a` → `C1-16` → `C2-04` → `M1` → `E2-01` → `C4-01a` → `C4-01b` → `C4-01c` → `C6-01` → `C6-02a` → `C6-02b` → `C6-02c` → `C6-03a` → `C6-03b` → `E2-02` → `E2-03` → `M2` → `E3-01` → `C7-01` → `C7-03` → `C8-01` → `C10-01` → `C10-02` → `E3-02` → `M3` → `E4-01` → `INF-05` → `C12-01` → `C12-03` → `E4-02` → `M4`
 
-Lo que no está en el camino crítico se puede adelantar o atrasar sin mover M4, mientras haya frentes libres. Desde el 10/11 la consolidación de Broker OS y Risk OS en un proyecto Supabase queda postergada (INF-00a a INF-00c, `T-0040`): INF-03 prepara el proyecto Free dedicado de Risk OS (D-0068) y ya no espera el ADR. Las fechas no se recalcularon con este cambio.
+Lo que no está en el camino crítico se puede adelantar o atrasar sin mover M4, mientras haya frentes libres. Desde el 10/11 la consolidación de Broker OS y Risk OS en un proyecto Supabase queda postergada (INF-00a a INF-00c, `T-0040`): INF-03 prepara el proyecto Free dedicado de Risk OS (D-0068) y ya no espera el ADR. También desde el 10/11 el owner sigue en Free y posterga el paso a Pro (INF-CHK, INF-01, INF-02 e INF-04): D-0079 sigue aceptada, pero hasta que se retome rigen la alternancia y las copias de D-0087, y C3-06 e INF-05 ya no esperan a Pro. El mismo día el owner postergó DAT-01 al 01/01/2027, para que el export no quede desactualizado: C3-02, C3-04, C3-05a y C3-06 se corrieron detrás de esa fecha a mano (escenario probable; el optimista y el pesimista quedan sin calcular), y con ellas C3-06 termina después de la fecha de M1. Por decisión del owner, M1 se mantiene el 06/01 sin el refresco: C3-06 pasa a ser requisito de M2, que es el hito que necesita datos actuales. El planificador no se volvió a correr con estos cambios.
 
 ## 4. Reglas de ejecución
 
@@ -37,6 +37,7 @@ Lo que no está en el camino crítico se puede adelantar o atrasar sin mover M4,
 - **Los agentes trabajan fuera de producción.** Preparar datos e importar son tareas separadas; el paso a producción lo corre o aprueba Emiliano (R-13, R-14).
 - **Ciclos de Linear sólo para lo cercano.** Se comprometen los ciclos 4 y 5; lo demás queda en el backlog con su hito.
 - **Consolidación postergada, con revisión obligatoria:** Risk OS sigue en su proyecto Free dedicado (D-0068). La consolidación con Broker OS se vuelve a evaluar antes de cargar las históricas de Risk, antes del uso habitual del equipo o cuando hagan falta las tres apps activas a la vez; si se decide consolidar, INF-00a a INF-00c vuelven antes de la carga. En cualquier destino, backup probado antes de cargar datos reales.
+- **Pro postergado, con revisión obligatoria:** mientras los proyectos sigan en Free, las copias son las de D-0087. El paso a Pro (INF-CHK, INF-01, INF-02, INF-04) se vuelve a evaluar antes del refresco de producción (C3-06), antes del uso habitual del equipo y antes del primer acceso externo (INF-05).
 - **La observación de OIDC dura 14 días** con evidencia del período completo; un fallo la reinicia. No hereda excepciones de otros contextos.
 - **Estados de tareas:** aprobar este plan no cambia T-0032 (sigue `BLOCKED`) ni T-0036 (sigue `DRAFT`).
 
@@ -61,23 +62,23 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 
 | Id | Tarea | Tipo | P | Fechas | Depende de | Listo cuando | Repo |
 |---|---|---|---|---|---|---|---|
-| INF-CHK | Verificar en el checkout el precio total con impuestos y qué cubren los límites de gasto | humana | P0 | 12/11–16/11 | GOV-01b | el checkout y los límites sostienen un total de USD 66 o menos, con USD 55 como objetivo. | `T-0037` |
-| INF-01 | Respaldar VS01 y transferir sólo su proyecto a la organización Pro | humana | P0 | 17/11–18/11 | INF-CHK | una restauración de prueba recupera VS01 y, después de la transferencia, la app responde. | `T-0037` |
-| INF-02 | Pasar Vercel a Pro con un asiento y límites compatibles con el techo | humana | P0 | 17/11–19/11 | INF-CHK | el asiento y la pausa están configurados y las tres apps responden. | `T-0037` |
+| INF-CHK | Verificar en el checkout el precio total con impuestos y qué cubren los límites de gasto (postergada) | humana | P0 | — | GOV-01b | el checkout y los límites sostienen un total de USD 66 o menos, con USD 55 como objetivo. | `T-0037` |
+| INF-01 | Respaldar VS01 y transferir sólo su proyecto a la organización Pro (postergada) | humana | P0 | — | INF-CHK | una restauración de prueba recupera VS01 y, después de la transferencia, la app responde. | `T-0037` |
+| INF-02 | Pasar Vercel a Pro con un asiento y límites compatibles con el techo (postergada) | humana | P0 | — | INF-CHK | el asiento y la pausa están configurados y las tres apps responden. | `T-0037` |
 | INF-00a | Probar en sintético un proyecto compartido: roles, RLS y denegaciones cruzadas entre Broker y Risk (postergada) | tarea | P0 | — | GOV-01b | las pruebas negativas entre esquemas, pool y roles sin BYPASSRLS pasan o muestran por qué no conviene. | `T-0040` |
 | INF-00b | Probar en sintético la restauración completa, la selectiva y la salida a un proyecto separado (postergada) | tarea | P0 | — | INF-00a | una restauración de un contexto no pisa al otro y la salida queda medida en pasos y tiempo. | `T-0040` |
 | INF-00c | Decidir compartir el proyecto o mantener Risk OS separado (ADR) (postergada) | decision | P0 | — | INF-00b | un ADR elige con costo, aislamiento y restauración medidos; separar es un resultado válido. | `T-0040` |
 | **INF-03** | Preparar el proyecto Free dedicado de Risk OS con backup probado (consolidación postergada) | humana | P1 | 23/11–24/11 | — | el proyecto está activo y un backup de prueba se restauró antes de cargar datos reales. | `T-0032` |
-| INF-04 | Esperar la primera factura y conciliar el costo recurrente completo | espera | P1 | 20/11–03/01 | INF-01, INF-02 | la factura concilia el total; sobre USD 55 se revisa y sobre USD 66 se reduce. | `T-0037` |
-| DAT-01 | Exportar Zoho de nuevo (cuatro módulos) con su manifiesto | humana | P0 | 09/11–11/11 | — | los cuatro módulos tienen fecha, hash y conteos locales, y el lote anterior sigue disponible. | `T-0037` |
+| INF-04 | Esperar la primera factura y conciliar el costo recurrente completo (postergada) | espera | P1 | — | INF-01, INF-02 | la factura concilia el total; sobre USD 55 se revisa y sobre USD 66 se reduce. | `T-0037` |
+| DAT-01 | Exportar Zoho de nuevo (cuatro módulos) con su manifiesto (postergada al 01/01/2027) | humana | P0 | 01/01 | — | los cuatro módulos tienen fecha, hash y conteos locales, y el lote anterior sigue disponible. | `T-0037` |
 | C3-01a | I1a: lote declarado por manifiesto y staging que conserva cada lote | tarea | P0 | 12/11–19/11 | — | dos lotes sintéticos conviven en staging sin pisarse y ninguno exige editar código. | `T-0037` |
 | C3-01b | I1b: fecha de export por módulo y comparación entre lotes que sólo cuenta | tarea | P0 | 20/11–24/11 | C3-01a | la comparación distingue nuevos, iguales, cambiados y ausentes por campo, sin escribir en el dominio. | `T-0037` |
 | C3-01c | I1c: consulta U8 de cobertura documental | tarea | P1 | 20/11–27/11 | C3-01a | U8 cuenta cada póliza una sola vez en cuatro niveles, sin datos de clientes en la salida. | `T-0037` |
-| C3-02 | Correr I1 con el lote real y decidir versión o corrección para las pólizas cambiadas | decision | P0 | 28/11–30/11 | C3-01b, C3-01c, DAT-01 | los conteos por campo sostienen la elección, con fecha contractual y número cambiado resueltos. | `T-0037` |
-| C3-04 | I2: aplicar cambios en el dominio, idempotentes y con historia | tarea | P1 | 01/12–10/12 | C3-02 | repetir un lote no duplica y los cambios respetan la elección y conservan historia. | `T-0037` |
-| C3-05a | I3a: refresco de producción en el lugar, transaccional | tarea | P1 | 11/12–16/12 | C3-04 | un fallo deja intactos datos, usuarios, asignaciones y auditoría. | `T-0037` |
+| C3-02 | Correr I1 con el lote real y decidir versión o corrección para las pólizas cambiadas | decision | P0 | 02/01–04/01 | C3-01b, C3-01c, DAT-01 | los conteos por campo sostienen la elección, con fecha contractual y número cambiado resueltos. | `T-0037` |
+| C3-04 | I2: aplicar cambios en el dominio, idempotentes y con historia | tarea | P1 | 05/01–14/01 | C3-02 | repetir un lote no duplica y los cambios respetan la elección y conservan historia. | `T-0037` |
+| C3-05a | I3a: refresco de producción en el lugar, transaccional | tarea | P1 | 15/01–20/01 | C3-04 | un fallo deja intactos datos, usuarios, asignaciones y auditoría. | `T-0037` |
 | C3-05b | I3b: fecha de corte del export en la cabecera | tarea | P1 | 25/11–27/11 | C3-01b | la cabecera muestra la fecha más antigua del export, también para un lote viejo importado hoy. | `T-0037` |
-| C3-06 | I4: refrescar producción, conciliar 20 pólizas y registrar U8 | tarea | P1 | 17/12–19/12 | C3-05a, C3-05b, INF-01, INF-02 | 20 pólizas, con cambios y ausencias, concilian con Zoho y U8 suma el total. | `T-0037` |
+| C3-06 | I4: refrescar producción, conciliar 20 pólizas y registrar U8 | tarea | P1 | 21/01–23/01 | C3-05a, C3-05b | 20 pólizas, con cambios y ausencias, concilian con Zoho y U8 suma el total. | `T-0037` |
 | C1-14 | Comprobar y, si falta, aplicar la migración de jti de Communication OS | humana | P1 | 25/11–27/11 | — | producción registra jti y un segundo uso del mismo token se rechaza. | `T-0035` |
 | SOU-01a | Operador único en la base de Risk OS: aprobar lo propio con revisión registrada y 24 h | tarea | P1 | 25/11–04/12 | GOV-02a | la base rechaza aprobar lo propio antes de 24 h o sin revisión registrada, y lo acepta después. | `T-0041` |
 | SOU-01b | Operador único en la app de Risk OS: rótulo interno y bloqueo de exportar o entregar | tarea | P1 | 05/12–09/12 | SOU-01a | la aprobación queda rotulada como interna y exportar o compartir con un cliente se rechaza en el servidor. | `T-0041` |
@@ -97,7 +98,7 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 | C2-02a | Organización evaluada (sector, tamaño y zonas) con RLS y auditoría | tarea | P1 | 24/12–31/12 | C2-01, M-RO | la entidad existe con migración aditiva y RLS niega los accesos indebidos. | `T-0036` |
 | C2-02b | Correspondencia manual empresa ↔ organización con su pantalla | tarea | P1 | 01/01–04/01 | C2-02a | una organización se vincula como máximo a una empresa, con id opaco y sin FK entre contextos. | `T-0036` |
 | **C2-04** | Aceptar C2 con una empresa histórica y casos negativos | tarea | P1 | 05/01–06/01 | C2-02b, C1-16 | el vínculo real concilia y un vínculo ajeno o pendiente se rechaza o se muestra como pendiente. | `T-0036` |
-| **M1** | Fundación: identidad común, vínculo y datos vivos comprobados | hito | P1 | 06/01 | C1-16, C2-04, C3-06, M-RO | Emiliano recorre los tres contextos con la misma identidad y la fecha de corte es la real. | — |
+| **M1** | Fundación: identidad común y vínculo comprobados | hito | P1 | 06/01 | C1-16, C2-04, M-RO | Emiliano recorre los tres contextos con la misma identidad y la fecha de corte visible es la del lote vigente. | — |
 | IA-02 | Validar la skill 1 en un caso frente al método manual | tarea | P1 | 28/11–13/12 | IA-01 | el mismo caso permite comparar omisiones, evidencia y tiempo, y la skill se corrige o se descarta. | — |
 | RET-01 | Verificar la retención de Communication OS y registrar la política | tarea | P1 | 05/12–14/12 | GOV-01a | la retención observada y la política coinciden y la eliminación se probó con datos sintéticos. | — |
 | COM-01a | Iniciar el trámite de Meta: número dedicado y verificación del negocio | humana | P2 | 01/01–04/01 | RET-01, C1-16 | la solicitud está presentada con sus datos y consentimientos. | — |
@@ -126,7 +127,7 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 | **C6-03b** | Aceptar C6 con los recorridos R1 a R6 | tarea | P1 | 16/02–18/02 | C6-02a, C6-02b, C6-02c, C6-03a | los seis recorridos pasan contra el servidor. | — |
 | **E2-02** | Refrescar los datos y fijar las consultas de la semana de prueba | tarea | P1 | 19/02–20/02 | C6-03b, C5-02c, C4-03b | los datos tienen corte conocido y la lista de consultas habituales queda fijada antes de observar. | — |
 | **E2-03** | Trabajar siete días con Broker OS sin abrir Zoho CRM para consultar | tarea | P1 | 21/02–27/02 | E2-02 | en cinco jornadas con casos reales las consultas previstas se resuelven sin Zoho. | — |
-| **M2** | Trabajo diario: una semana representativa sin Zoho CRM | hito | P1 | 27/02 | E2-03 | Emiliano acepta la evidencia de consultas y fallos. | — |
+| **M2** | Trabajo diario: una semana representativa sin Zoho CRM | hito | P1 | 27/02 | E2-03, C3-06 | Emiliano acepta la evidencia de consultas y fallos, con los datos de Zoho refrescados (C3-06). | — |
 | C13-00 | Probar MCP de lectura temprano, en sintético | tarea | P2 | 26/01–12/02 | C4-03b, IA-01 | una consulta de lectura reduce pasos medidos y deja auditoría sin datos prohibidos. | — |
 
 ### Etapa 3 · Riesgos y relación
@@ -153,7 +154,7 @@ Fechas en el escenario probable (día/mes). Tipo: `tarea` (agente con revisión)
 |---|---|---|---|---|---|---|---|
 | DEC-04 | Decidir correo, unicidad de ContactPoint y alcance externo | decision | P2 | 28/02–03/03 | M2 | correo, ContactPoint y exclusiones levantadas quedan registrados con su costo. | — |
 | **E4-01** | Escribir los contratos de C11 a C13 y elegir la prueba externa más chica | decision | P2 | 10/05–11/05 | M3, DEC-04 | C11 a C13 tienen contrato y el piloto apunta a una pregunta de valor. | — |
-| **INF-05** | Verificar backups, identidad y costo para el primer acceso externo | tarea | P2 | 12/05–17/05 | E4-01, INF-04 | backup restaurado, OIDC, correo y costo recurrente caben en USD 66. | — |
+| **INF-05** | Verificar backups, identidad y costo para el primer acceso externo | tarea | P2 | 12/05–17/05 | E4-01 | backup restaurado, OIDC, correo y costo recurrente caben en USD 66. | — |
 | C13-01 | C13: MCP de lectura con permisos y auditoría | tarea | P2 | 18/05–28/05 | E4-01, INF-05, C13-00 | cada herramienta lee sólo lo asignado y revocar corta el request siguiente. | — |
 | C13-02 | C13: borradores por MCP, sin herramientas de decisión | tarea | P2 | 29/05–04/06 | C13-01, C5-02c, C10-02 | crear un borrador pide confirmación y ninguna herramienta aprueba ni comparte. | — |
 | E4-03 | Resolver una tarea real por MCP sin copiar y pegar | tarea | P2 | 05/06–07/06 | C13-02 | Emiliano resuelve una tarea con datos autorizados y contrasta el resultado con la fuente. | — |
