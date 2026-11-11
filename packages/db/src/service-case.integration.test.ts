@@ -11,6 +11,7 @@ import { after, describe, it } from 'node:test'
 import postgres from 'postgres'
 
 import {
+  addClaimRequirement,
   addServiceCaseNote,
   assignServiceCase,
   changeServiceCaseStatus,
@@ -19,6 +20,8 @@ import {
   getWorkload,
   listAssignableMembers,
   listServiceCases,
+  moveClaimStage,
+  setClaimRequirementDone,
   takeServiceCase,
 } from './service-case.ts'
 
@@ -311,6 +314,77 @@ describe('gestiones manuales (0013)', () => {
 
       await takeServiceCase(tx, id)
       assert.equal((await getServiceCase(tx, id))?.assignedToMe, true)
+    })
+  })
+
+  it('un siniestro avanza por etapas sólo con los requisitos de la actual cumplidos', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createServiceCase(tx, {
+        kind: 'SINIESTRO', title: 'Granizo', partyId: m.cliente, policyId: m.poliza, dueDate: null, note: null,
+      })
+      const inicial = await getServiceCase(tx, id)
+      assert.ok(inicial)
+      assert.equal(inicial.claimStage, 'DENUNCIA')
+      assert.deepEqual(
+        inicial.requirements.map((r) => [r.stage, r.name]),
+        [
+          ['DENUNCIA', 'Denuncia presentada a la compañía'],
+          ['DOCUMENTACION', 'Fotos o constancias del daño'],
+          ['DOCUMENTACION', 'Presupuesto o detalle de daños'],
+          ['INSPECCION', 'Inspección o peritaje realizado'],
+          ['LIQUIDACION', 'Propuesta de liquidación aceptada'],
+          ['PAGO', 'Pago o rechazo registrado'],
+        ],
+      )
+
+      await tx`savepoint s1`
+      await assert.rejects(moveClaimStage(tx, id, 'NEXT'), /falta Denuncia presentada a la compañía/)
+      await tx`rollback to savepoint s1`
+
+      const [denuncia] = inicial.requirements
+      assert.ok(denuncia)
+      await setClaimRequirementDone(tx, denuncia.id, true)
+      await moveClaimStage(tx, id, 'NEXT')
+      await addClaimRequirement(tx, id, 'DOCUMENTACION', 'Copia del registro')
+      await moveClaimStage(tx, id, 'BACK')
+      await moveClaimStage(tx, id, 'NEXT')
+
+      const g = await getServiceCase(tx, id)
+      assert.ok(g)
+      assert.equal(g.claimStage, 'DOCUMENTACION')
+      assert.equal(g.requirements.filter((r) => r.stage === 'DOCUMENTACION').length, 3)
+      assert.equal(g.requirements.find((r) => r.id === denuncia.id)?.doneByEmail, 'op@sintetico.test')
+      assert.deepEqual(
+        g.events.filter((e) => e.kind === 'ETAPA' || e.kind === 'REQUISITO').map((e) => e.body),
+        [
+          'Cumplido: Denuncia presentada a la compañía',
+          'Denuncia → Documentación',
+          'Documentación → Denuncia',
+          'Denuncia → Documentación',
+        ],
+      )
+
+      // Saltar etapas no se puede ni desde la base.
+      await tx`savepoint s2`
+      await assert.rejects(tx`update service_case set claim_stage = 'PAGO' where id = ${id}`, /de a una etapa/)
+      await tx`rollback to savepoint s2`
+    })
+  })
+
+  it('sólo un siniestro tiene etapa', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createServiceCase(tx, {
+        kind: 'ENDOSO', title: 'x', partyId: m.cliente, policyId: null, dueDate: null, note: null,
+      })
+      const g = await getServiceCase(tx, id)
+      assert.ok(g)
+      assert.equal(g.claimStage, null)
+      assert.deepEqual(g.requirements, [])
+      await assert.rejects(moveClaimStage(tx, id, 'NEXT'), /sólo un siniestro/)
     })
   })
 })

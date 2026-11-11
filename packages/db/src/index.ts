@@ -35,7 +35,12 @@ export type {
 
 // T-0045: gestiones manuales.
 export {
+  CLAIM_STAGES,
+  CLAIM_STAGE_LABELS,
   SERVICE_CASE_KINDS,
+  addClaimRequirement,
+  moveClaimStage,
+  setClaimRequirementDone,
   SERVICE_CASE_STATUSES,
   addServiceCaseNote,
   assignServiceCase,
@@ -48,11 +53,13 @@ export {
   takeServiceCase,
 } from './service-case.ts'
 export type {
+  ClaimStage,
   NewServiceCase,
   ServiceCaseDetail,
   ServiceCaseEvent,
   ServiceCaseFilter,
   ServiceCaseKind,
+  ServiceCaseRequirement,
   ServiceCaseStatus,
   ServiceCaseSummary,
   TeamMember,

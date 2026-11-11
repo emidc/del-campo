@@ -392,9 +392,16 @@ describe('T-0023 — catálogo: toda función propia fija su search_path', () =>
 
     assert.deepEqual(despues, antes)
     // Revertir 0006 sólo saca el SET de las funciones que 0006 fijó. Las que crean 0007
-    // (T-0035) y 0013 (T-0045) traen su search_path en la definición y lo conservan.
+    // (T-0035), 0013 (T-0045) y 0015 (T-0050) traen su search_path en la definición y lo conservan.
     const de0007 = (firma: string): boolean =>
-      firma.startsWith('authz.') || ['audit_event_solo_insercion()', 'service_case_event_inmutable()'].includes(firma)
+      firma.startsWith('authz.') || [
+        'audit_event_solo_insercion()',
+        'service_case_event_inmutable()',
+        'siniestro_cambio_de_etapa()',
+        'siniestro_etapa_inicial()',
+        'siniestro_orden(text)',
+        'siniestro_requisitos_de_fabrica()',
+      ].includes(firma)
     assert.deepEqual(
       sinSearchPath(revertida),
       revertida.map((fila) => fila.firma).filter((firma) => !de0007(firma)),

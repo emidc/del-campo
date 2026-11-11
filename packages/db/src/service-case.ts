@@ -27,6 +27,18 @@ export const SERVICE_CASE_STATUSES = [
 ] as const
 export type ServiceCaseStatus = (typeof SERVICE_CASE_STATUSES)[number]
 
+/** Etapas de un siniestro, en orden (0015_siniestro_etapas.sql). */
+export const CLAIM_STAGES = ['DENUNCIA', 'DOCUMENTACION', 'INSPECCION', 'LIQUIDACION', 'PAGO', 'CIERRE'] as const
+export type ClaimStage = (typeof CLAIM_STAGES)[number]
+
+export interface ServiceCaseRequirement {
+  readonly id: string
+  readonly stage: ClaimStage
+  readonly name: string
+  readonly doneAt: string | null
+  readonly doneByEmail: string | null
+}
+
 export interface ServiceCaseSummary {
   readonly id: string
   readonly kind: ServiceCaseKind
@@ -42,11 +54,13 @@ export interface ServiceCaseSummary {
   readonly createdAt: string
   readonly updatedAt: string
   readonly closedAt: string | null
+  /** Sólo en un siniestro. */
+  readonly claimStage: ClaimStage | null
 }
 
 export interface ServiceCaseEvent {
   readonly id: string
-  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION'
+  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION' | 'ETAPA' | 'REQUISITO'
   readonly body: string | null
   readonly fromStatus: ServiceCaseStatus | null
   readonly toStatus: ServiceCaseStatus | null
@@ -57,6 +71,8 @@ export interface ServiceCaseEvent {
 export interface ServiceCaseDetail extends ServiceCaseSummary {
   readonly outcome: string | null
   readonly events: readonly ServiceCaseEvent[]
+  /** Requisitos de todas las etapas, en orden; vacío si no es un siniestro. */
+  readonly requirements: readonly ServiceCaseRequirement[]
 }
 
 export interface ServiceCaseFilter {
@@ -107,6 +123,7 @@ interface SummaryRow {
   readonly updated_at: string
   readonly closed_at: string | null
   readonly outcome: string | null
+  readonly claim_stage: ClaimStage | null
 }
 
 const resumen = (row: SummaryRow): ServiceCaseSummary => ({
@@ -124,6 +141,7 @@ const resumen = (row: SummaryRow): ServiceCaseSummary => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   closedAt: row.closed_at,
+  claimStage: row.claim_stage,
 })
 
 const seleccion = (sql: QueryExecutor) => sql`
@@ -143,7 +161,8 @@ const seleccion = (sql: QueryExecutor) => sql`
     c.created_at::text as created_at,
     c.updated_at::text as updated_at,
     c.closed_at::text as closed_at,
-    c.outcome
+    c.outcome,
+    c.claim_stage
   from service_case c
   left join party pa on pa.id = c.party_id
   left join person_profile pp on pp.party_id = c.party_id
@@ -197,9 +216,25 @@ export const getServiceCase = async (sql: QueryExecutor, id: string): Promise<Se
     where e.service_case_id = ${id}
     order by e.created_at, e.id
   `
+  const requirements = await sql<
+    { id: string; stage: ClaimStage; name: string; done_at: string | null; done_by_email: string | null }[]
+  >`
+    select r.id, r.stage, r.name, r.done_at::text as done_at,
+      authz.correo_integrante(r.done_by_user_id) as done_by_email
+    from service_case_requirement r
+    where r.service_case_id = ${id}
+    order by array_position(${CLAIM_STAGES}::text[], r.stage), r.position, r.created_at
+  `
   return {
     ...resumen(row),
     outcome: row.outcome,
+    requirements: requirements.map((r) => ({
+      id: r.id,
+      stage: r.stage,
+      name: r.name,
+      doneAt: r.done_at,
+      doneByEmail: r.done_by_email,
+    })),
     events: events.map((e) => ({
       id: e.id,
       kind: e.kind,
@@ -324,4 +359,73 @@ export const getWorkload = async (sql: QueryExecutor): Promise<Workload[]> => {
     order by count(*) desc, 2 nulls first
   `
   return rows.map((r) => ({ userId: r.user_id, email: r.email, open: r.open, overdue: r.overdue }))
+}
+
+export const CLAIM_STAGE_LABELS: Readonly<Record<ClaimStage, string>> = {
+  DENUNCIA: 'Denuncia',
+  DOCUMENTACION: 'Documentación',
+  INSPECCION: 'Inspección o peritaje',
+  LIQUIDACION: 'Liquidación',
+  PAGO: 'Pago o rechazo',
+  CIERRE: 'Cierre',
+}
+
+/**
+ * Mueve un siniestro una etapa adelante o atrás y lo deja en la historia. La base rechaza
+ * avanzar con requisitos pendientes de la etapa actual (0015) y devuelve cuáles faltan.
+ */
+export const moveClaimStage = async (sql: QueryExecutor, id: string, direction: 'NEXT' | 'BACK'): Promise<void> => {
+  const [actual] = await sql<{ claim_stage: ClaimStage | null }[]>`
+    select claim_stage from service_case where id = ${id} for update
+  `
+  if (actual === undefined) throw new Error('gestión inexistente o fuera de alcance')
+  if (actual.claim_stage === null) throw new Error('sólo un siniestro tiene etapas')
+  const i = CLAIM_STAGES.indexOf(actual.claim_stage)
+  const destino = CLAIM_STAGES[direction === 'NEXT' ? i + 1 : i - 1]
+  if (destino === undefined) throw new Error(direction === 'NEXT' ? 'ya está en la última etapa' : 'ya está en la primera etapa')
+  await sql`update service_case set claim_stage = ${destino}, updated_at = now() where id = ${id}`
+  await sql`
+    insert into service_case_event (service_case_id, kind, body, author_user_id)
+    values (
+      ${id}, 'ETAPA',
+      ${`${CLAIM_STAGE_LABELS[actual.claim_stage]} → ${CLAIM_STAGE_LABELS[destino]}`},
+      authz.usuario()
+    )
+  `
+}
+
+/** Marca un requisito como cumplido o lo vuelve a pendiente, y lo deja en la historia. */
+export const setClaimRequirementDone = async (sql: QueryExecutor, requirementId: string, done: boolean): Promise<void> => {
+  const [r] = await sql<{ service_case_id: string; name: string; done: boolean }[]>`
+    select service_case_id, name, done_at is not null as done
+    from service_case_requirement where id = ${requirementId} for update
+  `
+  if (r === undefined) throw new Error('requisito inexistente o fuera de alcance')
+  if (r.done === done) return
+  await sql`
+    update service_case_requirement
+    set done_at = case when ${done} then now() end,
+      done_by_user_id = case when ${done} then authz.usuario() end
+    where id = ${requirementId}
+  `
+  await sql`
+    insert into service_case_event (service_case_id, kind, body, author_user_id)
+    values (${r.service_case_id}, 'REQUISITO', ${`${done ? 'Cumplido' : 'Pendiente otra vez'}: ${r.name}`}, authz.usuario())
+  `
+  await sql`update service_case set updated_at = now() where id = ${r.service_case_id}`
+}
+
+/** Agrega un requisito a una etapa del siniestro. */
+export const addClaimRequirement = async (
+  sql: QueryExecutor,
+  id: string,
+  stage: ClaimStage,
+  name: string,
+): Promise<void> => {
+  const texto = name.trim()
+  if (texto === '') throw new Error('el requisito está vacío')
+  await sql`
+    insert into service_case_requirement (service_case_id, stage, name)
+    values (${id}, ${stage}, ${texto})
+  `
 }

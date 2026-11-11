@@ -349,3 +349,38 @@ h2 {
   font-size: 0.8rem;
   color: var(--tinta-suave);
 }
+
+/* ── Etapas de un siniestro (T-0050) ───────────────────────────────────────── */
+
+.etapas {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.etapa {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--panel);
+  font-size: 0.85rem;
+}
+
+.etapa--hecha {
+  color: var(--tinta-suave);
+}
+
+.etapa--actual {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+  font-weight: 600;
+}
+
+.boton--chico {
+  padding: 2px 8px;
+  font-size: 0.78rem;
+}

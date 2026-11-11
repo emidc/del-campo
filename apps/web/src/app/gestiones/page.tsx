@@ -1,5 +1,5 @@
 import type { ServiceCaseSummary } from '@del-campo/api'
-import { ESTADOS_DE_GESTION, TIPOS_DE_GESTION, gestiones, latestBatch } from '@del-campo/api'
+import { ESTADOS_DE_GESTION, ETAPAS_DE_SINIESTRO, TIPOS_DE_GESTION, gestiones, latestBatch } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
@@ -100,7 +100,10 @@ export default async function GestionesPage({
                     <Link href={`/parte/${g.partyId}`}>{g.partyName ?? 'sin nombre'}</Link>
                   </td>
                   <td>{g.policyId === null ? '—' : <Link href={`/poliza/${g.policyId}`}>{g.policyNumber}</Link>}</td>
-                  <td>{ESTADOS_DE_GESTION[g.status]}</td>
+                  <td>
+                    {ESTADOS_DE_GESTION[g.status]}
+                    {g.claimStage === null ? null : ` · ${ETAPAS_DE_SINIESTRO[g.claimStage]}`}
+                  </td>
                   <td>{g.assignedToMe ? 'vos' : (g.assignedEmail ?? '—')}</td>
                   <td className={g.dueDate !== null && g.dueDate < hoy && g.status !== 'CERRADA' ? 'pendiente' : undefined}>
                     {g.dueDate ?? '—'}
