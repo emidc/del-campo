@@ -58,3 +58,5 @@ export type {
   TeamMember,
   Workload,
 } from './service-case.ts'
+export { listRenewals } from './renewal.ts'
+export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'

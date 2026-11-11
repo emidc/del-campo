@@ -161,6 +161,7 @@ apps/web/src/app/login/page.tsx
 apps/web/src/app/page.tsx
 apps/web/src/app/parte/[id]/page.tsx
 apps/web/src/app/poliza/[id]/page.tsx
+apps/web/src/app/renovaciones/page.tsx
 ```
 
 ## 4. Token entre contextos

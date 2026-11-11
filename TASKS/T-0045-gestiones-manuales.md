@@ -2,7 +2,7 @@
 id: T-0045
 title: Crear, seguir y cerrar gestiones manuales en Broker OS
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
