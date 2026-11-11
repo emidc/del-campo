@@ -13,6 +13,7 @@
     "import": "node src/application/cli-importar.ts",
     "persona": "node src/application/cli-persona.ts",
     "acceso": "node src/application/cli-acceso.ts",
+    "organizacion": "node src/application/cli-organizacion.ts",
     "ciclos": "node src/application/cli-ciclos.ts",
     "db:verificar": "node src/persistence/cli.ts verificar",
     "db:verificar-oidc": "node src/persistence/cli.ts verificar-oidc",

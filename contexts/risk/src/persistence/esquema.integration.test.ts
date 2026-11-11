@@ -362,6 +362,17 @@ const CASOS: Caso[] = [
   ['jti_aceptado_pkey', 'jti_aceptado', dosVeces('jti_aceptado')],
   ['jti_aceptado_emisor_formato', 'jti_aceptado', { emisor: 'Broker OS' }],
   ['jti_aceptado_jti_formato', 'jti_aceptado', { jti: '' }],
+
+  // Organización evaluada y su vínculo con la empresa (T-0036, migración 0011).
+  ['organizacion_ficha_sector', 'organizacion_ficha', { sector: ' ' }],
+  ['organizacion_ficha_tamano', 'organizacion_ficha', { tamano: 'x'.repeat(101) }],
+  ['organizacion_ficha_zonas', 'organizacion_ficha', { zonas: Array.from({ length: 51 }, (_, i) => `Zona ${String(i)}`) }],
+  ['organizacion_ficha_autor_persona_id_fkey', 'organizacion_ficha', { autor_persona_id: PERSONA_INEXISTENTE }],
+  ['vinculo_empresa_empresa_id', 'vinculo_empresa', { empresa_id: 'Empresa por nombre' }],
+  ['vinculo_empresa_autor_persona_id_fkey', 'vinculo_empresa', { autor_persona_id: PERSONA_INEXISTENTE }],
+  ['vinculo_verificado_pkey', 'vinculo_verificado', dosVeces('vinculo_verificado')],
+  ['vinculo_verificado_vinculo_id_fkey', 'vinculo_verificado', { vinculo_id: 999999999 }],
+  ['vinculo_verificado_autor_persona_id_fkey', 'vinculo_verificado', { autor_persona_id: PERSONA_INEXISTENTE }],
 ]
 
 const TABLAS: Tabla[] = [
@@ -369,7 +380,7 @@ const TABLAS: Tabla[] = [
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
   'usuario', 'credencial', 'login_fallido', 'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
-  'jti_aceptado',
+  'jti_aceptado', 'organizacion_ficha', 'vinculo_empresa', 'vinculo_verificado',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */

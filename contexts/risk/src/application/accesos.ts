@@ -36,6 +36,10 @@ export type RechazoAdmin =
   | 'YA_VINCULADA'
   | 'ORGANIZACION_INVALIDA'
   | 'ULTIMO_ADMINISTRADOR'
+  | 'FICHA_INVALIDA'
+  | 'EMPRESA_INVALIDA'
+  | 'EMPRESA_YA_VINCULADA'
+  | 'SIN_VINCULO'
 
 export type ResultadoAdmin<T> = { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly motivo: RechazoAdmin }
 
@@ -60,14 +64,16 @@ const administradoresActivos = async (tx: TransactionSql): Promise<string[]> =>
 const personaExiste = async (tx: TransactionSql, personaId: string): Promise<boolean> =>
   (await tx`select 1 from risk.persona where id = ${personaId}`).length === 1
 
-interface Operacion<T> {
+export interface Operacion<T> {
   readonly accion: string
+  /** El tipo del objeto en la auditoría; `persona` si no se indica. */
+  readonly tipoObjeto?: string
   /** Lo que la operación hace una vez autorizado el actor. Devuelve el id del objeto. */
   readonly hacer: (tx: TransactionSql) => Promise<ResultadoAdmin<T> & { readonly idObjeto?: string }>
 }
 
 /** Autoriza al actor, ejecuta y audita. Un rechazo revierte lo hecho y deja su evento aparte. */
-const operar = async <T>(db: Db, actor: string | null, operacion: Operacion<T>, permitirArranque = false): Promise<ResultadoAdmin<T>> => {
+export const operar = async <T>(db: Db, actor: string | null, operacion: Operacion<T>, permitirArranque = false): Promise<ResultadoAdmin<T>> => {
   class Revertir extends Error {
     readonly resultado: ResultadoAdmin<T>
     constructor(resultado: ResultadoAdmin<T>) {
@@ -88,7 +94,7 @@ const operar = async <T>(db: Db, actor: string | null, operacion: Operacion<T>, 
       const hecho = await operacion.hacer(tx)
       if (!hecho.ok) throw new Revertir(hecho)
       await auditar(tx, {
-        actor, origen: 'cli', accion: operacion.accion, tipoObjeto: 'persona', idObjeto: hecho.idObjeto ?? null,
+        actor, origen: 'cli', accion: operacion.accion, tipoObjeto: operacion.tipoObjeto ?? 'persona', idObjeto: hecho.idObjeto ?? null,
         resultado: 'ok', motivo: actor === null ? 'ARRANQUE' : null,
       })
       return { ok: true, valor: hecho.valor } as const
@@ -99,7 +105,7 @@ const operar = async <T>(db: Db, actor: string | null, operacion: Operacion<T>, 
     if (!resultado.ok) {
       const motivo = resultado.motivo
       await enTransaccion(db, (tx) => auditar(tx, {
-        actor: actor !== null && PERSONA.test(actor) ? actor : null, origen: 'cli', accion: operacion.accion, tipoObjeto: 'persona',
+        actor: actor !== null && PERSONA.test(actor) ? actor : null, origen: 'cli', accion: operacion.accion, tipoObjeto: operacion.tipoObjeto ?? 'persona',
         idObjeto: null, resultado: 'denied', motivo,
       }))
     }
