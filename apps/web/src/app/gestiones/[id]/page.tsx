@@ -2,9 +2,13 @@ import type { ServiceCaseEvent } from '@del-campo/api'
 import {
   CLAIM_STAGES,
   ESTADOS_DE_GESTION,
+  ESTADOS_DE_PROPUESTA,
   ETAPAS_DE_SINIESTRO,
   SERVICE_CASE_STATUSES,
+  QUOTE_CURRENCIES,
   TIPOS_DE_GESTION,
+  companiasActivas,
+  formatQuotePremium,
   gestion,
   integrantesAsignables,
   latestBatch,
@@ -13,7 +17,18 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
-import { agregarRequisitoAEtapa, anotar, asignar, cambiarEstado, marcar, moverEtapa, tomar } from '@/app/gestiones/acciones'
+import {
+  agregarRequisitoAEtapa,
+  anotar,
+  asignar,
+  cambiarEstado,
+  elegir,
+  marcar,
+  moverEtapa,
+  pedirACompania,
+  responderCotizacion,
+  tomar,
+} from '@/app/gestiones/acciones'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +49,8 @@ const describir = (evento: ServiceCaseEvent): string => {
       return `Etapa: ${evento.body ?? ''}`
     case 'REQUISITO':
       return evento.body ?? 'Requisito'
+    case 'PROPUESTA':
+      return evento.body ?? 'Propuesta'
     case 'ESTADO':
       return evento.fromStatus === 'CERRADA'
         ? `Reabrió: ${ESTADOS_DE_GESTION[evento.toStatus ?? 'ABIERTA']}`
@@ -52,11 +69,20 @@ export default async function GestionPage({
   const { id } = await params
   const avisoPedido = (await searchParams).aviso
   const aviso = typeof avisoPedido === 'string' ? avisoPedido.slice(0, 300) : null
-  const [lote, g, integrantes] = await consultar(
-    Promise.all([latestBatch(principal), gestion(principal, id), integrantesAsignables(principal, id)]),
+  const [lote, g, integrantes, companias] = await consultar(
+    Promise.all([
+      latestBatch(principal),
+      gestion(principal, id),
+      integrantesAsignables(principal, id),
+      companiasActivas(principal),
+    ]),
   )
   if (g === null) notFound()
   const cerrada = g.status === 'CERRADA'
+  const avisoVisible =
+    aviso === null ? null : <p className="estado estado--aviso">{aviso.charAt(0).toUpperCase() + aviso.slice(1)}.</p>
+  const pedidas = new Set(g.quoteOptions.map((o) => o.insurerId))
+  const sinPedir = companias.filter((c) => !pedidas.has(c.id))
 
   return (
     <main className="envoltorio">
@@ -87,7 +113,7 @@ export default async function GestionPage({
       {g.claimStage === null ? null : (
         <>
           <h2>Etapas del siniestro</h2>
-          {aviso === null ? null : <p className="estado estado--aviso">{aviso.charAt(0).toUpperCase() + aviso.slice(1)}.</p>}
+          {avisoVisible}
           <ol className="etapas" aria-label="Etapas del siniestro">
             {CLAIM_STAGES.map((etapa, i) => {
               const actual = CLAIM_STAGES.indexOf(g.claimStage ?? 'DENUNCIA')
@@ -179,6 +205,113 @@ export default async function GestionPage({
         </>
       )}
 
+      {g.quote === null ? null : (
+        <>
+          <h2 id="propuestas">Propuestas de las compañías</h2>
+          {avisoVisible}
+          <p className="meta">
+            {g.quote.requested === 0
+              ? 'Todavía no se pidió a ninguna compañía.'
+              : `Pedida a ${String(g.quote.requested)} · cotizaron ${String(g.quote.quoted)}`}
+            {g.quote.chosenInsurer === null ? null : (
+              <>
+                {' · '}
+                <strong>El cliente eligió {g.quote.chosenInsurer}</strong>
+              </>
+            )}
+          </p>
+          {g.quoteOptions.map((o) => (
+            <article className={o.status === 'ELEGIDA' ? 'tarjeta tarjeta--elegida' : 'tarjeta'} key={o.id}>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                {o.insurerName} · {ESTADOS_DE_PROPUESTA[o.status]}
+                {o.premium === null ? null : ` · ${formatQuotePremium(o.premium, o.currency)}`}
+              </p>
+              <p className="meta">
+                {o.validUntil === null ? null : `Vale hasta ${o.validUntil} · `}
+                Actualizada el {momento(o.updatedAt)}
+                {o.note === null ? null : ` · ${o.note}`}
+              </p>
+              <form action={responderCotizacion} className="buscador" style={{ marginTop: '0.5rem' }}>
+                <input type="hidden" name="id" value={g.id} />
+                <input type="hidden" name="propuesta" value={o.id} />
+                <div className="campo">
+                  <label htmlFor={`prima-${o.id}`}>Prima</label>
+                  <input
+                    id={`prima-${o.id}`}
+                    name="prima"
+                    inputMode="decimal"
+                    placeholder="120.000,50"
+                    defaultValue={o.premium?.replace('.', ',') ?? ''}
+                  />
+                </div>
+                <div className="campo">
+                  <label htmlFor={`moneda-${o.id}`}>Moneda</label>
+                  <select id={`moneda-${o.id}`} name="moneda" defaultValue={o.currency}>
+                    {QUOTE_CURRENCIES.map((m) => (
+                      <option key={m} value={m}>
+                        {m === 'ARS' ? 'Pesos' : 'Dólares'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="campo">
+                  <label htmlFor={`vence-${o.id}`}>Vale hasta</label>
+                  <input id={`vence-${o.id}`} name="vence" type="date" defaultValue={o.validUntil ?? ''} />
+                </div>
+                <div className="campo">
+                  <label htmlFor={`nota-${o.id}`}>Nota</label>
+                  <input id={`nota-${o.id}`} name="nota" maxLength={500} defaultValue={o.note ?? ''} />
+                </div>
+                <div className="acciones">
+                  <button type="submit" name="respuesta" value="COTIZO" className="boton--secundario">
+                    Guardar cotización
+                  </button>
+                  {o.status === 'PEDIDA' ? (
+                    <button type="submit" name="respuesta" value="NO_COTIZA" className="boton--secundario">
+                      No cotiza
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+              {o.status === 'COTIZADA' || o.status === 'ELEGIDA' ? (
+                <form action={elegir} style={{ marginTop: '0.5rem' }}>
+                  <input type="hidden" name="id" value={g.id} />
+                  <input type="hidden" name="propuesta" value={o.id} />
+                  {o.status === 'ELEGIDA' ? (
+                    <button type="submit" name="deshacer" value="1" className="boton--secundario">
+                      Deshacer la elección
+                    </button>
+                  ) : (
+                    <button type="submit">El cliente eligió esta</button>
+                  )}
+                </form>
+              ) : null}
+            </article>
+          ))}
+          {sinPedir.length === 0 ? null : (
+            <form action={pedirACompania} className="buscador">
+              <input type="hidden" name="id" value={g.id} />
+              <div className="campo" style={{ gridColumn: 'span 2' }}>
+                <label htmlFor="compania">Pedir cotización a</label>
+                <select id="compania" name="compania" defaultValue="">
+                  <option value="" disabled>
+                    Elegí una compañía
+                  </option>
+                  {sinPedir.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="acciones">
+                <button type="submit">Pedir</button>
+              </div>
+            </form>
+          )}
+        </>
+      )}
+
       <h2>Responsable</h2>
       <form action={asignar} className="buscador">
         <input type="hidden" name="id" value={g.id} />
@@ -246,7 +379,7 @@ export default async function GestionPage({
           <p className="meta" style={{ margin: 0 }}>
             {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
-          {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
+          {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO', 'PROPUESTA'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
         </article>
       ))}
     </main>

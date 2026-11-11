@@ -3,7 +3,13 @@
 
 import type {
   ClaimStage,
+  InsurerOption,
   NewServiceCase,
+  QuoteAnswer,
+  QuoteCurrency,
+  QuoteOption,
+  QuoteOptionStatus,
+  QuoteProgress,
   ServiceCaseDetail,
   ServiceCaseEvent,
   ServiceCaseFilter,
@@ -31,6 +37,14 @@ import {
   moveClaimStage,
   setClaimRequirementDone,
   takeServiceCase,
+  QUOTE_CURRENCIES,
+  chooseQuoteOption,
+  declineQuoteOption,
+  formatQuotePremium,
+  listActiveInsurers,
+  recordQuoteAnswer,
+  requestQuoteOption,
+  unchooseQuoteOption,
 } from '@del-campo/db'
 
 import { conDatos } from '../acceso/datos.ts'
@@ -39,7 +53,13 @@ import type { Principal } from '../session/admission.ts'
 
 export type {
   ClaimStage,
+  InsurerOption,
   NewServiceCase,
+  QuoteAnswer,
+  QuoteCurrency,
+  QuoteOption,
+  QuoteOptionStatus,
+  QuoteProgress,
   ServiceCaseDetail,
   ServiceCaseEvent,
   ServiceCaseFilter,
@@ -50,7 +70,7 @@ export type {
   TeamMember,
   Workload,
 }
-export { CLAIM_STAGES, SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES }
+export { CLAIM_STAGES, QUOTE_CURRENCIES, SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES, formatQuotePremium }
 
 /** T-0050: etiquetas de las etapas de un siniestro. */
 export const ETAPAS_DE_SINIESTRO = CLAIM_STAGE_LABELS
@@ -121,3 +141,32 @@ export const marcarRequisito = async (principal: Principal, requisito: string, c
 
 export const agregarRequisito = async (principal: Principal, id: string, etapa: ClaimStage, nombre: string): Promise<void> =>
   conDatos(sql(), principal, (ejecutor) => addClaimRequirement(ejecutor, id, etapa, nombre))
+
+/** T-0051: estados de una propuesta de cotización. */
+export const ESTADOS_DE_PROPUESTA: Readonly<Record<QuoteOptionStatus, string>> = {
+  PEDIDA: 'Pedida',
+  COTIZADA: 'Cotizada',
+  DECLINADA: 'No cotiza',
+  ELEGIDA: 'Elegida',
+}
+
+export const esMonedaDeCotizacion = (valor: unknown): valor is QuoteCurrency =>
+  typeof valor === 'string' && (QUOTE_CURRENCIES as readonly string[]).includes(valor)
+
+export const companiasActivas = async (principal: Principal): Promise<InsurerOption[]> =>
+  conDatos(sql(), principal, (ejecutor) => listActiveInsurers(ejecutor))
+
+export const pedirCotizacion = async (principal: Principal, id: string, compania: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => requestQuoteOption(ejecutor, id, compania))
+
+export const registrarCotizacion = async (principal: Principal, propuesta: string, respuesta: QuoteAnswer): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => recordQuoteAnswer(ejecutor, propuesta, respuesta))
+
+export const noCotiza = async (principal: Principal, propuesta: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => declineQuoteOption(ejecutor, propuesta))
+
+export const elegirPropuesta = async (principal: Principal, propuesta: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => chooseQuoteOption(ejecutor, propuesta))
+
+export const deshacerEleccion = async (principal: Principal, propuesta: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => unchooseQuoteOption(ejecutor, propuesta))

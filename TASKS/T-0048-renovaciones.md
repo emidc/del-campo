@@ -2,7 +2,7 @@
 id: T-0048
 title: Renovaciones derivadas de las pólizas vigentes
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S

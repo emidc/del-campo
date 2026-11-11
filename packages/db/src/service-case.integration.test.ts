@@ -14,6 +14,13 @@ import {
   addClaimRequirement,
   addServiceCaseNote,
   assignServiceCase,
+  chooseQuoteOption,
+  declineQuoteOption,
+  formatQuotePremium,
+  listActiveInsurers,
+  recordQuoteAnswer,
+  requestQuoteOption,
+  unchooseQuoteOption,
   changeServiceCaseStatus,
   createServiceCase,
   getServiceCase,
@@ -385,6 +392,116 @@ describe('gestiones manuales (0013)', () => {
       assert.equal(g.claimStage, null)
       assert.deepEqual(g.requirements, [])
       await assert.rejects(moveClaimStage(tx, id, 'NEXT'), /sólo un siniestro/)
+    })
+  })
+
+  it('una cotización se pide a varias compañías y el cliente elige una propuesta', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const organizacion = async (): Promise<string> =>
+        uno(await tx<Id[]>`insert into party (kind) values ('ORGANIZATION') returning id`).id
+      const segunda = uno(
+        await tx<Id[]>`insert into insurer (organization_party_id, canonical_name) values (${await organizacion()}, 'Compañía B') returning id`,
+      ).id
+      const tercera = uno(
+        await tx<Id[]>`insert into insurer (organization_party_id, canonical_name) values (${await organizacion()}, 'Compañía C') returning id`,
+      ).id
+      await como(tx, m.op)
+      const companias = await listActiveInsurers(tx)
+      const primera = companias.find((c) => c.name === 'Aseguradora Sintética')
+      assert.ok(primera)
+
+      const id = await createServiceCase(tx, {
+        kind: 'COTIZACION', title: 'Auto nuevo', partyId: m.cliente, policyId: null, dueDate: null, note: null,
+      })
+      for (const compania of [primera.id, segunda, tercera]) await requestQuoteOption(tx, id, compania)
+
+      await tx`savepoint s1`
+      await assert.rejects(requestQuoteOption(tx, id, segunda), /una_por_compania/)
+      await tx`rollback to savepoint s1`
+
+      const pedida = await getServiceCase(tx, id)
+      assert.ok(pedida)
+      assert.deepEqual(pedida.quote, { requested: 3, quoted: 0, chosenInsurer: null })
+      const opcion = (nombre: string) => {
+        const o = pedida.quoteOptions.find((x) => x.insurerName === nombre)
+        assert.ok(o)
+        return o.id
+      }
+
+      // Sin prima no se elige.
+      await tx`savepoint s2`
+      await assert.rejects(chooseQuoteOption(tx, opcion('Compañía B')), /sólo se elige una propuesta cotizada/)
+      await tx`rollback to savepoint s2`
+
+      await recordQuoteAnswer(tx, opcion('Compañía B'), { premium: '1234567.5', currency: 'ARS', validUntil: '2026-12-31', note: null })
+      await recordQuoteAnswer(tx, opcion('Aseguradora Sintética'), { premium: '950', currency: 'USD', validUntil: null, note: 'con franquicia' })
+      await declineQuoteOption(tx, opcion('Compañía C'))
+      await chooseQuoteOption(tx, opcion('Compañía B'))
+      await chooseQuoteOption(tx, opcion('Aseguradora Sintética'))
+      await unchooseQuoteOption(tx, opcion('Aseguradora Sintética'))
+      await chooseQuoteOption(tx, opcion('Compañía B'))
+
+      const g = await getServiceCase(tx, id)
+      assert.ok(g)
+      assert.deepEqual(g.quote, { requested: 3, quoted: 2, chosenInsurer: 'Compañía B' })
+      assert.deepEqual(
+        g.quoteOptions.map((o) => [o.insurerName, o.status, o.premium, o.currency]),
+        [
+          ['Aseguradora Sintética', 'COTIZADA', '950.00', 'USD'],
+          ['Compañía B', 'ELEGIDA', '1234567.50', 'ARS'],
+          ['Compañía C', 'DECLINADA', null, 'ARS'],
+        ],
+      )
+      assert.deepEqual(
+        g.events.filter((e) => e.kind === 'PROPUESTA').map((e) => e.body),
+        [
+          'Pedida a Aseguradora Sintética',
+          'Pedida a Compañía B',
+          'Pedida a Compañía C',
+          'Compañía B cotizó $ 1.234.567,50, vale hasta 2026-12-31',
+          'Aseguradora Sintética cotizó US$ 950,00',
+          'Compañía C no cotiza',
+          'El cliente eligió Compañía B',
+          'El cliente eligió Aseguradora Sintética',
+          'Se deshizo la elección de Aseguradora Sintética',
+          'El cliente eligió Compañía B',
+        ],
+      )
+      assert.equal((await listServiceCases(tx)).find((x) => x.id === id)?.quote?.chosenInsurer, 'Compañía B')
+      assert.equal(formatQuotePremium('120000', 'ARS'), '$ 120.000,00')
+
+      // Dos elegidas no se pueden ni desde la base.
+      await tx`savepoint s3`
+      await assert.rejects(
+        tx`update service_case_quote_option set status = 'ELEGIDA' where service_case_id = ${id} and status = 'COTIZADA'`,
+        /una_elegida/,
+      )
+      await tx`rollback to savepoint s3`
+    })
+  })
+
+  it('sólo una cotización tiene propuestas, y quien no ve al cliente no las ve', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const [compania] = await listActiveInsurers(tx)
+      assert.ok(compania)
+      const endoso = await createServiceCase(tx, {
+        kind: 'ENDOSO', title: 'x', partyId: m.cliente, policyId: null, dueDate: null, note: null,
+      })
+      await tx`savepoint s1`
+      await assert.rejects(requestQuoteOption(tx, endoso, compania.id), /sólo una cotización tiene propuestas/)
+      await tx`rollback to savepoint s1`
+      assert.equal((await getServiceCase(tx, endoso))?.quote, null)
+
+      const id = await createServiceCase(tx, {
+        kind: 'COTIZACION', title: 'Hogar', partyId: m.cliente, policyId: null, dueDate: null, note: null,
+      })
+      await requestQuoteOption(tx, id, compania.id)
+      await como(tx, m.op2)
+      assert.equal(await getServiceCase(tx, id), null)
+      assert.equal((await tx`select id from service_case_quote_option where service_case_id = ${id}`).length, 0)
     })
   })
 })

@@ -384,3 +384,10 @@ h2 {
   padding: 2px 8px;
   font-size: 0.78rem;
 }
+
+/* ── Propuestas de una cotización (T-0051) ─────────────────────────────────── */
+
+.tarjeta--elegida {
+  border-color: var(--acento);
+  box-shadow: inset 3px 0 0 var(--acento);
+}
