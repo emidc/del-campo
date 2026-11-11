@@ -4,12 +4,16 @@
 // por `conDatos`: lo que la persona puede escribir lo decide RLS, no el formulario.
 
 import {
+  agregarRequisito,
   anotarGestion,
   asignarGestion,
   cambiarEstadoGestion,
   crearGestion,
   esEstadoDeGestion,
+  esEtapaDeSiniestro,
   esTipoDeGestion,
+  marcarRequisito,
+  moverEtapaSiniestro,
   tomarGestion,
 } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
@@ -84,4 +88,39 @@ export async function asignar(form: FormData): Promise<void> {
   await consultar(asignarGestion(principal, id, opcional(form, 'responsable')))
   revalidatePath(`/gestiones/${id}`)
   revalidatePath('/gestiones')
+}
+
+// T-0050 — Siniestros por etapas. Un avance con requisitos pendientes lo rechaza la base;
+// el motivo vuelve a la página como aviso en vez de una pantalla de error.
+export async function moverEtapa(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  const sentido = texto(form, 'sentido') === 'BACK' ? 'BACK' : 'NEXT'
+  let aviso: string | null = null
+  try {
+    await consultar(moverEtapaSiniestro(principal, id, sentido))
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : ''
+    if (!/no se puede avanzar|de a una etapa|última etapa|primera etapa/.test(mensaje)) throw error
+    aviso = mensaje
+  }
+  revalidatePath(`/gestiones/${id}`)
+  redirect(aviso === null ? `/gestiones/${id}` : `/gestiones/${id}?aviso=${encodeURIComponent(aviso)}`)
+}
+
+export async function marcar(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  await consultar(marcarRequisito(principal, texto(form, 'requisito'), texto(form, 'cumplido') === '1'))
+  revalidatePath(`/gestiones/${id}`)
+}
+
+export async function agregarRequisitoAEtapa(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  const etapa = texto(form, 'etapa')
+  const nombre = texto(form, 'nombre')
+  if (!esEtapaDeSiniestro(etapa)) throw new Error('Etapa de siniestro desconocida.')
+  if (nombre !== '') await consultar(agregarRequisito(principal, id, etapa, nombre.slice(0, 200)))
+  revalidatePath(`/gestiones/${id}`)
 }

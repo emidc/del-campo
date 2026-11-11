@@ -7,7 +7,8 @@ import { resumirInicio } from './indicadores.ts'
 
 const gestion = (id: string, cambios: Partial<ServiceCaseSummary>): ServiceCaseSummary => ({
   id, kind: 'OTRO', title: id, status: 'ABIERTA', partyId: 'p', partyName: null, policyId: null, policyNumber: null,
-  assignedEmail: null, assignedToMe: false, dueDate: null, createdAt: '', updatedAt: '', closedAt: null, ...cambios,
+  assignedEmail: null, assignedToMe: false, dueDate: null, createdAt: '', updatedAt: '', closedAt: null, claimStage: null,
+  ...cambios,
 })
 
 const renovacion = (id: string, cambios: Partial<RenewalItem>): RenewalItem => ({

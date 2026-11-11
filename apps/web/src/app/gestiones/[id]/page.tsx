@@ -1,6 +1,8 @@
 import type { ServiceCaseEvent } from '@del-campo/api'
 import {
+  CLAIM_STAGES,
   ESTADOS_DE_GESTION,
+  ETAPAS_DE_SINIESTRO,
   SERVICE_CASE_STATUSES,
   TIPOS_DE_GESTION,
   gestion,
@@ -11,7 +13,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
-import { anotar, asignar, cambiarEstado, tomar } from '@/app/gestiones/acciones'
+import { agregarRequisitoAEtapa, anotar, asignar, cambiarEstado, marcar, moverEtapa, tomar } from '@/app/gestiones/acciones'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -28,6 +30,10 @@ const describir = (evento: ServiceCaseEvent): string => {
       return 'Cerró la gestión'
     case 'ASIGNACION':
       return `Asignó a ${evento.body ?? 'sin responsable'}`
+    case 'ETAPA':
+      return `Etapa: ${evento.body ?? ''}`
+    case 'REQUISITO':
+      return evento.body ?? 'Requisito'
     case 'ESTADO':
       return evento.fromStatus === 'CERRADA'
         ? `Reabrió: ${ESTADOS_DE_GESTION[evento.toStatus ?? 'ABIERTA']}`
@@ -35,9 +41,17 @@ const describir = (evento: ServiceCaseEvent): string => {
   }
 }
 
-export default async function GestionPage({ params }: { readonly params: Promise<{ readonly id: string }> }) {
+export default async function GestionPage({
+  params,
+  searchParams,
+}: {
+  readonly params: Promise<{ readonly id: string }>
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const principal = await requireAdmitted()
   const { id } = await params
+  const avisoPedido = (await searchParams).aviso
+  const aviso = typeof avisoPedido === 'string' ? avisoPedido.slice(0, 300) : null
   const [lote, g, integrantes] = await consultar(
     Promise.all([latestBatch(principal), gestion(principal, id), integrantesAsignables(principal, id)]),
   )
@@ -69,6 +83,101 @@ export default async function GestionPage({ params }: { readonly params: Promise
         {cerrada && g.closedAt !== null ? ` · Cerrada el ${momento(g.closedAt)}` : null}
       </p>
       {cerrada && g.outcome !== null ? <p className="estado">Resultado: {g.outcome}</p> : null}
+
+      {g.claimStage === null ? null : (
+        <>
+          <h2>Etapas del siniestro</h2>
+          {aviso === null ? null : <p className="estado estado--aviso">{aviso.charAt(0).toUpperCase() + aviso.slice(1)}.</p>}
+          <ol className="etapas" aria-label="Etapas del siniestro">
+            {CLAIM_STAGES.map((etapa, i) => {
+              const actual = CLAIM_STAGES.indexOf(g.claimStage ?? 'DENUNCIA')
+              return (
+                <li
+                  key={etapa}
+                  className={i < actual ? 'etapa etapa--hecha' : i === actual ? 'etapa etapa--actual' : 'etapa'}
+                  aria-current={i === actual ? 'step' : undefined}
+                >
+                  {i < actual ? '✓ ' : null}
+                  {ETAPAS_DE_SINIESTRO[etapa]}
+                </li>
+              )
+            })}
+          </ol>
+          {CLAIM_STAGES.map((etapa) => {
+            const requisitos = g.requirements.filter((r) => r.stage === etapa)
+            const esActual = etapa === g.claimStage
+            if (!esActual && requisitos.length === 0) return null
+            return (
+              <article className="tarjeta" key={etapa} style={esActual ? undefined : { opacity: 0.75 }}>
+                <p style={{ margin: 0, fontWeight: 600 }}>
+                  {ETAPAS_DE_SINIESTRO[etapa]}
+                  {esActual ? ' · etapa actual' : null}
+                </p>
+                {requisitos.length === 0 ? (
+                  <p className="meta" style={{ margin: '0.35rem 0 0' }}>
+                    Sin requisitos.
+                  </p>
+                ) : (
+                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+                    {requisitos.map((r) => (
+                      <li key={r.id}>
+                        <form action={marcar} style={{ display: 'inline' }}>
+                          <input type="hidden" name="id" value={g.id} />
+                          <input type="hidden" name="requisito" value={r.id} />
+                          <input type="hidden" name="cumplido" value={r.doneAt === null ? '1' : '0'} />
+                          {r.doneAt === null ? <span className="pendiente">Falta</span> : <span>✓</span>} {r.name}{' '}
+                          <button type="submit" className="boton--secundario boton--chico">
+                            {r.doneAt === null ? 'Marcar cumplido' : 'Desmarcar'}
+                          </button>
+                        </form>
+                        {r.doneAt === null ? null : (
+                          <span className="meta">
+                            {' '}
+                            · {momento(r.doneAt)} · {r.doneByEmail ?? 'integrante dado de baja'}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {esActual ? (
+                  <form action={agregarRequisitoAEtapa} className="buscador" style={{ marginTop: '0.6rem' }}>
+                    <input type="hidden" name="id" value={g.id} />
+                    <input type="hidden" name="etapa" value={etapa} />
+                    <div className="campo" style={{ gridColumn: 'span 2' }}>
+                      <label htmlFor={`req-${etapa}`}>Agregar requisito a esta etapa</label>
+                      <input id={`req-${etapa}`} name="nombre" maxLength={200} required />
+                    </div>
+                    <div className="acciones">
+                      <button type="submit" className="boton--secundario">
+                        Agregar
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+              </article>
+            )
+          })}
+          <div style={{ display: 'flex', gap: '0.5rem', margin: '0.75rem 0' }}>
+            {g.claimStage === 'DENUNCIA' ? null : (
+              <form action={moverEtapa}>
+                <input type="hidden" name="id" value={g.id} />
+                <input type="hidden" name="sentido" value="BACK" />
+                <button type="submit" className="boton--secundario">
+                  ← Volver una etapa
+                </button>
+              </form>
+            )}
+            {g.claimStage === 'CIERRE' ? null : (
+              <form action={moverEtapa}>
+                <input type="hidden" name="id" value={g.id} />
+                <input type="hidden" name="sentido" value="NEXT" />
+                <button type="submit">Avanzar a la siguiente etapa →</button>
+              </form>
+            )}
+          </div>
+        </>
+      )}
 
       <h2>Responsable</h2>
       <form action={asignar} className="buscador">
@@ -137,7 +246,7 @@ export default async function GestionPage({ params }: { readonly params: Promise
           <p className="meta" style={{ margin: 0 }}>
             {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
-          {evento.body === null || evento.kind === 'ASIGNACION' ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
+          {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
         </article>
       ))}
     </main>

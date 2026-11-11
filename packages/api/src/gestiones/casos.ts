@@ -2,19 +2,24 @@
 // `conDatos`: como `broker_app`, con el principal declarado y RLS decidiendo el alcance.
 
 import type {
+  ClaimStage,
   NewServiceCase,
   ServiceCaseDetail,
   ServiceCaseEvent,
   ServiceCaseFilter,
   ServiceCaseKind,
+  ServiceCaseRequirement,
   ServiceCaseStatus,
   ServiceCaseSummary,
   TeamMember,
   Workload,
 } from '@del-campo/db'
 import {
+  CLAIM_STAGES,
+  CLAIM_STAGE_LABELS,
   SERVICE_CASE_KINDS,
   SERVICE_CASE_STATUSES,
+  addClaimRequirement,
   addServiceCaseNote,
   assignServiceCase,
   changeServiceCaseStatus,
@@ -23,6 +28,8 @@ import {
   getWorkload,
   listAssignableMembers,
   listServiceCases,
+  moveClaimStage,
+  setClaimRequirementDone,
   takeServiceCase,
 } from '@del-campo/db'
 
@@ -31,17 +38,25 @@ import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
 export type {
+  ClaimStage,
   NewServiceCase,
   ServiceCaseDetail,
   ServiceCaseEvent,
   ServiceCaseFilter,
   ServiceCaseKind,
+  ServiceCaseRequirement,
   ServiceCaseStatus,
   ServiceCaseSummary,
   TeamMember,
   Workload,
 }
-export { SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES }
+export { CLAIM_STAGES, SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES }
+
+/** T-0050: etiquetas de las etapas de un siniestro. */
+export const ETAPAS_DE_SINIESTRO = CLAIM_STAGE_LABELS
+
+export const esEtapaDeSiniestro = (valor: unknown): valor is ClaimStage =>
+  typeof valor === 'string' && (CLAIM_STAGES as readonly string[]).includes(valor)
 
 export const TIPOS_DE_GESTION: Readonly<Record<ServiceCaseKind, string>> = {
   SINIESTRO: 'Siniestro',
@@ -97,3 +112,12 @@ export const asignarGestion = async (principal: Principal, id: string, usuario: 
 
 export const cargaDelEquipo = async (principal: Principal): Promise<Workload[]> =>
   conDatos(sql(), principal, (ejecutor) => getWorkload(ejecutor))
+
+export const moverEtapaSiniestro = async (principal: Principal, id: string, sentido: 'NEXT' | 'BACK'): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => moveClaimStage(ejecutor, id, sentido))
+
+export const marcarRequisito = async (principal: Principal, requisito: string, cumplido: boolean): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => setClaimRequirementDone(ejecutor, requisito, cumplido))
+
+export const agregarRequisito = async (principal: Principal, id: string, etapa: ClaimStage, nombre: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => addClaimRequirement(ejecutor, id, etapa, nombre))
