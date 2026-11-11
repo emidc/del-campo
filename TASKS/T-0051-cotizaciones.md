@@ -2,7 +2,7 @@
 id: T-0051
 title: Cotizaciones con propuestas por compañía
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S
