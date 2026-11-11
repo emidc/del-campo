@@ -5,6 +5,7 @@
 
 import {
   anotarGestion,
+  asignarGestion,
   cambiarEstadoGestion,
   crearGestion,
   esEstadoDeGestion,
@@ -73,6 +74,14 @@ export async function tomar(form: FormData): Promise<void> {
   const principal = await requireAdmitted()
   const id = texto(form, 'id')
   await consultar(tomarGestion(principal, id))
+  revalidatePath(`/gestiones/${id}`)
+  revalidatePath('/gestiones')
+}
+
+export async function asignar(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  await consultar(asignarGestion(principal, id, opcional(form, 'responsable')))
   revalidatePath(`/gestiones/${id}`)
   revalidatePath('/gestiones')
 }

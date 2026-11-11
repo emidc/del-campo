@@ -12,9 +12,12 @@ import postgres from 'postgres'
 
 import {
   addServiceCaseNote,
+  assignServiceCase,
   changeServiceCaseStatus,
   createServiceCase,
   getServiceCase,
+  getWorkload,
+  listAssignableMembers,
   listServiceCases,
   takeServiceCase,
 } from './service-case.ts'
@@ -268,6 +271,46 @@ describe('gestiones manuales (0013)', () => {
       await assert.rejects(tx`update service_case_event set body = 'x' where service_case_id = ${id}`, /sólo de alta/)
       await tx`rollback to savepoint s1`
       await assert.rejects(tx`delete from service_case_event where service_case_id = ${id}`, /sólo de alta/)
+    })
+  })
+
+  it('una gestión se asigna sólo a quien ve al cliente, y queda en la historia y en la carga del equipo', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await tx`
+        insert into client_assignment (user_id, client_party_id, valid)
+        values (${m.op2}, ${m.cliente}, tstzrange(now() - interval '1 day', null, '[)'))
+      `
+      await como(tx, m.op)
+      const id = await createServiceCase(tx, {
+        kind: 'OTRO', title: 'algo', partyId: m.cliente, policyId: null, dueDate: '2000-01-01', note: null,
+      })
+      // Ven al cliente: el admin, op y op2. El Revisor tiene asignación pero no es Operador.
+      assert.deepEqual(
+        (await listAssignableMembers(tx, id)).map((i) => i.email),
+        ['admin@sintetico.test', 'op2@sintetico.test', 'op@sintetico.test'],
+      )
+      await tx`savepoint s1`
+      await assert.rejects(assignServiceCase(tx, id, m.revisor), /row-level security/)
+      await tx`rollback to savepoint s1`
+
+      await assignServiceCase(tx, id, m.op2)
+      const g = await getServiceCase(tx, id)
+      assert.ok(g)
+      assert.equal(g.assignedEmail, 'op2@sintetico.test')
+      assert.equal(g.events.at(-1)?.kind, 'ASIGNACION')
+      assert.equal(g.events.at(-1)?.body, 'op2@sintetico.test')
+
+      assert.deepEqual(await getWorkload(tx), [{ userId: m.op2, email: 'op2@sintetico.test', open: 1, overdue: 1 }])
+      assert.deepEqual((await listServiceCases(tx, { assignedUserId: m.op2 })).map((x) => x.id), [id])
+      assert.deepEqual(await listServiceCases(tx, { assignedUserId: m.op }), [])
+
+      await assignServiceCase(tx, id, null)
+      assert.deepEqual((await listServiceCases(tx, { assignedUserId: 'SIN_RESPONSABLE' })).map((x) => x.id), [id])
+      assert.equal((await getServiceCase(tx, id))?.events.at(-1)?.body, 'sin responsable')
+
+      await takeServiceCase(tx, id)
+      assert.equal((await getServiceCase(tx, id))?.assignedToMe, true)
     })
   })
 })

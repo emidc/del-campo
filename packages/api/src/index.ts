@@ -82,12 +82,15 @@ export {
   SERVICE_CASE_STATUSES,
   TIPOS_DE_GESTION,
   anotarGestion,
+  asignarGestion,
   cambiarEstadoGestion,
+  cargaDelEquipo,
   crearGestion,
   esEstadoDeGestion,
   esTipoDeGestion,
   gestion,
   gestiones,
+  integrantesAsignables,
   tomarGestion,
 } from './gestiones/casos.ts'
 export type {
@@ -98,4 +101,6 @@ export type {
   ServiceCaseKind,
   ServiceCaseStatus,
   ServiceCaseSummary,
+  TeamMember,
+  Workload,
 } from './gestiones/casos.ts'

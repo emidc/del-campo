@@ -46,7 +46,7 @@ export interface ServiceCaseSummary {
 
 export interface ServiceCaseEvent {
   readonly id: string
-  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE'
+  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION'
   readonly body: string | null
   readonly fromStatus: ServiceCaseStatus | null
   readonly toStatus: ServiceCaseStatus | null
@@ -65,6 +65,21 @@ export interface ServiceCaseFilter {
   readonly partyId?: string
   readonly policyId?: string
   readonly onlyMine?: boolean
+  /** Un integrante, o `SIN_RESPONSABLE` para las que no tienen. */
+  readonly assignedUserId?: string
+}
+
+export interface TeamMember {
+  readonly userId: string
+  readonly email: string
+}
+
+/** Carga de trabajo de un responsable: gestiones abiertas y, de esas, las vencidas. */
+export interface Workload {
+  readonly userId: string | null
+  readonly email: string | null
+  readonly open: number
+  readonly overdue: number
 }
 
 export interface NewServiceCase {
@@ -144,12 +159,17 @@ export const listServiceCases = async (
 ): Promise<ServiceCaseSummary[]> => {
   // Un id que no es uuid no identifica nada: lista vacía, no un error de la base.
   for (const id of [filter.partyId, filter.policyId]) if (id !== undefined && !UUID.test(id)) return []
+  const sinResponsable = filter.assignedUserId === 'SIN_RESPONSABLE'
+  const responsable = filter.assignedUserId !== undefined && !sinResponsable ? filter.assignedUserId : null
+  if (responsable !== null && !UUID.test(responsable)) return []
   const rows = await sql<SummaryRow[]>`
     ${seleccion(sql)}
     where (${filter.includeClosed === true} or c.status <> 'CERRADA')
       and (${filter.partyId ?? null}::uuid is null or c.party_id = ${filter.partyId ?? null}::uuid)
       and (${filter.policyId ?? null}::uuid is null or c.policy_id = ${filter.policyId ?? null}::uuid)
       and (${filter.onlyMine !== true} or c.assigned_user_id = authz.usuario())
+      and (${!sinResponsable} or c.assigned_user_id is null)
+      and (${responsable}::uuid is null or c.assigned_user_id = ${responsable}::uuid)
     order by (c.status = 'CERRADA'), c.due_date nulls last, c.updated_at desc
     limit 500
   `
@@ -252,7 +272,56 @@ export const changeServiceCaseStatus = async (
   `
 }
 
+/** Quiénes pueden ser responsables de la gestión: los integrantes que ven a su cliente. */
+export const listAssignableMembers = async (sql: QueryExecutor, id: string): Promise<TeamMember[]> => {
+  if (!UUID.test(id)) return []
+  const rows = await sql<{ id: string; email: string }[]>`
+    select i.id, i.email
+    from service_case c, authz.integrantes_que_ven(c.party_id) i
+    where c.id = ${id}
+    order by i.email
+  `
+  return rows.map((r) => ({ userId: r.id, email: r.email }))
+}
+
+/**
+ * Asigna la gestión (o la deja sin responsable con `null`) y lo deja en la historia. RLS
+ * rechaza a quien no ve al cliente.
+ */
+export const assignServiceCase = async (sql: QueryExecutor, id: string, userId: string | null): Promise<void> => {
+  const [actual] = await sql<{ assigned_user_id: string | null }[]>`
+    select assigned_user_id from service_case where id = ${id} for update
+  `
+  if (actual === undefined) throw new Error('gestión inexistente o fuera de alcance')
+  if (actual.assigned_user_id === userId) return
+  await sql`update service_case set assigned_user_id = ${userId}, updated_at = now() where id = ${id}`
+  await sql`
+    insert into service_case_event (service_case_id, kind, body, author_user_id)
+    values (
+      ${id}, 'ASIGNACION',
+      coalesce(authz.correo_integrante(${userId}::uuid), 'sin responsable'),
+      authz.usuario()
+    )
+  `
+}
+
 /** La persona que actúa toma la gestión como responsable. */
 export const takeServiceCase = async (sql: QueryExecutor, id: string): Promise<void> => {
-  await sql`update service_case set assigned_user_id = authz.usuario(), updated_at = now() where id = ${id}`
+  const [yo] = await sql<{ id: string | null }[]>`select authz.usuario() as id`
+  await assignServiceCase(sql, id, yo?.id ?? null)
+}
+
+/** Carga de trabajo por responsable sobre las gestiones abiertas que la persona ve. */
+export const getWorkload = async (sql: QueryExecutor): Promise<Workload[]> => {
+  const rows = await sql<{ user_id: string | null; email: string | null; open: number; overdue: number }[]>`
+    select c.assigned_user_id as user_id,
+      authz.correo_integrante(c.assigned_user_id) as email,
+      count(*)::int as open,
+      count(*) filter (where c.due_date < current_date)::int as overdue
+    from service_case c
+    where c.status <> 'CERRADA'
+    group by c.assigned_user_id
+    order by count(*) desc, 2 nulls first
+  `
+  return rows.map((r) => ({ userId: r.user_id, email: r.email, open: r.open, overdue: r.overdue }))
 }
