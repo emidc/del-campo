@@ -157,6 +157,7 @@ apps/web/src/app/gestiones/[id]/page.tsx
 apps/web/src/app/gestiones/equipo/page.tsx
 apps/web/src/app/gestiones/nueva/page.tsx
 apps/web/src/app/gestiones/page.tsx
+apps/web/src/app/inicio/page.tsx
 apps/web/src/app/login/page.tsx
 apps/web/src/app/page.tsx
 apps/web/src/app/parte/[id]/page.tsx

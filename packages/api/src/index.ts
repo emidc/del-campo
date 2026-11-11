@@ -114,3 +114,7 @@ export {
   renovaciones,
 } from './renovaciones/renovaciones.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renovaciones/renovaciones.ts'
+
+// T-0049: inicio con indicadores.
+export { inicio, resumirInicio } from './inicio/indicadores.ts'
+export type { CargaDeIntegrante, DatosDeInicio, Indicador, Inicio } from './inicio/indicadores.ts'
