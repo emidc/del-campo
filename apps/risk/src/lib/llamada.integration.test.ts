@@ -151,4 +151,31 @@ describe('GET /api/entre-contextos/empresas/:empresa/riesgos (C4-03a)', () => {
       assert.equal((await e.get('sub-desconocida', EMPRESA)).status, 401)
     })
   })
+
+  it('con la conexión y el registro de jti por defecto (los de la app): el mismo token dos veces se rechaza por reutilizado', async () => {
+    // Como en producción: `withLlamada` sin registro inyectado, sobre un pool de `risk_oidc`. El
+    // registro confirma por su cuenta y deja filas con jti aleatorios y su auditoría en
+    // delcampo_risk_test (de sólo inserción); las de esta prueba se buscan por id.
+    const url = new URL(testUrl())
+    url.searchParams.set('role', 'risk_oidc')
+    const pool = connect(url.href)
+    try {
+      const env = { AUTH_MODE: 'oidc', RISK_OIDC_DATABASE_URL: 'postgres://no-se-usa', RISK_JWKS_BROKER: JSON.stringify(jwksDe([broker.publica])) }
+      const GET = withLlamada<{ params: Promise<{ empresa: string }> }>(
+        async (_r, s, db, { params }) => json(await riesgosDeEmpresa(db, s, VERSION_METODOLOGIA, (await params).empresa)), () => ({ env, db: () => pool }))
+      const [desde] = await sql<{ id: string }[]>`select coalesce(max(id), 0)::text as id from risk.evento_auditoria`
+      const token = await emitirToken(broker.privada, { emisor: 'broker-os', audiencia: 'risk-os', proveedor: 'google', sujeto: 'sub-sin-credencial' })
+      const llamar = () => GET(
+        new Request(`${ORIGIN}/api/entre-contextos/empresas/${EMPRESA}/riesgos`, { headers: { authorization: `Bearer ${token}` } }),
+        { params: Promise.resolve({ empresa: EMPRESA }) })
+      assert.equal((await llamar()).status, 401)
+      assert.equal((await llamar()).status, 401)
+      const eventos = await sql<{ accion: string; motivo: string }[]>`
+        select accion, motivo from risk.evento_auditoria where id > ${desde?.id ?? '0'} order by id`
+      // La primera pasa el token y la base no admite a la persona; la segunda ni llega: reutilizado.
+      assert.deepEqual(eventos.map((e) => `${e.accion}:${e.motivo}`), ['acceso.consultar:SIN_CREDENCIAL', 'acceso.token:REUTILIZADO'])
+    } finally {
+      await pool.end()
+    }
+  })
 })
