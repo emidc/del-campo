@@ -157,3 +157,15 @@ export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummar
 // T-0049: inicio con indicadores.
 export { inicio, resumirInicio } from './inicio/indicadores.ts'
 export type { CargaDeIntegrante, DatosDeInicio, Indicador, Inicio } from './inicio/indicadores.ts'
+
+// T-0053: interlocutores del siniestro.
+export {
+  CLAIM_CONTACT_ROLES,
+  ROLES_DE_INTERLOCUTOR,
+  cambiarInterlocutor,
+  esRolDeInterlocutor,
+  interlocutores,
+  registrarContacto,
+  sumarInterlocutor,
+} from './gestiones/interlocutores.ts'
+export type { ClaimContact, ClaimContactRole, NewClaimContact } from './gestiones/interlocutores.ts'

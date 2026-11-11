@@ -7,12 +7,14 @@ import {
   agregarRequisito,
   anotarGestion,
   asignarGestion,
+  cambiarInterlocutor,
   cambiarEstadoGestion,
   crearGestion,
   deshacerEleccion,
   elegirPropuesta,
   esEstadoDeGestion,
   esMonedaDeCotizacion,
+  esRolDeInterlocutor,
   esEtapaDeSiniestro,
   esTipoDeGestion,
   marcarRequisito,
@@ -20,7 +22,9 @@ import {
   moverEtapaSiniestro,
   noCotiza,
   pedirCotizacion,
+  registrarContacto,
   registrarCotizacion,
+  sumarInterlocutor,
   tomarGestion,
 } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
@@ -184,4 +188,47 @@ export async function elegir(form: FormData): Promise<void> {
   await consultar(texto(form, 'deshacer') === '1' ? deshacerEleccion(principal, propuesta) : elegirPropuesta(principal, propuesta))
   revalidatePath(`/gestiones/${id}`)
   revalidatePath('/gestiones')
+}
+
+// T-0053 — Interlocutores del siniestro. Un responsable que no ve al cliente lo rechaza RLS.
+const volverAInterlocutores = (id: string): never => redirect(`/gestiones/${id}#interlocutores`)
+
+export async function sumarAlSiniestro(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  const rol = texto(form, 'rol')
+  const nombre = texto(form, 'nombre')
+  if (!esRolDeInterlocutor(rol) || nombre === '') throw new Error('Faltan el rol y el nombre del interlocutor.')
+  await consultar(
+    sumarInterlocutor(principal, id, {
+      role: rol,
+      name: nombre.slice(0, 200),
+      contact: opcional(form, 'contacto')?.slice(0, 200) ?? null,
+      assignedUserId: opcional(form, 'responsable'),
+      pending: opcional(form, 'pendiente')?.slice(0, 300) ?? null,
+    }),
+  )
+  revalidatePath(`/gestiones/${id}`)
+  volverAInterlocutores(id)
+}
+
+export async function contactoDeHoy(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  await consultar(registrarContacto(principal, texto(form, 'interlocutor'), opcional(form, 'comentario'), undefined))
+  revalidatePath(`/gestiones/${id}`)
+  volverAInterlocutores(id)
+}
+
+export async function cambiarDeInterlocutor(form: FormData): Promise<void> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  await consultar(
+    cambiarInterlocutor(principal, texto(form, 'interlocutor'), {
+      pending: opcional(form, 'pendiente')?.slice(0, 300) ?? null,
+      assignedUserId: opcional(form, 'responsable'),
+    }),
+  )
+  revalidatePath(`/gestiones/${id}`)
+  volverAInterlocutores(id)
 }

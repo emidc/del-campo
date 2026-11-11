@@ -85,7 +85,7 @@ const NO_CUBIERTO = [
   'R3: alta asistida por Gemini desde un correo (skills e IA, E3 en adelante).',
   'R4: skill de cotización, MCP y guardado en Drive (la cotización se carga a mano).',
   'R5: facturación a compañías y comprobantes de ARCA (no construida).',
-  'R6: interlocutores del siniestro, borradores a terceros y correos sin identificar.',
+  'R6: borradores a terceros, último contacto que se anota solo al enviar, y correos sin identificar.',
   'Indicadores K-xx del prototipo con su numeración: Inicio usa los seis definidos en T-0049.',
 ]
 
@@ -402,6 +402,41 @@ const recorrer = async (mundo) => {
     'R6.3',
     'Con el requisito cumplido la etapa avanza y queda el evento',
     await muestra(pilar, 'Documentación · etapa actual', 'Etapa: Denuncia → Documentación'),
+  )
+  // R6 — Interlocutores: quién es, quién lo atiende, último contacto y qué falta.
+  const sumar = async (rol, nombre, pendiente) => {
+    await pilar.selectOption('#interlocutor-rol', rol)
+    await pilar.fill('#interlocutor-nombre', nombre)
+    await pilar.selectOption('#interlocutor-responsable', { label: PERSONAS.pilar.email })
+    await pilar.fill('#interlocutor-pendiente', pendiente)
+    await pilar.getByRole('button', { name: 'Sumar interlocutor' }).click()
+    await muestra(pilar, nombre)
+  }
+  await sumar('TALLER', 'Taller Sintético', 'Recibir presupuesto')
+  await sumar('ABOGADO', 'Estudio Sintético', '')
+  comprobar(
+    'R6.4',
+    'Interlocutores con responsable, último contacto y pendiente, incluido «Sin intervención»',
+    (await muestra(pilar, 'Recibir presupuesto', 'Sin intervención', 'Sin contacto')) &&
+      (await pilar.locator('[data-interlocutores] tbody tr').count()) === 2,
+  )
+  const taller = pilar.locator('details[data-interlocutor="Taller Sintético"]')
+  await taller.locator('summary').click()
+  await taller.getByLabel('Qué se habló').fill('Manda el presupuesto el viernes')
+  await taller.getByRole('button', { name: 'Registrar contacto de hoy' }).click()
+  comprobar(
+    'R6.5',
+    'El contacto con el taller queda con fecha y en la historia',
+    await muestra(pilar, 'Contacto con Taller Taller Sintético: Manda el presupuesto el viernes', new RegExp(`Taller Sintético[\\s\\S]*${new Date().toISOString().slice(0, 10)}`)),
+  )
+
+  await taller.locator('summary').click()
+  await taller.getByLabel(/Pendiente/).fill('')
+  await taller.getByRole('button', { name: 'Guardar' }).click()
+  comprobar(
+    'R6.6',
+    'Sin pendiente, el taller pasa a «Sin intervención» y queda en la historia',
+    await muestra(pilar, 'Taller Taller Sintético, pendiente: sin intervención'),
   )
   const respuesta = await (await como('pilar')).goto(cotizacion)
   ok('R6.perm', 'Pilar no ve la cotización de una empresa que no tiene asignada', respuesta?.status() === 404)

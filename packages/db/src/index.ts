@@ -94,3 +94,12 @@ export {
 export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './task.ts'
 export { listRenewals } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
+export {
+  CLAIM_CONTACT_ROLES,
+  CLAIM_CONTACT_ROLE_LABELS,
+  addClaimContact,
+  listClaimContacts,
+  recordClaimContact,
+  updateClaimContact,
+} from './claim-contact.ts'
+export type { ClaimContact, ClaimContactRole, NewClaimContact } from './claim-contact.ts'
