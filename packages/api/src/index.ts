@@ -139,6 +139,21 @@ export {
 } from './renovaciones/renovaciones.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renovaciones/renovaciones.ts'
 
+// T-0052: tareas.
+export {
+  ESTADOS_DE_TAREA,
+  TASK_STATUSES,
+  cambiarEstadoTarea,
+  comentarTarea,
+  crearTarea,
+  esEstadoDeTarea,
+  pasarTarea,
+  responsablesPosibles,
+  tarea,
+  tareas,
+} from './tareas/tareas.ts'
+export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './tareas/tareas.ts'
+
 // T-0049: inicio con indicadores.
 export { inicio, resumirInicio } from './inicio/indicadores.ts'
 export type { CargaDeIntegrante, DatosDeInicio, Indicador, Inicio } from './inicio/indicadores.ts'

@@ -41,6 +41,10 @@ export default async function PartePage({
         <Link href={`/gestiones/nueva?parte=${id}`}>Nueva gestión</Link>
         {' · '}
         <Link href={`/gestiones?parte=${id}`}>Gestiones de este cliente</Link>
+        {' · '}
+        <Link href={`/tareas/nueva?parte=${id}`}>Nueva tarea</Link>
+        {' · '}
+        <Link href={`/tareas?parte=${id}`}>Tareas de este cliente</Link>
       </p>
 
       <h2>Pólizas</h2>

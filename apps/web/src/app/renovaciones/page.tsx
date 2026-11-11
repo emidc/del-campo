@@ -78,6 +78,13 @@ export default async function RenovacionesPage({
       vence: r.termEndDate,
     }).toString()}`
 
+  const seguimiento = (r: RenewalItem) =>
+    `/tareas/nueva?${new URLSearchParams({
+      poliza: r.policyId,
+      titulo: `Seguimiento de renovación ${r.policyNumber}`,
+      vence: r.termEndDate,
+    }).toString()}`
+
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
@@ -158,6 +165,12 @@ export default async function RenovacionesPage({
                     ) : (
                       <Link href={nuevaGestion(r)}>Crear gestión</Link>
                     )}
+                    {r.successorPolicyId === null ? (
+                      <>
+                        {' · '}
+                        <Link href={seguimiento(r)}>Tarea de seguimiento</Link>
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))}
