@@ -2,7 +2,7 @@
 id: T-0053
 title: Interlocutores del siniestro
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S

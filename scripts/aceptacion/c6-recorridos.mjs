@@ -84,7 +84,7 @@ const NO_CUBIERTO = [
   'R2: ejecución automática de renovaciones por WhatsApp y su ventana de 24 h (C10).',
   'R3: alta asistida por Gemini desde un correo (skills e IA, E3 en adelante).',
   'R4: skill de cotización, MCP y guardado en Drive (la cotización se carga a mano).',
-  'R5: facturación a compañías y comprobantes de ARCA (no construida).',
+  'R5: facturación a compañías, comprobantes de ARCA y envío (fuera de C6 por decisión del owner, 11/11/2026: Commission sigue DEFERRED en DOMAIN §45).',
   'R6: borradores a terceros, último contacto que se anota solo al enviar, y correos sin identificar.',
   'Indicadores K-xx del prototipo con su numeración: Inicio usa los seis definidos en T-0049.',
 ]
