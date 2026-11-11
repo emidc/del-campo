@@ -12,6 +12,7 @@ export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly 
     <header className="cabecera">
       <h1>Broker OS · VS01</h1>
       <nav>
+        <Link href="/inicio">Inicio</Link>
         <Link href="/buscar">Buscar</Link>
         <Link href="/gestiones">Gestiones</Link>
         <Link href="/renovaciones">Renovaciones</Link>
