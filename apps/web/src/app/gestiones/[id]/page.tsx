@@ -1,10 +1,17 @@
 import type { ServiceCaseEvent } from '@del-campo/api'
-import { ESTADOS_DE_GESTION, SERVICE_CASE_STATUSES, TIPOS_DE_GESTION, gestion, latestBatch } from '@del-campo/api'
+import {
+  ESTADOS_DE_GESTION,
+  SERVICE_CASE_STATUSES,
+  TIPOS_DE_GESTION,
+  gestion,
+  integrantesAsignables,
+  latestBatch,
+} from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
-import { anotar, cambiarEstado, tomar } from '@/app/gestiones/acciones'
+import { anotar, asignar, cambiarEstado, tomar } from '@/app/gestiones/acciones'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +26,8 @@ const describir = (evento: ServiceCaseEvent): string => {
       return 'Nota'
     case 'CIERRE':
       return 'Cerró la gestión'
+    case 'ASIGNACION':
+      return `Asignó a ${evento.body ?? 'sin responsable'}`
     case 'ESTADO':
       return evento.fromStatus === 'CERRADA'
         ? `Reabrió: ${ESTADOS_DE_GESTION[evento.toStatus ?? 'ABIERTA']}`
@@ -29,7 +38,9 @@ const describir = (evento: ServiceCaseEvent): string => {
 export default async function GestionPage({ params }: { readonly params: Promise<{ readonly id: string }> }) {
   const principal = await requireAdmitted()
   const { id } = await params
-  const [lote, g] = await consultar(Promise.all([latestBatch(principal), gestion(principal, id)]))
+  const [lote, g, integrantes] = await consultar(
+    Promise.all([latestBatch(principal), gestion(principal, id), integrantesAsignables(principal, id)]),
+  )
   if (g === null) notFound()
   const cerrada = g.status === 'CERRADA'
 
@@ -59,11 +70,29 @@ export default async function GestionPage({ params }: { readonly params: Promise
       </p>
       {cerrada && g.outcome !== null ? <p className="estado">Resultado: {g.outcome}</p> : null}
 
+      <h2>Responsable</h2>
+      <form action={asignar} className="buscador">
+        <input type="hidden" name="id" value={g.id} />
+        <div className="campo" style={{ gridColumn: 'span 2' }}>
+          <label htmlFor="responsable">Asignar a</label>
+          <select id="responsable" name="responsable" defaultValue={integrantes.find((i) => i.email === g.assignedEmail)?.userId ?? ''}>
+            <option value="">Sin responsable</option>
+            {integrantes.map((i) => (
+              <option key={i.userId} value={i.userId}>
+                {i.email}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="acciones">
+          <button type="submit">Asignar</button>
+        </div>
+      </form>
       {g.assignedToMe ? null : (
         <form action={tomar} style={{ margin: '0.75rem 0' }}>
           <input type="hidden" name="id" value={g.id} />
           <button type="submit" className="boton--secundario">
-            Tomar la gestión
+            Tomarla yo
           </button>
         </form>
       )}
@@ -108,7 +137,7 @@ export default async function GestionPage({ params }: { readonly params: Promise
           <p className="meta" style={{ margin: 0 }}>
             {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
-          {evento.body === null ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
+          {evento.body === null || evento.kind === 'ASIGNACION' ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
         </article>
       ))}
     </main>

@@ -21,6 +21,7 @@ export default async function GestionesPage({
   const cerradas = uno(parametros.cerradas) === '1'
   const parte = uno(parametros.parte)
   const poliza = uno(parametros.poliza)
+  const responsable = uno(parametros.responsable)
   // Desde la ficha de un cliente o de una póliza se ven también las cerradas: es su historia.
   const acotada = parte !== undefined || poliza !== undefined
   const [lote, lista] = await consultar(
@@ -31,6 +32,7 @@ export default async function GestionesPage({
         includeClosed: cerradas || acotada,
         ...(parte === undefined ? {} : { partyId: parte }),
         ...(poliza === undefined ? {} : { policyId: poliza }),
+        ...(responsable === undefined ? {} : { assignedUserId: responsable }),
       }),
     ]),
   )
@@ -50,7 +52,15 @@ export default async function GestionesPage({
         {filtro('Las mías', mias && !cerradas, '/gestiones?mias=1')}
         {' · '}
         {filtro('Incluir cerradas', cerradas, '/gestiones?cerradas=1')}
+        {' · '}
+        <Link href="/gestiones/equipo">Equipo</Link>
       </p>
+      {responsable === undefined ? null : (
+        <p className="meta">
+          Mostrando las abiertas {responsable === 'SIN_RESPONSABLE' ? 'sin responsable' : 'de un integrante'}.{' '}
+          <Link href="/gestiones/equipo">Volver al equipo</Link>
+        </p>
+      )}
       {acotada ? (
         <p className="meta">
           Mostrando las gestiones {parte === undefined ? 'de una póliza' : 'de un cliente'}, abiertas y cerradas.{' '}

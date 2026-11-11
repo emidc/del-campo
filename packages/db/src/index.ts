@@ -38,9 +38,12 @@ export {
   SERVICE_CASE_KINDS,
   SERVICE_CASE_STATUSES,
   addServiceCaseNote,
+  assignServiceCase,
   changeServiceCaseStatus,
   createServiceCase,
   getServiceCase,
+  getWorkload,
+  listAssignableMembers,
   listServiceCases,
   takeServiceCase,
 } from './service-case.ts'
@@ -52,4 +55,6 @@ export type {
   ServiceCaseKind,
   ServiceCaseStatus,
   ServiceCaseSummary,
+  TeamMember,
+  Workload,
 } from './service-case.ts'
