@@ -14,6 +14,22 @@ contextRefs: [DOMAIN.md, SLICES/RO01.md, DECISIONS/0063-aislamiento-por-contexto
 decisionRefs: [D-0063, D-0067, D-0071, D-0084]
 ---
 
+## Notas de implementación
+
+Resuelto antes del esquema (pendientes de D-0071):
+
+- **Cardinalidad:** una empresa tiene como mucho una organización evaluada; los
+  establecimientos son zonas de la misma organización. Lo eligió el owner sobre la
+  recomendación de D-0071, en el hilo de C4-03b (2026-11-11).
+- **Dónde se vincula:** por ahora con la CLI `organizacion` de Risk OS, con el id de la
+  empresa copiado de Broker OS (la segunda opción de D-0071).
+- El owner pidió seguir con esta tarea en local mientras T-0032 cierra su aceptación.
+
+Efecto en datos: migración aditiva 0011 en la base de Risk OS, con tres tablas nuevas, vacías
+y de sólo inserción; no cambia ninguna existente. Los tests están en
+`contexts/risk/src/application/organizacion-evaluada.integration.test.ts`. Diseño:
+`docs/desarrollo/riesgos-en-la-ficha.md` §1.
+
 ## Why
 
 D-0067 decide que Risk OS conserva su propia organización evaluada (sector, tamaño,
@@ -30,22 +46,6 @@ evaluada se vincula como mucho con una empresa, a mano, por una persona autoriza
 id de la empresa como referencia opaca sin clave foránea, y puede quedar pendiente. Antes
 del esquema, el owner confirma si una empresa admite más de una organización evaluada.
 
-Resuelto antes del esquema (pendientes de D-0071):
-
-- **Cardinalidad:** una empresa tiene como mucho una organización evaluada; los
-  establecimientos son zonas de la misma organización. Lo eligió el owner sobre la
-  recomendación de D-0071, en el hilo de C4-03b (2026-11-11).
-- **Dónde se vincula:** por ahora con la CLI `organizacion` de Risk OS, con el id de la
-  empresa copiado de Broker OS (la segunda opción de D-0071). Una pantalla en Broker OS
-  queda para cuando exista la escritura entre contextos.
-- El owner pidió seguir con esta tarea en local mientras T-0032 cierra su aceptación: la
-  base hosteada recibe la migración 0011 cuando el owner la aplique.
-
-## Data effects
-
-Migración aditiva 0011 en la base de Risk OS: tres tablas nuevas, vacías y de sólo
-inserción. No cambia ninguna existente. En local y en tests, sólo datos sintéticos.
-
 ## Non-scope
 
 - Mostrar riesgos en la interfaz de Broker OS (corte C4).
@@ -56,7 +56,6 @@ inserción. No cambia ninguna existente. En local y en tests, sólo datos sinté
 
 ```bash
 pnpm check
-node --import ./scripts/guard-db-tests.mjs --test contexts/risk/src/application/organizacion-evaluada.integration.test.ts
 ```
 
 - [ ] Una empresa real de las aceptadas en RO01 queda vinculada a su organización evaluada, revisado por el owner.
