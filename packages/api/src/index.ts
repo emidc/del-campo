@@ -74,3 +74,28 @@ export { AccesoDenegado, conDatos } from './acceso/datos.ts'
 export { admitirLogin } from './acceso/login.ts'
 export type { ResultadoLogin } from './acceso/login.ts'
 export type { PrincipalBroker, ResultadoPrincipal, Rol } from './acceso/base.ts'
+
+// T-0045: gestiones manuales.
+export {
+  ESTADOS_DE_GESTION,
+  SERVICE_CASE_KINDS,
+  SERVICE_CASE_STATUSES,
+  TIPOS_DE_GESTION,
+  anotarGestion,
+  cambiarEstadoGestion,
+  crearGestion,
+  esEstadoDeGestion,
+  esTipoDeGestion,
+  gestion,
+  gestiones,
+  tomarGestion,
+} from './gestiones/casos.ts'
+export type {
+  NewServiceCase,
+  ServiceCaseDetail,
+  ServiceCaseEvent,
+  ServiceCaseFilter,
+  ServiceCaseKind,
+  ServiceCaseStatus,
+  ServiceCaseSummary,
+} from './gestiones/casos.ts'

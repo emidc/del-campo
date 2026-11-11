@@ -50,6 +50,12 @@ export default async function PolizaPage({
         )}
       </p>
 
+      <p className="meta">
+        <Link href={`/gestiones/nueva?poliza=${detail.policyId}`}>Nueva gestión</Link>
+        {' · '}
+        <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link>
+      </p>
+
       <h2>Acceso documental</h2>
       <AccesoDocumental acceso={access} />
       <p className="meta">

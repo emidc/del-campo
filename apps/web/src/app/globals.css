@@ -102,7 +102,9 @@ a {
   color: var(--tinta-suave);
 }
 
-.campo input {
+.campo input,
+.campo select,
+.campo textarea {
   border: 1px solid var(--borde);
   border-radius: 5px;
   padding: 0.45rem 0.55rem;

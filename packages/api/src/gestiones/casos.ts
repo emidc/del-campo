@@ -1,0 +1,83 @@
+// T-0045 — Gestiones manuales (C6-01). Como toda consulta de Broker OS, corren por
+// `conDatos`: como `broker_app`, con el principal declarado y RLS decidiendo el alcance.
+
+import type {
+  NewServiceCase,
+  ServiceCaseDetail,
+  ServiceCaseEvent,
+  ServiceCaseFilter,
+  ServiceCaseKind,
+  ServiceCaseStatus,
+  ServiceCaseSummary,
+} from '@del-campo/db'
+import {
+  SERVICE_CASE_KINDS,
+  SERVICE_CASE_STATUSES,
+  addServiceCaseNote,
+  changeServiceCaseStatus,
+  createServiceCase,
+  getServiceCase,
+  listServiceCases,
+  takeServiceCase,
+} from '@del-campo/db'
+
+import { conDatos } from '../acceso/datos.ts'
+import { sql } from '../db.ts'
+import type { Principal } from '../session/admission.ts'
+
+export type {
+  NewServiceCase,
+  ServiceCaseDetail,
+  ServiceCaseEvent,
+  ServiceCaseFilter,
+  ServiceCaseKind,
+  ServiceCaseStatus,
+  ServiceCaseSummary,
+}
+export { SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES }
+
+export const TIPOS_DE_GESTION: Readonly<Record<ServiceCaseKind, string>> = {
+  SINIESTRO: 'Siniestro',
+  ENDOSO: 'Endoso',
+  COTIZACION: 'Cotización',
+  RENOVACION: 'Renovación',
+  RECLAMO_COMPANIA: 'Reclamo a la compañía',
+  FACTURACION: 'Facturación',
+  OTRO: 'Otro',
+}
+
+export const ESTADOS_DE_GESTION: Readonly<Record<ServiceCaseStatus, string>> = {
+  ABIERTA: 'Abierta',
+  EN_CURSO: 'En curso',
+  ESPERANDO_COMPANIA: 'Esperando a la compañía',
+  ESPERANDO_CLIENTE: 'Esperando al cliente',
+  CERRADA: 'Cerrada',
+}
+
+export const esTipoDeGestion = (valor: unknown): valor is ServiceCaseKind =>
+  typeof valor === 'string' && (SERVICE_CASE_KINDS as readonly string[]).includes(valor)
+
+export const esEstadoDeGestion = (valor: unknown): valor is ServiceCaseStatus =>
+  typeof valor === 'string' && (SERVICE_CASE_STATUSES as readonly string[]).includes(valor)
+
+export const gestiones = async (principal: Principal, filtro: ServiceCaseFilter = {}): Promise<ServiceCaseSummary[]> =>
+  conDatos(sql(), principal, (ejecutor) => listServiceCases(ejecutor, filtro))
+
+export const gestion = async (principal: Principal, id: string): Promise<ServiceCaseDetail | null> =>
+  conDatos(sql(), principal, (ejecutor) => getServiceCase(ejecutor, id))
+
+export const crearGestion = async (principal: Principal, nueva: NewServiceCase): Promise<string> =>
+  conDatos(sql(), principal, (ejecutor) => createServiceCase(ejecutor, nueva))
+
+export const anotarGestion = async (principal: Principal, id: string, nota: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => addServiceCaseNote(ejecutor, id, nota))
+
+export const cambiarEstadoGestion = async (
+  principal: Principal,
+  id: string,
+  estado: ServiceCaseStatus,
+  comentario: string | null,
+): Promise<void> => conDatos(sql(), principal, (ejecutor) => changeServiceCaseStatus(ejecutor, id, estado, comentario))
+
+export const tomarGestion = async (principal: Principal, id: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => takeServiceCase(ejecutor, id))

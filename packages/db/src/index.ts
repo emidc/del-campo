@@ -32,3 +32,24 @@ export type {
   PendingDocumentInfo,
   PolicyDocumentAccess,
 } from './document-linking/query.ts'
+
+// T-0045: gestiones manuales.
+export {
+  SERVICE_CASE_KINDS,
+  SERVICE_CASE_STATUSES,
+  addServiceCaseNote,
+  changeServiceCaseStatus,
+  createServiceCase,
+  getServiceCase,
+  listServiceCases,
+  takeServiceCase,
+} from './service-case.ts'
+export type {
+  NewServiceCase,
+  ServiceCaseDetail,
+  ServiceCaseEvent,
+  ServiceCaseFilter,
+  ServiceCaseKind,
+  ServiceCaseStatus,
+  ServiceCaseSummary,
+} from './service-case.ts'
