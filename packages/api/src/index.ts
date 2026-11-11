@@ -104,3 +104,13 @@ export type {
   TeamMember,
   Workload,
 } from './gestiones/casos.ts'
+
+// T-0048: renovaciones.
+export {
+  ESTADOS_DE_RENOVACION,
+  MODOS_DE_RENOVACION,
+  esEstadoDeRenovacion,
+  esModoDeRenovacion,
+  renovaciones,
+} from './renovaciones/renovaciones.ts'
+export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renovaciones/renovaciones.ts'

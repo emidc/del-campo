@@ -1,4 +1,4 @@
-import { SERVICE_CASE_KINDS, TIPOS_DE_GESTION, latestBatch, party, policy } from '@del-campo/api'
+import { SERVICE_CASE_KINDS, TIPOS_DE_GESTION, esTipoDeGestion, latestBatch, party, policy } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic'
 
 const uno = (valor: string | string[] | undefined): string | undefined => (Array.isArray(valor) ? valor[0] : valor)
 
-/** Se llega desde la ficha de un cliente (`?parte=`) o de una póliza (`?poliza=`). */
+/**
+ * Se llega desde la ficha de un cliente (`?parte=`) o de una póliza (`?poliza=`). Renovaciones
+ * agrega `tipo`, `titulo` y `vence` para que el formulario llegue completo.
+ */
 export default async function NuevaGestionPage({
   searchParams,
 }: {
@@ -21,6 +24,11 @@ export default async function NuevaGestionPage({
   const parametros = await searchParams
   const asOf = fechaDeHoy()
   const polizaId = uno(parametros.poliza)
+  const tipoPedido = uno(parametros.tipo)
+  const tipoInicial = esTipoDeGestion(tipoPedido) ? tipoPedido : ''
+  const tituloInicial = (uno(parametros.titulo) ?? '').slice(0, 200)
+  const vencePedido = uno(parametros.vence)
+  const venceInicial = vencePedido !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(vencePedido) ? vencePedido : undefined
   const [lote, vistaPoliza] = await consultar(
     Promise.all([latestBatch(principal), polizaId === undefined ? null : policy(principal, polizaId, asOf)]),
   )
@@ -54,7 +62,7 @@ export default async function NuevaGestionPage({
         {vistaPoliza === null ? null : <input type="hidden" name="poliza" value={vistaPoliza.detail.policyId} />}
         <div className="campo">
           <label htmlFor="tipo">Tipo</label>
-          <select id="tipo" name="tipo" required defaultValue="">
+          <select id="tipo" name="tipo" required defaultValue={tipoInicial}>
             <option value="" disabled>
               Elegir…
             </option>
@@ -67,11 +75,18 @@ export default async function NuevaGestionPage({
         </div>
         <div className="campo" style={{ gridColumn: 'span 2' }}>
           <label htmlFor="titulo">Título</label>
-          <input id="titulo" name="titulo" required maxLength={200} placeholder="Qué hay que resolver" />
+          <input
+            id="titulo"
+            name="titulo"
+            required
+            maxLength={200}
+            placeholder="Qué hay que resolver"
+            defaultValue={tituloInicial}
+          />
         </div>
         <div className="campo">
           <label htmlFor="vence">Vence</label>
-          <input id="vence" name="vence" type="date" />
+          <input id="vence" name="vence" type="date" defaultValue={venceInicial} />
         </div>
         <div className="campo" style={{ gridColumn: '1 / -1' }}>
           <label htmlFor="nota">Nota inicial (opcional)</label>
