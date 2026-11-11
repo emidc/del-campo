@@ -138,6 +138,24 @@ export const organizacionesEvaluadas = async (db: Db): Promise<OrganizacionEvalu
   }))
 }
 
+export interface VinculoDeEmpresa {
+  readonly organizacionId: string
+  readonly estado: 'pendiente' | 'verificado'
+}
+
+/**
+ * El vínculo vigente de una empresa de Broker OS, pendiente o verificado; `null` si no tiene. Con
+ * la transacción de una persona, RLS oculta las organizaciones que no ve: una no asignada responde
+ * lo mismo que una empresa sin vínculo. Es la lectura de C4-03a.
+ */
+export const vinculoDeEmpresa = async (db: Db, empresaId: string): Promise<VinculoDeEmpresa | null> => {
+  if (!EMPRESA.test(empresaId)) return null
+  const organizacionId = await organizacionVinculada(db, empresaId)
+  if (organizacionId === null) return null
+  const vigente = await vinculoVigente(db, organizacionId)
+  return vigente === null ? null : { organizacionId, estado: vigente.verificado ? 'verificado' : 'pendiente' }
+}
+
 /**
  * La organización evaluada de una empresa de Broker OS, sólo con el vínculo vigente y verificado;
  * `null` si no tiene o está pendiente. Es la lectura que va a usar la proyección de C4.

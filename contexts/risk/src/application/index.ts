@@ -78,8 +78,8 @@ export {
 export { asignar, cambiarRol, darDeBaja, invitar, type Invitacion, type RechazoAdmin, type ResultadoAdmin } from './accesos.ts'
 // T-0036 (C2): la organización evaluada y su vínculo con la empresa de Broker OS (D-0071).
 export {
-  organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular,
-  type FichaOrganizacion, type OrganizacionEvaluada,
+  organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular, vinculoDeEmpresa,
+  type FichaOrganizacion, type OrganizacionEvaluada, type VinculoDeEmpresa,
 } from './organizacion-evaluada.ts'
 // T-0035: el registro de `jti` del token entre contextos, que la app pasa a `verificarToken`.
 export { registroJtiPostgres, type RegistroJtiPostgres, type UsoJti } from '../persistence/jti.ts'

@@ -6,9 +6,9 @@ import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 
 import type { Sql, TransactionSql } from '../persistence/database.ts'
-import { B, base, EMPRESA_SINTETICA, ORG_A, ORG_B } from '../persistence/fixtures.ts'
-import { enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
-import { organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular } from './organizacion-evaluada.ts'
+import { B, base, EMPRESA_SINTETICA, fila, insertar, ORG_A, ORG_B } from '../persistence/fixtures.ts'
+import { conBaseTemporal, enTransaccionRevertida, openTestDatabase } from '../persistence/testing.ts'
+import { organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular, vinculoDeEmpresa } from './organizacion-evaluada.ts'
 
 const OTRA_EMPRESA = '00000000-0000-4000-8000-000000000002'
 
@@ -53,7 +53,10 @@ describe('organización evaluada (T-0036)', () => {
     await conAdmin(async (tx) => {
       assert.equal((await estado(tx, ORG_A))?.vinculo, 'pendiente')
       assert.equal(await organizacionDeEmpresa(tx, EMPRESA_SINTETICA), null)
+      assert.deepEqual(await vinculoDeEmpresa(tx, EMPRESA_SINTETICA), { organizacionId: ORG_A, estado: 'pendiente' })
       assert.ok((await verificarVinculo(tx, { actor: B.persona, organizacionId: ORG_A })).ok)
+      assert.deepEqual(await vinculoDeEmpresa(tx, EMPRESA_SINTETICA), { organizacionId: ORG_A, estado: 'verificado' })
+      assert.equal(await vinculoDeEmpresa(tx, OTRA_EMPRESA), null)
       assert.equal((await organizacionDeEmpresa(tx, EMPRESA_SINTETICA))?.organizacionId, ORG_A)
       assert.equal(await organizacionDeEmpresa(tx, OTRA_EMPRESA), null)
     })
@@ -92,7 +95,29 @@ describe('organización evaluada (T-0036)', () => {
       await tx`set local role risk_persona`
       const vistos = await tx<{ organizacion_id: string }[]>`select organizacion_id from risk.vinculo_empresa`
       assert.deepEqual(vistos.map((v) => v.organizacion_id), [ORG_B])
+      // ORG_A no está asignada: su empresa se ve igual que una sin vínculo.
+      assert.equal(await vinculoDeEmpresa(tx, EMPRESA_SINTETICA), null)
+      assert.deepEqual(await vinculoDeEmpresa(tx, OTRA_EMPRESA), { organizacionId: ORG_B, estado: 'pendiente' })
       await assert.rejects(tx`insert into risk.vinculo_empresa (organizacion_id, empresa_id, autor_persona_id) values (${ORG_B}, ${OTRA_EMPRESA}, ${B.persona})`, /permission denied/)
+    })
+  })
+
+  it('dos vincular a la vez de la misma empresa en dos organizaciones: uno se rechaza', async () => {
+    // Necesita dos conexiones que confirmen de verdad: en una base temporal, no en la de tests.
+    await conBaseTemporal('delcampo_risk_vinculo_test', async (db) => {
+      // Lo mínimo que la operación lee: una Administradora activa y un riesgo en cada organización.
+      await db.begin(async (tx) => {
+        await insertar(tx, 'persona', fila('persona', { id: B.persona }))
+        await insertar(tx, 'riesgo', fila('riesgo', { id: B.riesgo }))
+        await insertar(tx, 'riesgo', fila('riesgo', { id: B.riesgoOrgB, organizacion_id: ORG_B }))
+        await insertar(tx, 'invitacion', fila('invitacion', { persona_id: B.persona }))
+        const [inv] = await tx<{ id: string }[]>`select max(id)::text as id from risk.invitacion`
+        await insertar(tx, 'credencial_externa', fila('credencial_externa', { persona_id: B.persona, invitacion_id: Number(inv?.id) }))
+        await insertar(tx, 'rol_persona', fila('rol_persona', { rol: 'ADMINISTRADOR' }))
+      })
+      const resultados = await Promise.all([ORG_A, ORG_B].map((organizacionId) =>
+        vincular(db, { actor: B.persona, organizacionId, empresaId: OTRA_EMPRESA })))
+      assert.deepEqual(resultados.map((r) => (r.ok ? 'ok' : r.motivo)).sort(), ['EMPRESA_YA_VINCULADA', 'ok'])
     })
   })
 })

@@ -43,6 +43,9 @@ export const TABLAS_DEL_HISTORIAL: Readonly<Record<string, { readonly entra: Tab
   asignacion: { fuera: 'qué organizaciones ve cada persona (D-0027), no un cambio de un riesgo' },
   evento_auditoria: { fuera: 'la auditoría de T-0035 registra quién intentó qué; el cambio de un riesgo ya está en su tabla' },
   jti_aceptado: { fuera: 'tokens entre contextos ya aceptados (D-0077, T-0035), no un cambio de un riesgo' },
+  organizacion_ficha: { fuera: 'sector, tamaño y zonas de la organización (T-0036), no un cambio de un riesgo' },
+  vinculo_empresa: { fuera: 'la empresa de Broker OS de la organización (D-0071, T-0036), no un cambio de un riesgo' },
+  vinculo_verificado: { fuera: 'quién confirmó el vínculo con la empresa (D-0071, T-0036), no un cambio de un riesgo' },
   schema_migrations: { fuera: 'el ledger de migraciones del esquema, no un dato de Risk OS' },
 }
 
