@@ -1,4 +1,4 @@
-import { ESTADOS_DE_GESTION, TIPOS_DE_GESTION, inicio, latestBatch } from '@del-campo/api'
+import { ESTADOS_DE_GESTION, ESTADOS_DE_TAREA, TIPOS_DE_GESTION, inicio, latestBatch } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
@@ -55,6 +55,36 @@ export default async function InicioPage() {
                   <td>{g.partyName ?? 'sin nombre'}</td>
                   <td>{ESTADOS_DE_GESTION[g.status]}</td>
                   <td className={g.dueDate !== null && g.dueDate < hoy ? 'pendiente' : undefined}>{g.dueDate ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '1.1rem', margin: '1.5rem 0 0.4rem' }}>Mis tareas</h2>
+      {datos.misTareas.length === 0 ? (
+        <p className="estado">No tenés tareas sin hacer.</p>
+      ) : (
+        <div className="desborde">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarea</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+                <th>Vence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {datos.misTareas.map((t) => (
+                <tr key={t.id}>
+                  <td>
+                    <Link href={`/tareas/${t.id}`}>{t.title}</Link>
+                  </td>
+                  <td>{t.partyName ?? 'sin nombre'}</td>
+                  <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
+                  <td className={t.dueDate !== null && t.dueDate < hoy ? 'pendiente' : undefined}>{t.dueDate ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

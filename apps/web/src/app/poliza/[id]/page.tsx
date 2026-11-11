@@ -54,6 +54,8 @@ export default async function PolizaPage({
         <Link href={`/gestiones/nueva?poliza=${detail.policyId}`}>Nueva gestión</Link>
         {' · '}
         <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link>
+        {' · '}
+        <Link href={`/tareas/nueva?poliza=${detail.policyId}`}>Nueva tarea</Link>
       </p>
 
       <h2>Acceso documental</h2>

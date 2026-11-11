@@ -5,8 +5,8 @@
 // `resumirInicio` es puro para poder probar cada cuenta contra un recuento independiente;
 // `inicio` junta los datos por `conDatos`, así que RLS decide qué gestiones y pólizas cuentan.
 
-import type { RenewalItem, ServiceCaseSummary, Workload } from '@del-campo/db'
-import { getWorkload, listRenewals, listServiceCases } from '@del-campo/db'
+import type { RenewalItem, ServiceCaseSummary, TaskSummary, Workload } from '@del-campo/db'
+import { getWorkload, listRenewals, listServiceCases, listTasks } from '@del-campo/db'
 
 import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
@@ -35,6 +35,8 @@ export interface Inicio {
   readonly indicadores: readonly Indicador[]
   /** Mis gestiones abiertas, las vencidas primero y después por vencimiento. */
   readonly aAtender: readonly ServiceCaseSummary[]
+  /** T-0052: mis tareas sin hacer, las vencidas primero y después por vencimiento. */
+  readonly misTareas: readonly TaskSummary[]
   /** Por correo, en orden alfabético: sin ranking. */
   readonly equipo: readonly CargaDeIntegrante[]
 }
@@ -45,6 +47,8 @@ export interface DatosDeInicio {
   readonly proximas: readonly RenewalItem[]
   readonly vencidas: readonly RenewalItem[]
   readonly carga: readonly Workload[]
+  /** Tareas sin hacer que la persona ve. */
+  readonly tareas: readonly TaskSummary[]
 }
 
 const sumarDias = (fecha: string, dias: number): string => {
@@ -53,7 +57,16 @@ const sumarDias = (fecha: string, dias: number): string => {
   return d.toISOString().slice(0, 10)
 }
 
-const vencida = (g: ServiceCaseSummary, hoy: string): boolean => g.dueDate !== null && g.dueDate < hoy
+const vencida = (g: { readonly dueDate: string | null }, hoy: string): boolean => g.dueDate !== null && g.dueDate < hoy
+
+const porVencimiento =
+  (hoy: string) =>
+  (a: { readonly dueDate: string | null }, b: { readonly dueDate: string | null }): number => {
+    const va = vencida(a, hoy) ? 0 : 1
+    const vb = vencida(b, hoy) ? 0 : 1
+    if (va !== vb) return va - vb
+    return (a.dueDate ?? '9999-12-31').localeCompare(b.dueDate ?? '9999-12-31')
+  }
 
 export const resumirInicio = (datos: DatosDeInicio): Inicio => {
   const { hoy, abiertas, proximas, vencidas } = datos
@@ -62,7 +75,24 @@ export const resumirInicio = (datos: DatosDeInicio): Inicio => {
   const pendientes = (lista: readonly RenewalItem[]) => lista.filter((r) => r.state === 'PENDIENTE')
   const proximasPendientes = pendientes(proximas)
 
+  const misTareas = datos.tareas.filter((t) => t.assignedToMe)
   const indicadores: Indicador[] = [
+    {
+      id: 'mis-tareas-vencidas',
+      titulo: 'Mis tareas vencidas',
+      valor: misTareas.filter((t) => vencida(t, hoy)).length,
+      definicion: `De mis ${String(misTareas.length)} tareas sin hacer, las que tienen vencimiento anterior a hoy.`,
+      href: '/tareas?mias=1',
+      alerta: true,
+    },
+    {
+      id: 'tareas-trabadas',
+      titulo: 'Tareas trabadas',
+      valor: datos.tareas.filter((t) => t.status === 'TRABADA').length,
+      definicion: `De las ${String(datos.tareas.length)} tareas sin hacer que ves, las marcadas como trabadas.`,
+      href: '/tareas?estado=TRABADA',
+      alerta: true,
+    },
     {
       id: 'mias-vencidas',
       titulo: 'Mis gestiones vencidas',
@@ -113,19 +143,14 @@ export const resumirInicio = (datos: DatosDeInicio): Inicio => {
     },
   ]
 
-  const aAtender = [...mias].sort((a, b) => {
-    const va = vencida(a, hoy) ? 0 : 1
-    const vb = vencida(b, hoy) ? 0 : 1
-    if (va !== vb) return va - vb
-    return (a.dueDate ?? '9999-12-31').localeCompare(b.dueDate ?? '9999-12-31')
-  })
+  const aAtender = [...mias].sort(porVencimiento(hoy))
 
   const equipo = datos.carga
     .filter((c): c is Workload & { email: string } => c.email !== null)
     .map((c) => ({ email: c.email, abiertas: c.open, vencidas: c.overdue }))
     .sort((a, b) => a.email.localeCompare(b.email))
 
-  return { hoy, indicadores, aAtender, equipo }
+  return { hoy, indicadores, aAtender, misTareas: [...misTareas].sort(porVencimiento(hoy)), equipo }
 }
 
 export const inicio = async (principal: Principal, hoy: string): Promise<Inicio> =>
@@ -134,5 +159,6 @@ export const inicio = async (principal: Principal, hoy: string): Promise<Inicio>
     const proximas = await listRenewals(ejecutor, { from: hoy, to: sumarDias(hoy, 30) })
     const vencidas = await listRenewals(ejecutor, { from: sumarDias(hoy, -60), to: sumarDias(hoy, -1) })
     const carga = await getWorkload(ejecutor)
-    return resumirInicio({ hoy, abiertas, proximas, vencidas, carga })
+    const tareas = await listTasks(ejecutor)
+    return resumirInicio({ hoy, abiertas, proximas, vencidas, carga, tareas })
   })

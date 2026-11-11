@@ -3,6 +3,7 @@ import {
   CLAIM_STAGES,
   ESTADOS_DE_GESTION,
   ESTADOS_DE_PROPUESTA,
+  ESTADOS_DE_TAREA,
   ETAPAS_DE_SINIESTRO,
   SERVICE_CASE_STATUSES,
   QUOTE_CURRENCIES,
@@ -12,6 +13,7 @@ import {
   gestion,
   integrantesAsignables,
   latestBatch,
+  tareas,
 } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -69,12 +71,13 @@ export default async function GestionPage({
   const { id } = await params
   const avisoPedido = (await searchParams).aviso
   const aviso = typeof avisoPedido === 'string' ? avisoPedido.slice(0, 300) : null
-  const [lote, g, integrantes, companias] = await consultar(
+  const [lote, g, integrantes, companias, tareasDeLaGestion] = await consultar(
     Promise.all([
       latestBatch(principal),
       gestion(principal, id),
       integrantesAsignables(principal, id),
       companiasActivas(principal),
+      tareas(principal, { serviceCaseId: id, includeDone: true }),
     ]),
   )
   if (g === null) notFound()
@@ -311,6 +314,25 @@ export default async function GestionPage({
           )}
         </>
       )}
+
+      <h2>Tareas</h2>
+      {tareasDeLaGestion.length === 0 ? <p className="meta">Sin tareas.</p> : (
+        <ul style={{ margin: '0 0 0.5rem', paddingLeft: '1.1rem' }}>
+          {tareasDeLaGestion.map((t) => (
+            <li key={t.id}>
+              <Link href={`/tareas/${t.id}`}>{t.title}</Link>
+              <span className="meta">
+                {' '}
+                · {ESTADOS_DE_TAREA[t.status]} · {t.assignedToMe ? 'vos' : (t.assignedEmail ?? 'sin responsable')}
+                {t.dueDate === null ? null : ` · vence ${t.dueDate}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="meta">
+        <Link href={`/tareas/nueva?gestion=${g.id}`}>Nueva tarea para esta gestión</Link>
+      </p>
 
       <h2>Responsable</h2>
       <form action={asignar} className="buscador">

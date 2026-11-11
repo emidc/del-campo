@@ -58,8 +58,8 @@ ven el Administrador y el Operador, como aprobó el owner.
 
 | Caso del prototipo | Acción del prototipo | Estado | Corresponde a |
 |---|---|---|---|
-| Reasignar tareas de otros | `tareaReasignar` | pendiente | — (no hay tareas en producción) |
-| Editar tareas (propias o Manuel) | `tareaEstado` | pendiente | — |
+| Reasignar tareas de otros | `tareaReasignar` | implementada | Broker OS, RLS de `task` (T-0052): quien ve al cliente pasa la tarea a otro integrante que también lo ve |
+| Editar tareas (propias o Manuel) | `tareaEstado` | implementada | Broker OS, RLS de `task` (T-0052), más amplia que el prototipo: cualquiera que ve al cliente, no sólo el responsable |
 | Responder comunicación | `responder` | implementada | Communication OS `conversacion.responder` |
 | Tomar una atención | `tomarAtencion` | pendiente | — |
 | Asignar un mensaje de «Sin asignar» | `asignarSinAsignar` | pendiente | — |
@@ -163,6 +163,9 @@ apps/web/src/app/page.tsx
 apps/web/src/app/parte/[id]/page.tsx
 apps/web/src/app/poliza/[id]/page.tsx
 apps/web/src/app/renovaciones/page.tsx
+apps/web/src/app/tareas/[id]/page.tsx
+apps/web/src/app/tareas/nueva/page.tsx
+apps/web/src/app/tareas/page.tsx
 ```
 
 ## 4. Token entre contextos

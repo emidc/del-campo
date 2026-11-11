@@ -15,6 +15,7 @@ export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly 
         <Link href="/inicio">Inicio</Link>
         <Link href="/buscar">Buscar</Link>
         <Link href="/gestiones">Gestiones</Link>
+        <Link href="/tareas">Tareas</Link>
         <Link href="/renovaciones">Renovaciones</Link>
         <span className="meta">{email}</span>
         <a href="/api/auth/logout">Salir</a>
