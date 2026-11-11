@@ -29,7 +29,7 @@ del PR por el owner (R-17). Los hooks evitan el error común y lo hacen visible.
 - **Validadores desde el shell.** Ejecutarlos está permitido. El hook rechaza sólo los
   programas que escriben, mueven o borran (`sed`, `mv`, `cp`, `rm`, `tee` y similares)
   cuando nombran un validador. Un comando opaco que los modifique no se detecta en local;
-  lo frena CI, que exige revisión ciega para ese diff (R-33).
+  lo frena CI, que exige revisión para ese diff (R-33).
 - **Codex confía en el comando del hook, no en el script.** Cambiar
   `.agents/hooks/protect-paths.mjs` no vuelve a pedir revisión en `/hooks`. Por eso
   `.agents/` es una ruta protegida.
@@ -40,7 +40,8 @@ del PR por el owner (R-17). Los hooks evitan el error común y lo hacen visible.
 
 ## Arrancar una sesión
 
-1. Rama `task/T-xxxx-…` creada desde `main`, con la tarea en `READY` o `ACTIVE`.
+1. Rama `task/T-xxxx-…` creada desde `main`. La tarea puede estar ya en `main` o entrar
+   en el mismo PR que su código (D-0089).
 2. La primera vez en una máquina:
    - **Codex:** abrir `codex` en la raíz del repo, entrar a `/hooks` y confiar el hook
      de `.codex/hooks.json` después de leer su comando.
@@ -50,8 +51,9 @@ del PR por el owner (R-17). Los hooks evitan el error común y lo hacen visible.
 ## Cerrar una sesión
 
 1. `pnpm check` antes de abrir el PR.
-2. Si la tarea es FEATURE o MIGRATION o el diff toca una ruta sensible, el reporte de
-   revisión ciega va en `REVIEWS/` con el id de la tarea; CI lo exige (D-0086).
+2. Si el diff toca permisos o seguridad (identidad, controles de acceso, guardrails o
+   validadores), el reporte de revisión va en `REVIEWS/` con el id de la tarea; CI lo
+   exige (D-0089). Una FEATURE o una migración fuera de esas rutas no lo necesita.
 3. La revisión ciega la hace un subagente aislado, del mismo proveedor o de otro (R-33);
    la independencia viene de no compartir contexto. El PR lo mergea el owner.
 

@@ -188,16 +188,14 @@ export function run({ branchName, baseRef } = {}) {
     return { ok: false, errors }
   }
 
-  if (branchCheck.taskId) {
+  // La tarea puede estar en main o entrar en la misma rama que la implementa (D-0089): lo
+  // que no puede es faltar. Si ya estaba en main, su contrato queda congelado más abajo.
+  if (branchCheck.taskId && !findTaskFileInWorkingTree(branchCheck.taskId)) {
     const baseFile = findTaskFileAtRef(branchCheck.taskId, mergeBase)
-    if (!baseFile) {
-      errors.push(`la rama declara ${branchCheck.taskId} pero TASKS/${branchCheck.taskId}-*.md no existe en el merge-base (${mergeBase}): la tarea debe estar en main antes de implementarla`)
-      return { ok: false, errors }
-    }
-    if (!findTaskFileInWorkingTree(branchCheck.taskId)) {
-      errors.push(`TASKS/${branchCheck.taskId}-*.md existe en el merge-base (${baseFile}) pero no en la rama`)
-      return { ok: false, errors }
-    }
+    errors.push(baseFile
+      ? `TASKS/${branchCheck.taskId}-*.md existe en el merge-base (${baseFile}) pero no en la rama`
+      : `la rama declara ${branchCheck.taskId} pero TASKS/${branchCheck.taskId}-*.md no existe ni en main ni en la rama`)
+    return { ok: false, errors }
   }
 
   const changes = changedTaskFiles(mergeBase)
