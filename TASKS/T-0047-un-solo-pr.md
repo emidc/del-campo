@@ -2,7 +2,7 @@
 id: T-0047
 title: Una funcionalidad en un solo PR y revisión sólo en permisos o seguridad
 kind: CHORE
-status: ACTIVE
+status: DONE
 workstream: POS
 riskClass: MEDIUM
 size: S

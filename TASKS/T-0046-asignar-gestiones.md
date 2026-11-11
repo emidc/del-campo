@@ -2,7 +2,7 @@
 id: T-0046
 title: Asignar gestiones y ver la carga del equipo
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S
