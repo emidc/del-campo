@@ -59,7 +59,7 @@ ven el Administrador y el Operador, como aprobó el owner.
 | Caso del prototipo | Acción del prototipo | Estado | Corresponde a |
 |---|---|---|---|
 | Reasignar tareas de otros | `tareaReasignar` | implementada | Broker OS, RLS de `task` (T-0052): quien ve al cliente pasa la tarea a otro integrante que también lo ve |
-| Editar tareas (propias o Manuel) | `tareaEstado` | implementada, más amplia | Broker OS, RLS de `task` (T-0052): cualquiera que ve al cliente, no sólo el responsable |
+| Editar tareas (propias o Manuel) | `tareaEstado` | implementada | Broker OS, RLS de `task` (T-0052), más amplia que el prototipo: cualquiera que ve al cliente, no sólo el responsable |
 | Responder comunicación | `responder` | implementada | Communication OS `conversacion.responder` |
 | Tomar una atención | `tomarAtencion` | pendiente | — |
 | Asignar un mensaje de «Sin asignar» | `asignarSinAsignar` | pendiente | — |
