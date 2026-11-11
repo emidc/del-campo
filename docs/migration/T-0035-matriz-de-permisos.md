@@ -153,6 +153,9 @@ apps/web/src/app/api/auth/logout/route.ts
 apps/web/src/app/api/vs01/policy/[id]/route.ts
 apps/web/src/app/api/vs01/search/route.ts
 apps/web/src/app/buscar/page.tsx
+apps/web/src/app/gestiones/[id]/page.tsx
+apps/web/src/app/gestiones/nueva/page.tsx
+apps/web/src/app/gestiones/page.tsx
 apps/web/src/app/login/page.tsx
 apps/web/src/app/page.tsx
 apps/web/src/app/parte/[id]/page.tsx

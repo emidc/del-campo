@@ -13,6 +13,7 @@ export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly 
       <h1>Broker OS · VS01</h1>
       <nav>
         <Link href="/buscar">Buscar</Link>
+        <Link href="/gestiones">Gestiones</Link>
         <span className="meta">{email}</span>
         <a href="/api/auth/logout">Salir</a>
       </nav>

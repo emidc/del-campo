@@ -37,6 +37,12 @@ export default async function PartePage({
         {vista.cuit === null ? '' : ` · CUIT ${vista.cuit}`}
       </p>
 
+      <p className="meta">
+        <Link href={`/gestiones/nueva?parte=${id}`}>Nueva gestión</Link>
+        {' · '}
+        <Link href={`/gestiones?parte=${id}`}>Gestiones de este cliente</Link>
+      </p>
+
       <h2>Pólizas</h2>
       {vista.policies.length === 0 ? (
         <p className="meta">Sin pólizas a la fecha consultada.</p>
