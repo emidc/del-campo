@@ -80,6 +80,7 @@ it('el paquete exporta las lecturas por organización y los casos de uso de la a
     'registroJtiPostgres',
     'reordenar',
     'revisar',
+    'riesgosDeEmpresa',
     'sesionVigente',
     'verificarVinculo',
     'vigente',

@@ -23,6 +23,8 @@ import { GET as planGET } from '../app/api/o/[org]/plan/route.ts'
 import { GET as transferenciaGET } from '../app/api/o/[org]/transferencia/route.ts'
 import { GET as organizacionesGET } from '../app/api/organizaciones/route.ts'
 import { GET as detalleGET } from '../app/api/r/[id]/route.ts'
+import { GET as riesgosDeEmpresaGET } from '../app/api/entre-contextos/empresas/[empresa]/riesgos/route.ts'
+import { emitirToken, generarParDeClaves, jwksDe } from '@del-campo/identidad'
 import { guardRequest } from './guard.ts'
 import { COOKIE_IDENTIDAD } from './identidad.ts'
 import { modoAcceso } from './modo.ts'
@@ -35,11 +37,11 @@ const OTRO = 'otro-secreto-de-sesion-de-prueba-0123456789'
 const PERSONA = 'PER-01M50T00000000000000000002'
 const ORG = 'ORG-01M3QSRT003GPNZ7ZJSV8AHDAR'
 const RIESGO = 'RSK-01M3QSRT00DSK3VYVBFPTPJXM6'
-const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL', 'RISK_OIDC_DATABASE_URL', 'AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const
+const VARS = ['RISK_UI_SESSION_SECRET', 'RISK_DATABASE_URL', 'RISK_OIDC_DATABASE_URL', 'AUTH_MODE', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET', 'RISK_JWKS_BROKER'] as const
 const saved: Partial<Record<(typeof VARS)[number], string | undefined>> = {}
 
 const configure = (): void => {
-  for (const v of ['AUTH_MODE', 'RISK_OIDC_DATABASE_URL', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET'] as const) Reflect.deleteProperty(process.env, v)
+  for (const v of ['AUTH_MODE', 'RISK_OIDC_DATABASE_URL', 'RISK_BASE_URL', 'RISK_GOOGLE_CLIENT_ID', 'RISK_GOOGLE_CLIENT_SECRET', 'RISK_JWKS_BROKER'] as const) Reflect.deleteProperty(process.env, v)
   process.env.RISK_UI_SESSION_SECRET = SECRET
   // Una base que no existe: si un handler llegara a consultarla, el test fallaría.
   process.env.RISK_DATABASE_URL = 'postgres://localhost:1/no_existe_test'
@@ -226,9 +228,17 @@ describe('estructura: toda página y todo endpoint pasan por el guard', () => {
         return
       }
       const handlers = source.match(/export (const|function|async function) (GET|POST|PUT|PATCH|DELETE)\b/g) ?? []
-      const guarded = source.match(/withSesion\b[^(]*\(/g) ?? []
       assert.ok(handlers.length > 0, `${file} no exporta handlers`)
+      // Lo que llama otro contexto pasa por el token (C4-03a), sólo lee y nunca por la cookie.
+      if (file.startsWith('api/entre-contextos/')) {
+        assert.equal((source.match(/withLlamada\b[^(]*\(/g) ?? []).length, handlers.length, `${file}: cada handler pasa por withLlamada`)
+        assert.doesNotMatch(source, /withSesion/, `${file} no usa la sesión`)
+        assert.ok(handlers.every((h) => h.endsWith('GET')), `${file} sólo exporta GET`)
+        return
+      }
+      const guarded = source.match(/withSesion\b[^(]*\(/g) ?? []
       assert.equal(guarded.length, handlers.length, `${file}: cada handler pasa por withSesion`)
+      assert.doesNotMatch(source, /withLlamada/, `${file}: el token sólo vale bajo api/entre-contextos/`)
     })
   }
 })
@@ -312,19 +322,92 @@ describe('AUTH_MODE (T-0035)', () => {
   })
 })
 
-describe('estructura: el token entre contextos no tiene endpoint todavía (T-0035)', () => {
-  // Ni llamadas reales ni endpoints de prueba accesibles en producción: la verificación del
-  // token se prueba contra la base, no por HTTP. El primer endpoint que lo use se agrega con
-  // su tarea, su JWKS configurado y este test actualizado.
+describe('estructura: el token entre contextos sólo entra por withLlamada (T-0035, C4-03a)', () => {
   const APP = fileURLToPath(new URL('../app/', import.meta.url))
   const walk = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]))
-
   const LIB = fileURLToPath(new URL('./', import.meta.url))
 
-  it('ninguna página, endpoint ni handler importa entre-contextos.ts ni verificarToken', () => {
+  it('sólo lib/llamada.ts importa entre-contextos.ts, admitirLlamada o verificarToken', () => {
     const fuentes = [...walk(APP), ...walk(LIB).filter((f) => !/\.test\.ts$|entre-contextos\.ts$/.test(f))]
-    const usan = fuentes.filter((f) => /entre-contextos|verificarToken|admitirLlamada/.test(readFileSync(f, 'utf8')))
-    assert.deepEqual(usan.map((f) => relative(APP, f)), [])
+    const usan = fuentes.filter((f) => /entre-contextos\.ts|verificarToken|admitirLlamada/.test(readFileSync(f, 'utf8')))
+    assert.deepEqual(usan.map((f) => relative(LIB, f)), ['llamada.ts'])
+  })
+
+  it('sólo las rutas bajo api/entre-contextos/ usan withLlamada', () => {
+    const usan = walk(APP).filter((f) => readFileSync(f, 'utf8').includes('withLlamada')).map((f) => relative(APP, f).split('\\').join('/'))
+    assert.ok(usan.length > 0)
+    assert.ok(usan.every((f) => f.startsWith('api/entre-contextos/')), usan.join(', '))
+  })
+})
+
+describe('GET /api/entre-contextos/empresas/:empresa/riesgos sin un token válido (C4-03a)', () => {
+  const EMPRESA = '00000000-0000-4000-8000-000000000001'
+  const llamar = (headers: Record<string, string> = {}): Promise<Response> =>
+    riesgosDeEmpresaGET(new Request(`${ORIGIN}/api/entre-contextos/empresas/${EMPRESA}/riesgos`, { headers }), { params: Promise.resolve({ empresa: EMPRESA }) })
+
+  const oidcConJwks = async () => {
+    const broker = await generarParDeClaves()
+    process.env.AUTH_MODE = 'oidc'
+    // Una base que no existe: si el endpoint la consultara, el test fallaría.
+    process.env.RISK_OIDC_DATABASE_URL = 'postgres://localhost:1/no_existe_oidc_test'
+    process.env.RISK_JWKS_BROKER = JSON.stringify(jwksDe([broker.publica]))
+    return broker
+  }
+  const emision = (cambios: Partial<Parameters<typeof emitirToken>[1]> = {}): Parameters<typeof emitirToken>[1] =>
+    ({ emisor: 'broker-os', audiencia: 'risk-os', proveedor: 'google', sujeto: 'sujeto-de-prueba', ...cambios })
+
+  it('en legacy no existe: 404', async () => {
+    assert.equal((await llamar()).status, 404)
+  })
+
+  it('en oidc sin RISK_JWKS_BROKER: 503', async () => {
+    await oidcConJwks()
+    Reflect.deleteProperty(process.env, 'RISK_JWKS_BROKER')
+    try {
+      const r = await llamar()
+      assert.equal(r.status, 503)
+      assert.deepEqual(await r.json(), { error: 'la UI no está configurada' })
+    } finally {
+      configure()
+    }
+  })
+
+  it('sin token, con una cookie o firmado con otra clave: 401 sin tocar la base', async () => {
+    await oidcConJwks()
+    const otra = await generarParDeClaves()
+    try {
+      const casos: [string, Record<string, string>][] = [
+        ['sin token', {}],
+        ['con una cookie de sesión', cookie(valida())],
+        ['con un bearer que no es un token', { authorization: 'Bearer no-es-un-token' }],
+        ['firmado con otra clave', { authorization: `Bearer ${await emitirToken(otra.privada, emision())}` }],
+      ]
+      for (const [nombre, headers] of casos) {
+        const r = await llamar(headers)
+        assert.equal(r.status, 401, nombre)
+        assert.equal(r.headers.get('cache-control'), 'no-store', nombre)
+        assert.deepEqual(await r.json(), { error: 'sin credencial válida' }, nombre)
+      }
+    } finally {
+      configure()
+    }
+  })
+
+  it('un token bien firmado pero con otro iss, otro aud o vencido: 401 sin tocar la base', async () => {
+    const broker = await oidcConJwks()
+    try {
+      const vencido = Math.floor(Date.now() / 1000) - 3600
+      for (const [nombre, e] of [
+        ['otro iss', emision({ emisor: 'communication-os' })],
+        ['otro aud', emision({ audiencia: 'broker-os' })],
+        ['vencido', emision({ ahora: vencido })],
+      ] as const) {
+        const r = await llamar({ authorization: `Bearer ${await emitirToken(broker.privada, e)}` })
+        assert.equal(r.status, 401, nombre)
+      }
+    } finally {
+      configure()
+    }
   })
 })

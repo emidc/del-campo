@@ -81,6 +81,8 @@ export {
   organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular, vinculoDeEmpresa,
   type FichaOrganizacion, type OrganizacionEvaluada, type VinculoDeEmpresa,
 } from './organizacion-evaluada.ts'
+// C4-03a: los riesgos de una empresa de Broker OS, para su ficha.
+export { riesgosDeEmpresa, type RiesgoDeEmpresa, type RiesgosDeEmpresa } from './riesgos-de-empresa.ts'
 // T-0035: el registro de `jti` del token entre contextos, que la app pasa a `verificarToken`.
 export { registroJtiPostgres, type RegistroJtiPostgres, type UsoJti } from '../persistence/jti.ts'
 // Operación de la base y carga de lotes: los usa la app en sus tests de integración y T-0032.
