@@ -2,7 +2,7 @@
 id: T-0052
 title: Tareas con responsable, estado e historia
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M

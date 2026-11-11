@@ -95,7 +95,7 @@ export interface ServiceCaseSummary {
 
 export interface ServiceCaseEvent {
   readonly id: string
-  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION' | 'ETAPA' | 'REQUISITO' | 'PROPUESTA'
+  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION' | 'ETAPA' | 'REQUISITO' | 'PROPUESTA' | 'INTERLOCUTOR'
   readonly body: string | null
   readonly fromStatus: ServiceCaseStatus | null
   readonly toStatus: ServiceCaseStatus | null

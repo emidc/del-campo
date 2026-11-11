@@ -4,6 +4,8 @@ import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_PROPUESTA,
   ESTADOS_DE_TAREA,
+  CLAIM_CONTACT_ROLES,
+  ROLES_DE_INTERLOCUTOR,
   ETAPAS_DE_SINIESTRO,
   SERVICE_CASE_STATUSES,
   QUOTE_CURRENCIES,
@@ -12,6 +14,7 @@ import {
   formatQuotePremium,
   gestion,
   integrantesAsignables,
+  interlocutores,
   latestBatch,
   tareas,
 } from '@del-campo/api'
@@ -23,12 +26,15 @@ import {
   agregarRequisitoAEtapa,
   anotar,
   asignar,
+  cambiarDeInterlocutor,
   cambiarEstado,
+  contactoDeHoy,
   elegir,
   marcar,
   moverEtapa,
   pedirACompania,
   responderCotizacion,
+  sumarAlSiniestro,
   tomar,
 } from '@/app/gestiones/acciones'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -53,6 +59,8 @@ const describir = (evento: ServiceCaseEvent): string => {
       return evento.body ?? 'Requisito'
     case 'PROPUESTA':
       return evento.body ?? 'Propuesta'
+    case 'INTERLOCUTOR':
+      return evento.body ?? 'Interlocutor'
     case 'ESTADO':
       return evento.fromStatus === 'CERRADA'
         ? `Reabrió: ${ESTADOS_DE_GESTION[evento.toStatus ?? 'ABIERTA']}`
@@ -71,13 +79,14 @@ export default async function GestionPage({
   const { id } = await params
   const avisoPedido = (await searchParams).aviso
   const aviso = typeof avisoPedido === 'string' ? avisoPedido.slice(0, 300) : null
-  const [lote, g, integrantes, companias, tareasDeLaGestion] = await consultar(
+  const [lote, g, integrantes, companias, tareasDeLaGestion, contactos] = await consultar(
     Promise.all([
       latestBatch(principal),
       gestion(principal, id),
       integrantesAsignables(principal, id),
       companiasActivas(principal),
       tareas(principal, { serviceCaseId: id, includeDone: true }),
+      interlocutores(principal, id),
     ]),
   )
   if (g === null) notFound()
@@ -205,6 +214,124 @@ export default async function GestionPage({
               </form>
             )}
           </div>
+        </>
+      )}
+
+      {g.claimStage === null ? null : (
+        <>
+          <h2 id="interlocutores">Interlocutores</h2>
+          {contactos.length === 0 ? (
+            <p className="meta">Todavía no hay interlocutores.</p>
+          ) : (
+            <div className="desborde">
+              <table data-interlocutores>
+                <thead>
+                  <tr>
+                    <th>Rol</th>
+                    <th>Persona</th>
+                    <th>Responsable interno</th>
+                    <th>Último contacto</th>
+                    <th>Pendiente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contactos.map((k) => (
+                    <tr key={k.id}>
+                      <td>{ROLES_DE_INTERLOCUTOR[k.role]}</td>
+                      <td>
+                        {k.name}
+                        {k.contact === null ? null : <span className="meta"> · {k.contact}</span>}
+                      </td>
+                      <td>{k.assignedToMe ? 'vos' : (k.assignedEmail ?? '—')}</td>
+                      <td>{k.lastContactOn ?? 'Sin contacto'}</td>
+                      <td className={k.pending === null ? undefined : 'pendiente'}>{k.pending ?? 'Sin intervención'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {contactos.map((k) => (
+            <details key={k.id} className="tarjeta" data-interlocutor={k.name}>
+              <summary>
+                {ROLES_DE_INTERLOCUTOR[k.role]}: {k.name}
+              </summary>
+              <form action={contactoDeHoy} className="buscador">
+                <input type="hidden" name="id" value={g.id} />
+                <input type="hidden" name="interlocutor" value={k.id} />
+                <div className="campo" style={{ gridColumn: 'span 2' }}>
+                  <label htmlFor={`contacto-${k.id}`}>Qué se habló</label>
+                  <input id={`contacto-${k.id}`} name="comentario" maxLength={500} />
+                </div>
+                <div className="acciones">
+                  <button type="submit">Registrar contacto de hoy</button>
+                </div>
+              </form>
+              <form action={cambiarDeInterlocutor} className="buscador">
+                <input type="hidden" name="id" value={g.id} />
+                <input type="hidden" name="interlocutor" value={k.id} />
+                <div className="campo">
+                  <label htmlFor={`pendiente-${k.id}`}>Pendiente (vacío: sin intervención)</label>
+                  <input id={`pendiente-${k.id}`} name="pendiente" maxLength={300} defaultValue={k.pending ?? ''} />
+                </div>
+                <div className="campo">
+                  <label htmlFor={`responsable-${k.id}`}>Responsable interno</label>
+                  <select id={`responsable-${k.id}`} name="responsable" defaultValue={k.assignedUserId ?? ''}>
+                    <option value="">Nadie</option>
+                    {integrantes.map((i) => (
+                      <option key={i.userId} value={i.userId}>
+                        {i.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="acciones">
+                  <button type="submit" className="boton--secundario">
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            </details>
+          ))}
+          <form action={sumarAlSiniestro} className="buscador" style={{ marginTop: '0.75rem' }}>
+            <input type="hidden" name="id" value={g.id} />
+            <div className="campo">
+              <label htmlFor="interlocutor-rol">Rol</label>
+              <select id="interlocutor-rol" name="rol" defaultValue="TALLER">
+                {CLAIM_CONTACT_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLES_DE_INTERLOCUTOR[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="interlocutor-nombre">Nombre</label>
+              <input id="interlocutor-nombre" name="nombre" required maxLength={200} />
+            </div>
+            <div className="campo">
+              <label htmlFor="interlocutor-contacto">Teléfono o correo</label>
+              <input id="interlocutor-contacto" name="contacto" maxLength={200} />
+            </div>
+            <div className="campo">
+              <label htmlFor="interlocutor-responsable">Responsable interno</label>
+              <select id="interlocutor-responsable" name="responsable" defaultValue="">
+                <option value="">Nadie</option>
+                {integrantes.map((i) => (
+                  <option key={i.userId} value={i.userId}>
+                    {i.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="campo" style={{ gridColumn: 'span 2' }}>
+              <label htmlFor="interlocutor-pendiente">Pendiente</label>
+              <input id="interlocutor-pendiente" name="pendiente" maxLength={300} />
+            </div>
+            <div className="acciones">
+              <button type="submit">Sumar interlocutor</button>
+            </div>
+          </form>
         </>
       )}
 
@@ -401,7 +528,7 @@ export default async function GestionPage({
           <p className="meta" style={{ margin: 0 }}>
             {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
-          {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO', 'PROPUESTA'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
+          {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO', 'PROPUESTA', 'INTERLOCUTOR'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
         </article>
       ))}
     </main>
