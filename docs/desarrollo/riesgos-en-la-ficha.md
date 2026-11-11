@@ -109,8 +109,10 @@ Un `[empresa]` que no es un uuid responde `sin_vinculo`, sin consultar.
 | La matriz lo niega (por ejemplo, Revisor sin orden previo) | 403 `{ "error": "<explicación>" }` |
 | Todo lo demás | 200 con el cuerpo de abajo |
 
-Siempre `cache-control: no-store`. El motivo del rechazo queda en `evento_auditoria`, nunca
-en la respuesta.
+Siempre `cache-control: no-store`. El motivo del rechazo nunca va en la respuesta.
+`withLlamada` verifica primero firma, `iss`, `aud` y vencimiento sin tocar la base: un
+token que falla ahí se niega sin auditar, igual que una cookie inválida. Un `jti` repetido
+y una persona no admitida sí quedan en `evento_auditoria`.
 
 ```jsonc
 // 200 — una de tres formas
