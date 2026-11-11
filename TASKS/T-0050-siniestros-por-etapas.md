@@ -2,7 +2,7 @@
 id: T-0050
 title: Siniestros por etapas con requisitos
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S

@@ -103,6 +103,11 @@ export default async function GestionesPage({
                   <td>
                     {ESTADOS_DE_GESTION[g.status]}
                     {g.claimStage === null ? null : ` · ${ETAPAS_DE_SINIESTRO[g.claimStage]}`}
+                    {g.quote === null
+                      ? null
+                      : g.quote.chosenInsurer === null
+                        ? ` · cotizaron ${String(g.quote.quoted)} de ${String(g.quote.requested)}`
+                        : ` · eligió ${g.quote.chosenInsurer}`}
                   </td>
                   <td>{g.assignedToMe ? 'vos' : (g.assignedEmail ?? '—')}</td>
                   <td className={g.dueDate !== null && g.dueDate < hoy && g.status !== 'CERRADA' ? 'pendiente' : undefined}>

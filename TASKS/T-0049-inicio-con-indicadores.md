@@ -2,7 +2,7 @@
 id: T-0049
 title: Inicio con indicadores y sin ranking
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: S

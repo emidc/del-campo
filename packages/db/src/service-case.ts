@@ -39,6 +39,39 @@ export interface ServiceCaseRequirement {
   readonly doneByEmail: string | null
 }
 
+/** Estados de una propuesta de cotización (0016_cotizacion_propuestas.sql). */
+export const QUOTE_OPTION_STATUSES = ['PEDIDA', 'COTIZADA', 'DECLINADA', 'ELEGIDA'] as const
+export type QuoteOptionStatus = (typeof QUOTE_OPTION_STATUSES)[number]
+
+export const QUOTE_CURRENCIES = ['ARS', 'USD'] as const
+export type QuoteCurrency = (typeof QUOTE_CURRENCIES)[number]
+
+/** La respuesta de una compañía dentro de una cotización. */
+export interface QuoteOption {
+  readonly id: string
+  readonly insurerId: string
+  readonly insurerName: string
+  readonly status: QuoteOptionStatus
+  /** Decimal como texto, tal como lo devuelve la base. */
+  readonly premium: string | null
+  readonly currency: QuoteCurrency
+  readonly validUntil: string | null
+  readonly note: string | null
+  readonly updatedAt: string
+}
+
+/** Avance de una cotización: a cuántas compañías se pidió, cuántas cotizaron y cuál eligió el cliente. */
+export interface QuoteProgress {
+  readonly requested: number
+  readonly quoted: number
+  readonly chosenInsurer: string | null
+}
+
+export interface InsurerOption {
+  readonly id: string
+  readonly name: string
+}
+
 export interface ServiceCaseSummary {
   readonly id: string
   readonly kind: ServiceCaseKind
@@ -56,11 +89,13 @@ export interface ServiceCaseSummary {
   readonly closedAt: string | null
   /** Sólo en un siniestro. */
   readonly claimStage: ClaimStage | null
+  /** Sólo en una cotización. */
+  readonly quote: QuoteProgress | null
 }
 
 export interface ServiceCaseEvent {
   readonly id: string
-  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION' | 'ETAPA' | 'REQUISITO'
+  readonly kind: 'ALTA' | 'NOTA' | 'ESTADO' | 'CIERRE' | 'ASIGNACION' | 'ETAPA' | 'REQUISITO' | 'PROPUESTA'
   readonly body: string | null
   readonly fromStatus: ServiceCaseStatus | null
   readonly toStatus: ServiceCaseStatus | null
@@ -73,6 +108,8 @@ export interface ServiceCaseDetail extends ServiceCaseSummary {
   readonly events: readonly ServiceCaseEvent[]
   /** Requisitos de todas las etapas, en orden; vacío si no es un siniestro. */
   readonly requirements: readonly ServiceCaseRequirement[]
+  /** Propuestas de las compañías; vacío si no es una cotización. */
+  readonly quoteOptions: readonly QuoteOption[]
 }
 
 export interface ServiceCaseFilter {
@@ -124,6 +161,9 @@ interface SummaryRow {
   readonly closed_at: string | null
   readonly outcome: string | null
   readonly claim_stage: ClaimStage | null
+  readonly quote_requested: number | null
+  readonly quote_quoted: number | null
+  readonly quote_chosen: string | null
 }
 
 const resumen = (row: SummaryRow): ServiceCaseSummary => ({
@@ -142,6 +182,10 @@ const resumen = (row: SummaryRow): ServiceCaseSummary => ({
   updatedAt: row.updated_at,
   closedAt: row.closed_at,
   claimStage: row.claim_stage,
+  quote:
+    row.kind === 'COTIZACION'
+      ? { requested: row.quote_requested ?? 0, quoted: row.quote_quoted ?? 0, chosenInsurer: row.quote_chosen }
+      : null,
 })
 
 const seleccion = (sql: QueryExecutor) => sql`
@@ -162,8 +206,19 @@ const seleccion = (sql: QueryExecutor) => sql`
     c.updated_at::text as updated_at,
     c.closed_at::text as closed_at,
     c.outcome,
-    c.claim_stage
+    c.claim_stage,
+    q.requested as quote_requested,
+    q.quoted as quote_quoted,
+    q.chosen as quote_chosen
   from service_case c
+  left join lateral (
+    select count(*)::int as requested,
+      count(*) filter (where o.status in ('COTIZADA', 'ELEGIDA'))::int as quoted,
+      max(i.canonical_name) filter (where o.status = 'ELEGIDA') as chosen
+    from service_case_quote_option o
+    join insurer i on i.id = o.insurer_id
+    where o.service_case_id = c.id and c.kind = 'COTIZACION'
+  ) q on true
   left join party pa on pa.id = c.party_id
   left join person_profile pp on pp.party_id = c.party_id
   left join organization_profile op on op.party_id = c.party_id
@@ -225,9 +280,40 @@ export const getServiceCase = async (sql: QueryExecutor, id: string): Promise<Se
     where r.service_case_id = ${id}
     order by array_position(${CLAIM_STAGES}::text[], r.stage), r.position, r.created_at
   `
+  const quoteOptions = await sql<
+    {
+      id: string
+      insurer_id: string
+      insurer_name: string
+      status: QuoteOptionStatus
+      premium: string | null
+      currency: QuoteCurrency
+      valid_until: string | null
+      note: string | null
+      updated_at: string
+    }[]
+  >`
+    select o.id, o.insurer_id, i.canonical_name as insurer_name, o.status, o.premium::text as premium,
+      o.currency, to_char(o.valid_until, 'YYYY-MM-DD') as valid_until, o.note, o.updated_at::text as updated_at
+    from service_case_quote_option o
+    join insurer i on i.id = o.insurer_id
+    where o.service_case_id = ${id}
+    order by o.premium nulls last, i.canonical_name
+  `
   return {
     ...resumen(row),
     outcome: row.outcome,
+    quoteOptions: quoteOptions.map((o) => ({
+      id: o.id,
+      insurerId: o.insurer_id,
+      insurerName: o.insurer_name,
+      status: o.status,
+      premium: o.premium,
+      currency: o.currency,
+      validUntil: o.valid_until,
+      note: o.note,
+      updatedAt: o.updated_at,
+    })),
     requirements: requirements.map((r) => ({
       id: r.id,
       stage: r.stage,
@@ -428,4 +514,125 @@ export const addClaimRequirement = async (
     insert into service_case_requirement (service_case_id, stage, name)
     values (${id}, ${stage}, ${texto})
   `
+}
+
+/** Compañías activas, para pedirles cotización. */
+export const listActiveInsurers = async (sql: QueryExecutor): Promise<InsurerOption[]> => {
+  const rows = await sql<{ id: string; name: string }[]>`
+    select id, canonical_name as name from insurer where active order by canonical_name
+  `
+  return rows.map((r) => ({ id: r.id, name: r.name }))
+}
+
+const anotarPropuesta = async (sql: QueryExecutor, caseId: string, body: string): Promise<void> => {
+  await sql`
+    insert into service_case_event (service_case_id, kind, body, author_user_id)
+    values (${caseId}, 'PROPUESTA', ${body}, authz.usuario())
+  `
+  await sql`update service_case set updated_at = now() where id = ${caseId}`
+}
+
+/** Pide cotización a una compañía: crea su propuesta en estado Pedida. La base rechaza si no es una cotización. */
+export const requestQuoteOption = async (sql: QueryExecutor, id: string, insurerId: string): Promise<void> => {
+  const [o] = await sql<{ name: string }[]>`
+    with nueva as (
+      insert into service_case_quote_option (service_case_id, insurer_id)
+      values (${id}, ${insurerId})
+      returning insurer_id
+    )
+    select i.canonical_name as name from nueva join insurer i on i.id = nueva.insurer_id
+  `
+  if (o === undefined) throw new Error('la propuesta no se creó')
+  await anotarPropuesta(sql, id, `Pedida a ${o.name}`)
+}
+
+export interface QuoteAnswer {
+  readonly premium: string
+  readonly currency: QuoteCurrency
+  readonly validUntil: string | null
+  readonly note: string | null
+}
+
+const montoLegible = (premium: string, currency: QuoteCurrency): string => {
+  const [entero = '0', decimales = '00'] = premium.split('.')
+  const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${currency === 'USD' ? 'US$' : '$'} ${miles},${decimales.padEnd(2, '0').slice(0, 2)}`
+}
+
+/** Prima y moneda de una propuesta, para mostrar: «$ 120.000,00» o «US$ 950,50». */
+export const formatQuotePremium = (premium: string, currency: QuoteCurrency): string => montoLegible(premium, currency)
+
+interface OptionRow {
+  readonly service_case_id: string
+  readonly name: string
+  readonly status: QuoteOptionStatus
+}
+
+const propuesta = async (sql: QueryExecutor, optionId: string): Promise<OptionRow> => {
+  const [o] = await sql<OptionRow[]>`
+    select o.service_case_id, i.canonical_name as name, o.status
+    from service_case_quote_option o join insurer i on i.id = o.insurer_id
+    where o.id = ${optionId}
+    for update of o
+  `
+  if (o === undefined) throw new Error('propuesta inexistente o fuera de alcance')
+  return o
+}
+
+/** Registra la respuesta de la compañía: cotizó con esta prima. Si estaba elegida, sigue elegida. */
+export const recordQuoteAnswer = async (sql: QueryExecutor, optionId: string, answer: QuoteAnswer): Promise<void> => {
+  const o = await propuesta(sql, optionId)
+  const note = answer.note?.trim() ?? ''
+  const [r] = await sql<{ premium: string }[]>`
+    update service_case_quote_option set
+      status = case when status = 'ELEGIDA' then 'ELEGIDA' else 'COTIZADA' end,
+      premium = ${answer.premium}::numeric,
+      currency = ${answer.currency},
+      valid_until = ${answer.validUntil}::date,
+      note = ${note === '' ? null : note},
+      updated_at = clock_timestamp()
+    where id = ${optionId}
+    returning premium::text as premium
+  `
+  if (r === undefined) throw new Error('la propuesta no se actualizó')
+  const vence = answer.validUntil === null ? '' : `, vale hasta ${answer.validUntil}`
+  await anotarPropuesta(sql, o.service_case_id, `${o.name} cotizó ${montoLegible(r.premium, answer.currency)}${vence}`)
+}
+
+/** La compañía no cotiza. */
+export const declineQuoteOption = async (sql: QueryExecutor, optionId: string): Promise<void> => {
+  const o = await propuesta(sql, optionId)
+  if (o.status === 'DECLINADA') return
+  await sql`
+    update service_case_quote_option set status = 'DECLINADA', updated_at = clock_timestamp() where id = ${optionId}
+  `
+  await anotarPropuesta(sql, o.service_case_id, `${o.name} no cotiza`)
+}
+
+/**
+ * El cliente elige esta propuesta. Si había otra elegida, vuelve a Cotizada: la base admite
+ * una sola elegida por cotización. Sólo se elige una propuesta con prima.
+ */
+export const chooseQuoteOption = async (sql: QueryExecutor, optionId: string): Promise<void> => {
+  const o = await propuesta(sql, optionId)
+  if (o.status === 'ELEGIDA') return
+  if (o.status !== 'COTIZADA') throw new Error('sólo se elige una propuesta cotizada')
+  await sql`
+    update service_case_quote_option set status = 'COTIZADA', updated_at = clock_timestamp()
+    where service_case_id = ${o.service_case_id} and status = 'ELEGIDA'
+  `
+  await sql`
+    update service_case_quote_option set status = 'ELEGIDA', updated_at = clock_timestamp() where id = ${optionId}
+  `
+  await anotarPropuesta(sql, o.service_case_id, `El cliente eligió ${o.name}`)
+}
+
+/** Deshace la elección: la propuesta vuelve a Cotizada. */
+export const unchooseQuoteOption = async (sql: QueryExecutor, optionId: string): Promise<void> => {
+  const o = await propuesta(sql, optionId)
+  if (o.status !== 'ELEGIDA') return
+  await sql`
+    update service_case_quote_option set status = 'COTIZADA', updated_at = clock_timestamp() where id = ${optionId}
+  `
+  await anotarPropuesta(sql, o.service_case_id, `Se deshizo la elección de ${o.name}`)
 }
