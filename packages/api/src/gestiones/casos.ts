@@ -9,14 +9,19 @@ import type {
   ServiceCaseKind,
   ServiceCaseStatus,
   ServiceCaseSummary,
+  TeamMember,
+  Workload,
 } from '@del-campo/db'
 import {
   SERVICE_CASE_KINDS,
   SERVICE_CASE_STATUSES,
   addServiceCaseNote,
+  assignServiceCase,
   changeServiceCaseStatus,
   createServiceCase,
   getServiceCase,
+  getWorkload,
+  listAssignableMembers,
   listServiceCases,
   takeServiceCase,
 } from '@del-campo/db'
@@ -33,6 +38,8 @@ export type {
   ServiceCaseKind,
   ServiceCaseStatus,
   ServiceCaseSummary,
+  TeamMember,
+  Workload,
 }
 export { SERVICE_CASE_KINDS, SERVICE_CASE_STATUSES }
 
@@ -81,3 +88,12 @@ export const cambiarEstadoGestion = async (
 
 export const tomarGestion = async (principal: Principal, id: string): Promise<void> =>
   conDatos(sql(), principal, (ejecutor) => takeServiceCase(ejecutor, id))
+
+export const integrantesAsignables = async (principal: Principal, id: string): Promise<TeamMember[]> =>
+  conDatos(sql(), principal, (ejecutor) => listAssignableMembers(ejecutor, id))
+
+export const asignarGestion = async (principal: Principal, id: string, usuario: string | null): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => assignServiceCase(ejecutor, id, usuario))
+
+export const cargaDelEquipo = async (principal: Principal): Promise<Workload[]> =>
+  conDatos(sql(), principal, (ejecutor) => getWorkload(ejecutor))
