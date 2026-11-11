@@ -153,7 +153,7 @@ Los agentes no entregan a un cliente contenido que constituya asesoramiento sin 
 
 ### R-15 · Los guardrails no se autoeditan — ACTIVA
 
-Un agente que puede modificar sus propios límites no tiene límites. Las rutas protegidas son las mismas para los tres proveedores: `.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.github/workflows/` y los validadores (`scripts/check-*.mjs`, `scripts/guard-db-tests.mjs`). Las protegen `permissions.deny` y el hook de Bash de Claude Code, y `.agents/hooks/protect-paths.mjs` para Codex y Gemini. Ejecutar un validador está permitido; escribirlo, moverlo o borrarlo, no. CI exige revisión ciega para todo cambio en esas rutas (R-33) y corre los controles también en su versión de la base; el YAML del workflow sigue siendo el de la rama, así que un cambio al workflow lo frena la revisión del owner. → `D-0086`
+Un agente que puede modificar sus propios límites no tiene límites. Las rutas protegidas son las mismas para los tres proveedores: `.claude/`, `.codex/`, `.gemini/`, `.agents/`, `.github/workflows/` y los validadores (`scripts/check-*.mjs`, `scripts/guard-db-tests.mjs`). Las protegen `permissions.deny` y el hook de Bash de Claude Code, y `.agents/hooks/protect-paths.mjs` para Codex y Gemini. Ejecutar un validador está permitido; escribirlo, moverlo o borrarlo, no. CI exige revisión para todo cambio en esas rutas (R-33, D-0089) y corre los controles también en su versión de la base; el YAML del workflow sigue siendo el de la rama, así que un cambio al workflow lo frena la revisión del owner. → `D-0086`
 
 Los hooks locales cubren las rutas conocidas y los comandos que las nombran, no un comando opaco que las alcance por otro camino. Lo que no se puede omitir es CI y la revisión del owner (R-17).
 
@@ -274,7 +274,12 @@ No crece porque una biblioteca ofrezca una feature, porque un modelo recomiende 
 
 ## 9. Revisión
 
-### R-33 · Revisión ciega por subagente aislado — ACTIVA; obligatoria en `FEATURE` y `MIGRATION`
+### R-33 · Revisión ciega por subagente aislado — ACTIVA; obligatoria sólo en cambios de permisos o seguridad
+
+CI la exige cuando el diff toca identidad y autorización, controles de acceso de las apps,
+guardrails de los agentes o validadores (`scripts/check-review-required.mjs`). Una
+`FEATURE`, una migración o un endpoint fuera de esa lista entran con tests en verde y sin
+reporte; quien implementa o el owner la pueden pedir igual. → `D-0089`
 
 Un check en verde prueba que el código hace lo que el test dice, no que el test diga lo
 correcto. La independencia que hace falta para notar la diferencia viene de **no
@@ -286,8 +291,8 @@ segundo execution provider: esta regla no resuelve `D-0016`, cuyo estado se cons
 
 Cuando un PR se somete a esta revisión, el procedimiento es:
 
-1. El reviewer recibe el contrato de la tarea leído **desde `main`**, nunca desde la
-   rama que se revisa — leerlo desde la rama filtra exactamente la narrativa que la
+1. El reviewer recibe el contrato de la tarea leído **desde `main`** cuando ya estaba
+   ahí, y nunca la narrativa de la rama que se revisa — leerlo desde la rama filtra exactamente la narrativa que la
    revisión existe para no compartir.
 2. Recibe el diff completo, tests incluidos: un test existente modificado es la señal
    de mayor valor de cualquier diff agéntico, y omitirlo del paquete de revisión sería

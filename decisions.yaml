@@ -826,10 +826,13 @@ decisions:
       sensible, sea cual sea el kind, y CI comprueba que el reporte exista (D-0086). El PR
       que sólo planifica una tarea nueva (la agrega y el resto del diff es texto de la lista
       del ADR de D-0086) no la exige (T-0044). En los demás casos la revisión es opcional y la pide quien implementa o
-      quien revisa.
+      quien revisa. Desde el 2026-11-11 el kind ya no la exige: sólo los cambios de permisos
+      o seguridad (D-0089).
     superseded_in_part_by:
       - clause: La obligatoriedad es de procedimiento y no se hace cumplir por CI
         by: D-0086
+      - clause: La revisión ciega es obligatoria en todo PR de una tarea FEATURE o MIGRATION
+        by: D-0089
   # ── T-0012 ───────────────────────────────────────────────────────────────
 
   - id: D-0049
@@ -1730,7 +1733,13 @@ decisions:
       reporte en REVIEWS/; un PR que sólo planifica la tarea no la exige. CI corre estos controles también en su versión de la base.
       Los guardrails de los tres proveedores y los validadores no se modifican sin
       aprobación humana. La revisión de Gauntlet del prototipo vale como revisión ciega
-      si cumple las propiedades de R-33.
+      si cumple las propiedades de R-33. Desde el 2026-11-11 la revisión se exige sólo en
+      permisos o seguridad y la tarea puede entrar con su código (D-0089).
+    superseded_in_part_by:
+      - clause: >
+          La revisión ciega es obligatoria para FEATURE y MIGRATION y para las rutas de
+          migraciones, endpoints, operaciones y persistencia e integraciones
+        by: D-0089
 
   # ── Hilo «Decidir cuándo consolidar Broker y Risk» ─────────────────────────
   - id: D-0087
@@ -1782,3 +1791,22 @@ decisions:
       entrenamiento, cambia el plan o el proveedor cambia sus condiciones, la cuenta deja
       de valer para el nivel 2 hasta un nuevo registro. Esto no cambia R-19: Claude Code y
       Codex, como agentes de desarrollo, siguen sin recibir PII real de clientes.
+
+  # ── Hilo «Agregar gestiones manuales» (un solo PR por funcionalidad) ───────
+  - id: D-0089
+    title: Una funcionalidad es un solo PR y la revisión se exige sólo en permisos o seguridad
+    status: ACCEPTED
+    date: 2026-11-11
+    source: >
+      Elección del owner del 2026-11-11 («Sí, los dos cambios») ante la pregunta de por qué
+      hacían falta dos PR por funcionalidad, después de T-0045 y T-0046; aprobada con el
+      merge de este cambio. T-0047. D-0052, D-0086.
+    statement: >
+      Una tarea puede entrar a main en el mismo PR que su código: la rama task/T-xxxx ya no
+      exige que la tarea exista en el merge-base, sólo que exista en la rama; si ya estaba
+      en main, su contrato sigue congelado como dice D-0086. El reporte de revisión en
+      REVIEWS/ lo exige CI sólo cuando el diff toca identidad y autorización, controles de
+      acceso de las apps, guardrails de los agentes o validadores. El kind de la tarea, las
+      migraciones, los endpoints, la persistencia y las integraciones ya no la exigen por sí
+      solos; el control mínimo es un PR con tests en verde, y el merge sigue siendo del
+      owner.

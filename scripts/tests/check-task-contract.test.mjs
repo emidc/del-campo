@@ -151,7 +151,7 @@ test('un baseRef que no se pudo resolver localmente falla explícito, no pasa en
 
 // --- Reglas (b) y (c): tarea en el merge-base y contrato congelado ------------------
 
-test('rama con task id cuya tarea no existe en el merge-base falla la regla (b)', (t) => {
+test('la tarea puede entrar en la misma rama que la implementa (D-0089)', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'del-campo-contract-'))
   t.after(() => rmSync(dir, { recursive: true, force: true }))
   git(dir, ['init', '-q', '-b', 'main'])
@@ -168,8 +168,25 @@ test('rama con task id cuya tarea no existe en el merge-base falla la regla (b)'
   git(dir, ['commit', '-q', '-m', 'crea la tarea en la propia rama'])
 
   const result = runIn(dir)
+  assert.equal(result.ok, true, result.errors.join('\n'))
+})
+
+test('rama con task id sin la tarea ni en main ni en la rama falla', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'del-campo-contract-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  git(dir, ['init', '-q', '-b', 'main'])
+  git(dir, ['config', 'user.email', 'test@example.com'])
+  git(dir, ['config', 'user.name', 'Test'])
+  writeFileSync(join(dir, 'README.md'), 'x')
+  git(dir, ['add', '.'])
+  git(dir, ['commit', '-q', '-m', 'main sin TASKS/'])
+  git(dir, ['checkout', '-q', '-b', 'task/T-9999-inexistente'])
+  writeFileSync(join(dir, 'README.md'), 'y')
+  git(dir, ['commit', '-qam', 'código sin tarea'])
+
+  const result = runIn(dir)
   assert.equal(result.ok, false)
-  assert.match(result.errors[0], /no existe en el merge-base/)
+  assert.match(result.errors[0], /no existe ni en main ni en la rama/)
 })
 
 test('modificar ## Verification en la rama rompe la regla (c)', (t) => {
