@@ -1,8 +1,10 @@
 import { latestBatch, party } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
@@ -66,6 +68,16 @@ export default async function PartePage({
           </article>
         ))
       )}
+
+      {/* C4-03b: los riesgos de Risk OS, sólo en una empresa, sin esperar a Risk OS. */}
+      {vista.kind === 'ORGANIZATION' ? (
+        <>
+          <h2>Riesgos</h2>
+          <Suspense fallback={<p className="meta">Consultando Risk OS…</p>}>
+            <Riesgos principal={principal} partyId={id} />
+          </Suspense>
+        </>
+      ) : null}
 
       {/* Navegación organizacional de §63: empresa → contactos y contacto → empresas. */}
       <h2>Organizaciones</h2>
