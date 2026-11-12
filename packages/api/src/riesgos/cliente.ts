@@ -46,7 +46,8 @@ export interface DepsRiesgos {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const TIMEOUT_MS = 3000
+// Risk OS en frío (función y conexión a la base) puede pasar los 3 s; la ficha no espera por esto.
+const TIMEOUT_MS = 8000
 
 const esTexto = (x: unknown): x is string => typeof x === 'string'
 const esTextoONulo = (x: unknown): x is string | null => x === null || typeof x === 'string'

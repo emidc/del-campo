@@ -176,7 +176,7 @@ todavía.)
    ya la leyó con `party()`).
 2. Emite el token con `emitirToken`: `emisor: 'broker-os'`, `audiencia: 'risk-os'`,
    `proveedor: 'google'`, `sujeto: principal.sub`. Un token por llamada, sin reintento.
-3. `fetch` con `cache: 'no-store'` y `AbortSignal.timeout(3000)`.
+3. `fetch` con `cache: 'no-store'` y `AbortSignal.timeout(8000)`.
 
 Devuelve una unión:
 
