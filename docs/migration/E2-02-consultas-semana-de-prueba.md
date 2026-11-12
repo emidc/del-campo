@@ -30,7 +30,7 @@ del lote se anota en el registro.
 | 10 | Saber en qué etapa está un siniestro, qué falta y con quién se habló | Gestión del siniestro | sí |
 | 11 | Ver cómo va una cotización y qué cotizó cada compañía | Gestión de la cotización | sí |
 | 12 | Saber qué tengo pendiente hoy: tareas, vencidas y trabadas | Inicio, Tareas | sí |
-| 13 | Ver los riesgos de una empresa | Ficha de la empresa | no: C4-03b |
+| 13 | Ver los riesgos de una empresa | Ficha de la empresa, sección Riesgos (Risk OS) | sí, con la organización vinculada |
 
 ## Registro de la semana (E2-03)
 

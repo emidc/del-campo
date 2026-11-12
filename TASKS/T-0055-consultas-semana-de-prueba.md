@@ -11,6 +11,9 @@ contextRefs: [docs/north-star/12-plan-hacia-la-north-star.md, SLICES/VS01.md, TA
 decisionRefs: [D-0089]
 ---
 
+> 2026-11-12: C4-03b quedó hecho (T-0056 y T-0057), así que la consulta 13 ya se resuelve en
+> Broker OS. Falta la confirmación del owner y el refresco de datos de `T-0037`.
+
 ## Why
 
 E2-02 del plan: antes de la semana sin Zoho CRM (E2-03) hay que fijar qué consultas se van
