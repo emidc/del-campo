@@ -3,15 +3,14 @@
 La semana sin Zoho CRM (E2-03) se mide contra esta lista, fijada antes de observar. Una
 consulta que no está acá y aparece durante la semana se anota igual, como «no prevista».
 
-**Estado: borrador para que el owner lo confirme.** La lista sale de lo que Broker OS ya
-resuelve y de los recorridos R1 a R6; el owner agrega, saca o reordena según lo que de verdad
-consulta en Zoho.
+**Estado: confirmada por el owner el 2026-11-12.** La lista sale de lo que Broker OS ya
+resuelve y de los recorridos R1 a R6.
 
 ## Corte de los datos
 
 Cada pantalla con datos muestra la fecha del lote importado (VS01 §2): ése es el corte
 conocido. El refresco desde Zoho es DAT-01 y C3-06 (`T-0037`), que el owner postergó al
-01/01/2027. La semana de prueba arranca con el lote que esté cargado ese día, y la fecha
+01/01/2027, y la semana de prueba (E2-03) quedó postergada a esa misma fecha. Arranca con el lote que esté cargado ese día, y la fecha
 del lote se anota en el registro.
 
 ## Lista
@@ -30,7 +29,7 @@ del lote se anota en el registro.
 | 10 | Saber en qué etapa está un siniestro, qué falta y con quién se habló | Gestión del siniestro | sí |
 | 11 | Ver cómo va una cotización y qué cotizó cada compañía | Gestión de la cotización | sí |
 | 12 | Saber qué tengo pendiente hoy: tareas, vencidas y trabadas | Inicio, Tareas | sí |
-| 13 | Ver los riesgos de una empresa | Ficha de la empresa | no: C4-03b |
+| 13 | Ver los riesgos de una empresa | Ficha de la empresa, sección Riesgos (Risk OS) | sí, con la organización vinculada |
 
 ## Registro de la semana (E2-03)
 
