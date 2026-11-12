@@ -39,6 +39,7 @@ export interface FallaEscritura {
 
 export type Resultado =
   | { readonly estado: 'importado'; readonly lote: ResumenLote; readonly id: number; readonly hallazgos: readonly Hallazgo[]; readonly escritas: Readonly<Record<TablaImportacion, number>> }
+  | { readonly estado: 'vista_previa'; readonly lote: ResumenLote; readonly hallazgos: readonly Hallazgo[]; readonly escritas: Readonly<Record<TablaImportacion, number>>; readonly riesgosExistentes: number }
   | { readonly estado: 'ya_importado'; readonly lote: ResumenLote; readonly registrado: LoteRegistrado }
   | { readonly estado: 'rechazado'; readonly lote: ResumenLote; readonly hallazgos: readonly Hallazgo[] }
   | { readonly estado: 'sin_destino'; readonly lote: ResumenLote; readonly hallazgos: readonly Hallazgo[]; readonly sinDestino: readonly SinDestino[] }
@@ -48,6 +49,7 @@ export type Modo = 'con_valores' | 'sin_valores'
 
 const TITULO: Readonly<Record<Resultado['estado'], string>> = {
   importado: 'importado',
+  vista_previa: 'vista previa: se revirtió y no se escribió nada',
   ya_importado: 'ya importado: no se validó ni se escribió nada',
   rechazado: 'rechazado: no se escribió nada',
   sin_destino: 'no importado: hay celdas sin columna en el esquema; no se escribió nada',
@@ -101,6 +103,11 @@ export function informe(r: Resultado, modo: Modo): string[] {
   if (hallazgos.length > 0) lineas.push('por regla:', ...conteoPorRegla(hallazgos))
   if (r.estado === 'importado') {
     lineas.push(`lote ${String(r.id)}; filas escritas:`, ...enOrden(r.escritas))
+  }
+  if (r.estado === 'vista_previa') {
+    const nuevos = r.escritas.riesgo
+    lineas.push(`riesgos nuevos: ${String(nuevos)}; riesgos que ya están y reciben filas: ${String(r.riesgosExistentes)}`)
+    lineas.push('filas que se escribirían:', ...enOrden(r.escritas))
   }
   if (r.estado === 'sin_destino') {
     lineas.push('celdas sin columna en el esquema:', ...r.sinDestino.map((s) => `  ${[`${s.archivo}:${String(s.fila)}`, modo === 'sin_valores' ? idVisible(s.id) : s.id, s.columna].filter((x) => x !== '').join(' ')}`))

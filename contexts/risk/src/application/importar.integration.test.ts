@@ -248,6 +248,54 @@ describe('lotes posteriores contra lo ya importado', () => {
   })
 })
 
+describe('C5-01: vista previa', () => {
+  const previa = (tx: TransactionSql, lote: Lote): Promise<Resultado> =>
+    importarLote(tx, contrato, lote, { origen: 'test', importadoPor: 'test C5-01', fechaCorte: FECHA_CORTE, vistaPrevia: true })
+
+  it('un lote válido muestra lo que escribiría y no deja nada', async () => {
+    await enTransaccionRevertida(sql, async (tx) => {
+      const r = await previa(tx, base())
+      assert.equal(r.estado, 'vista_previa', JSON.stringify(r).slice(0, 1500))
+      assert.ok(r.escritas.riesgo > 0)
+      assert.equal(r.riesgosExistentes, 0)
+      await enCero(tx)
+      // Cancelar es no seguir: el mismo lote después se importa entero.
+      assert.equal((await importar(tx, base())).estado, 'importado')
+    })
+  })
+
+  it('sobre lo ya importado cuenta los riesgos que reciben filas y no escribe', async () => {
+    await enTransaccionRevertida(sql, async (tx) => {
+      assert.equal((await importar(tx, base())).estado, 'importado')
+      const antes = await contarFilas(tx)
+      const r2 = filasBase()['risks.csv'].find((f) => f.id_origen === 'R2') ?? {}
+      const id = idsBase()
+      const f: Filas = {
+        'risks.csv': [{ ...r2, evaluacion_id: idNuevo('EVA'), evaluacion_id_origen: 'E-R2b', tipo_evaluacion: 'reevaluacion', evaluacion_anterior_id: id.get('E-R2') ?? '', motivo: 'informacion_nueva', fecha: '2026-10-12', lote_origen: 'C5-01/previa', p_valor: '2' }],
+        'action-plan.csv': [],
+        'risk-transfer.csv': [],
+      }
+      const r = await previa(tx, aLote(contrato, f))
+      assert.equal(r.estado, 'vista_previa', JSON.stringify(r).slice(0, 1500))
+      assert.equal(r.escritas.riesgo, 0)
+      assert.equal(r.escritas.evaluacion, 1)
+      assert.equal(r.riesgosExistentes, 1)
+      assert.deepEqual(await contarFilas(tx), antes)
+    })
+  })
+
+  it('un lote inválido muestra el rechazo y no escribe', async () => {
+    const [e] = erroresEsperados()
+    assert.ok(e)
+    await enTransaccionRevertida(sql, async (tx) => {
+      const r = await previa(tx, casoInvalido(e.caso))
+      assert.equal(r.estado, 'rechazado')
+      assert.ok(r.hallazgos.some((h) => h.severidad === 'rechazo' && h.regla_id === e.regla_id))
+      await enCero(tx)
+    })
+  })
+})
+
 describe('A4 y lo que el validador no rechaza: ninguna escritura incompleta', () => {
   it('una restricción de la base violada en una de las últimas tablas revierte todo el lote', async () => {
     // El contrato no prohíbe monto en un evento de firma (RV-TRF-05 sólo lo exige en consumo_limite);

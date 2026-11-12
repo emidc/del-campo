@@ -7,6 +7,9 @@
 //   RISK_HOSTED_DATABASE_URL=… \
 //     pnpm --filter @del-campo/risk run import <carpeta> --hosteada [--corte AAAA-MM-DD] [--por nombre] [--con-valores]
 //
+// Con `--vista-previa` (C5-01) hace todo lo anterior y revierte: informa riesgos nuevos, riesgos
+// que ya están y reciben filas, las filas por tabla y los rechazos, sin dejar nada escrito.
+//
 // Hace falta `run`: `pnpm import` es un comando propio de pnpm. Sin `--hosteada`, apunta a
 // RISK_DATABASE_URL o a delcampo_risk_dev y, como el runner de migraciones, sólo opera sobre
 // delcampo_risk_dev y delcampo_risk_test en localhost, donde aplica antes las migraciones
@@ -31,7 +34,7 @@ import { migrate, pendientesSinCrear } from '../persistence/migrations.ts'
 import { importarLote, leerArchivosDeLote, leerContrato } from './importar.ts'
 
 const DEFAULT_URL = 'postgres://localhost:5432/delcampo_risk_dev'
-const USO = `uso: pnpm --filter @del-campo/risk run import <carpeta> [--corte AAAA-MM-DD] [--por nombre] [--sin-valores] | <carpeta> ${HOSTED_FLAG} [--corte AAAA-MM-DD] [--por nombre] [--con-valores]`
+const USO = `uso: pnpm --filter @del-campo/risk run import <carpeta> [--corte AAAA-MM-DD] [--por nombre] [--sin-valores] [--vista-previa] | <carpeta> ${HOSTED_FLAG} [--corte AAAA-MM-DD] [--por nombre] [--con-valores] [--vista-previa]`
 
 const die = (message: string): never => {
   process.stderr.write(`✗ ${message}\n`)
@@ -50,7 +53,7 @@ const opcion = (n: string): string | undefined => {
 }
 const carpeta = args[0]
 if (carpeta === undefined || carpeta.startsWith('--')) die(USO)
-const conocidas = new Set(['--corte', '--por', destino.hosteada ? '--con-valores' : '--sin-valores'])
+const conocidas = new Set(['--corte', '--por', '--vista-previa', destino.hosteada ? '--con-valores' : '--sin-valores'])
 const conValor = new Set(['--corte', '--por'])
 // Todo lo que sigue a la carpeta es una opción conocida o su valor: un `—sin-valores` mal tipeado
 // no puede pasar en silencio y dejar el informe con valores.
@@ -82,9 +85,10 @@ try {
     origen,
     importadoPor: opcion('--por') ?? userInfo().username,
     fechaCorte,
+    vistaPrevia: args.includes('--vista-previa'),
   })
   process.stdout.write(`fecha de corte ${fechaCorte}\n${informe(resultado, modo).join('\n')}\n`)
-  process.exitCode = resultado.estado === 'importado' || resultado.estado === 'ya_importado' ? 0 : 1
+  process.exitCode = ['importado', 'ya_importado', 'vista_previa'].includes(resultado.estado) ? 0 : 1
 } catch (e) {
   if (!destino.hosteada) throw e
   process.stderr.write(`✗ ${errorSinDatos(e)}; no se importó nada\n`)
