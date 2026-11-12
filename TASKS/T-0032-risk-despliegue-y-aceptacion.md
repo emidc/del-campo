@@ -2,12 +2,12 @@
 id: T-0032
 title: Desplegar Risk OS y ejecutar la aceptación de RO01
 kind: FEATURE
-status: BLOCKED
+status: ACTIVE
 workstream: BOS
 riskClass: HIGH
 size: L
 created: 2026-10-14
-blockedBy: [T-0030, T-0031, T-0040, T-0041]
+blockedBy: []
 contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
               DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
@@ -21,6 +21,11 @@ contextRefs: [SLICES/RO01.md, SLICES/RO01-dossier.md, SLICES/RO01-decisiones.md,
 decisionRefs: [D-0013, D-0014, D-0058, D-0063, D-0067, D-0068, D-0070, D-0083, D-0084]
 ---
 
+> **ACTIVE desde el 2026-11-12** por decisión del owner. Risk OS ya corre en producción en
+> `oidc` en su proyecto dedicado (D-0068), con las migraciones 0001 a 0012 aplicadas por el
+> owner. `T-0041` está DONE y `T-0040` ya no decide el destino (nota del 2026-11-10 en esa
+> tarea), así que salen del `blockedBy`. Lo que sigue: RO-02c, RO-04a/b, RO-06a/b del plan.
+>
 > **BLOCKED desde el 2026-11-06** por decisión del owner: Risk OS queda postergado hasta
 > estar más cerca de producción. Su proyecto de Supabase está pausado por el límite de dos
 > proyectos activos del plan Free (`ops/evidence/T-0035.md`, fase 4). Se libera con la
