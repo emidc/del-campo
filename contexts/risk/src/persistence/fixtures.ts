@@ -58,7 +58,7 @@ export type Tabla =
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
   | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion' | 'usuario' | 'credencial'
   | 'login_fallido' | 'rol_persona' | 'invitacion' | 'credencial_externa' | 'asignacion' | 'evento_auditoria'
-  | 'jti_aceptado'
+  | 'jti_aceptado' | 'organizacion_ficha' | 'vinculo_empresa' | 'vinculo_verificado'
 
 export type Fila = Record<string, unknown>
 
@@ -137,7 +137,16 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
   evento_auditoria: () => ({ actor_persona_id: B.persona, origen: 'app', accion: 'riesgo.consultar', tipo_objeto: 'riesgo', id_objeto: B.riesgo, resultado: 'ok' }),
   // Registro de jti del token entre contextos (T-0035, migración 0010).
   jti_aceptado: () => ({ emisor: 'broker-os', jti: `jti-${String(siguiente++)}`, vence_en: '2999-01-01T00:00:00Z' }),
+  // Organización evaluada y su vínculo (T-0036, migración 0011). El id de empresa es inventado.
+  organizacion_ficha: () => ({ organizacion_id: ORG_A, sector: 'Sector sintético', tamano: 'Tamaño sintético', zonas: ['Zona sintética'], autor_persona_id: B.persona }),
+  vinculo_empresa: () => ({ organizacion_id: ORG_A, empresa_id: EMPRESA_SINTETICA, autor_persona_id: B.persona }),
+  vinculo_verificado: () => ({ vinculo_id: siguienteVinculo, autor_persona_id: B.persona }),
 }
+
+export const EMPRESA_SINTETICA = '00000000-0000-4000-8000-000000000001'
+
+/** Un vínculo sin verificar que escribe `base`: la fila por defecto de `vinculo_verificado` lo verifica. */
+let siguienteVinculo = 0
 
 /**
  * El id que va a tener la próxima invitación. Lo fija `base` después de escribir la suya: la
@@ -217,4 +226,7 @@ export const base = async (tx: TransactionSql): Promise<void> => {
   await ins('credencial_externa', { persona_id: B.persona, sujeto: 'sujeto-de-la-base', invitacion_id: Number(inv?.id) })
   await ins('rol_persona', {})
   await prepararCredencial(tx)
+  await ins('vinculo_empresa', {})
+  const [v] = await tx<{ id: string }[]>`select max(id)::text as id from risk.vinculo_empresa`
+  siguienteVinculo = Number(v?.id)
 }

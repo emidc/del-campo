@@ -2,17 +2,33 @@
 id: T-0036
 title: Modelar la organización evaluada de Risk OS y su correspondencia con la empresa (C2)
 kind: FEATURE
-status: DRAFT
+status: ACTIVE
 workstream: BOS
 riskClass: MEDIUM
 size: M
 created: 2026-11-02
-blockedBy: [T-0032, T-0034]
+blockedBy: []
 contextRefs: [DOMAIN.md, SLICES/RO01.md, DECISIONS/0063-aislamiento-por-contexto-q4.md,
               DECISIONS/0067-propiedad-de-datos-broker-risk.md,
               DECISIONS/0071-integracion-por-api-y-correspondencia-de-empresas.md]
 decisionRefs: [D-0063, D-0067, D-0071, D-0084]
 ---
+
+## Notas de implementación
+
+Resuelto antes del esquema (pendientes de D-0071):
+
+- **Cardinalidad:** una empresa tiene como mucho una organización evaluada; los
+  establecimientos son zonas de la misma organización. Lo eligió el owner sobre la
+  recomendación de D-0071, en el hilo de C4-03b (2026-11-11).
+- **Dónde se vincula:** por ahora con la CLI `organizacion` de Risk OS, con el id de la
+  empresa copiado de Broker OS (la segunda opción de D-0071).
+- El owner pidió seguir con esta tarea en local mientras T-0032 cierra su aceptación.
+
+Efecto en datos: migración aditiva 0011 en la base de Risk OS, con tres tablas nuevas, vacías
+y de sólo inserción; no cambia ninguna existente. Los tests están en
+`contexts/risk/src/application/organizacion-evaluada.integration.test.ts`. Diseño:
+`docs/desarrollo/riesgos-en-la-ficha.md` §1.
 
 ## Why
 
