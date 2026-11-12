@@ -127,6 +127,7 @@ apps/communication/src/app/page.tsx
 apps/communication/src/app/webhook/route.ts
 apps/risk/src/app/api/auth/google/callback/route.ts
 apps/risk/src/app/api/auth/google/start/route.ts
+apps/risk/src/app/api/entre-contextos/empresas/[empresa]/riesgos/route.ts
 apps/risk/src/app/api/login/route.ts
 apps/risk/src/app/api/logout/route.ts
 apps/risk/src/app/api/o/[org]/actividad/route.ts
