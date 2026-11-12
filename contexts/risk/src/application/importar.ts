@@ -9,6 +9,9 @@
 //   3. Si alguna celda con valor no tiene columna en el esquema, termina sin escribir nada.
 //   4. Escribe todas las filas y registra el lote al final. Si la base rechaza una fila o la
 //      conexión se corta, la transacción se revierte entera y el resultado lo dice.
+//   5. En vista previa (C5-01), en lugar de registrar el lote revierte la transacción y devuelve
+//      lo que se habría escrito: así la vista previa ve también lo que rechazaría la base, y
+//      cancelar no deja nada.
 //
 // Con una conexión, la transacción es propia; dentro de otra transacción (los tests), es un
 // savepoint: en los dos casos una falla no deja ninguna fila.
@@ -19,10 +22,10 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ARCHIVOS, contratoDe, porArchivo, type Archivo, type ArchivoContrato, type Contrato } from '../domain/contrato.ts'
-import { leerCsv } from '../domain/csv.ts'
+import { comoFilas, leerCsv } from '../domain/csv.ts'
 import type { FallaEscritura, Resultado, ResumenLote } from '../domain/informe.ts'
 import { columnasSinDestino, filasParaEscribir } from '../domain/importacion.ts'
-import { validarLote, type Hallazgo } from '../domain/validador.ts'
+import { validarLote, type Existentes, type Hallazgo } from '../domain/validador.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import { bloquearImportaciones, buscarLote, escribirFilas, leerExistentes, registrarLote } from '../persistence/importacion.ts'
 
@@ -50,6 +53,8 @@ export interface OpcionesImportacion {
   readonly importadoPor: string
   /** AAAA-MM-DD: contra esta fecha se miran los vencimientos (RV-TRF-09, RV-ACC-11). */
   readonly fechaCorte: string
+  /** Valida y escribe en la transacción, y la revierte: no queda nada (C5-01). */
+  readonly vistaPrevia?: boolean
 }
 
 const sha256 = (b: Uint8Array | string): string => createHash('sha256').update(b).digest('hex')
@@ -68,6 +73,17 @@ function resumen(contenidos: Readonly<Record<Archivo, Uint8Array>>, huella: stri
       return l.ok ? l.registros.length : 0
     }),
   }
+}
+
+/** Cuántos riesgos que ya están en Risk OS reciben filas del lote: los «cambios» de la vista previa. */
+function riesgosExistentes(contenidos: Readonly<Record<Archivo, Uint8Array>>, existentes: Existentes): number {
+  const ids = new Set<string>()
+  for (const a of ARCHIVOS) {
+    const l = leerCsv(contenidos[a])
+    if (!l.ok) continue
+    for (const f of comoFilas(l)) if (existentes.riesgos?.has(f.risk_id ?? '') === true) ids.add(f.risk_id ?? '')
+  }
+  return ids.size
 }
 
 /** Una salida temprana de la transacción que no es una falla: se devuelve tal cual. */
@@ -123,6 +139,9 @@ export async function importarLote(
       if (sinDestino.length > 0) throw new Fin({ estado: 'sin_destino', lote, hallazgos, sinDestino })
 
       const escritas = await escribirFilas(tx, filasParaEscribir(contenidos, existentes))
+      if (opciones.vistaPrevia === true) {
+        throw new Fin({ estado: 'vista_previa', lote, hallazgos, escritas, riesgosExistentes: riesgosExistentes(contenidos, existentes) })
+      }
       const id = await registrarLote(tx, {
         huella: h.lote,
         huellas: { risks: h.archivos['risks.csv'], action_plan: h.archivos['action-plan.csv'], risk_transfer: h.archivos['risk-transfer.csv'] },
