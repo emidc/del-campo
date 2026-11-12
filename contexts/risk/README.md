@@ -61,6 +61,7 @@ recálculo, es un error y no un dato.
 | (0004, T-0031) | Sin tablas nuevas: lo de una sesión es `human`; el orden de estados de una acción; una reevaluación por `accion_ejecutada` y una revisión abierta por una acción nombran una acción `cumplida`; una revisión se cierra con una reevaluación del motivo, posterior a la apertura y `accepted`, una reevaluación cierra una sola, y la que cerró una revisión no pasa después a `rejected` ni a `needs_revision`; el orden previo va antes del primer acceso a resultados, sin posiciones repetidas. Triggers `AFTER INSERT` que informan su nombre como `constraint`. |
 | `rol_persona`, `invitacion`, `credencial_externa`, `asignacion` | T-0035, sólo con `AUTH_MODE=oidc`: el rol vigente de cada persona (el último; nulo es la baja), las invitaciones, la identidad de Google vinculada a una persona y las organizaciones asignadas a cada una (D-0027). |
 | `evento_auditoria` | T-0035: quién hizo qué sobre qué y con qué resultado, sin contenido. |
+| `revision_ia` | T-0041 (0012): la revisión de IA de una evaluación, acción o cobertura, con modelo, hallazgos y correcciones. Con ella y 24 horas desde el registro de esa fila, su autor Administrador la aprueba, y `revision_humana` y `cierre_revision` quedan con `aprobacion_interna` (D-0083). |
 | `login_fallido` | Cada login fallido con la huella sha256 del usuario, para el límite de intentos (D-0069, T-0032). |
 | `lote_importacion` | Cada lote importado: huella de los tres archivos y del lote, origen, quién y cuándo, fecha de corte, filas por archivo, avisos y filas escritas por tabla (T-0029). |
 
@@ -252,6 +253,27 @@ de riesgo y de revisión: ningún título, texto, monto, nombre ni id de organiz
 minutos (`LOGIN_MAXIMO_FALLIDOS`, `LOGIN_VENTANA_MINUTOS`); se guarda sólo la huella del
 usuario.
 
+### Aprobación interna por operador único (T-0041, D-0083)
+
+Nadie revisa ni acepta lo que escribió, con una excepción sólo para uso interno: un
+Administrador aprueba una versión propia (una evaluación, una acción o una cobertura, que no
+se editan) si esa fila tiene una revisión de IA registrada y pasaron 24 horas desde su
+registro, con la hora de la base. Una reevaluación que corrige es otra fila: necesita su
+revisión de IA y su espera. Lo exigen `revisar` y `cerrarConReevaluacion`, y la base con la
+migración 0012. Cerrar «sin cambio» la revisión que uno abrió sigue negado.
+
+```bash
+# La revisión de IA de una versión exacta; el actor es un Administrador activo
+pnpm --filter @del-campo/risk run revision-ia registrar --actor <PER-…> --objeto <EVA-…|ACC-…|TRF-…> \
+  --modelo <modelo> --hallazgos <texto> [--correcciones <texto>] [--hosteada]
+```
+
+La aprobación queda rotulada «aprobación interna por operador único» en el detalle, la
+actividad y el historial. No se exporta, publica ni entrega al cliente: Risk OS no tiene hoy
+ningún canal de entrega, y el primero que se agregue llama a `exigirEntregable` antes de
+producir nada. Para entregar, la acepta otra persona. En `legacy` no hay roles y nada de
+esto se exige, como el resto de la matriz; la marca igual no se puede poner sin cumplir.
+
 ## Tests
 
 `pnpm test` incluye los del contexto (R-26):
@@ -263,7 +285,7 @@ usuario.
 | integración | `*.integration.test.ts` | Contra Postgres: migrar, revertir y volver a migrar; un caso por restricción, comparado con el catálogo; sólo inserción en todas las tablas; comentarios RO01 y ausencia de derivados guardados. |
 | integración, vistas | `src/application/vistas.integration.test.ts`, `acceso.integration.test.ts` | Las reglas 1 a 7 de RO01 §3 sobre las vistas de las 8 sintéticas: `C_raw` sólo en la criticidad del detalle; el ranking contra `rankingOrganizacion` y, en las organizaciones sin filas de la 15b, contra `regresion-emi41.csv`; el techo no mueve posiciones; el filtro por unidad las conserva; `unknown` sin valor; la evaluación usada y su rótulo; versiones; el registro de acceso; login, rotación y baja. |
 | integración, actualización | `src/application/actualizacion.integration.test.ts`, `historial.integration.test.ts`, `ciclos.integration.test.ts` | El ciclo de S07-R06 (15B-A01 cumplida, reevaluación, cierre) da lo mismo que `regresion-emi41.csv`; qué abre y qué no abre una revisión; rechazos; una falla inyectada después de cada escritura de cada operación no deja nada; orden previo, reordenamiento y cambio de versión; el historial contra las filas de la base, tabla por tabla; ninguna tabla sin razón; ningún `UPDATE` ni `DELETE` en el código; el conteo de A7. |
-| integración, autorización | `src/application/autorizacion.integration.test.ts` | T-0035: la matriz igual en la app y en la base, rol por rol; alcance por organización asignada; el Revisor sin resultados antes de su orden previo, en las dos capas; nadie revisa ni acepta lo propio, tampoco un Administrador; la persona de siempre conserva su id y su autoría; baja, cambio de rol y último Administrador; invitación usada una sola vez; auditoría; RLS en toda tabla y `risk_persona` sin BYPASSRLS ni login. |
+| integración, autorización | `src/application/autorizacion.integration.test.ts` | T-0035: la matriz igual en la app y en la base, rol por rol; alcance por organización asignada; el Revisor sin resultados antes de su orden previo, en las dos capas; nadie revisa ni acepta lo propio, tampoco un Administrador, salvo la aprobación interna por operador único de T-0041 (rechazo sin revisión de IA, antes de 24 horas, tras un cambio material, por un Operador, con la marca sobre lo ajeno y fuera de su organización; aceptación después; `exigirEntregable` la rechaza); la persona de siempre conserva su id y su autoría; baja, cambio de rol y último Administrador; invitación usada una sola vez; auditoría; RLS en toda tabla y `risk_persona` sin BYPASSRLS ni login. |
 | integración, camino `oidc` | `src/application/camino-oidc.integration.test.ts` | T-0035, 0009: `risk_oidc` no tiene privilegios sobre ninguna tabla (salvo insertar rechazos sin actor en la auditoría), no lee ninguna con filas cargadas, no alcanza a `risk_app` ni al dueño, y `legado_risk_app` no le llega; las `admision_*` sólo las ejecuta él, no listan y rechazan con 42501 un ingreso equivocado; `ingresar` y `conPrincipal` no corren con la conexión de `risk_app` ni la del dueño; `deploy/rol-oidc.sql` y `db:verificar-oidc`. |
 | integración, despliegue y aceptación | `src/application/rol-app.integration.test.ts`, `src/acceptance/*.test.ts`, `src/persistence/database.test.ts` | `risk_app` hace lo que la app necesita y nada más (UPDATE, DELETE, TRUNCATE, desactivar el trigger, crear, leer fuera de `risk`: 42501) y `db:verificar` lo distingue del administrativo; el modo hosteado; el ensayo completo cumple los criterios, lo que falta no, y el informe no tiene ningún texto de la base; el manifiesto y su línea de comandos no repiten contenido. |
 | integración, importación | `src/application/importar*.integration.test.ts` | Las sintéticas con los mismos 103 avisos que el validador de la 15b y los derivados desde la base contra `regresion-emi41.csv`; los 55 inválidos, cada uno con su error y cero filas; reimportación; lotes posteriores; fallas de la base, una conexión cortada y la línea de comandos. |

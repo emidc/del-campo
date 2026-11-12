@@ -9,6 +9,7 @@
 
 import type { DatosOrganizacion, FactorRegistrado, NombreFactor, RevisionRegistrada } from './organizacion.ts'
 import { FACTORES } from './organizacion.ts'
+import { ROTULO_APROBACION_INTERNA } from './permisos.ts'
 
 export type TablaHistorial =
   | 'riesgo' | 'evaluacion' | 'revision_humana' | 'accion' | 'accion_estado' | 'transferencia' | 'evento_poliza'
@@ -46,6 +47,7 @@ export const TABLAS_DEL_HISTORIAL: Readonly<Record<string, { readonly entra: Tab
   organizacion_ficha: { fuera: 'sector, tamaño y zonas de la organización (T-0036), no un cambio de un riesgo' },
   vinculo_empresa: { fuera: 'la empresa de Broker OS de la organización (D-0071, T-0036), no un cambio de un riesgo' },
   vinculo_verificado: { fuera: 'quién confirmó el vínculo con la empresa (D-0071, T-0036), no un cambio de un riesgo' },
+  revision_ia: { fuera: 'la revisión de IA (D-0083, T-0041) no cambia el riesgo: habilita la aprobación interna, que entra con su rótulo' },
   schema_migrations: { fuera: 'el ledger de migraciones del esquema, no un dato de Risk OS' },
 }
 
@@ -98,7 +100,8 @@ export function reconstruirHistorial(d: DatosOrganizacion, riskId: string): Entr
     rs.forEach((x, i) => {
       add({
         cuando: x.registradaEn, quien: x.revisor, origen: x.origen, tabla: 'revision_humana', objetoId,
-        que: `Revisión humana de ${que} (${x.actor}, ${x.fecha})`, antes: rs[i - 1]?.estado ?? 'pending', despues: x.estado,
+        que: `Revisión humana de ${que} (${x.actor}, ${x.fecha})`, antes: rs[i - 1]?.estado ?? 'pending',
+        despues: x.aprobacionInterna ? `${x.estado} (${ROTULO_APROBACION_INTERNA})` : x.estado,
       })
     })
   }
@@ -169,7 +172,7 @@ export function reconstruirHistorial(d: DatosOrganizacion, riskId: string): Entr
         que: 'Cierre de la revisión pendiente', antes: 'abierta',
         despues: p.cierre.resultado === 'sin_cambio'
           ? `sin cambio: ${p.cierre.fundamento ?? ''}`
-          : `reevaluación aceptada ${p.cierre.evaluacionId ?? ''}`.trimEnd(),
+          : `reevaluación aceptada ${p.cierre.evaluacionId ?? ''}`.trimEnd() + (p.cierre.aprobacionInterna ? ` (${ROTULO_APROBACION_INTERNA})` : ''),
       })
     }
   }

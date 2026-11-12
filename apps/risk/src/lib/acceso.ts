@@ -12,7 +12,7 @@
 // responde igual que sin sesión y el motivo queda en `evento_auditoria`, no en la respuesta.
 
 import {
-  auditar, conPrincipal, ingresar, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO,
+  auditar, conPrincipal, esTrabajoPropio, ingresar, SIN_ORDEN_PREVIO, SinPermiso,
   type MotivoDenegado, type PrincipalRisk, type Sesion, type Sql, type TransactionSql,
 } from '@del-campo/risk'
 import { decidirLogin, type Identidad } from '@del-campo/identidad'
@@ -29,7 +29,7 @@ export type Corrida<T> =
 
 /** El motivo de auditoría de un `SinPermiso`: cuál de las tres reglas lo negó. */
 export const motivoSinPermiso = (e: SinPermiso): string =>
-  e.message === SIN_ORDEN_PREVIO ? 'SIN_ORDEN_PREVIO' : e.message === TRABAJO_PROPIO ? 'TRABAJO_PROPIO' : 'ROL_SIN_PERMISO'
+  e.message === SIN_ORDEN_PREVIO ? 'SIN_ORDEN_PREVIO' : esTrabajoPropio(e.message) ? 'TRABAJO_PROPIO' : 'ROL_SIN_PERMISO'
 
 /** Deja el evento de una acción que la matriz negó. Sin el objeto: sólo quién, qué y por qué. */
 export const auditarSinPermiso = (db: Db, personaId: string, e: SinPermiso): Promise<void> =>

@@ -40,6 +40,8 @@ export type RechazoAdmin =
   | 'EMPRESA_INVALIDA'
   | 'EMPRESA_YA_VINCULADA'
   | 'SIN_VINCULO'
+  | 'OBJETO_INEXISTENTE'
+  | 'REVISION_IA_INVALIDA'
 
 export type ResultadoAdmin<T> = { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly motivo: RechazoAdmin }
 

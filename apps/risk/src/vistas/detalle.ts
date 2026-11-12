@@ -8,7 +8,7 @@
 
 import type { ReactElement } from 'react'
 
-import type { CriticidadDetalle, EntradaHistorial, EvaluacionDetalle, FactorVista, Identidad, Movimiento, VistaDetalle } from '@del-campo/risk'
+import { ROTULO_APROBACION_INTERNA, type CriticidadDetalle, type EntradaHistorial, type EvaluacionDetalle, type FactorVista, type Identidad, type Movimiento, type VistaDetalle } from '@del-campo/risk'
 
 import {
   cabeceraBanderas, cabeceraVector, calculado, celdasBanderas, celdasVector, corto, DIMENSION, enlaceRiesgo, evaluacionUsada, h, marco,
@@ -122,7 +122,7 @@ export const PaginaDetalle = (v: VistaDetalle, persona: string, avisoDePagina?: 
     r.consecuenciaComun === null ? null : h('p', null, `Consecuencia común: ${r.consecuenciaComun}`),
     seccion('Revisiones pendientes', v.revisionesPendientes.length === 0 ? vacio('Ninguna.') : h('ul', null, ...v.revisionesPendientes.map((p) =>
       h('li', { 'data-revision': p.id, 'data-estado': p.estado }, `${p.abiertaEn} · ${p.disparador}${p.referencia === null ? '' : ` (${p.referencia})`} · ${p.estado}`,
-        p.cierre === null ? '' : `: ${p.cierre.resultado === 'sin_cambio' ? `sin cambio (${p.cierre.fundamento ?? ''})` : `reevaluación aceptada ${corto(p.cierre.evaluacionId ?? '')}`} por ${p.cierre.cerradaPor} el ${p.cierre.cerradaEn}`,
+        p.cierre === null ? '' : `: ${p.cierre.resultado === 'sin_cambio' ? `sin cambio (${p.cierre.fundamento ?? ''})` : `reevaluación aceptada ${corto(p.cierre.evaluacionId ?? '')}${p.cierre.aprobacionInterna ? ` (${ROTULO_APROBACION_INTERNA})` : ''}`} por ${p.cierre.cerradaPor} el ${p.cierre.cerradaEn}`,
         p.estado === 'abierta' && permisos.revisar ? h('div', { className: 'formularios' }, ...formCerrar(r.riskId, p, v.historial, volver)) : null)))),
     seccion('Historial de evaluaciones',
       v.historial.length === 0 ? vacio(padre ? 'Un padre no tiene evaluación propia: se lee por sus hijos.' : 'Sin evaluaciones.') :

@@ -33,9 +33,9 @@ import {
   type DatosOrganizacion, type EvaluacionRegistrada, type FactorRegistrado, type NombreFactor, type RiesgoRegistrado,
 } from '../domain/organizacion.ts'
 import { exigirReordenamiento, fotoOrdenCalculado, type PedidoReordenamiento } from '../domain/reordenamiento.ts'
-import { exigirPermiso, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO } from '../domain/permisos.ts'
+import { exigirPermiso, porQueNoApruebaLoPropio, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO } from '../domain/permisos.ts'
 import {
-  ahora, autorDe, bloquearOrganizacion, hoy, insertar, ordenPrevioDe, riesgo, riesgoDe, vioResultados,
+  ahora, autorDe, bloquearOrganizacion, esperaDeLoPropio, hoy, insertar, ordenPrevioDe, riesgo, riesgoDe, vioResultados,
   type FilaNueva, type TablaActualizacion,
 } from '../persistence/actualizacion.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
@@ -124,6 +124,20 @@ export async function exigirResultados(db: Db, sesion: Sesion, organizacionId: s
 /** Nadie revisa ni acepta lo que escribió (T-0035). Con rol, es decir en `oidc`; la base lo exige igual. */
 async function exigirAjeno(tx: Db, sesion: Sesion, tabla: 'evaluacion' | 'accion' | 'transferencia' | 'revision_pendiente', id: string): Promise<void> {
   if (sesion.rol !== undefined && (await autorDe(tx, tabla, id)) === sesion.personaId) throw new SinPermiso('riesgo.revisar', TRABAJO_PROPIO)
+}
+
+/**
+ * Como `exigirAjeno`, con la excepción de D-0083 (T-0041): un Administrador aprueba una versión
+ * propia si tiene una revisión de IA registrada y 24 horas desde su registro. Devuelve si lo que
+ * sigue es una aprobación interna por operador único, que se escribe con su marca. La base exige
+ * lo mismo (migración 0012).
+ */
+async function exigirAjenoOInterna(tx: Db, sesion: Sesion, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string): Promise<boolean> {
+  if (sesion.rol === undefined || (await autorDe(tx, tabla, id)) !== sesion.personaId) return false
+  if (sesion.rol !== 'ADMINISTRADOR') throw new SinPermiso('riesgo.revisar', TRABAJO_PROPIO)
+  const falta = porQueNoApruebaLoPropio(await esperaDeLoPropio(tx, tabla, id))
+  if (falta !== null) throw new SinPermiso('riesgo.revisar', falta)
+  return true
 }
 
 const organizacionDe = async (db: Db, riskId: string): Promise<string> => {
@@ -485,14 +499,14 @@ export async function revisar(
     : 'accionId' in objeto ? (['accion', objeto.accionId, 'accion_id'] as const) : (['transferencia', objeto.transferenciaId, 'transferencia_id'] as const)
   await operar(db, sesion, await organizacionDeObjeto(db, tabla, id), op, async (o) => {
     await exigirResultados(o.tx, sesion, o.d.organizacionId)
-    await exigirAjeno(o.tx, sesion, tabla, id)
+    const interna = await exigirAjenoOInterna(o.tx, sesion, tabla, id)
     // Lo que cerró una revisión no se desdice (migración 0004): se corrige con otra reevaluación.
     if (tabla === 'evaluacion' && e !== 'accepted' && o.d.revisionesPendientes.some((r) => r.cierre?.evaluacionId === id)) {
       rechazar('esta reevaluación cerró una revisión: para corregirla, cargá otra reevaluación')
     }
     await o.escribir('revision_humana', {
       [columna]: id, estado: e, revisado_por_actor: 'human', revisor_persona_id: sesion.personaId, fecha_revision: await hoy(o.tx),
-      origen: 'sesion', registrada_en: await o.ahora(),
+      origen: 'sesion', aprobacion_interna: interna, registrada_en: await o.ahora(),
     })
   })
 }
@@ -510,7 +524,8 @@ const revisionAbierta = (d: DatosOrganizacion, revisionId: string) => {
  * Cierra una revisión con la reevaluación que la responde. Si la reevaluación todavía no está
  * aceptada, la persona que cierra la acepta en el mismo acto: la aceptación y el cierre van en
  * la misma transacción. Una reevaluación rechazada o `needs_revision` no cierra: la revisión
- * sigue abierta.
+ * sigue abierta. Si quien cierra es el autor de la reevaluación, vale la excepción de D-0083 y
+ * las dos filas quedan como aprobación interna por operador único.
  */
 export async function cerrarConReevaluacion(
   db: Db, sesion: Sesion, p: { readonly revisionId: string; readonly evaluacionId: string }, op: Opciones = {},
@@ -521,7 +536,7 @@ export async function cerrarConReevaluacion(
     const e = o.d.evaluaciones.find((x) => x.id === p.evaluacionId && x.riskId === r.riskId)
     if (e === undefined) rechazar(`${p.evaluacionId} no es una evaluación de este riesgo`)
     await exigirResultados(o.tx, sesion, o.d.organizacionId)
-    await exigirAjeno(o.tx, sesion, 'evaluacion', e.id)
+    const interna = await exigirAjenoOInterna(o.tx, sesion, 'evaluacion', e.id)
     const status = reviewStatusDe(e.revisiones)
     const motivo = porQueNoCierra(
       { disparador: r.disparador as Disparador, accionId: r.accionId, abiertaEn: r.abiertaEn },
@@ -533,12 +548,12 @@ export async function cerrarConReevaluacion(
     if (aceptada) {
       await o.escribir('revision_humana', {
         evaluacion_id: e.id, estado: 'accepted', revisado_por_actor: 'human', revisor_persona_id: sesion.personaId,
-        fecha_revision: await hoy(o.tx), origen: 'sesion', registrada_en: await o.ahora(),
+        fecha_revision: await hoy(o.tx), origen: 'sesion', aprobacion_interna: interna, registrada_en: await o.ahora(),
       })
     }
     await o.escribir('cierre_revision', {
       revision_id: r.id, risk_id: r.riskId, resultado: 'reevaluacion_aceptada', evaluacion_id: e.id, cerrada_por: sesion.personaId,
-      cerrada_en: await o.ahora(),
+      aprobacion_interna: interna, cerrada_en: await o.ahora(),
     })
     return { aceptada }
   })
@@ -553,7 +568,7 @@ export async function cerrarSinCambio(
   await operar(db, sesion, await organizacionDeObjeto(db, 'revision_pendiente', p.revisionId), op, async (o) => {
     const r = revisionAbierta(o.d, p.revisionId)
     await exigirResultados(o.tx, sesion, o.d.organizacionId)
-    // Quien abrió la revisión no decide que no hace falta: lo decide otra persona.
+    // Quien abrió la revisión no decide que no hace falta: lo decide otra persona. Sin excepción (T-0041).
     await exigirAjeno(o.tx, sesion, 'revision_pendiente', r.id)
     await o.escribir('cierre_revision', {
       revision_id: r.id, risk_id: r.riskId, resultado: 'sin_cambio', fundamento, cerrada_por: sesion.personaId, cerrada_en: await o.ahora(),

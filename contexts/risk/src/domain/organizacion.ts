@@ -35,6 +35,8 @@ export interface RevisionRegistrada {
   readonly fecha: string
   readonly origen: 'importacion' | 'sesion'
   readonly registradaEn: string
+  /** La revisó su autor: aprobación interna por operador único (D-0083). */
+  readonly aprobacionInterna: boolean
 }
 
 export interface RiesgoRegistrado {
@@ -187,6 +189,8 @@ export interface CierreRegistrado {
   readonly fundamento: string | null
   readonly cerradaPor: string
   readonly cerradaEn: string
+  /** La cerró el autor de la reevaluación: aprobación interna por operador único (D-0083). */
+  readonly aprobacionInterna: boolean
 }
 
 export interface RevisionPendienteRegistrada {

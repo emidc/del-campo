@@ -2,7 +2,7 @@
 id: T-0057
 title: Mostrar los riesgos de Risk OS en la ficha de empresa (C4-03b)
 kind: FEATURE
-status: READY
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M

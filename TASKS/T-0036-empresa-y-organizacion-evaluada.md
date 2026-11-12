@@ -2,7 +2,7 @@
 id: T-0036
 title: Modelar la organización evaluada de Risk OS y su correspondencia con la empresa (C2)
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
@@ -58,4 +58,4 @@ del esquema, el owner confirma si una empresa admite más de una organización e
 pnpm check
 ```
 
-- [ ] Una empresa real de las aceptadas en RO01 queda vinculada a su organización evaluada, revisado por el owner.
+- [x] Una empresa real de las aceptadas en RO01 queda vinculada a su organización evaluada, revisado por el owner.

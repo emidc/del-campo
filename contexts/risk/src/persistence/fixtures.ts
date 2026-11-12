@@ -58,7 +58,7 @@ export type Tabla =
   | 'revision_pendiente' | 'cierre_revision' | 'orden_previo' | 'orden_previo_item'
   | 'reordenamiento' | 'reordenamiento_vigente' | 'lote_importacion' | 'usuario' | 'credencial'
   | 'login_fallido' | 'rol_persona' | 'invitacion' | 'credencial_externa' | 'asignacion' | 'evento_auditoria'
-  | 'jti_aceptado' | 'organizacion_ficha' | 'vinculo_empresa' | 'vinculo_verificado'
+  | 'jti_aceptado' | 'organizacion_ficha' | 'vinculo_empresa' | 'vinculo_verificado' | 'revision_ia'
 
 export type Fila = Record<string, unknown>
 
@@ -141,6 +141,8 @@ const DEFECTOS: Record<Tabla, () => Fila> = {
   organizacion_ficha: () => ({ organizacion_id: ORG_A, sector: 'Sector sintético', tamano: 'Tamaño sintético', zonas: ['Zona sintética'], autor_persona_id: B.persona }),
   vinculo_empresa: () => ({ organizacion_id: ORG_A, empresa_id: EMPRESA_SINTETICA, autor_persona_id: B.persona }),
   vinculo_verificado: () => ({ vinculo_id: siguienteVinculo, autor_persona_id: B.persona }),
+  // Revisión de IA de una versión (T-0041, migración 0012).
+  revision_ia: () => ({ evaluacion_id: B.inicial, modelo: 'modelo-sintetico', hallazgos: 'Hallazgos sintéticos', registrada_por: B.persona }),
 }
 
 export const EMPRESA_SINTETICA = '00000000-0000-4000-8000-000000000001'

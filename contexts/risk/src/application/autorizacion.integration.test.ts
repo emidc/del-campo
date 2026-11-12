@@ -12,7 +12,9 @@ import { after, before, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { VERSION_METODOLOGIA as V } from '../domain/modelo.ts'
-import { ACCIONES, puede, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO, type AccionRisk, type RolInterno } from '../domain/permisos.ts'
+import {
+  ACCIONES, esTrabajoPropio, puede, ROTULO_APROBACION_INTERNA, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO, type AccionRisk, type RolInterno,
+} from '../domain/permisos.ts'
 import type { Sql, TransactionSql } from '../persistence/database.ts'
 import {
   conPrincipal as conPrincipalDeLaBase, ingresar as ingresarDeLaBase, type CredencialEncontrada, type DecisionLogin, type IdentidadDeLogin,
@@ -25,7 +27,8 @@ import { asignar, cambiarRol, darDeBaja, invitar } from './accesos.ts'
 import {
   cargarReevaluacion, cerrarConReevaluacion, cerrarSinCambio, pantallaOrdenPrevio, registrarNovedad, registrarOrdenPrevio, reordenar, revisar,
 } from './actualizacion.ts'
-import { organizaciones, vistaLista } from './vistas.ts'
+import { exigirEntregable, registrarRevisionIa } from './operador-unico.ts'
+import { organizaciones, vistaDetalle, vistaLista } from './vistas.ts'
 
 const F = filasSinteticas()
 const RIESGO = id('S36-R01')
@@ -412,7 +415,8 @@ describe('nadie aprueba su propio trabajo (tampoco un Administrador)', () => {
   it('un Administrador tampoco acepta lo suyo; el Revisor, después de su orden previo, acepta lo ajeno', () =>
     conEquipo(async (e) => {
       const { evaluacionId } = await como(e.tx, e.admin, reevaluacion)
-      await assert.rejects(como(e.tx, e.admin, (t, s) => revisar(t, s, { evaluacionId }, 'accepted')), sinPermiso(TRABAJO_PROPIO))
+      // Sin revisión de IA ni 24 horas, la excepción de D-0083 no corre (más abajo, completa).
+      await assert.rejects(como(e.tx, e.admin, (t, s) => revisar(t, s, { evaluacionId }, 'accepted')), sinPermiso(/falta la revisión de IA/))
       const directo = await como(e.tx, e.admin, (t) => codigo(t, (u) => u`
         insert into risk.revision_humana (evaluacion_id, estado, revisado_por_actor, revisor_persona_id, fecha_revision, origen)
         values (${evaluacionId}, 'accepted', 'human', ${e.admin}, current_date, 'sesion')`))
@@ -424,6 +428,168 @@ describe('nadie aprueba su propio trabajo (tampoco un Administrador)', () => {
       await como(e.tx, e.revisor, (t, s) => revisar(t, s, { evaluacionId }, 'accepted'))
       const [f] = await e.tx<{ revisor: string }[]>`select revisor_persona_id as revisor from risk.revision_humana where evaluacion_id = ${evaluacionId}`
       assert.equal(f?.revisor, e.revisor)
+    }))
+})
+
+describe('aprobación interna por operador único (D-0083, T-0041)', () => {
+  /**
+   * Simula que pasaron `horas`: corre hacia atrás lo ya registrado. La base es de sólo inserción,
+   * así que el test apaga ese trigger un instante, dentro de su transacción, que se revierte.
+   */
+  const pasan = async (tx: TransactionSql, horas: number): Promise<void> => {
+    const columnas = { novedad: 'registrada_en', revision_pendiente: 'abierta_en', evaluacion: 'registrada_en', accion: 'registrada_en', transferencia: 'registrada_en' }
+    for (const [tabla, columna] of Object.entries(columnas)) {
+      await tx.unsafe(`alter table risk.${tabla} disable trigger solo_insercion`)
+      await tx.unsafe(`update risk.${tabla} set ${columna} = ${columna} - interval '${String(horas)} hours'`)
+      await tx.unsafe(`alter table risk.${tabla} enable trigger solo_insercion`)
+    }
+  }
+  const revisionIa = async (e: Equipo, objetoId: string): Promise<void> => {
+    const r = await registrarRevisionIa(e.tx, { actor: e.admin, objetoId, modelo: 'modelo-sintetico', hallazgos: 'Sin hallazgos materiales.', correcciones: null })
+    assert.deepEqual(r, { ok: true, valor: null })
+  }
+  /** La aceptación directa de una evaluación, con o sin la marca: el SQLSTATE con que la base la rechaza. */
+  const aceptarDirecto = (e: Equipo, quien: string, evaluacionId: string, interna: boolean): Promise<string> =>
+    como(e.tx, quien, (t) => codigo(t, (u) => u`
+      insert into risk.revision_humana (evaluacion_id, estado, revisado_por_actor, revisor_persona_id, fecha_revision, origen, aprobacion_interna)
+      values (${evaluacionId}, 'accepted', 'human', ${quien}, current_date, 'sesion', ${interna})`))
+  const marcas = async (e: Equipo, evaluacionId: string): Promise<{ revisor: string; interna: boolean; cierre: boolean | null }[]> =>
+    (await e.tx<{ revisor: string; interna: boolean; cierre: boolean | null }[]>`
+      select h.revisor_persona_id as revisor, h.aprobacion_interna as interna,
+             (select c.aprobacion_interna from risk.cierre_revision c where c.evaluacion_id = h.evaluacion_id) as cierre
+      from risk.revision_humana h where h.evaluacion_id = ${evaluacionId} order by h.id`).map((f) => ({ ...f }))
+  const SIN_IA = /falta la revisión de IA/
+  const FALTAN = /faltan \d+ h de las 24/
+
+  it('el Administrador no acepta lo suyo sin revisión de IA ni antes de 24 horas; después sí, rotulado, y no se entrega', () =>
+    conEquipo(async (e) => {
+      const { revisionId } = await como(e.tx, e.admin, informacionNueva)
+      assert.ok(revisionId !== null)
+      const { evaluacionId } = await como(e.tx, e.admin, reevaluacion)
+      const aceptar = (): Promise<void> => como(e.tx, e.admin, (t, s) => revisar(t, s, { evaluacionId }, 'accepted'))
+      const cerrar = (): Promise<{ aceptada: boolean }> => como(e.tx, e.admin, (t, s) => cerrarConReevaluacion(t, s, { revisionId, evaluacionId }))
+
+      // Sin revisión de IA, aunque pasen las horas.
+      await assert.rejects(aceptar(), sinPermiso(SIN_IA))
+      await pasan(e.tx, 25)
+      await assert.rejects(aceptar(), sinPermiso(SIN_IA))
+      await assert.rejects(cerrar(), (x: unknown) => sinPermiso(SIN_IA)(x) && esTrabajoPropio((x as Error).message))
+      assert.equal(await aceptarDirecto(e, e.admin, evaluacionId, true), '23514', 'la base tampoco, con la marca')
+      assert.equal(await aceptarDirecto(e, e.admin, evaluacionId, false), '42501', 'ni sin la marca')
+      assert.deepEqual(await marcas(e, evaluacionId), [])
+    }))
+
+  it('con revisión de IA, recién a las 24 horas del registro de esa versión', () =>
+    conEquipo(async (e) => {
+      const { revisionId } = await como(e.tx, e.admin, informacionNueva)
+      assert.ok(revisionId !== null)
+      const { evaluacionId } = await como(e.tx, e.admin, reevaluacion)
+      await revisionIa(e, evaluacionId)
+      const cerrar = (): Promise<{ aceptada: boolean }> => como(e.tx, e.admin, (t, s) => cerrarConReevaluacion(t, s, { revisionId, evaluacionId }))
+
+      await pasan(e.tx, 23)
+      await assert.rejects(como(e.tx, e.admin, (t, s) => revisar(t, s, { evaluacionId }, 'accepted')), sinPermiso(FALTAN))
+      await assert.rejects(cerrar(), sinPermiso(FALTAN))
+      assert.equal(await aceptarDirecto(e, e.admin, evaluacionId, true), '23514', 'la base tampoco')
+
+      await pasan(e.tx, 2)
+      // Cerrar «sin cambio» la revisión que abrió sigue negado: no tiene excepción.
+      await assert.rejects(como(e.tx, e.admin, (t, s) => cerrarSinCambio(t, s, { revisionId, fundamento: 'No cambia.' })), sinPermiso(TRABAJO_PROPIO))
+      assert.deepEqual(await cerrar(), { aceptada: true })
+      assert.deepEqual(await marcas(e, evaluacionId), [{ revisor: e.admin, interna: true, cierre: true }])
+
+      // Se muestra con su rótulo, en la evaluación usada y en el historial.
+      const v = await como(e.tx, e.admin, (t, s) => vistaDetalle(t, s, V, RIESGO))
+      assert.ok(v !== null)
+      assert.deepEqual([v.evaluacionUsada?.id, v.evaluacionUsada?.aprobacionInterna], [evaluacionId, true])
+      const rotulados = v.cambios.filter((c) => c.despues.includes(ROTULO_APROBACION_INTERNA)).map((c) => c.tabla)
+      assert.deepEqual(rotulados.sort(), ['cierre_revision', 'revision_humana'])
+
+      // No se exporta, publica ni entrega: la guarda la rechaza hasta que la acepte otra persona.
+      await assert.rejects(como(e.tx, e.admin, (t) => exigirEntregable(t, evaluacionId)), /no se exporta, publica ni entrega al cliente/)
+      await como(e.tx, e.operador2, (t, s) => revisar(t, s, { evaluacionId }, 'accepted'))
+      await como(e.tx, e.admin, (t) => exigirEntregable(t, evaluacionId))
+      assert.deepEqual((await marcas(e, evaluacionId)).map((m) => [m.revisor, m.interna]), [[e.admin, true], [e.operador2, false]])
+    }))
+
+  it('un cambio material reinicia la espera: la corrección necesita su revisión de IA y sus 24 horas', () =>
+    conEquipo(async (e) => {
+      const { revisionId } = await como(e.tx, e.admin, informacionNueva)
+      assert.ok(revisionId !== null)
+      const primera = (await como(e.tx, e.admin, reevaluacion)).evaluacionId
+      await revisionIa(e, primera)
+      await pasan(e.tx, 25)
+      // La revisión de IA encontró algo: el Administrador corrige con otra reevaluación.
+      const corregida = (await como(e.tx, e.admin, (t, s) => cargarReevaluacion(t, s, reevaluacionNueva(F, RIESGO, {
+        motivo: 'correccion_evaluacion', accionId: null, fecha: '2026-10-16', evidencia: 'DOC-SINTETICO-2, DOC-SINT-CORREGIDA',
+      })))).evaluacionId
+      const cerrar = (): Promise<{ aceptada: boolean }> =>
+        como(e.tx, e.admin, (t, s) => cerrarConReevaluacion(t, s, { revisionId, evaluacionId: corregida }))
+
+      await assert.rejects(cerrar(), sinPermiso(SIN_IA), 'la revisión de IA es de la versión anterior')
+      await revisionIa(e, corregida)
+      await assert.rejects(cerrar(), sinPermiso(FALTAN), 'las 24 horas son de la versión nueva')
+      assert.equal(await aceptarDirecto(e, e.admin, corregida, true), '23514')
+      await pasan(e.tx, 25)
+      assert.deepEqual(await cerrar(), { aceptada: true })
+      assert.deepEqual(await marcas(e, corregida), [{ revisor: e.admin, interna: true, cierre: true }])
+    }))
+
+  it('sólo el autor Administrador, en lo que ve: ni un Operador con lo suyo, ni la marca sobre lo ajeno, ni otra organización', () =>
+    conEquipo(async (e) => {
+      const propia = (await como(e.tx, e.operador, reevaluacion)).evaluacionId
+      await revisionIa(e, propia)
+      await pasan(e.tx, 25)
+      // Un Operador no aprueba lo propio, con todo lo demás cumplido.
+      await assert.rejects(como(e.tx, e.operador, (t, s) => revisar(t, s, { evaluacionId: propia }, 'accepted')), sinPermiso(TRABAJO_PROPIO))
+      assert.equal(await aceptarDirecto(e, e.operador, propia, true), '23514')
+      assert.equal(await aceptarDirecto(e, e.operador, propia, false), '42501')
+      // La marca no la pone quien no es el autor: tampoco el Administrador.
+      assert.equal(await aceptarDirecto(e, e.admin, propia, true), '42501')
+      assert.equal(await aceptarDirecto(e, e.operador2, propia, true), '42501')
+      // Lo ajeno se sigue aceptando como siempre, sin marca.
+      await como(e.tx, e.operador2, (t, s) => revisar(t, s, { evaluacionId: propia }, 'accepted'))
+      assert.deepEqual(await marcas(e, propia), [{ revisor: e.operador2, interna: false, cierre: null }])
+
+      // Otra organización: quien deja de tenerla asignada no aprueba ahí ni lo propio.
+      assert.ok((await cambiarRol(e.tx, { actor: e.admin, personaId: e.operador2, rol: 'ADMINISTRADOR' })).ok)
+      const suya = (await como(e.tx, e.operador2, (t, s) => cargarReevaluacion(t, s, reevaluacionNueva(F, RIESGO, {
+        motivo: 'correccion_evaluacion', accionId: null, fecha: '2026-10-16', evidencia: 'DOC-SINTETICO-2, DOC-SINT-CORREGIDA',
+      })))).evaluacionId
+      await revisionIa(e, suya)
+      await pasan(e.tx, 25)
+      assert.ok((await cambiarRol(e.tx, { actor: e.admin, personaId: e.operador2, rol: 'OPERADOR' })).ok)
+      assert.ok((await asignar(e.tx, { actor: e.admin, personaId: e.operador2, organizacionId: ORG, vigente: false })).ok)
+      assert.equal(await aceptarDirecto(e, e.operador2, suya, true), '42501', 'fuera de su alcance, la base no la deja ni intentar')
+      await assert.rejects(como(e.tx, e.operador2, (t, s) => revisar(t, s, { evaluacionId: suya }, 'accepted')), /no existe/)
+    }))
+
+  it('quien carga no elige la fecha de registro: la espera no se saltea con SQL directo', () =>
+    conEquipo(async (e) => {
+      const alta = (n: number, registradaEn: string) => como(e.tx, e.admin, (t) => codigo(t, (u) => u`
+        insert into risk.accion (id, risk_id, riesgo_tipo, tipo_registro, descripcion, factor_objetivo, mecanismo_causal, fecha_alta,
+                                 actor, base, evidencia, origen, autor_persona_id, registrada_en)
+        values (${`ACC-${'0'.repeat(25)}${String(n)}`}, ${RIESGO}, 'riesgo', 'accion', 'Acción sintética', '{p}', 'Mecanismo sintético', current_date,
+                'human', 'observed', '{sin_evidencia}', 'sesion', ${e.admin}, ${registradaEn}::timestamptz)`))
+      assert.equal(await alta(8, '2026-01-01T00:00:00Z'), '42501', 'con fecha anterior')
+      assert.equal(await alta(9, '2999-01-01T00:00:00Z'), 'sin error', 'la misma fila, sin fecha anterior')
+    }))
+
+  it('la revisión de IA la registra un Administrador activo, sobre una versión que existe', () =>
+    conEquipo(async (e) => {
+      const { evaluacionId } = await como(e.tx, e.admin, reevaluacion)
+      const pedido = { objetoId: evaluacionId, modelo: 'modelo-sintetico', hallazgos: 'Sin hallazgos.' }
+      assert.deepEqual(await registrarRevisionIa(e.tx, { ...pedido, actor: e.operador }), { ok: false, motivo: 'ACTOR_NO_AUTORIZADO' })
+      assert.deepEqual(await registrarRevisionIa(e.tx, { ...pedido, actor: e.admin, objetoId: 'EVA-00000000000000000000000999' }), { ok: false, motivo: 'OBJETO_INEXISTENTE' })
+      assert.deepEqual(await registrarRevisionIa(e.tx, { ...pedido, actor: e.admin, hallazgos: '  ' }), { ok: false, motivo: 'REVISION_IA_INVALIDA' })
+      assert.deepEqual(await registrarRevisionIa(e.tx, { ...pedido, actor: e.admin, correcciones: 'Se corrigió la evidencia.' }), { ok: true, valor: null })
+      const filas = await e.tx<{ modelo: string; correcciones: string | null; por: string }[]>`
+        select modelo, correcciones, registrada_por as por from risk.revision_ia where evaluacion_id = ${evaluacionId}`
+      assert.deepEqual(filas.map((f) => ({ ...f })), [{ modelo: 'modelo-sintetico', correcciones: 'Se corrigió la evidencia.', por: e.admin }])
+      // Risk_persona la lee, no la escribe.
+      const escribir = await como(e.tx, e.admin, (t) => codigo(t, (u) => u`
+        insert into risk.revision_ia (evaluacion_id, modelo, hallazgos, registrada_por) values (${evaluacionId}, 'm', 'h', ${e.admin})`))
+      assert.equal(escribir, '42501')
     }))
 })
 

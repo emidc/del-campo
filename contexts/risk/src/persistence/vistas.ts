@@ -59,14 +59,14 @@ const revisionesDe = async (db: Db, columna: 'evaluacion_id' | 'accion_id' | 'tr
   if (ids.length === 0) return porId
   const filas = await db<Fila[]>`
     select h.${db(columna)} as objeto, h.estado, h.revisado_por_actor, coalesce(p.nombre, h.revisado_por_origen) as revisor,
-           h.fecha_revision::text as fecha, h.origen, h.registrada_en
+           h.fecha_revision::text as fecha, h.origen, h.registrada_en, h.aprobacion_interna
     from risk.revision_humana h left join risk.persona p on p.id = h.revisor_persona_id
     where h.${db(columna)} in ${db(ids as string[])} order by h.id`
   for (const f of filas) {
     const id = String(f.objeto)
     const r: RevisionRegistrada = {
       estado: f.estado as RevisionRegistrada['estado'], actor: f.revisado_por_actor === 'ai' ? 'ai' : 'human', revisor: String(f.revisor),
-      fecha: String(f.fecha), origen: origen(f.origen), registradaEn: instante(f.registrada_en),
+      fecha: String(f.fecha), origen: origen(f.origen), registradaEn: instante(f.registrada_en), aprobacionInterna: f.aprobacion_interna === true,
     }
     porId.set(id, [...(porId.get(id) ?? []), r])
   }
@@ -185,7 +185,7 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
 
   const pendientesF = await db<Fila[]>`
     select r.*, a.nombre as autor, c.resultado, c.evaluacion_id as cierre_evaluacion_id, c.fundamento as cierre_fundamento,
-           pc.nombre as cerrada_por, c.cerrada_en
+           pc.nombre as cerrada_por, c.cerrada_en, c.aprobacion_interna
     from risk.revision_pendiente r
     left join risk.persona a on a.id = r.autor_persona_id
     left join risk.cierre_revision c on c.revision_id = r.id
@@ -197,6 +197,7 @@ export const leerOrganizacion = async (db: Db, organizacionId: string): Promise<
     cierre: r.resultado === null || r.resultado === undefined ? null : {
       resultado: r.resultado as 'reevaluacion_aceptada' | 'sin_cambio', evaluacionId: texto(r.cierre_evaluacion_id),
       fundamento: texto(r.cierre_fundamento), cerradaPor: String(r.cerrada_por), cerradaEn: instante(r.cerrada_en),
+      aprobacionInterna: r.aprobacion_interna === true,
     },
   }))
 
