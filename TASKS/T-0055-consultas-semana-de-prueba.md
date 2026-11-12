@@ -12,7 +12,8 @@ decisionRefs: [D-0089]
 ---
 
 > 2026-11-12: C4-03b quedó hecho (T-0056 y T-0057), así que la consulta 13 ya se resuelve en
-> Broker OS. Falta la confirmación del owner y el refresco de datos de `T-0037`.
+> Broker OS. El owner confirmó la lista el 2026-11-12, en el hilo del proyecto. Falta el refresco
+> de datos de `T-0037`.
 
 ## Why
 
@@ -35,7 +36,7 @@ Correr la semana de prueba (E2-03). Construir C4-03b o C5-02c.
 
 ## Verification
 
-- [ ] El owner confirma la lista de consultas, en el PR o en el hilo del proyecto.
+- [x] El owner confirma la lista de consultas, en el PR o en el hilo del proyecto.
 
 ```bash
 pnpm check

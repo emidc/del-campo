@@ -3,9 +3,8 @@
 La semana sin Zoho CRM (E2-03) se mide contra esta lista, fijada antes de observar. Una
 consulta que no está acá y aparece durante la semana se anota igual, como «no prevista».
 
-**Estado: borrador para que el owner lo confirme.** La lista sale de lo que Broker OS ya
-resuelve y de los recorridos R1 a R6; el owner agrega, saca o reordena según lo que de verdad
-consulta en Zoho.
+**Estado: confirmada por el owner el 2026-11-12.** La lista sale de lo que Broker OS ya
+resuelve y de los recorridos R1 a R6.
 
 ## Corte de los datos
 
