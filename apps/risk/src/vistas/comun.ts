@@ -10,7 +10,7 @@
 
 import { createElement, type ReactElement, type ReactNode } from 'react'
 
-import { puede, type Banderas, type EvaluacionUsada, type FactorVista, type NombreFactor, type Procedencia, type RevisionRegistrada, type RolInterno } from '@del-campo/risk'
+import { puede, ROTULO_APROBACION_INTERNA, type Banderas, type EvaluacionUsada, type FactorVista, type NombreFactor, type Procedencia, type RevisionRegistrada, type RolInterno } from '@del-campo/risk'
 
 type Props = Record<string, string | number | boolean | undefined | null>
 
@@ -58,7 +58,9 @@ export const evaluacionUsada = (e: EvaluacionUsada | null): ReactElement => {
     `después: ${e.posteriores.map((p) => `${corto(p.id)} (${p.reviewStatus})`).join(', ')}; no la reemplazan`)
   return h('span', { 'data-evaluacion': e.id },
     h('code', { title: e.id }, corto(e.id)), ` · ${e.fecha} · `,
-    e.rotulo === 'aceptada' ? h('span', { className: 'ok' }, 'aceptada') : h('span', { className: 'aviso' }, 'pendiente de revisión'),
+    e.rotulo === 'aceptada'
+      ? h('span', { className: 'ok' }, e.aprobacionInterna ? `aceptada (${ROTULO_APROBACION_INTERNA})` : 'aceptada')
+      : h('span', { className: 'aviso' }, 'pendiente de revisión'),
     posteriores)
 }
 
@@ -71,7 +73,7 @@ export const enlaceRiesgo = (riskId: string, titulo: string, idOrigen: string | 
 export const procedencia = (p: Procedencia): string => `${p.actor}, ${p.base}; evidencia: ${p.evidencia.join(', ')}`
 
 export const revisiones = (rs: readonly RevisionRegistrada[]): ReactNode =>
-  rs.length === 0 ? 'sin revisión humana (pending)' : rs.map((r) => `${r.estado} por ${r.revisor} (${r.actor}) el ${r.fecha}`).join('; ')
+  rs.length === 0 ? 'sin revisión humana (pending)' : rs.map((r) => `${r.estado}${r.aprobacionInterna ? ` (${ROTULO_APROBACION_INTERNA})` : ''} por ${r.revisor} (${r.actor}) el ${r.fecha}`).join('; ')
 
 /** Rótulo de lo calculado (RO01 §3, regla 7). */
 export const calculado = (version: string, que: string): ReactElement =>

@@ -6,7 +6,9 @@
 // Además de la matriz, dos reglas no dependen sólo del rol y también están en las dos capas:
 //   - un Revisor no ve resultados de una organización hasta registrar su orden previo ciego
 //     para esa organización (RO01 §6, A8a);
-//   - nadie revisa ni acepta lo que escribió, tampoco un Administrador.
+//   - nadie revisa ni acepta lo que escribió. La única excepción es la aprobación interna por
+//     operador único (D-0083, T-0041): un Administrador aprueba lo propio, sólo para uso
+//     interno, con una revisión de IA registrada sobre esa versión y 24 horas desde su registro.
 //
 // Todo esto rige con AUTH_MODE=oidc, que es cuando la sesión trae un rol. En `legacy` la
 // sesión no trae rol y Risk OS se comporta como hasta hoy (RO01 §8: «todas las personas con
@@ -59,6 +61,24 @@ export const EXPLICACION: Readonly<Record<AccionRisk, string>> = {
 export const SIN_ORDEN_PREVIO =
   'Registrá primero tu orden previo ciego de esta organización: hasta entonces no se muestran sus resultados (A8a).'
 export const TRABAJO_PROPIO = 'Nadie revisa ni acepta lo que escribió, tampoco un Administrador: lo revisa otra persona.'
+
+// ── Aprobación interna por operador único (D-0083, T-0041) ───────────────────
+
+/** Cómo se rotula lo que aprobó su propio autor. No se exporta, publica ni entrega al cliente. */
+export const ROTULO_APROBACION_INTERNA = 'aprobación interna por operador único'
+export const HORAS_DE_ESPERA = 24
+
+const LO_PROPIO = `Lo propio sólo se aprueba como ${ROTULO_APROBACION_INTERNA}: `
+
+/** Qué le falta a un Administrador para aprobar una versión propia, o `null` si ya puede. */
+export const porQueNoApruebaLoPropio = (x: { readonly revisionIa: boolean; readonly horas: number }): string | null => {
+  if (!x.revisionIa) return `${LO_PROPIO}falta la revisión de IA registrada sobre esta versión.`
+  const faltan = Math.min(HORAS_DE_ESPERA, Math.ceil(HORAS_DE_ESPERA - x.horas))
+  return faltan > 0 ? `${LO_PROPIO}faltan ${String(faltan)} h de las ${String(HORAS_DE_ESPERA)} desde que se registró esta versión.` : null
+}
+
+/** Si el rechazo fue por revisar lo propio, con o sin la excepción a medio cumplir. */
+export const esTrabajoPropio = (motivo: string): boolean => motivo === TRABAJO_PROPIO || motivo.startsWith(LO_PROPIO)
 
 /**
  * La acción no está permitida para quien la pide. Es un rechazo de la actualización: no escribe

@@ -67,7 +67,7 @@ export { iniciarSesion, LOGIN_MAXIMO_FALLIDOS, LOGIN_VENTANA_MINUTOS, sesionVige
 // admisión en la base (`ingresar` al volver de Google, `conPrincipal` en cada request) y la
 // auditoría. La regla de login la decide la app con `@del-campo/identidad`.
 export {
-  ACCIONES, EXPLICACION, exigirPermiso, puede, ROLES, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO,
+  ACCIONES, esTrabajoPropio, EXPLICACION, exigirPermiso, puede, ROLES, ROTULO_APROBACION_INTERNA, SIN_ORDEN_PREVIO, SinPermiso, TRABAJO_PROPIO,
   type AccionRisk, type RolInterno,
 } from '../domain/permisos.ts'
 export {
@@ -81,6 +81,9 @@ export {
   organizacionDeEmpresa, organizacionesEvaluadas, registrarFicha, verificarVinculo, vincular, vinculoDeEmpresa,
   type FichaOrganizacion, type OrganizacionEvaluada, type VinculoDeEmpresa,
 } from './organizacion-evaluada.ts'
+// T-0041 (D-0083): la revisión de IA que habilita la aprobación interna por operador único, y la
+// guarda de lo que no se entrega al cliente.
+export { exigirEntregable, registrarRevisionIa, type PedidoRevisionIa } from './operador-unico.ts'
 // C4-03a: los riesgos de una empresa de Broker OS, para su ficha.
 export { riesgosDeEmpresa, type RiesgoDeEmpresa, type RiesgosDeEmpresa } from './riesgos-de-empresa.ts'
 // T-0035: el registro de `jti` del token entre contextos, que la app pasa a `verificarToken`.

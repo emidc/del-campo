@@ -65,6 +65,20 @@ export const autorDe = async (tx: Db, tabla: 'evaluacion' | 'accion' | 'transfer
   return f?.autor ?? null
 }
 
+/**
+ * Lo que D-0083 pide para aprobar una fila propia (T-0041): si tiene una revisión de IA y cuántas
+ * horas pasaron desde su registro, con la hora de la base. La base lo exige igual (migración 0012).
+ */
+export const esperaDeLoPropio = async (
+  tx: Db, tabla: 'evaluacion' | 'accion' | 'transferencia', id: string,
+): Promise<{ revisionIa: boolean; horas: number }> => {
+  const [f] = await tx<{ ia: boolean; horas: number }[]>`
+    select exists (select 1 from risk.revision_ia i where i.${tx(`${tabla}_id`)} = x.id) as ia,
+           (extract(epoch from now() - x.registrada_en) / 3600)::float8 as horas
+    from ${tx(`risk.${tabla}`)} x where x.id = ${id}`
+  return { revisionIa: f?.ia ?? false, horas: f?.horas ?? 0 }
+}
+
 /** La organización de un riesgo, su tipo y si existe. */
 export const riesgo = async (tx: Db, riskId: string): Promise<{ organizacionId: string; tipoObjeto: string } | null> => {
   const [f] = await tx<{ organizacion_id: string; tipo_objeto: string }[]>`select organizacion_id, tipo_objeto from risk.riesgo where id = ${riskId}`

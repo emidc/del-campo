@@ -23,6 +23,7 @@ import {
 import { iEfectivoTexto, type Banda, type Dimension, type MotivoNoEvaluable, type Uncertainty } from './metodologia.ts'
 import { exigirVersion, type Evaluacion, type ReviewStatus, type TipoObjeto, type VersionFunciones } from './modelo.ts'
 import { reconstruirHistorial, type EntradaHistorial } from './historial.ts'
+import { ROTULO_APROBACION_INTERNA } from './permisos.ts'
 import { fotoOrdenCalculado, involucrados, ordenProfesional, sigueEnPie, type PosicionProfesional } from './reordenamiento.ts'
 import {
   aEvaluacion, aRiesgo, exigirUnaOrganizacion, FACTORES, reviewStatusDe,
@@ -57,6 +58,8 @@ export interface EvaluacionUsada {
   readonly reviewStatus: ReviewStatus
   /** `aceptada`, o `pendiente de revisión` si la vigente no está aceptada. */
   readonly rotulo: 'aceptada' | 'pendiente de revisión'
+  /** La aceptó su autor: aprobación interna por operador único (D-0083). */
+  readonly aprobacionInterna: boolean
   /** Evaluaciones posteriores de la cadena que no la reemplazan (una `pending` después de una `accepted`, o rechazadas). */
   readonly posteriores: readonly { readonly id: string; readonly reviewStatus: ReviewStatus }[]
 }
@@ -138,6 +141,7 @@ function evaluacionUsada(o: Org, riskId: string): EvaluacionUsada | null {
     versionMetodologia: r.versionMetodologia,
     reviewStatus: v.reviewStatus,
     rotulo: v.reviewStatus === 'accepted' ? 'aceptada' : 'pendiente de revisión',
+    aprobacionInterna: v.reviewStatus === 'accepted' && r.revisiones.at(-1)?.aprobacionInterna === true,
     posteriores: despues.map((e) => ({ id: e.id, reviewStatus: e.reviewStatus })),
   }
 }
@@ -663,8 +667,9 @@ export function armarActividad(d: DatosOrganizacion): VistaActividad {
     const r = riesgo.get(riskId)
     items.push({ ...x, riskId, titulo: r?.titulo ?? riskId, idOrigen: r?.idOrigen ?? null })
   }
+  const interna = (x: { readonly aprobacionInterna: boolean }): string => (x.aprobacionInterna ? ` (${ROTULO_APROBACION_INTERNA})` : '')
   const revisiones = (riskId: string, refId: string, que: string, rs: readonly RevisionRegistrada[]): void => {
-    for (const r of rs) add(riskId, { fecha: r.fecha, tipo: 'revision_humana', refId, detalle: `Revisión humana de ${que}: ${r.estado}, por ${r.revisor}` })
+    for (const r of rs) add(riskId, { fecha: r.fecha, tipo: 'revision_humana', refId, detalle: `Revisión humana de ${que}: ${r.estado}${interna(r)}, por ${r.revisor}` })
   }
   for (const e of d.evaluaciones) {
     add(e.riskId, {
@@ -693,7 +698,7 @@ export function armarActividad(d: DatosOrganizacion): VistaActividad {
     if (r.cierre !== null) {
       add(r.riskId, {
         fecha: r.cierre.cerradaEn, tipo: 'cierre_revision', refId: r.id,
-        detalle: `Revisión cerrada: ${r.cierre.resultado === 'sin_cambio' ? 'sin cambio' : 'reevaluación aceptada'}, por ${r.cierre.cerradaPor}`,
+        detalle: `Revisión cerrada: ${r.cierre.resultado === 'sin_cambio' ? 'sin cambio' : 'reevaluación aceptada'}${interna(r.cierre)}, por ${r.cierre.cerradaPor}`,
       })
     }
   }

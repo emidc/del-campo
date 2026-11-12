@@ -373,6 +373,16 @@ const CASOS: Caso[] = [
   ['vinculo_verificado_pkey', 'vinculo_verificado', dosVeces('vinculo_verificado')],
   ['vinculo_verificado_vinculo_id_fkey', 'vinculo_verificado', { vinculo_id: 999999999 }],
   ['vinculo_verificado_autor_persona_id_fkey', 'vinculo_verificado', { autor_persona_id: PERSONA_INEXISTENTE }],
+
+  // Aprobación interna por operador único (T-0041, migración 0012). Las condiciones, una por
+  // una, están más abajo.
+  ['revision_ia_un_objeto', 'revision_ia', { accion_id: B.accion }],
+  ['revision_ia_evaluacion_id_fkey', 'revision_ia', { evaluacion_id: 'EVA-00000000000000000000000999' }],
+  ['revision_ia_accion_id_fkey', 'revision_ia', { evaluacion_id: null, accion_id: 'ACC-00000000000000000000000999' }],
+  ['revision_ia_transferencia_id_fkey', 'revision_ia', { evaluacion_id: null, transferencia_id: 'TRF-00000000000000000000000999' }],
+  ['revision_ia_registrada_por_fkey', 'revision_ia', { registrada_por: PERSONA_INEXISTENTE }],
+  ['revision_humana_aprobacion_interna', 'revision_humana', { aprobacion_interna: true }],
+  ['cierre_revision_aprobacion_interna', 'cierre_revision', { aprobacion_interna: true }],
 ]
 
 const TABLAS: Tabla[] = [
@@ -380,7 +390,7 @@ const TABLAS: Tabla[] = [
   'transferencia', 'evento_poliza', 'revision_humana', 'novedad', 'revision_pendiente', 'cierre_revision',
   'orden_previo', 'orden_previo_item', 'reordenamiento', 'reordenamiento_vigente', 'lote_importacion',
   'usuario', 'credencial', 'login_fallido', 'rol_persona', 'invitacion', 'credencial_externa', 'asignacion', 'evento_auditoria',
-  'jti_aceptado', 'organizacion_ficha', 'vinculo_empresa', 'vinculo_verificado',
+  'jti_aceptado', 'organizacion_ficha', 'vinculo_empresa', 'vinculo_verificado', 'revision_ia',
 ]
 
 /** El nombre de la restricción que rechazó `accion`, o `null` si no la rechazó ninguna. */
@@ -503,6 +513,102 @@ describe('historia de evaluaciones', () => {
       await insertar(tx, 'revision_humana', fila('revision_humana', { origen: 'sesion', revisor_persona_id: B.persona, revisado_por_origen: null }))
     })
   })
+})
+
+describe('aprobación interna por operador único (D-0083, T-0041)', () => {
+  const haceHoras = (n: number): string => new Date(Date.now() - n * 3_600_000).toISOString()
+  const INTERNA = 'revision_humana_aprobacion_interna'
+
+  /** Una reevaluación que `autor` cargó desde una sesión hace `horas`. Devuelve su id. */
+  const propia = async (tx: TransactionSql, horas: number, c: Fila = {}): Promise<string> => {
+    const id = nuevoId('EVA')
+    await insertar(tx, 'evaluacion', fila('evaluacion', { ...reevaluacion, ...enSesion, evaluador: null, id, registrada_en: haceHoras(horas), ...c }))
+    return id
+  }
+  const administrador = (tx: TransactionSql, persona: string = B.persona): Promise<void> =>
+    insertar(tx, 'rol_persona', fila('rol_persona', { persona_id: persona, rol: 'ADMINISTRADOR' }))
+  const revisionIa = (tx: TransactionSql, evaluacionId: string): Promise<void> =>
+    insertar(tx, 'revision_ia', fila('revision_ia', { evaluacion_id: evaluacionId }))
+  /** La aprobación de `quien` sobre esa evaluación, con la marca. */
+  const aprobar = (tx: TransactionSql, evaluacionId: string, quien: string = B.persona): Promise<string | null> =>
+    rechazo(() => tx.savepoint((s) => insertar(s, 'revision_humana', fila('revision_humana', {
+      evaluacion_id: evaluacionId, origen: 'sesion', revisor_persona_id: quien, revisado_por_origen: null, aprobacion_interna: true,
+    }))))
+  const caso = (cuerpo: (tx: TransactionSql) => Promise<void>): Promise<void> =>
+    enTransaccionRevertida(sql, async (tx) => {
+      await base(tx)
+      await cuerpo(tx)
+    })
+
+  it('la acepta: el autor es Administrador, la versión tiene revisión de IA y 24 horas; también el cierre', () =>
+    caso(async (tx) => {
+      await administrador(tx)
+      // La revisión que va a cerrar se abrió antes que la reevaluación.
+      const novedad = nuevoId('NOV')
+      const revision = nuevoId('REV')
+      await insertar(tx, 'novedad', fila('novedad', { id: novedad, registrada_en: haceHoras(48) }))
+      await insertar(tx, 'revision_pendiente', fila('revision_pendiente', {
+        id: revision, disparador: 'informacion_nueva', novedad_id: novedad, version_metodologia: null, abierta_en: haceHoras(48),
+      }))
+      const x = await propia(tx, 25)
+      await revisionIa(tx, x)
+      assert.equal(await aprobar(tx, x), null)
+      await insertar(tx, 'cierre_revision', fila('cierre_revision', {
+        revision_id: revision, resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null, aprobacion_interna: true,
+      }))
+    }))
+
+  it('la rechaza antes de las 24 horas', () =>
+    caso(async (tx) => {
+      await administrador(tx)
+      const x = await propia(tx, 23)
+      await revisionIa(tx, x)
+      assert.equal(await aprobar(tx, x), INTERNA)
+    }))
+
+  it('la rechaza sin revisión de IA, y con la revisión de IA de la versión anterior', () =>
+    caso(async (tx) => {
+      await administrador(tx)
+      const x = await propia(tx, 50)
+      assert.equal(await aprobar(tx, x), INTERNA)
+      await revisionIa(tx, x)
+      const corregida = await propia(tx, 25, { evaluacion_anterior_id: x, motivo: 'correccion_evaluacion' })
+      assert.equal(await aprobar(tx, corregida), INTERNA, 'la revisión de IA es de la versión anterior')
+    }))
+
+  it('un cambio material reinicia la espera: la versión nueva necesita sus 24 horas y su revisión de IA', () =>
+    caso(async (tx) => {
+      await administrador(tx)
+      const x = await propia(tx, 25)
+      await revisionIa(tx, x)
+      const corregida = await propia(tx, 1, { evaluacion_anterior_id: x, motivo: 'correccion_evaluacion' })
+      await revisionIa(tx, corregida)
+      assert.equal(await aprobar(tx, corregida), INTERNA, 'la versión nueva tiene 1 hora')
+      assert.equal(await aprobar(tx, x), null, 'la anterior sigue cumpliendo')
+    }))
+
+  it('la rechaza si el autor no es Administrador, y si la marca la pone quien no es el autor', () =>
+    caso(async (tx) => {
+      // `persona` es Operador en la base.
+      const x = await propia(tx, 25)
+      await revisionIa(tx, x)
+      assert.equal(await aprobar(tx, x), INTERNA, 'el autor es Operador')
+      await administrador(tx, B.otraPersona)
+      assert.equal(await aprobar(tx, x, B.otraPersona), INTERNA, 'un Administrador que no la escribió')
+    }))
+
+  it('un cierre «sin cambio» no tiene aprobación interna, ni un cierre con la reevaluación de otra persona', () =>
+    caso(async (tx) => {
+      await administrador(tx)
+      assert.equal(
+        await rechazo(() => tx.savepoint((s) => insertar(s, 'cierre_revision', fila('cierre_revision', { aprobacion_interna: true })))),
+        'cierre_revision_aprobacion_interna')
+      const x = nuevoId('EVA')
+      await insertar(tx, 'evaluacion', fila('evaluacion', { ...reevaluacion, id: x }))
+      await insertar(tx, 'revision_humana', fila('revision_humana', { evaluacion_id: x }))
+      const ajena = fila('cierre_revision', { resultado: 'reevaluacion_aceptada', evaluacion_id: x, fundamento: null, aprobacion_interna: true })
+      assert.equal(await rechazo(() => tx.savepoint((s) => insertar(s, 'cierre_revision', ajena))), 'cierre_revision_aprobacion_interna')
+    }))
 })
 
 const cubrirOrdenesPrevios = async (tx: TransactionSql): Promise<void> => {

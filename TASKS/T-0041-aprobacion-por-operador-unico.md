@@ -14,6 +14,18 @@ contextRefs: [DECISIONS/0083-aprobacion-interna-por-operador-unico.md,
 decisionRefs: [D-0022, D-0083, D-0084]
 ---
 
+## Notas de implementación
+
+- **Qué verifica SOU-01b hoy.** Risk OS no tiene exportación, publicación ni entrega al
+  cliente. Lo que existe es la guarda `exigirEntregable`
+  (`contexts/risk/src/application/operador-unico.ts`) y su test en
+  `autorizacion.integration.test.ts`: rechaza una evaluación aceptada sólo como aprobación
+  interna por operador único, y la deja pasar cuando la acepta otra persona.
+- **Qué tiene que verificar el primer canal de entrega real.** Que llama a
+  `exigirEntregable` por cada evaluación que usa, en el servidor y antes de producir nada, y
+  que su test muestra el rechazo. La lectura interna de Broker OS (`riesgosDeEmpresa`) no es
+  una entrega y no la llama.
+
 ## Why
 
 D-0083 permite que Emiliano apruebe lo propio para uso interno, con revisión de IA
@@ -46,9 +58,9 @@ pnpm check
 pnpm test
 ```
 
-- [ ] Un test de base muestra el rechazo antes de 24 h, sin revisión registrada y tras un
+- [x] Un test de base muestra el rechazo antes de 24 h, sin revisión registrada y tras un
       cambio material, y la aceptación después.
-- [ ] Un test de servidor muestra el rechazo de exportar o entregar lo aprobado por
+- [x] Un test de servidor muestra el rechazo de exportar o entregar lo aprobado por
       operador único.
 
 ## Data effects
