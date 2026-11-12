@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -60,9 +60,10 @@ function addActive(dir, ids, extra = '') {
   for (const id of ids) writeFileSync(join(dir, 'TASKS', `${id}-sintetica.md`), task(id, 'ACTIVE', extra))
 }
 
+// Las ACTIVE en espera pasiva (`waiting:`) no cuentan para el límite (D-0080).
 const existingActive = () => {
   const r = spawnSync('grep', ['-l', '^status: ACTIVE', '-r', join(root, 'TASKS')], { encoding: 'utf8' })
-  return r.stdout.split('\n').filter(Boolean).length
+  return r.stdout.split('\n').filter(Boolean).filter((f) => !/^waiting:/m.test(readFileSync(f, 'utf8'))).length
 }
 
 test('cinco tareas ACTIVE sin espera pasan', (t) => {
