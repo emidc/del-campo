@@ -2,7 +2,7 @@
 id: T-0041
 title: Hacer cumplir la aprobación interna por operador único en Risk OS
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: HIGH
 size: M
