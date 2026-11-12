@@ -2,7 +2,7 @@
 id: T-0056
 title: Entregar los riesgos de una empresa a Broker OS con el token entre contextos (C4-03a)
 kind: FEATURE
-status: ACTIVE
+status: DONE
 workstream: BOS
 riskClass: MEDIUM
 size: M
