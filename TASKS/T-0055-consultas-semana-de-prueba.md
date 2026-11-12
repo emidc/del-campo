@@ -9,11 +9,12 @@ size: S
 created: 2026-11-11
 contextRefs: [docs/north-star/12-plan-hacia-la-north-star.md, SLICES/VS01.md, TASKS/T-0037-datos-vivos-y-planes.md, TASKS/T-0054-aceptar-c6.md]
 decisionRefs: [D-0089]
+waiting: "refresco de datos de T-0037 y semana de prueba E2-03, postergados por el owner · próxima comprobación 2027-01-01"
 ---
 
 > 2026-11-12: C4-03b quedó hecho (T-0056 y T-0057), así que la consulta 13 ya se resuelve en
 > Broker OS. El owner confirmó la lista el 2026-11-12, en el hilo del proyecto. Falta el refresco
-> de datos de `T-0037`.
+> de datos de `T-0037`. El owner postergó la semana de prueba sin Zoho (E2-03) al 01/01/2027.
 
 ## Why
 

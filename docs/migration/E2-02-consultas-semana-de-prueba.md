@@ -10,7 +10,7 @@ resuelve y de los recorridos R1 a R6.
 
 Cada pantalla con datos muestra la fecha del lote importado (VS01 §2): ése es el corte
 conocido. El refresco desde Zoho es DAT-01 y C3-06 (`T-0037`), que el owner postergó al
-01/01/2027. La semana de prueba arranca con el lote que esté cargado ese día, y la fecha
+01/01/2027, y la semana de prueba (E2-03) quedó postergada a esa misma fecha. Arranca con el lote que esté cargado ese día, y la fecha
 del lote se anota en el registro.
 
 ## Lista
