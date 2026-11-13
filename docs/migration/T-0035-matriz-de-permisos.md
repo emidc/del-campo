@@ -1,5 +1,7 @@
 # Matriz de permisos consolidada (T-0035)
 
+> Histórico desde el 13/11/2026 (`D-0090`): ya no hay roles por función ni se mantiene esta matriz. Queda como referencia.
+
 **Qué es.** La matriz rol × acción × alcance de los tres contextos, traducida de
 `docs/north-star/prototipo/pruebas/permisos.js` y `aislamiento.js` (prototipo v25). Lo que
 está implementado se nombra con su acción en el código y sus pruebas. Lo que el prototipo
