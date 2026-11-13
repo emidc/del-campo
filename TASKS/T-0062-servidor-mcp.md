@@ -3,7 +3,7 @@ id: T-0062
 title: Servidor MCP de Broker OS
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-132
 ---
 
 ## Para qué

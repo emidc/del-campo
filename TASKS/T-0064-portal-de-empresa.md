@@ -3,7 +3,7 @@ id: T-0064
 title: Portal de empresa con su panel de riesgos
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-134
 ---
 
 ## Para qué

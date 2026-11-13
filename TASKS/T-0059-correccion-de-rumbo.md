@@ -3,7 +3,7 @@ id: T-0059
 title: Corregir el rumbo: reglas, tareas y plan
 status: ACTIVE
 created: 2026-11-13
-linear:
+linear: EMI-129
 ---
 
 ## Para qué

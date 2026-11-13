@@ -3,7 +3,7 @@ id: T-0063
 title: Agente de riesgos v1
 status: BLOCKED
 created: 2026-11-13
-linear:
+linear: EMI-133
 ---
 
 ## Para qué

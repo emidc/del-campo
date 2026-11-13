@@ -3,7 +3,7 @@ id: T-0061
 title: Sección Riesgos de cada empresa en Broker OS
 status: BLOCKED
 created: 2026-11-13
-linear:
+linear: EMI-131
 ---
 
 ## Para qué

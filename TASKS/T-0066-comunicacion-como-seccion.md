@@ -3,7 +3,7 @@ id: T-0066
 title: Comunicación como sección de Broker OS
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-137
 ---
 
 ## Para qué

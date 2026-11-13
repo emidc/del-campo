@@ -3,7 +3,7 @@ id: T-0060
 title: Simplificar los usuarios a equipo y cliente
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-130
 ---
 
 ## Para qué

@@ -3,7 +3,7 @@ id: T-0067
 title: Acercar la interfaz de Broker OS al prototipo
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-135
 ---
 
 ## Para qué

@@ -3,7 +3,7 @@ id: T-0065
 title: Retirar Risk OS como aplicación separada
 status: BLOCKED
 created: 2026-11-13
-linear:
+linear: EMI-136
 ---
 
 ## Para qué
