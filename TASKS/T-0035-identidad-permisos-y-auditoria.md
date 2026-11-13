@@ -2,7 +2,7 @@
 id: T-0035
 title: Unificar identidad, permisos por rol y auditoría en los tres contextos (C1)
 kind: FEATURE
-status: ACTIVE
+status: DROPPED
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -122,3 +122,8 @@ Aprobadas por el owner el 2026-11-03 sobre el plan de la fase 0, en el hilo de T
   comportamiento actual. La autorización cubre sólo la fase 0: no autoriza cambios de
   configuración de producción, invitaciones reales, migración de usuarios ni eliminación
   de credenciales existentes. No se agregan servicios ni gastos (D-0076).
+
+## Cierre (2026-11-13)
+
+Se suelta por `D-0090`: hay dos tipos de usuario, equipo y cliente, sin roles por función
+ni identidad repartida en tres contextos. Lo pendiente se reemplaza por `T-0060`.

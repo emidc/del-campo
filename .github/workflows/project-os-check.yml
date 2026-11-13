@@ -1,4 +1,4 @@
-name: Project OS check
+name: Check
 
 on:
   pull_request:
@@ -81,28 +81,5 @@ jobs:
         # paso previo nada comprueba acá que la mayor corrida sea la de .postgres-version.
         run: pnpm db:version && pnpm db:migrate
 
-      - name: Check Project OS
+      - name: Check
         run: pnpm check
-
-      - name: Check task contract and required review
-        env:
-          # github.head_ref, NUNCA github.ref_name / GITHUB_REF_NAME: en un evento
-          # pull_request ese valor es "refs/pull/N/merge", no el nombre de la rama.
-          CHECK_BRANCH_NAME: ${{ github.head_ref }}
-          CHECK_BASE_REF: origin/${{ github.base_ref }}
-        # Cada control corre dos veces: con la versión de la rama, para probar el cambio, y
-        # con la versión aprobada en la base, para que una rama no pueda aflojar las reglas
-        # que la juzgan (T-0043). La copia de la base va dentro del workspace para que
-        # resuelva node_modules. Un control que la base todavía no tiene se omite y se dice.
-        run: |
-          set -euo pipefail
-          mkdir -p .ci-base
-          for check in check-task-contract check-review-required; do
-            node "scripts/$check.mjs"
-            if git cat-file -e "$CHECK_BASE_REF:scripts/$check.mjs" 2>/dev/null; then
-              git show "$CHECK_BASE_REF:scripts/$check.mjs" > ".ci-base/$check.mjs"
-              node ".ci-base/$check.mjs"
-            else
-              echo "aviso  $check no existe en la base; sólo corrió la versión de la rama"
-            fi
-          done

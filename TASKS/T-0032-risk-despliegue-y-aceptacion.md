@@ -2,7 +2,7 @@
 id: T-0032
 title: Desplegar Risk OS y ejecutar la aceptación de RO01
 kind: FEATURE
-status: ACTIVE
+status: DROPPED
 workstream: BOS
 riskClass: HIGH
 size: L
@@ -168,3 +168,9 @@ RO01 §10. Linear: el hito "v1 accepted"; cierra lo que quede de EMI-23 a EMI-26
 el acta. Ajustada a las decisiones del owner del 2026-10-15
 (`SLICES/RO01-decisiones.md`): 1b, 2b, 3a, 6b con el orden previo ciego y 7b, y a
 D-0068 con Supabase Free en sa-east-1 y Vercel Hobby.
+
+## Cierre (2026-11-13)
+
+Se suelta por `D-0090`: Risk OS deja de ser una aplicación separada. La sección Riesgos
+pasa a Broker OS (`T-0061`) y el método, a un agente (`T-0063`). Lo que quedaba pendiente
+(despliegue, aceptación de RO01, observación) no se hace.
