@@ -21,7 +21,7 @@
 # PROVISIONAL exige `falsified_by`. OPEN exige `unblocked_by`.
 
 version: 1
-updated: 2026-11-07
+updated: 2026-11-13
 
 decisions:
 
@@ -1043,7 +1043,7 @@ decisions:
 
   - id: D-0063
     title: Aislamiento por contexto dentro del monolito modular
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-09-29
     source: >
       Q4 Operating Plan (Risk OS v1 y Communication OS, sin integración exigida en Q4);
@@ -1162,7 +1162,7 @@ decisions:
 
   - id: D-0067
     title: Propiedad de datos entre Broker OS y Risk OS
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-10-14
     source: >
       EMI-18 (Linear, proyecto Risk OS); decisiones del owner del 2026-10-14 en el hilo de
@@ -1338,7 +1338,7 @@ decisions:
 
   - id: D-0071
     title: Los contextos se integran por API de aplicación y la organización evaluada se vincula a mano con una empresa
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-02
     source: >
       Decisión de cierre de Q4 del owner del 2026-11-02 («Decisiones de cierre Q4 — Del
@@ -1368,7 +1368,7 @@ decisions:
 
   - id: D-0072
     title: Acceso individual con Google por invitación y roles administrados en las aplicaciones
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-02
     supersedes: [D-0066]
     source: >
@@ -1593,7 +1593,7 @@ decisions:
 
   - id: D-0080
     title: Como máximo cinco frentes activos, sin contar las esperas pasivas
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-07
     source: >
       Respuestas del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
@@ -1656,7 +1656,7 @@ decisions:
 
   - id: D-0083
     title: Aprobación interna por operador único
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-07
     source: >
       Elección del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
@@ -1676,7 +1676,7 @@ decisions:
 
   - id: D-0084
     title: RO01 se acepta para uso interno sin revisor profesional, con A8 no verificado
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-07
     source: >
       Respuestas del owner del 2026-11-07 en el hilo «Planificar camino a la north star con
@@ -1713,7 +1713,7 @@ decisions:
 
   - id: D-0086
     title: El control del cambio mira el diff, no el nombre de la rama ni la etiqueta
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-09
     source: >
       Revisión de las reglas de gobierno del 2026-11-09, con una segunda revisión
@@ -1795,7 +1795,7 @@ decisions:
   # ── Hilo «Agregar gestiones manuales» (un solo PR por funcionalidad) ───────
   - id: D-0089
     title: Una funcionalidad es un solo PR y la revisión se exige sólo en permisos o seguridad
-    status: ACCEPTED
+    status: SUPERSEDED
     date: 2026-11-11
     source: >
       Elección del owner del 2026-11-11 («Sí, los dos cambios») ante la pregunta de por qué
@@ -1810,3 +1810,35 @@ decisions:
       migraciones, los endpoints, la persistencia y las integraciones ya no la exigen por sí
       solos; el control mínimo es un PR con tests en verde, y el merge sigue siendo del
       owner.
+
+  # ── Corrección de rumbo (hilo «Corregir el rumbo de Broker OS») ────────────
+  - id: D-0090
+    title: Un solo Broker OS simple, con el método en agentes que lo usan por MCP
+    status: ACCEPTED
+    date: 2026-11-13
+    supersedes: [D-0063, D-0067, D-0071, D-0072, D-0080, D-0083, D-0084, D-0086, D-0089]
+    source: >
+      Mensajes del owner del 2026-11-13 en el hilo «Corregir el rumbo de Broker OS»: el
+      sistema es demasiado rígido y complejo para un equipo de ocho personas que todavía
+      no lo usa; debe ser un solo sistema con una base y un proyecto de Vercel; el método
+      de riesgos va en un agente que accede por MCP; alcanza con separar clientes y equipo.
+      Aprobada con el merge de este cambio. T-0059.
+    statement: >
+      Broker OS es un solo sistema: una aplicación, una base de datos en Supabase y un
+      proyecto de Vercel. Riesgos y Comunicación son secciones de Broker OS, no
+      aplicaciones ni contextos aislados, y no se integran por API entre sí. Hay dos tipos
+      de usuario: equipo Del Campo, que entra con Google y ve y edita todo, y cliente, que
+      ve sólo su empresa en el portal; no hay roles internos ni permisos por función. La
+      única separación que se prueba con tests es que un cliente no vea datos de otra
+      empresa. Broker OS guarda y muestra datos y no contiene el método de trabajo: el
+      método de análisis de riesgos vive en agentes, que son instrucciones versionadas en
+      el repositorio y que leen y escriben en Broker OS por un servidor MCP propio, con el
+      usuario de la persona del equipo que los usa y dejando registro de lo que
+      escribieron. El MCP con escritura y el primer agente pasan a ser lo siguiente a
+      construir, no la última etapa (cambia el orden de D-0075). El proceso se reduce a un
+      PR por cambio con tipos, lint y tests en verde y merge del owner, con aprobación
+      previa sólo para producción, datos reales y terceros; dejan de exigirse el contrato
+      congelado de tarea, los reportes de revisión, las carpetas de evidencia y el límite
+      de frentes. Las reglas vigentes son las de ENGINEERING_RULES.md desde esta fecha.
+      Toda decisión anterior que contradiga a ésta queda sin efecto en lo que la
+      contradiga, aunque no figure en la lista de reemplazadas.

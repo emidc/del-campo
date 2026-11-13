@@ -1,5 +1,7 @@
 # Plan hacia la north star (v4)
 
+> **Reemplazado el 13/11/2026 por `PROJECT.md` §4 (`D-0090`).** Queda como historia. Sus tareas pendientes no siguen vigentes, salvo el refresco de datos de Zoho (`T-0037`) y la semana de prueba (`T-0055`), postergados al 01/01/2027.
+
 Registro de `T-0038`. Versión revisada por el owner el 07/11/2026. Las decisiones que lo sostienen están en `decisions.yaml` (D-0080 a D-0084); este documento no decide nada nuevo. La north star es una dirección y el plan admite cambios: **las fechas son objetivos, no compromisos**. La tabla completa, con referencias, está en [`12-plan-hacia-la-north-star.csv`](12-plan-hacia-la-north-star.csv).
 
 ## 1. Supuestos del calendario

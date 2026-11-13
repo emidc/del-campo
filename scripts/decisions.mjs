@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Imprime el estado de las decisiones desde decisions.yaml.
 // Existe para que ningún documento tenga que escribir ese resumen a mano: lo que no
-// está escrito no puede contradecir al índice. → R-04
+// está escrito no puede contradecir al índice.
 
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'

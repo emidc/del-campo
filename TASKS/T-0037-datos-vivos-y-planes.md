@@ -2,7 +2,7 @@
 id: T-0037
 title: Refrescar los datos de clientes y pólizas y ajustar la infraestructura al presupuesto (C3)
 kind: MIGRATION
-status: ACTIVE
+status: BLOCKED
 workstream: MIG
 riskClass: HIGH
 size: M
@@ -49,3 +49,9 @@ pnpm check
 
 Escribe datos reales en la base de producción de VS01. Requiere aprobación humana antes
 de cada ejecución contra producción.
+
+## Nota (2026-11-13)
+
+En espera: el owner postergó el refresco de datos de Zoho al 01/01/2027. La parte de
+infraestructura (proyectos y planes de Supabase y Vercel por contexto) queda sin efecto por
+`D-0090`: hay una sola base y un solo proyecto de Vercel.

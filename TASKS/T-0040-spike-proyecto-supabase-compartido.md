@@ -2,7 +2,7 @@
 id: T-0040
 title: Probar en sintético si Broker OS y Risk OS pueden compartir un proyecto Supabase
 kind: SPIKE
-status: BLOCKED
+status: DROPPED
 workstream: BOS
 riskClass: MEDIUM
 size: S
@@ -84,3 +84,8 @@ Ningún dato real ni de producción.
 
 Dónde vive Risk OS: como esquema dentro del proyecto Pro de VS01 o en un proyecto
 separado con backup probado. Desbloquea INF-03 (preparar el destino de T-0032).
+
+## Cierre (2026-11-13)
+
+Se suelta por `D-0090`: ya está decidido que hay una sola base, así que no hace falta el
+spike.

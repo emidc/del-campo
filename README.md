@@ -1,10 +1,8 @@
 # Del Campo
 
-Repositorio del programa Del Campo: Broker OS, Project OS y la migración.
-
-Project OS sigue en **Project OS Zero**: tareas, decisiones y el registro de ejecuciones
-viven como archivos en este repositorio. Broker OS ya tiene código en `apps/`, `packages/`
-y `contexts/`. El estado de cada uno está en `PROJECT.md` §3.
+Repositorio de Broker OS, el sistema de trabajo de Del Campo Broker. Qué se construye, cómo
+está armado y el plan están en `PROJECT.md`; las reglas de trabajo, en
+`ENGINEERING_RULES.md`.
 
 ## North star de Broker OS: prototipo v25
 
@@ -53,35 +51,22 @@ dejó la grabación del video quedan como entrada para ese desarrollo.
 
 ### Plan hacia el Broker OS real
 
-El paso del prototipo al sistema real está ordenado en cinco etapas y trece cortes
-(C1 a C13). En este repositorio la primera parte del backlog son las tareas
-`T-0033` a `T-0037`, y en Linear los issues EMI-46 a EMI-61, relacionados con EMI-45.
-
-| Tarea | Qué hace |
-|---|---|
-| `TASKS/T-0033-versionar-north-star-v25.md` | Versiona la referencia de la v25 en `docs/north-star/`: decisiones, contratos CSV y MCP, implementado frente a simulado, plan por cortes |
-| `TASKS/T-0034-decisiones-etapa-1-broker-os.md` | Registra las decisiones del owner que habilitan la etapa 1 |
-| `TASKS/T-0035-identidad-permisos-y-auditoria.md` | Identidad, permisos por rol y auditoría unificados en los tres contextos (C1) |
-| `TASKS/T-0036-empresa-y-organizacion-evaluada.md` | Organización evaluada de Risk OS y su correspondencia con la empresa (C2) |
-| `TASKS/T-0037-datos-vivos-y-planes.md` | Datos de clientes y pólizas al día y salida de los planes gratuitos (C3) |
-
-Horizonte: primero identidad y permisos, Risk OS aceptado, importador CSV y
-relevamiento; después brechas de cobertura, comparación de pólizas e informe anual;
-más adelante el portal de empresas con cuentas reales; y a futuro el servidor MCP y la
-integración con compañías.
+Desde el 13/11/2026 el rumbo es más simple (`PROJECT.md`): un solo Broker OS con una
+aplicación y una base, la sección Riesgos de cada empresa, un servidor MCP y un agente de
+riesgos que guarda su trabajo en Broker OS, y después el portal de empresas. Las tareas
+vigentes son `T-0059` en adelante.
 
 ## Por dónde empezar
 
-1. `PROJECT.md` — qué es esto, en qué fase estamos, dónde está cada cosa.
-2. `AGENTS.md` — contrato operativo para cualquier modelo o persona que trabaje acá.
-3. `DOMAIN.md` — lenguaje, identidades e invariantes canónicas de Broker OS.
-4. `docs/history/SOURCES.md` — procedencia del baseline y fuentes todavía faltantes.
+1. `PROJECT.md` — qué es esto, cómo está armado y el plan.
+2. `ENGINEERING_RULES.md` — las reglas de trabajo.
+3. `AGENTS.md` — lo que lee cualquier modelo o persona antes de trabajar acá.
 
 ## Comandos
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm check     # valida decisions.yaml y las tareas de TASKS/
+pnpm check     # tipos, lint y tests
 ```
 
 La versión de pnpm está fijada en `package.json`; el lockfile conserva la versión del
