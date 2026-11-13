@@ -133,7 +133,7 @@ describe('login por invitación (D-0072, D-0077)', () => {
 })
 
 describe('cada request: principal en la base (D-0022)', () => {
-  it('el Operador ve sólo sus clientes; la baja corta el acceso en la transacción siguiente', async () => {
+  it('el Operador ve todos los clientes, asignados o no; la baja corta el acceso en la transacción siguiente', async () => {
     const r = await descartable(async (tx) => {
       const admin = await administrador(tx)
       const [e1] = await tx<{ id: string }[]>`insert into party (kind) values ('ORGANIZATION') returning id`
@@ -145,15 +145,15 @@ describe('cada request: principal en la base (D-0022)', () => {
 
       const visto = await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), async (dentro, principal) => ({
         principal,
-        parties: (await dentro<{ id: string }[]>`select id from party where id in (${e1.id}, ${e2.id})`).map((f) => f.id),
+        parties: (await dentro<{ id: string }[]>`select id from party where id in (${e1.id}, ${e2.id})`).map((f) => f.id).sort(),
       }))
 
       ok(await darDeBaja(tx, { actor: admin, usuarioId: op.usuarioId }))
       const despues = await conPrincipal(tx, identidad('sub-op', 'op@sintetico.test'), () => Promise.resolve('corrió'))
       const sinCredencial = await conPrincipal(tx, identidad('sub-nadie', 'n@sintetico.test'), () => Promise.resolve('corrió'))
-      return { e1: e1.id, opId: op.usuarioId, visto, despues, sinCredencial }
+      return { ambas: [e1.id, e2.id].sort(), opId: op.usuarioId, visto, despues, sinCredencial }
     })
-    assert.deepEqual(r.visto, { ok: true, valor: { principal: { usuarioId: r.opId, rol: 'OPERADOR' }, parties: [r.e1] } })
+    assert.deepEqual(r.visto, { ok: true, valor: { principal: { usuarioId: r.opId, rol: 'OPERADOR' }, parties: r.ambas } })
     assert.deepEqual(r.despues, { ok: false, motivo: 'SIN_ACCESO' })
     assert.deepEqual(r.sinCredencial, { ok: false, motivo: 'SIN_CREDENCIAL' })
   })

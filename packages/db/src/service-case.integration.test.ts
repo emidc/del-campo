@@ -202,7 +202,7 @@ describe('gestiones manuales (0013)', () => {
     })
   })
 
-  it('cada Operador ve sólo las gestiones de sus clientes; el Administrador ve todas', async () => {
+  it('todo el equipo ve y trabaja las gestiones de cualquier cliente (0020)', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, m.op)
@@ -213,15 +213,12 @@ describe('gestiones manuales (0013)', () => {
       const ajena = await createServiceCase(tx, {
         kind: 'COTIZACION', title: 'Cotizar flota', partyId: m.otroCliente, policyId: null, dueDate: null, note: null,
       })
-      assert.deepEqual((await listServiceCases(tx)).map((g) => g.id), [ajena])
-      assert.equal(await getServiceCase(tx, mia), null)
+      assert.equal((await listServiceCases(tx)).length, 2)
+      assert.notEqual(await getServiceCase(tx, mia), null)
 
       await como(tx, m.op)
-      assert.deepEqual((await listServiceCases(tx)).map((g) => g.id), [mia])
-      // Ver el responsable de una gestión ajena tampoco es posible: la gestión no se ve.
-      await tx`savepoint s1`
-      await assert.rejects(addServiceCaseNote(tx, ajena, 'intrusión'), /row-level security/)
-      await tx`rollback to savepoint s1`
+      assert.equal((await listServiceCases(tx)).length, 2)
+      await addServiceCaseNote(tx, ajena, 'nota de otra persona del equipo')
 
       await como(tx, m.admin)
       assert.equal((await listServiceCases(tx)).length, 2)
@@ -229,27 +226,6 @@ describe('gestiones manuales (0013)', () => {
       assert.deepEqual((await listServiceCases(tx, { onlyMine: true })).map((g) => g.id), [])
       await takeServiceCase(tx, mia)
       assert.deepEqual((await listServiceCases(tx, { onlyMine: true })).map((g) => g.id), [mia])
-    })
-  })
-
-  it('un Operador no crea gestiones de un cliente ajeno ni con una póliza ajena', async () => {
-    await descartable(async (tx) => {
-      const m = await sembrar(tx)
-      await como(tx, m.op)
-      await tx`savepoint s1`
-      await assert.rejects(
-        createServiceCase(tx, {
-          kind: 'OTRO', title: 'x', partyId: m.otroCliente, policyId: null, dueDate: null, note: null,
-        }),
-        /row-level security/,
-      )
-      await tx`rollback to savepoint s1`
-      await assert.rejects(
-        createServiceCase(tx, {
-          kind: 'OTRO', title: 'x', partyId: m.cliente, policyId: m.polizaAjena, dueDate: null, note: null,
-        }),
-        /row-level security/,
-      )
     })
   })
 
@@ -481,7 +457,7 @@ describe('gestiones manuales (0013)', () => {
     })
   })
 
-  it('sólo una cotización tiene propuestas, y quien no ve al cliente no las ve', async () => {
+  it('sólo una cotización tiene propuestas, y quien no es del equipo no las ve', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, m.op)
@@ -499,7 +475,7 @@ describe('gestiones manuales (0013)', () => {
         kind: 'COTIZACION', title: 'Hogar', partyId: m.cliente, policyId: null, dueDate: null, note: null,
       })
       await requestQuoteOption(tx, id, compania.id)
-      await como(tx, m.op2)
+      await como(tx, m.revisor)
       assert.equal(await getServiceCase(tx, id), null)
       assert.equal((await tx`select id from service_case_quote_option where service_case_id = ${id}`).length, 0)
     })
