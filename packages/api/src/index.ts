@@ -173,3 +173,6 @@ export type { ClaimContact, ClaimContactRole, NewClaimContact } from './gestione
 // C4-03b: los riesgos de una empresa, leídos de Risk OS con el token entre contextos (D-0071).
 export { leerCuerpo, riesgosDeEmpresa } from './riesgos/cliente.ts'
 export type { DepsRiesgos, ResultadoRiesgos, RiesgoEnFicha, RiesgosVinculados } from './riesgos/cliente.ts'
+
+// T-0062: servidor MCP y token personal.
+export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './mcp/http.ts'
