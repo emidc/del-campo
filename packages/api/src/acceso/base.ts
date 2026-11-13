@@ -62,7 +62,7 @@ const estadoDe = (status: string): EstadoUsuario => {
 
 // ── Auditoría ─────────────────────────────────────────────────────────────────
 
-export type Origen = 'app' | 'cli'
+export type Origen = 'app' | 'cli' | 'mcp'
 
 /**
  * Un evento estructurado y mínimo: quién, qué, sobre qué y con qué resultado. Sin
