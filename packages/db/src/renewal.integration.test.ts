@@ -142,13 +142,16 @@ const ventana = async (tx: postgres.TransactionSql): Promise<{ from: string; to:
 }
 
 describe('renovaciones (C6-02b)', () => {
-  it('un Operador ve las renovaciones de sus clientes en la ventana, con su estado', async () => {
+  it('las renovaciones de un cliente en la ventana, con su estado', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, m.op)
       const v = await ventana(tx)
 
-      const antes = await listRenewals(tx, v)
+      // SINT-R5 es de otro cliente: desde 0020 también se ve, y acá no se mira.
+      const propias = async (filtro: Parameters<typeof listRenewals>[1]) =>
+        (await listRenewals(tx, filtro)).filter((r) => r.policyNumber !== 'SINT-R5')
+      const antes = await propias(v)
       assert.deepEqual(
         antes.map((r) => [r.policyNumber, r.renewalMode, r.state]),
         [
@@ -163,7 +166,7 @@ describe('renovaciones (C6-02b)', () => {
       await createServiceCase(tx, {
         kind: 'RENOVACION', title: 'Renovación SINT-R1', partyId: m.cliente, policyId: m.manual, dueDate: null, note: null,
       })
-      const despues = await listRenewals(tx, { ...v, mode: 'MANUAL', state: 'CON_GESTION' })
+      const despues = await propias({ ...v, mode: 'MANUAL', state: 'CON_GESTION' })
       assert.equal(despues.length, 1)
       const [conGestion] = despues
       assert.ok(conGestion)
@@ -171,14 +174,14 @@ describe('renovaciones (C6-02b)', () => {
       assert.notEqual(conGestion.caseId, null)
       assert.equal(conGestion.caseStatus, 'ABIERTA')
 
-      assert.deepEqual((await listRenewals(tx, { ...v, state: 'PENDIENTE' })).map((r) => r.policyNumber), ['SINT-R2'])
+      assert.deepEqual((await propias({ ...v, state: 'PENDIENTE' })).map((r) => r.policyNumber), ['SINT-R2'])
     })
   })
 
-  it('el Administrador ve también las de otros clientes', async () => {
+  it('cualquier integrante del equipo ve las de todos los clientes (0020)', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
-      await como(tx, m.admin)
+      await como(tx, m.op)
       const numeros = (await listRenewals(tx, await ventana(tx))).map((r) => r.policyNumber)
       assert.ok(numeros.includes('SINT-R5'))
       assert.ok(!numeros.includes('SINT-R4'))

@@ -296,32 +296,16 @@ describe('filas: quién ve qué (D-0022, D-0027)', () => {
     for (const id of [r.m.polE1, r.m.polE2, r.m.polP3]) assert.ok(r.polizas.includes(id))
   })
 
-  it('un Operador ve sus clientes asignados, los miembros vigentes de sus empresas y sus pólizas; nada más', async () => {
-    const r = await descartable(async (tx) => {
-      const m = await sembrar(tx)
-      await como(tx, 'broker_app', m.op)
-      return { m, partes: await idsVisibles(tx, 'party'), polizas: await idsVisibles(tx, 'policy') }
-    })
-    assert.deepEqual(r.partes, ordenados(r.m.e1, r.m.p1, r.m.p3))
-    assert.deepEqual(r.polizas, ordenados(r.m.polE1, r.m.polP3))
-  })
-
-  it('un Operador sin asignación no ve ningún cliente: no hay acceso universal', async () => {
-    const r = await descartable(async (tx) => {
-      const m = await sembrar(tx)
-      await como(tx, 'broker_app', m.opSinAsignar)
-      return { partes: await idsVisibles(tx, 'party'), polizas: await idsVisibles(tx, 'policy') }
-    })
-    assert.deepEqual(r, { partes: [], polizas: [] })
-  })
-
-  it('una asignación vencida no da acceso: el intervalo es [desde, hasta)', async () => {
-    const r = await descartable(async (tx) => {
-      const m = await sembrar(tx)
-      await como(tx, 'broker_app', m.opVencido)
-      return idsVisibles(tx, 'party')
-    })
-    assert.deepEqual(r, [])
+  it('cualquier integrante del equipo ve todos los clientes y todas las pólizas, con asignación, sin ella o vencida (0020)', async () => {
+    for (const quien of ['op', 'opSinAsignar', 'opVencido'] as const) {
+      const r = await descartable(async (tx) => {
+        const m = await sembrar(tx)
+        await como(tx, 'broker_app', m[quien])
+        return { m, partes: await idsVisibles(tx, 'party'), polizas: await idsVisibles(tx, 'policy') }
+      })
+      for (const id of [r.m.e1, r.m.e2, r.m.p1, r.m.px, r.m.p3]) assert.ok(r.partes.includes(id), quien)
+      assert.deepEqual(r.polizas, ordenados(r.m.polE1, r.m.polE2, r.m.polP3), quien)
+    }
   })
 
   it('el Revisor profesional no ve clientes ni pólizas por defecto, aunque tenga una asignación', async () => {
@@ -360,7 +344,8 @@ describe('filas: quién ve qué (D-0022, D-0027)', () => {
       const despues = (await idsVisibles(tx, 'party')).length
       return { antes, despues }
     })
-    assert.deepEqual(r, { antes: 3, despues: 0 })
+    assert.ok(r.antes >= 6)
+    assert.equal(r.despues, 0)
   })
 
   it('sin principal declarado no se ve nada (autenticación real, condición 1)', async () => {
@@ -391,16 +376,20 @@ describe('filas: quién ve qué (D-0022, D-0027)', () => {
     assert.equal(fuera, null)
   })
 
-  it('cada persona ve sólo su app_user y sus asignaciones; un Administrador ve todo', async () => {
+  it('el equipo ve la lista de usuarios y las asignaciones; quien no es del equipo, nada (0020)', async () => {
     const r = await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, 'broker_app', m.op)
       const propios = (await tx<Id[]>`select id from app_user`).map((f) => f.id)
       const asignaciones = (await tx`select 1 from client_assignment`).length
-      return { m, propios, asignaciones }
+      await tx`reset role`
+      await como(tx, 'broker_app', m.revisor)
+      const revisor = (await tx<Id[]>`select id from app_user`).map((f) => f.id)
+      return { m, propios, asignaciones, revisor }
     })
-    assert.deepEqual(r.propios, [r.m.op])
-    assert.equal(r.asignaciones, 2)
+    assert.equal(r.propios.length, 8)
+    assert.equal(r.asignaciones, 6)
+    assert.deepEqual(r.revisor, [r.m.revisor])
   })
 })
 

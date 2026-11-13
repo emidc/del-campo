@@ -132,7 +132,7 @@ const motivo = async (promesa: Promise<unknown>): Promise<string> => {
 }
 
 describe('conDatos: las consultas de VS01 corren restringidas', () => {
-  it('la consulta corre como broker_app, y el Operador de E1 no ve la póliza personal de su empleado', async () => {
+  it('la consulta corre como broker_app, y el Operador ve también la póliza de un cliente que no tiene asignado', async () => {
     const hoy = new Date().toISOString().slice(0, 10)
     const r = await descartable(async (tx) => {
       const m = await sembrar(tx)
@@ -144,7 +144,7 @@ describe('conDatos: las consultas de VS01 corren restringidas', () => {
     })
     assert.equal(r.rol, 'broker_app')
     assert.notEqual(r.deEmpresa, null)
-    assert.equal(r.personal, null)
+    assert.notEqual(r.personal, null)
   })
 
   it('la referencia documental y el lote se leen igual que con la conexión dueña: sin 42501 por falta de grants (0010)', async () => {

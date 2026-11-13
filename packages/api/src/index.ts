@@ -176,3 +176,7 @@ export type { DepsRiesgos, ResultadoRiesgos, RiesgoEnFicha, RiesgosVinculados } 
 
 // T-0062: servidor MCP y token personal.
 export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './mcp/http.ts'
+
+// T-0060: usuarios del equipo desde la app.
+export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
+export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'

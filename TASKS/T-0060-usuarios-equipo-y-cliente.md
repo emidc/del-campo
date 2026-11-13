@@ -1,7 +1,7 @@
 ---
 id: T-0060
 title: Simplificar los usuarios a equipo y cliente
-status: READY
+status: ACTIVE
 created: 2026-11-13
 linear:
 ---
@@ -23,3 +23,8 @@ de usuario el sistema es más fácil de entender y de mantener, y el portal de e
 ## Fuera de alcance
 
 Las pantallas del portal (T-0064). Aplicarlo en producción, que requiere la aprobación de Emiliano.
+
+## Avance
+
+- 2026-11-13: primera parte. Desde la migración `0020`, cualquier integrante del equipo ve y edita todos los clientes; las asignaciones por cliente dejan de limitar. Pantalla "Equipo" para invitar y dar de baja.
+- Falta: el usuario cliente asociado a una empresa, que se hace junto con el portal (`T-0064`) para probarlo contra pantallas reales; y renombrar los roles en la base (hoy Administrador y Operador son los dos "equipo"; Administrador sólo agrega poder invitar y dar de baja).

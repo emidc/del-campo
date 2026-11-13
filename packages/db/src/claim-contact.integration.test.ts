@@ -150,7 +150,7 @@ describe('interlocutores del siniestro (0018)', () => {
     })
   })
 
-  it('sólo un siniestro tiene interlocutores, y el responsable tiene que ver al cliente', async () => {
+  it('sólo un siniestro tiene interlocutores, y el responsable es alguien del equipo', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, m.op)
@@ -167,19 +167,14 @@ describe('interlocutores del siniestro (0018)', () => {
       const siniestro = await createServiceCase(tx, {
         kind: 'SINIESTRO', title: 'Choque', partyId: m.cliente, policyId: null, dueDate: null, note: null,
       })
-      await tx`savepoint s2`
-      await assert.rejects(
-        addClaimContact(tx, siniestro, { role: 'PERITO', name: 'Perito', contact: null, assignedUserId: m.op2, pending: null }),
-        /row-level security/,
-      )
-      await tx`rollback to savepoint s2`
       const perito = await addClaimContact(tx, siniestro, {
-        role: 'PERITO', name: 'Perito', contact: null, assignedUserId: null, pending: null,
+        role: 'PERITO', name: 'Perito', contact: null, assignedUserId: m.op2, pending: null,
       })
 
+      // Desde 0020 cualquier integrante del equipo lo ve y lo trabaja.
       await como(tx, m.op2)
-      assert.deepEqual(await listClaimContacts(tx, siniestro), [])
-      await assert.rejects(recordClaimContact(tx, perito, null, undefined), /fuera de alcance/)
+      assert.deepEqual((await listClaimContacts(tx, siniestro)).map((c) => c.id), [perito])
+      await recordClaimContact(tx, perito, null, undefined)
     })
   })
 })

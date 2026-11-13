@@ -127,7 +127,7 @@ describe('tareas (0017)', () => {
       assert.deepEqual((await listTasks(tx, { status: 'TRABADA' })).map((t) => t.id), [id])
 
       await como(tx, m.admin)
-      assert.deepEqual((await listTaskAssignees(tx, m.cliente)).map((i) => i.email), ['admin@sintetico.test', 'op@sintetico.test'])
+      assert.deepEqual((await listTaskAssignees(tx, m.cliente)).map((i) => i.email), ['admin@sintetico.test', 'op2@sintetico.test', 'op@sintetico.test'])
       await assignTask(tx, id, m.admin, 'Lo pido yo a la empresa')
       await changeTaskStatus(tx, id, 'EN_CURSO', null)
       await commentTask(tx, id, 'Pedido por correo')
@@ -161,7 +161,7 @@ describe('tareas (0017)', () => {
     })
   })
 
-  it('quien no ve al cliente no ve la tarea ni puede recibirla', async () => {
+  it('cualquier integrante del equipo ve la tarea y puede recibirla (0020)', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       await como(tx, m.op)
@@ -169,22 +169,15 @@ describe('tareas (0017)', () => {
         title: 'Seguimiento', partyId: m.cliente, policyId: null, serviceCaseId: null,
         dueDate: null, assignedUserId: null, comment: null,
       })
-      await tx`savepoint s1`
-      await assert.rejects(assignTask(tx, id, m.op2, null), /row-level security/)
-      await tx`rollback to savepoint s1`
-      await tx`savepoint s2`
-      await assert.rejects(
-        createTask(tx, {
-          title: 'Ajena', partyId: m.otroCliente, policyId: null, serviceCaseId: null,
-          dueDate: null, assignedUserId: null, comment: null,
-        }),
-        /row-level security/,
-      )
-      await tx`rollback to savepoint s2`
+      await assignTask(tx, id, m.op2, null)
+      await createTask(tx, {
+        title: 'De otro cliente', partyId: m.otroCliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
 
       await como(tx, m.op2)
-      assert.equal(await getTask(tx, id), null)
-      assert.deepEqual(await listTaskAssignees(tx, m.cliente), [])
+      assert.equal((await getTask(tx, id))?.assignedToMe, true)
+      assert.equal((await listTaskAssignees(tx, m.cliente)).length, 3)
     })
   })
 
