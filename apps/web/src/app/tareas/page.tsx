@@ -4,6 +4,7 @@ import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -91,7 +92,7 @@ export default async function TareasPage({
                   <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
                   <td>{t.assignedToMe ? 'vos' : (t.assignedEmail ?? '—')}</td>
                   <td className={t.dueDate !== null && t.dueDate < hoy && t.status !== 'HECHA' ? 'pendiente' : undefined}>
-                    {t.dueDate ?? '—'}
+                    {fecha(t.dueDate)}
                   </td>
                 </tr>
               ))}

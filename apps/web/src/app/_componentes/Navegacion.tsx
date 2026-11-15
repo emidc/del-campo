@@ -7,6 +7,12 @@ import type { ReactNode } from 'react'
 /** Trazos de 24×24 para el menú. Son decorativos: el nombre lo da el texto del enlace. */
 const ICONOS: Record<string, ReactNode> = {
   inicio: <path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" />,
+  clientes: (
+    <>
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5M16 6a3 3 0 0 1 0 5.5M17.5 14.8c1.6.6 2.6 2 3 4.2" />
+    </>
+  ),
   buscar: (
     <>
       <circle cx="11" cy="11" r="6.5" />
@@ -33,8 +39,8 @@ const ICONOS: Record<string, ReactNode> = {
   ),
   equipo: (
     <>
-      <circle cx="9" cy="8.5" r="3" />
-      <path d="M3.5 19c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5M16 6a3 3 0 0 1 0 5.5M17.5 14.8c1.6.6 2.6 2 3 4.2" />
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5.5 19.5c.8-3.4 3.3-5 6.5-5s5.7 1.6 6.5 5" />
     </>
   ),
   conectar: (
@@ -47,7 +53,8 @@ const ICONOS: Record<string, ReactNode> = {
 
 const SECCIONES = [
   { id: 'inicio', texto: 'Inicio', href: '/inicio', rutas: ['/inicio'] },
-  { id: 'buscar', texto: 'Clientes y pólizas', href: '/buscar', rutas: ['/buscar', '/parte', '/poliza'] },
+  { id: 'clientes', texto: 'Clientes', href: '/clientes', rutas: ['/clientes', '/parte'] },
+  { id: 'buscar', texto: 'Pólizas', href: '/buscar', rutas: ['/buscar', '/poliza'] },
   { id: 'gestiones', texto: 'Gestiones', href: '/gestiones', rutas: ['/gestiones'] },
   { id: 'tareas', texto: 'Tareas', href: '/tareas', rutas: ['/tareas'] },
   { id: 'renovaciones', texto: 'Renovaciones', href: '/renovaciones', rutas: ['/renovaciones'] },

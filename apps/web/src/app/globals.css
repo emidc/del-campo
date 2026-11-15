@@ -156,16 +156,25 @@ h3 {
   background: var(--panel-2);
   border: 1px solid var(--borde-control);
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 0 14px;
   min-height: 40px;
   color: var(--tinta-suave);
-  text-decoration: none;
 }
 
-.superior__buscar span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.superior__buscar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--tinta);
+  padding: 0;
+}
+
+.superior__buscar:focus-within {
+  outline: 3px solid var(--marca-profunda);
+  outline-offset: 2px;
 }
 
 .superior svg,
@@ -878,4 +887,26 @@ button.esperando {
   button.esperando {
     animation: none;
   }
+}
+
+/* ── Filtro de una lista ───────────────────────────────────────────────────── */
+
+.filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.filtro input[type='search'] {
+  flex: 1 1 16rem;
+  max-width: 26rem;
+  min-height: 40px;
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-chico);
+  padding: 8px 12px;
 }

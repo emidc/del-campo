@@ -16,15 +16,25 @@ export function Logo() {
   )
 }
 
+/** El buscador de la barra: lleva a Clientes con el texto como filtro. Funciona sin JavaScript. */
 export function AccesoABuscar() {
   return (
-    <Link className="superior__buscar" href="/buscar">
+    <form className="superior__buscar" method="get" action="/clientes" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="11" cy="11" r="6.5" />
         <path d="M16 16l4.5 4.5" />
       </svg>
-      <span>Buscar clientes, empresas, pólizas…</span>
-    </Link>
+      <label className="sr" htmlFor="buscar-clientes">
+        Buscar clientes
+      </label>
+      <input
+        id="buscar-clientes"
+        name="q"
+        type="search"
+        placeholder="Buscar clientes por nombre, CUIT o DNI…"
+        autoComplete="off"
+      />
+    </form>
   )
 }
 

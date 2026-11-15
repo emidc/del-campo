@@ -4,6 +4,7 @@ import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -111,7 +112,7 @@ export default async function GestionesPage({
                   </td>
                   <td>{g.assignedToMe ? 'vos' : (g.assignedEmail ?? '—')}</td>
                   <td className={g.dueDate !== null && g.dueDate < hoy && g.status !== 'CERRADA' ? 'pendiente' : undefined}>
-                    {g.dueDate ?? '—'}
+                    {fecha(g.dueDate)}
                   </td>
                 </tr>
               ))}

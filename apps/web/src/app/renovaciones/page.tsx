@@ -12,6 +12,7 @@ import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -143,7 +144,7 @@ export default async function RenovacionesPage({
               {lista.map((r) => (
                 <tr key={r.policyId}>
                   <td className={r.termEndDate < hoy && r.state === 'PENDIENTE' ? 'pendiente' : undefined}>
-                    {r.termEndDate}
+                    {fecha(r.termEndDate)}
                   </td>
                   <td>
                     <Link href={`/poliza/${r.policyId}`}>{r.policyNumber}</Link> · {r.insurerName}

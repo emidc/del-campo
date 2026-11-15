@@ -1,7 +1,9 @@
 export { archivosDeMigracion, pendientes, parsearNombre } from './migraciones.ts'
 export type { Migracion } from './migraciones.ts'
-export { getPartyOverview, getPolicyDetail, searchPolicies } from './policy-query.ts'
+export { getPartyOverview, getPolicyDetail, listClients, searchPolicies } from './policy-query.ts'
 export type {
+  ClientList,
+  ClientSummary,
   CurrentPolicyVersion,
   DocumentLinkSummary,
   EndorsementSummary,

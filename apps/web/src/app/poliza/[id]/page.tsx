@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -29,7 +30,7 @@ export default async function PolizaPage({
       <Cabecera lote={lote} email={principal.email} />
 
       <nav className="migas" aria-label="Migas de pan">
-        <Link href="/buscar">Clientes y pólizas</Link>
+        <Link href="/buscar">Pólizas</Link>
         <span aria-hidden="true">›</span>
         <span>Póliza {detail.policyNumber}</span>
       </nav>
@@ -86,7 +87,7 @@ export default async function PolizaPage({
               <tr key={entrada.id}>
                 <td>{entrada.versionNumber}</td>
                 <td>
-                  {entrada.termStartDate} → {entrada.termEndDate}
+                  {fecha(entrada.termStartDate)} → {fecha(entrada.termEndDate)}
                 </td>
                 <td>{entrada.holder.displayName}</td>
                 <td>{guion(entrada.status)}</td>

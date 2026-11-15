@@ -7,6 +7,8 @@
 // D-0027 (T-0035).
 
 import type {
+  ClientList,
+  ClientSummary,
   PartyOverview,
   PolicyCandidate,
   PolicyDetail,
@@ -19,6 +21,7 @@ import {
   getDocumentAccessForPolicies,
   getPartyOverview,
   getPolicyDetail,
+  listClients,
   searchPolicies,
 } from '@del-campo/db'
 
@@ -27,7 +30,7 @@ import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
-export type { PolicyCandidate, PolicyDetail, PolicyDocumentAccess, PolicySearchCriteria }
+export type { ClientList, ClientSummary, PolicyCandidate, PolicyDetail, PolicyDocumentAccess, PolicySearchCriteria }
 
 /** Conteos documentales sobre el conjunto consultado, con el denominador a la vista (§2). */
 export interface DocumentTally {
@@ -111,3 +114,13 @@ export const party = async (
   membershipAt: string,
 ): Promise<PartyOverview | null> =>
   conDatos(sql(), principal, (executor) => getPartyOverview(executor, partyId, asOf, membershipAt))
+
+/** Tope de filas de la lista de clientes: por encima se pide afinar el filtro. */
+export const TOPE_DE_CLIENTES = 100
+
+/** La lista de clientes de un tipo, filtrada por nombre, CUIT o DNI. */
+export const clientes = async (
+  principal: Principal,
+  tipo: 'PERSON' | 'ORGANIZATION',
+  texto: string,
+): Promise<ClientList> => conDatos(sql(), principal, (executor) => listClients(executor, tipo, texto, TOPE_DE_CLIENTES))

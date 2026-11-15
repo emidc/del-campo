@@ -14,6 +14,7 @@ import { Suspense } from 'react'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -65,7 +66,7 @@ export default async function PartePage({
       <Cabecera lote={lote} email={principal.email} />
 
       <nav className="migas" aria-label="Migas de pan">
-        <Link href="/buscar">Clientes y pólizas</Link>
+        <Link href={esEmpresa ? '/clientes' : '/clientes?tipo=personas'}>Clientes</Link>
         <span aria-hidden="true">›</span>
         <span>{vista.displayName}</span>
       </nav>
@@ -205,7 +206,7 @@ export default async function PartePage({
                       <td>
                         {candidato.currentVersion === null
                           ? 'Sin versión vigente a la fecha consultada'
-                          : `${candidato.currentVersion.termStartDate} → ${candidato.currentVersion.termEndDate}`}
+                          : `${fecha(candidato.currentVersion.termStartDate)} → ${fecha(candidato.currentVersion.termEndDate)}`}
                       </td>
                     </tr>
                   ))}
@@ -253,7 +254,7 @@ export default async function PartePage({
                       <td>{ESTADOS_DE_GESTION[g.status]}</td>
                       <td>{g.assignedToMe ? 'vos' : (g.assignedEmail ?? '—')}</td>
                       <td className={g.dueDate !== null && g.dueDate < asOf && g.status !== 'CERRADA' ? 'pendiente' : undefined}>
-                        {g.dueDate ?? '—'}
+                        {fecha(g.dueDate)}
                       </td>
                     </tr>
                   ))}
@@ -287,7 +288,7 @@ export default async function PartePage({
                       </td>
                       <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
                       <td className={t.dueDate !== null && t.dueDate < asOf && t.status !== 'HECHA' ? 'pendiente' : undefined}>
-                        {t.dueDate ?? '—'}
+                        {fecha(t.dueDate)}
                       </td>
                     </tr>
                   ))}
