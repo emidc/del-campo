@@ -910,3 +910,20 @@ button.esperando {
   border-radius: var(--radio-chico);
   padding: 8px 12px;
 }
+
+/* ── Inicio: dos tarjetas parejas ──────────────────────────────────────────── */
+
+.grid-2--par {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+@media (max-width: 860px) {
+  .grid-2--par {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lista .pendiente {
+  font-size: inherit;
+}
