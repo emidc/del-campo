@@ -793,3 +793,89 @@ th {
   border-color: var(--marca);
   box-shadow: inset 3px 0 0 var(--marca);
 }
+
+/* ── Espera: esqueleto de pantalla y botones enviando ──────────────────────── */
+
+@keyframes brillo {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.brillo {
+  display: block;
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(100deg, #e3edf0 30%, #f6fafb 50%, #e3edf0 70%);
+  background-size: 200% 100%;
+  animation: brillo 1.4s ease-in-out infinite;
+}
+
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.esqueleto__tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.brillo--antetitulo {
+  width: 120px;
+  height: 10px;
+}
+
+.brillo--titulo {
+  width: min(380px, 70%);
+  height: 34px;
+}
+
+.brillo--linea {
+  width: min(520px, 90%);
+}
+
+.brillo--subtitulo {
+  width: 160px;
+  height: 18px;
+}
+
+.brillo--corta {
+  width: 60%;
+}
+
+button.esperando {
+  cursor: progress;
+  color: var(--tinta-suave);
+  border-color: var(--borde);
+  background: linear-gradient(100deg, #cfdde2 30%, #eef4f6 50%, #cfdde2 70%);
+  background-size: 200% 100%;
+  animation: brillo 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brillo,
+  button.esperando {
+    animation: none;
+  }
+}

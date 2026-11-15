@@ -21,6 +21,7 @@ import {
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import {
   agregarRequisitoAEtapa,
@@ -164,9 +165,9 @@ export default async function GestionPage({
                           <input type="hidden" name="requisito" value={r.id} />
                           <input type="hidden" name="cumplido" value={r.doneAt === null ? '1' : '0'} />
                           {r.doneAt === null ? <span className="pendiente">Falta</span> : <span>✓</span>} {r.name}{' '}
-                          <button type="submit" className="boton--secundario boton--chico">
+                          <BotonEnviar className="boton--secundario boton--chico">
                             {r.doneAt === null ? 'Marcar cumplido' : 'Desmarcar'}
-                          </button>
+                          </BotonEnviar>
                         </form>
                         {r.doneAt === null ? null : (
                           <span className="meta">
@@ -187,9 +188,9 @@ export default async function GestionPage({
                       <input id={`req-${etapa}`} name="nombre" maxLength={200} required />
                     </div>
                     <div className="acciones">
-                      <button type="submit" className="boton--secundario">
+                      <BotonEnviar className="boton--secundario">
                         Agregar
-                      </button>
+                      </BotonEnviar>
                     </div>
                   </form>
                 ) : null}
@@ -201,16 +202,16 @@ export default async function GestionPage({
               <form action={moverEtapa}>
                 <input type="hidden" name="id" value={g.id} />
                 <input type="hidden" name="sentido" value="BACK" />
-                <button type="submit" className="boton--secundario">
+                <BotonEnviar className="boton--secundario">
                   ← Volver una etapa
-                </button>
+                </BotonEnviar>
               </form>
             )}
             {g.claimStage === 'CIERRE' ? null : (
               <form action={moverEtapa}>
                 <input type="hidden" name="id" value={g.id} />
                 <input type="hidden" name="sentido" value="NEXT" />
-                <button type="submit">Avanzar a la siguiente etapa →</button>
+                <BotonEnviar>Avanzar a la siguiente etapa →</BotonEnviar>
               </form>
             )}
           </div>
@@ -264,7 +265,7 @@ export default async function GestionPage({
                   <input id={`contacto-${k.id}`} name="comentario" maxLength={500} />
                 </div>
                 <div className="acciones">
-                  <button type="submit">Registrar contacto de hoy</button>
+                  <BotonEnviar>Registrar contacto de hoy</BotonEnviar>
                 </div>
               </form>
               <form action={cambiarDeInterlocutor} className="buscador">
@@ -286,9 +287,9 @@ export default async function GestionPage({
                   </select>
                 </div>
                 <div className="acciones">
-                  <button type="submit" className="boton--secundario">
+                  <BotonEnviar className="boton--secundario">
                     Guardar
-                  </button>
+                  </BotonEnviar>
                 </div>
               </form>
             </details>
@@ -329,7 +330,7 @@ export default async function GestionPage({
               <input id="interlocutor-pendiente" name="pendiente" maxLength={300} />
             </div>
             <div className="acciones">
-              <button type="submit">Sumar interlocutor</button>
+              <BotonEnviar>Sumar interlocutor</BotonEnviar>
             </div>
           </form>
         </>
@@ -393,13 +394,13 @@ export default async function GestionPage({
                   <input id={`nota-${o.id}`} name="nota" maxLength={500} defaultValue={o.note ?? ''} />
                 </div>
                 <div className="acciones">
-                  <button type="submit" name="respuesta" value="COTIZO" className="boton--secundario">
+                  <BotonEnviar name="respuesta" value="COTIZO" className="boton--secundario">
                     Guardar cotización
-                  </button>
+                  </BotonEnviar>
                   {o.status === 'PEDIDA' ? (
-                    <button type="submit" name="respuesta" value="NO_COTIZA" className="boton--secundario">
+                    <BotonEnviar name="respuesta" value="NO_COTIZA" className="boton--secundario">
                       No cotiza
-                    </button>
+                    </BotonEnviar>
                   ) : null}
                 </div>
               </form>
@@ -408,11 +409,11 @@ export default async function GestionPage({
                   <input type="hidden" name="id" value={g.id} />
                   <input type="hidden" name="propuesta" value={o.id} />
                   {o.status === 'ELEGIDA' ? (
-                    <button type="submit" name="deshacer" value="1" className="boton--secundario">
+                    <BotonEnviar name="deshacer" value="1" className="boton--secundario">
                       Deshacer la elección
-                    </button>
+                    </BotonEnviar>
                   ) : (
-                    <button type="submit">El cliente eligió esta</button>
+                    <BotonEnviar>El cliente eligió esta</BotonEnviar>
                   )}
                 </form>
               ) : null}
@@ -435,7 +436,7 @@ export default async function GestionPage({
                 </select>
               </div>
               <div className="acciones">
-                <button type="submit">Pedir</button>
+                <BotonEnviar>Pedir</BotonEnviar>
               </div>
             </form>
           )}
@@ -476,15 +477,15 @@ export default async function GestionPage({
           </select>
         </div>
         <div className="acciones">
-          <button type="submit">Asignar</button>
+          <BotonEnviar>Asignar</BotonEnviar>
         </div>
       </form>
       {g.assignedToMe ? null : (
         <form action={tomar} style={{ margin: '0.75rem 0' }}>
           <input type="hidden" name="id" value={g.id} />
-          <button type="submit" className="boton--secundario">
+          <BotonEnviar className="boton--secundario">
             Tomarla yo
-          </button>
+          </BotonEnviar>
         </form>
       )}
 
@@ -506,7 +507,7 @@ export default async function GestionPage({
           <input id="comentario" name="comentario" maxLength={2000} />
         </div>
         <div className="acciones">
-          <button type="submit">Guardar estado</button>
+          <BotonEnviar>Guardar estado</BotonEnviar>
         </div>
       </form>
 
@@ -518,7 +519,7 @@ export default async function GestionPage({
           <textarea id="nota" name="nota" rows={3} required />
         </div>
         <div className="acciones">
-          <button type="submit">Agregar nota</button>
+          <BotonEnviar>Agregar nota</BotonEnviar>
         </div>
       </form>
 

@@ -1,6 +1,7 @@
 import { latestBatch, tokenMcpDesde } from '@del-campo/api'
 import { cookies, headers } from 'next/headers'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
@@ -44,11 +45,11 @@ export default async function ConectarPage() {
       </p>
 
       <form action={generar} style={{ display: 'inline' }}>
-        <button type="submit">{desde === null ? 'Generar dirección' : 'Generar una nueva'}</button>
+        <BotonEnviar>{desde === null ? 'Generar dirección' : 'Generar una nueva'}</BotonEnviar>
       </form>
       {desde === null ? null : (
         <form action={revocar} style={{ display: 'inline', marginLeft: '0.5rem' }}>
-          <button type="submit">Desconectar</button>
+          <BotonEnviar>Desconectar</BotonEnviar>
         </form>
       )}
     </main>
