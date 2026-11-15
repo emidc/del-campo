@@ -21,7 +21,13 @@ export default async function LoginPage({
 
   return (
     <main className="login">
-      <h1 style={{ fontSize: '1.1rem' }}>Broker OS · VS01</h1>
+      <div className="logo">
+        <span className="logo__d">D</span>
+        <span className="logo__texto">
+          <b>BROKER OS</b>
+          <span>Del Campo · Gestión de riesgos</span>
+        </span>
+      </div>
       <p>{mensaje}</p>
       <a className="boton" href="/api/auth/google/start">
         Ingresar con Google

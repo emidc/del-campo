@@ -47,7 +47,7 @@ export default async function NuevaTareaPage({
         <Link href="/tareas">← Tareas</Link>
       </p>
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>Nueva tarea</h1>
+      <h1>Nueva tarea</h1>
       <p className="meta">
         Cliente: <Link href={`/parte/${parteId}`}>{vistaParte.displayName}</Link>
         {vistaPoliza === null ? null : (

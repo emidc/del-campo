@@ -33,7 +33,7 @@ export default async function UsuariosPage({
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>Equipo</h1>
+      <h1>Equipo</h1>
       <p className="meta">Todas las personas del equipo ven y editan todo. Entran con su cuenta de Google.</p>
 
       {error === undefined ? null : <p className="estado">{ERRORES[error] ?? 'No se pudo completar.'}</p>}

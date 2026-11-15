@@ -42,7 +42,7 @@ export default async function TareasPage({
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.4rem' }}>Tareas</h1>
+      <h1>Tareas</h1>
       <p className="meta">
         {filtro('Todas las que ves', !mias && !hechas && estado === undefined, '/tareas')}
         {' · '}

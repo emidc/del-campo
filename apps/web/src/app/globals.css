@@ -1,18 +1,31 @@
-/* Estilos propios, sin dependencia de UI: VS01 son cinco pantallas de lectura y una
-   biblioteca de componentes traería su propio ciclo de versiones por nada (R-01, R-02).
-   → DECISIONS/0058-nextjs-en-vercel.md */
+/* Estilos propios, sin biblioteca de UI. La identidad sale del prototipo
+   (`docs/north-star/prototipo`): petróleo de Del Campo, serif sólo en títulos y nombres,
+   barra superior, menú lateral y tarjetas redondeadas. */
 
 :root {
-  --tinta: #16181d;
-  --tinta-suave: #5b6270;
-  --papel: #fbfbfc;
+  --marca: #254760;
+  --marca-profunda: #13294d;
+  --acento-claro: #69a3b8;
+  --acento: #357388;
+  --tinta: #394a52;
+  --tinta-suave: #5f6e74;
+  --papel: #f2f8f9;
   --panel: #ffffff;
-  --borde: #e2e5ea;
-  --acento: #1f5fbf;
+  --panel-2: #f7fafb;
+  --borde: #d6e3e7;
+  --borde-control: #74868d;
   --alerta: #8a5a00;
-  --alerta-fondo: #fdf4e3;
-  --ausente: #6b7280;
-  --ausente-fondo: #f3f4f6;
+  --alerta-fondo: #fff8e6;
+  --alerta-borde: #ecd49a;
+  --ausente: #5f6b75;
+  --ausente-fondo: #f7fafb;
+  --f-display: 'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif;
+  --f-texto: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --radio: 16px;
+  --radio-chico: 10px;
+  --ancho-lateral: 232px;
+  --alto-superior: 60px;
+  color-scheme: light;
 }
 
 * {
@@ -23,58 +36,424 @@ body {
   margin: 0;
   background: var(--papel);
   color: var(--tinta);
-  font: 15px/1.55 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 15px/1.45 var(--f-texto);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--acento);
+  text-underline-offset: 2px;
 }
+
+a:hover {
+  color: var(--marca);
+}
+
+:focus-visible {
+  outline: 3px solid var(--marca-profunda);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--marca-profunda);
+  text-wrap: balance;
+}
+
+h1 {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.35rem;
+}
+
+h2 {
+  font-size: 17px;
+  font-weight: 650;
+  margin: 1.75rem 0 0.6rem;
+}
+
+h3 {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+/* ── Marco: barra superior, menú lateral y contenido ───────────────────────── */
 
 .envoltorio {
-  max-width: 68rem;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
+  --margen: max(24px, calc((100vw - var(--ancho-lateral) - 1180px) / 2));
+  margin-left: var(--ancho-lateral);
+  padding: calc(var(--alto-superior) + 22px) var(--margen) 5rem;
 }
 
-/* ── Cabecera y fecha del lote ─────────────────────────────────────────────── */
-
-.cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+.superior {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 30;
+  height: var(--alto-superior);
+  background: var(--panel);
   border-bottom: 1px solid var(--borde);
-  padding-bottom: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.cabecera h1 {
-  font-size: 1.05rem;
-  margin: 0;
-  letter-spacing: 0.01em;
-}
-
-.cabecera nav {
   display: flex;
-  gap: 1rem;
-  font-size: 0.85rem;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--marca-profunda);
+  flex: none;
+  margin-right: 8px;
+}
+
+.logo__d {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--marca-profunda);
+  display: grid;
+  place-items: center;
+  font-family: var(--f-display);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.logo__texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.logo__texto b {
+  font-family: var(--f-display);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  font-size: 15px;
+}
+
+.logo__texto span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--marca);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.superior__buscar {
+  flex: 1 1 220px;
+  max-width: 460px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--borde-control);
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 40px;
+  color: var(--tinta-suave);
+  text-decoration: none;
+}
+
+.superior__buscar span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.superior svg,
+.lateral svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+.superior__sesion {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.superior__sesion .meta {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lateral {
+  position: fixed;
+  top: var(--alto-superior);
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  width: var(--ancho-lateral);
+  background: var(--panel);
+  border-right: 1px solid var(--borde);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.lateral a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--tinta);
+  text-decoration: none;
+  font-weight: 500;
+  min-height: 40px;
+}
+
+.lateral a svg {
+  color: var(--marca);
+}
+
+.lateral a:hover {
+  background: var(--papel);
+  color: var(--marca-profunda);
+}
+
+.lateral a[aria-current='page'] {
+  background: var(--marca);
+  color: #fff;
+}
+
+.lateral a[aria-current='page'] svg {
+  color: #fff;
+}
+
+.lateral__separado {
+  margin-top: 17px;
+  position: relative;
+}
+
+.lateral__separado::before {
+  content: '';
+  position: absolute;
+  inset: -9px 6px auto;
+  height: 1px;
+  background: var(--borde);
+}
+
+.lateral__pie {
+  margin-top: auto;
+  padding: 10px 12px;
 }
 
 .lote {
-  width: 100%;
-  font-size: 0.8rem;
+  display: block;
+  font-size: 12px;
   color: var(--tinta-suave);
-  background: var(--ausente-fondo);
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  padding: 0.4rem 0.65rem;
 }
 
 .lote--desconocido {
   color: var(--alerta);
-  background: var(--alerta-fondo);
-  border-color: #efd9a8;
+}
+
+@media (max-width: 860px) {
+  .envoltorio {
+    margin-left: 0;
+    padding: calc(var(--alto-superior) + 62px) 16px 4rem;
+  }
+
+  .logo__texto span,
+  .superior__sesion .meta {
+    display: none;
+  }
+
+  .lateral {
+    top: var(--alto-superior);
+    bottom: auto;
+    right: 0;
+    width: auto;
+    flex-direction: row;
+    padding: 6px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--borde);
+    overflow-x: auto;
+  }
+
+  .lateral a {
+    white-space: nowrap;
+  }
+
+  .lateral__separado {
+    margin-top: 0;
+  }
+
+  .lateral__separado::before,
+  .lateral__pie {
+    display: none;
+  }
+}
+
+/* ── Encabezado de pantalla, pestañas y piezas de ficha ────────────────────── */
+
+.migas {
+  font-size: 13px;
+  color: var(--tinta-suave);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 6px;
+}
+
+.migas a {
+  color: var(--tinta-suave);
+}
+
+.antetitulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acento);
+  font-weight: 650;
+  margin: 0 0 6px;
+}
+
+.antetitulo::before {
+  content: '';
+  width: 28px;
+  height: 1.5px;
+  background: var(--acento-claro);
+}
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.encabezado h1 {
+  margin: 0 0 8px;
+}
+
+.chips,
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip {
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid var(--borde-control);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--marca-profunda);
+  background: var(--panel);
+  font-variant-numeric: tabular-nums;
+}
+
+.pestanas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--borde);
+  margin-top: 18px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+.pestanas a {
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--tinta);
+  font-weight: 500;
+  font-size: 16px;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.pestanas a[aria-current='page'] {
+  color: var(--marca-profunda);
+  font-weight: 650;
+  border-bottom-color: var(--marca);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tarjeta > h2:first-child {
+  margin-top: 0;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12.5rem) minmax(0, 1fr);
+  margin: 0;
+}
+
+.kv dt,
+.kv dd {
+  margin: 0;
+  padding: 10px 4px;
+  border-top: 1px solid var(--borde);
+}
+
+.kv dt {
+  color: var(--tinta-suave);
+  font-size: 14px;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista li {
+  padding: 10px 4px;
+  border-top: 1px solid var(--borde);
+}
+
+.lista li:first-child {
+  border-top: 0;
+}
+
+.lista .meta {
+  margin: 0;
+}
+
+.nombre {
+  font-family: var(--f-display);
+  font-weight: 600;
+  color: var(--marca-profunda);
 }
 
 /* ── Formulario de búsqueda ────────────────────────────────────────────────── */
@@ -85,8 +464,8 @@ a {
   gap: 0.75rem;
   background: var(--panel);
   border: 1px solid var(--borde);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: var(--radio);
+  padding: 18px;
 }
 
 .campo {
@@ -105,9 +484,10 @@ a {
 .campo input,
 .campo select,
 .campo textarea {
-  border: 1px solid var(--borde);
-  border-radius: 5px;
-  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-chico);
+  padding: 8px 10px;
+  min-height: 40px;
   font: inherit;
   background: #fff;
   color: inherit;
@@ -123,33 +503,50 @@ a {
 button,
 .boton {
   font: inherit;
-  border: 1px solid var(--acento);
-  background: var(--acento);
+  font-weight: 600;
+  font-size: 14px;
+  border: 1.5px solid var(--marca);
+  background: var(--marca);
   color: #fff;
-  border-radius: 5px;
-  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  padding: 8px 16px;
+  min-height: 40px;
   cursor: pointer;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+button:hover,
+.boton:hover {
+  background: var(--marca-profunda);
+  color: #fff;
 }
 
 .boton--secundario {
-  background: #fff;
-  color: var(--acento);
+  background: var(--panel);
+  color: var(--marca);
+}
+
+.boton--secundario:hover {
+  background: var(--papel);
+  color: var(--marca);
 }
 
 /* ── Resultados ────────────────────────────────────────────────────────────── */
 
 .estado {
   border: 1px solid var(--borde);
-  border-radius: 8px;
+  border-radius: var(--radio);
   padding: 1rem 1.15rem;
   background: var(--panel);
-  margin: 1.5rem 0;
+  margin: 1.25rem 0;
 }
 
 .estado--aviso {
-  border-color: #efd9a8;
+  border-color: var(--alerta-borde);
   background: var(--alerta-fondo);
   color: var(--alerta);
 }
@@ -162,10 +559,11 @@ button,
 
 .tarjeta {
   border: 1px solid var(--borde);
-  border-radius: 8px;
+  border-radius: var(--radio);
   background: var(--panel);
-  padding: 0.9rem 1.1rem;
-  margin-bottom: 0.75rem;
+  padding: 18px;
+  margin-bottom: 14px;
+  min-width: 0;
 }
 
 .tarjeta h3 {
@@ -174,9 +572,10 @@ button,
 }
 
 .meta {
-  font-size: 0.85rem;
+  font-size: 13.5px;
   color: var(--tinta-suave);
-  margin: 0.15rem 0;
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
 }
 
 .fila-documental {
@@ -202,14 +601,14 @@ button,
 }
 
 .enlace-documento {
-  background: var(--acento);
+  background: var(--marca);
   color: #fff;
 }
 
 .enlace-carpeta {
   background: var(--alerta-fondo);
   color: var(--alerta);
-  border-color: #efd9a8;
+  border-color: var(--alerta-borde);
 }
 
 .sin-referencia {
@@ -254,34 +653,28 @@ button,
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.86rem;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 th,
 td {
   text-align: left;
-  padding: 0.45rem 0.6rem;
+  padding: 10px 10px;
   border-bottom: 1px solid var(--borde);
   vertical-align: top;
 }
 
 th {
-  font-size: 0.72rem;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--tinta-suave);
+  font-weight: 650;
 }
 
 .desborde {
   overflow-x: auto;
-}
-
-h2 {
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--tinta-suave);
-  margin: 2rem 0 0.6rem;
 }
 
 /* ── Login ─────────────────────────────────────────────────────────────────── */
@@ -292,8 +685,14 @@ h2 {
   text-align: center;
   background: var(--panel);
   border: 1px solid var(--borde);
-  border-radius: 10px;
+  border-radius: var(--radio);
   padding: 2rem 1.75rem;
+}
+
+.login .logo {
+  justify-content: center;
+  text-align: left;
+  margin-bottom: 1.25rem;
 }
 
 .login p {
@@ -315,8 +714,8 @@ h2 {
   flex-direction: column;
   gap: 0.2rem;
   border: 1px solid var(--borde);
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
+  border-radius: var(--radio);
+  padding: 16px 18px;
   background: var(--panel);
   color: var(--tinta);
   text-decoration: none;
@@ -327,14 +726,16 @@ h2 {
 }
 
 .indicador--alerta {
-  border-color: #efd9a8;
+  border-color: var(--alerta-borde);
   background: var(--alerta-fondo);
 }
 
 .indicador__valor {
-  font-size: 1.6rem;
-  font-weight: 600;
+  font-size: 1.7rem;
+  font-weight: 650;
   line-height: 1.1;
+  color: var(--marca-profunda);
+  font-variant-numeric: tabular-nums;
 }
 
 .indicador--alerta .indicador__valor {
@@ -374,20 +775,21 @@ h2 {
 }
 
 .etapa--actual {
-  background: var(--acento);
-  border-color: var(--acento);
+  background: var(--marca);
+  border-color: var(--marca);
   color: #fff;
   font-weight: 600;
 }
 
 .boton--chico {
-  padding: 2px 8px;
-  font-size: 0.78rem;
+  padding: 4px 12px;
+  min-height: 34px;
+  font-size: 13px;
 }
 
 /* ── Propuestas de una cotización (T-0051) ─────────────────────────────────── */
 
 .tarjeta--elegida {
-  border-color: var(--acento);
-  box-shadow: inset 3px 0 0 var(--acento);
+  border-color: var(--marca);
+  box-shadow: inset 3px 0 0 var(--marca);
 }

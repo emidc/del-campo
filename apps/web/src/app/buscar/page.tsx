@@ -141,6 +141,8 @@ export default async function BuscarPage({
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
+      <p className="antetitulo">Clientes</p>
+      <h1>Clientes y pólizas</h1>
       <Formulario valores={valores} />
       {resultado === null ? (
         <p className="estado">

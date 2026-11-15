@@ -18,7 +18,7 @@ export default async function ConectarPage() {
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>Conectar Claude</h1>
+      <h1>Conectar Claude</h1>
       <p className="meta">
         Con esta dirección, Claude puede leer clientes y pólizas de Broker OS con tu usuario. Es personal: no la
         compartas. Si se filtra, generá una nueva y la anterior deja de funcionar.

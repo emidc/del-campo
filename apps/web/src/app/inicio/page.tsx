@@ -17,7 +17,8 @@ export default async function InicioPage() {
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.4rem' }}>Inicio</h1>
+      <p className="antetitulo">Inicio</p>
+      <h1>Buen día</h1>
       <p className="meta">Cada número cuenta sólo lo que podés ver. Tocalo para ir a los casos.</p>
 
       <div className="indicadores">
@@ -30,7 +31,7 @@ export default async function InicioPage() {
         ))}
       </div>
 
-      <h2 style={{ fontSize: '1.1rem', margin: '1.5rem 0 0.4rem' }}>A atender</h2>
+      <h2>A atender</h2>
       {datos.aAtender.length === 0 ? (
         <p className="estado">No tenés gestiones abiertas a tu nombre.</p>
       ) : (
@@ -62,7 +63,7 @@ export default async function InicioPage() {
         </div>
       )}
 
-      <h2 style={{ fontSize: '1.1rem', margin: '1.5rem 0 0.4rem' }}>Mis tareas</h2>
+      <h2>Mis tareas</h2>
       {datos.misTareas.length === 0 ? (
         <p className="estado">No tenés tareas sin hacer.</p>
       ) : (
@@ -92,7 +93,7 @@ export default async function InicioPage() {
         </div>
       )}
 
-      <h2 style={{ fontSize: '1.1rem', margin: '1.5rem 0 0.4rem' }}>Equipo</h2>
+      <h2>Equipo</h2>
       <p className="meta">Gestiones abiertas por responsable, en orden alfabético.</p>
       {datos.equipo.length === 0 ? (
         <p className="estado">Nadie tiene gestiones abiertas asignadas.</p>

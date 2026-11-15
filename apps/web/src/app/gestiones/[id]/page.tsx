@@ -103,7 +103,7 @@ export default async function GestionPage({
         <Link href="/gestiones">← Gestiones</Link>
       </p>
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>{g.title}</h1>
+      <h1>{g.title}</h1>
       <p className="meta">
         {TIPOS_DE_GESTION[g.kind]} · <strong>{ESTADOS_DE_GESTION[g.status]}</strong>
         {' · Cliente '}

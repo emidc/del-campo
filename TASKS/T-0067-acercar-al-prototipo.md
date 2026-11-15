@@ -1,7 +1,7 @@
 ---
 id: T-0067
 title: Acercar la interfaz de Broker OS al prototipo
-status: READY
+status: ACTIVE
 created: 2026-11-13
 linear:
 ---
@@ -20,3 +20,8 @@ equipo va a usar lo que se parezca al prototipo.
 ## Fuera de alcance
 
 Pantallas del prototipo que todavía no tienen datos reales detrás.
+
+## Avance
+
+- 15/11/2026: marco del prototipo en todas las pantallas (barra superior, menú lateral con la sección marcada, colores, tipografías, botones, tarjetas y tablas), ficha de cliente con encabezado y pestañas (Resumen, Pólizas, Riesgos, Gestiones, Tareas) y login con la marca.
+- Falta: la sección Riesgos como en el prototipo, que llega con T-0061, y lo que Emiliano marque al revisarlo en pantalla.
