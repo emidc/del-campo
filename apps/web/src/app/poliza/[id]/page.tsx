@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
-import { fecha } from '@/lib/formato'
+import { estadoDePoliza, estadoDocumental, fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,9 @@ export default async function PolizaPage({
   if (vista === null) notFound()
 
   const { detail, access } = vista
+  const vigente = detail.currentVersion
+  /** Prima y modo de renovación están en el historial: se toman de la versión vigente o, si no hay, de la más reciente. */
+  const ultima = detail.history.find((h) => h.id === vigente?.id) ?? detail.history[0]
 
   return (
     <main className="envoltorio">
@@ -34,39 +37,83 @@ export default async function PolizaPage({
         <span aria-hidden="true">›</span>
         <span>Póliza {detail.policyNumber}</span>
       </nav>
-      <p className="antetitulo">Póliza</p>
-      <h1>
-        Póliza {detail.policyNumber} · {detail.insurer.name}
-      </h1>
-      <p className="meta">
-        Tomador:{' '}
-        {detail.holder === null ? (
-          'sin tomador en la versión vigente'
-        ) : (
-          <Link href={`/parte/${detail.holder.partyId}`}>{detail.holder.displayName}</Link>
-        )}
-        {detail.renewedFromPolicyId === null ? null : (
-          <>
-            {' · renovación de '}
-            <Link href={`/poliza/${detail.renewedFromPolicyId}`}>la póliza anterior</Link>
-          </>
-        )}
-      </p>
+      <header className="encabezado">
+        <div>
+          <p className="antetitulo">Póliza · {detail.insurer.name}</p>
+          <h1>Póliza {detail.policyNumber}</h1>
+          <div className="chips">
+            {vigente === null ? null : (
+              <>
+                <span className="chip">{estadoDePoliza(vigente.status)}</span>
+                <span className="chip">
+                  {fecha(vigente.termStartDate)} → {fecha(vigente.termEndDate)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="fila">
+          <Link className="boton boton--secundario" href={`/tareas/nueva?poliza=${detail.policyId}`}>
+            Nueva tarea
+          </Link>
+          <Link className="boton" href={`/gestiones/nueva?poliza=${detail.policyId}`}>
+            Nueva gestión
+          </Link>
+        </div>
+      </header>
 
-      <p className="meta">
-        <Link href={`/gestiones/nueva?poliza=${detail.policyId}`}>Nueva gestión</Link>
-        {' · '}
-        <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link>
-        {' · '}
-        <Link href={`/tareas/nueva?poliza=${detail.policyId}`}>Nueva tarea</Link>
-      </p>
+      <div className="grid-2">
+        <section className="tarjeta">
+          <h2>Datos</h2>
+          <dl className="kv">
+            <dt>Tomador</dt>
+            <dd className="nombre">
+              {detail.holder === null ? (
+                'Sin tomador en la versión vigente'
+              ) : (
+                <Link href={`/parte/${detail.holder.partyId}`}>{detail.holder.displayName}</Link>
+              )}
+            </dd>
+            <dt>Aseguradora</dt>
+            <dd>{detail.insurer.name}</dd>
+            {vigente === null ? null : (
+              <>
+                <dt>Vigencia</dt>
+                <dd>
+                  {fecha(vigente.termStartDate)} → {fecha(vigente.termEndDate)}
+                </dd>
+                <dt>Estado</dt>
+                <dd>{estadoDePoliza(vigente.status)}</dd>
+              </>
+            )}
+            {ultima === undefined ? null : (
+              <>
+                <dt>Prima</dt>
+                <dd>{ultima.premium === null ? '—' : `${ultima.premium} ${ultima.currency ?? ''}`.trim()}</dd>
+                <dt>Renovación</dt>
+                <dd>{ultima.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</dd>
+              </>
+            )}
+            {detail.renewedFromPolicyId === null ? null : (
+              <>
+                <dt>Renueva a</dt>
+                <dd>
+                  <Link href={`/poliza/${detail.renewedFromPolicyId}`}>La póliza anterior</Link>
+                </dd>
+              </>
+            )}
+          </dl>
+          <p className="meta">
+            <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link>
+          </p>
+        </section>
 
-      <h2>Acceso documental</h2>
-      <AccesoDocumental acceso={access} />
-      <p className="meta">
-        Los enlaces abren Drive con tu propia sesión de Google. Broker OS no consulta Drive
-        ni administra sus permisos: si un destino no abre, el acceso se resuelve en Drive.
-      </p>
+        <section className="tarjeta">
+          <h2>Documentos</h2>
+          <AccesoDocumental acceso={access} />
+          <p className="meta">Los enlaces abren Drive con tu propia sesión de Google. Si un destino no abre, el acceso se resuelve en Drive.</p>
+        </section>
+      </div>
 
       <h2>Historial de versiones</h2>
       <div className="desborde">
@@ -90,7 +137,7 @@ export default async function PolizaPage({
                   {fecha(entrada.termStartDate)} → {fecha(entrada.termEndDate)}
                 </td>
                 <td>{entrada.holder.displayName}</td>
-                <td>{guion(entrada.status)}</td>
+                <td>{estadoDePoliza(entrada.status)}</td>
                 <td>
                   {entrada.premium === null
                     ? '—'
@@ -134,8 +181,8 @@ export default async function PolizaPage({
                 <tr key={documento.id}>
                   <td>{documento.driveItemType === 'FILE' ? 'Archivo' : 'Carpeta'}</td>
                   <td>{guion(documento.documentKind)}</td>
-                  <td>{documento.reconciliationStatus}</td>
-                  <td>{guion(documento.lastSeenAt)}</td>
+                  <td>{estadoDocumental(documento.reconciliationStatus)}</td>
+                  <td>{fecha(documento.lastSeenAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -162,7 +209,7 @@ export default async function PolizaPage({
                 <tr key={referencia.id}>
                   <td>{referencia.sourceSystem}</td>
                   <td>{referencia.sourceEntityType}</td>
-                  <td>{referencia.resolutionStatus}</td>
+                  <td>{estadoDocumental(referencia.resolutionStatus)}</td>
                   <td>{guion(referencia.unresolvedReason)}</td>
                 </tr>
               ))}

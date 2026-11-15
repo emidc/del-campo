@@ -927,3 +927,7 @@ button.esperando {
 .lista .pendiente {
   font-size: inherit;
 }
+
+.encabezado + .grid-2 {
+  margin-top: 18px;
+}
