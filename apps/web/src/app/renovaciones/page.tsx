@@ -89,7 +89,7 @@ export default async function RenovacionesPage({
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.4rem' }}>Renovaciones</h1>
+      <h1>Renovaciones</h1>
       <p className="meta">
         Pólizas cuya vigencia termina entre {desde} y {hasta}. Salen de las pólizas importadas: una póliza sin
         sucesora en Broker OS puede estar renovada en la compañía después de la fecha del lote.

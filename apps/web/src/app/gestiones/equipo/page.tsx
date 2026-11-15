@@ -18,7 +18,7 @@ export default async function EquipoPage() {
         <Link href="/gestiones">← Gestiones</Link>
       </p>
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.4rem' }}>Carga del equipo</h1>
+      <h1>Carga del equipo</h1>
       <p className="meta">Gestiones abiertas por responsable. Vencidas: con fecha de vencimiento anterior a hoy.</p>
 
       {carga.length === 0 ? (

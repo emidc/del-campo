@@ -44,7 +44,7 @@ export default async function NuevaGestionPage({
         <Link href="/gestiones">← Gestiones</Link>
       </p>
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>Nueva gestión</h1>
+      <h1>Nueva gestión</h1>
       <p className="meta">
         Cliente: <Link href={`/parte/${parteId}`}>{vistaParte.displayName}</Link>
         {vistaPoliza === null ? null : (

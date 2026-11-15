@@ -45,7 +45,7 @@ export default async function GestionesPage({
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.4rem' }}>Gestiones</h1>
+      <h1>Gestiones</h1>
       <p className="meta">
         {filtro('Todas las abiertas', !mias && !cerradas, '/gestiones')}
         {' · '}

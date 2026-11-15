@@ -38,7 +38,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
         <Link href="/tareas">← Tareas</Link>
       </p>
 
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>{t.title}</h1>
+      <h1>{t.title}</h1>
       <p className="meta">
         <strong>{ESTADOS_DE_TAREA[t.status]}</strong>
         {' · Cliente '}

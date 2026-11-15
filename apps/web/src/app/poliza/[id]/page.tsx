@@ -28,11 +28,13 @@ export default async function PolizaPage({
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <p className="meta">
-        <Link href="/buscar">← Volver a la búsqueda</Link>
-      </p>
-
-      <h1 style={{ fontSize: '1.3rem', margin: '0 0 0.2rem' }}>
+      <nav className="migas" aria-label="Migas de pan">
+        <Link href="/buscar">Clientes y pólizas</Link>
+        <span aria-hidden="true">›</span>
+        <span>Póliza {detail.policyNumber}</span>
+      </nav>
+      <p className="antetitulo">Póliza</p>
+      <h1>
         Póliza {detail.policyNumber} · {detail.insurer.name}
       </h1>
       <p className="meta">
