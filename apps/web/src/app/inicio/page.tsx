@@ -1,12 +1,23 @@
-import { ESTADOS_DE_GESTION, ESTADOS_DE_TAREA, TIPOS_DE_GESTION, inicio, latestBatch } from '@del-campo/api'
+import { ESTADOS_DE_GESTION, TIPOS_DE_GESTION, inicio, latestBatch } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
-import { fecha } from '@/lib/formato'
+import { fecha, fechaLarga } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
+
+/** Cuántos renglones muestra cada tarjeta; el resto se ve en su pantalla. */
+const TOPE = 8
+
+/** Por qué un renglón pide atención: vencido, vence hoy o cuándo vence. */
+const motivo = (vence: string | null, hoy: string): { readonly texto: string; readonly urgente: boolean } => {
+  if (vence === null) return { texto: 'Sin fecha', urgente: false }
+  if (vence < hoy) return { texto: `Venció el ${fecha(vence)}`, urgente: true }
+  if (vence === hoy) return { texto: 'Vence hoy', urgente: true }
+  return { texto: `Vence el ${fecha(vence)}`, urgente: false }
+}
 
 /** Inicio (C6-03a): indicadores con su definición y su acción, lo mío a atender y la carga del equipo sin ranking. */
 export default async function InicioPage() {
@@ -14,14 +25,80 @@ export default async function InicioPage() {
   const hoy = fechaDeHoy()
   const [lote, datos] = await consultar(Promise.all([latestBatch(principal), inicio(principal, hoy)]))
 
+  const primero = principal.displayName?.trim().split(/\s+/)[0]
+  const nombre = primero === undefined || primero === '' ? null : primero
+
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
       <p className="antetitulo">Inicio</p>
-      <h1>Buen día</h1>
-      <p className="meta">Cada número cuenta sólo lo que podés ver. Tocalo para ir a los casos.</p>
+      <h1>{nombre === null ? 'Buen día' : `Buen día, ${nombre}`}</h1>
+      <p className="meta">{fechaLarga(hoy)}</p>
 
+      <div className="grid-2 grid-2--par">
+        <section className="tarjeta">
+          <h2>Mis tareas ({datos.misTareas.length})</h2>
+          {datos.misTareas.length === 0 ? (
+            <p className="meta">No tenés tareas sin hacer.</p>
+          ) : (
+            <ul className="lista">
+              {datos.misTareas.slice(0, TOPE).map((t) => {
+                const cuando = motivo(t.dueDate, hoy)
+                const trabada = t.status === 'TRABADA'
+                return (
+                  <li key={t.id}>
+                    <Link href={`/tareas/${t.id}`} className="nombre">
+                      {t.title}
+                    </Link>
+                    <p className="meta">
+                      <span className={trabada || cuando.urgente ? 'pendiente' : undefined}>
+                        {trabada ? `Trabada · ${cuando.texto}` : cuando.texto}
+                      </span>
+                      {' · '}
+                      {t.partyName ?? 'sin nombre'}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <p className="meta">
+            <Link href="/tareas?mias=1">Ver todas mis tareas</Link>
+          </p>
+        </section>
+
+        <section className="tarjeta">
+          <h2>A atender ({datos.aAtender.length})</h2>
+          {datos.aAtender.length === 0 ? (
+            <p className="meta">No tenés gestiones abiertas a tu nombre.</p>
+          ) : (
+            <ul className="lista">
+              {datos.aAtender.slice(0, TOPE).map((g) => {
+                const cuando = motivo(g.dueDate, hoy)
+                return (
+                  <li key={g.id}>
+                    <Link href={`/gestiones/${g.id}`} className="nombre">
+                      {g.title}
+                    </Link>
+                    <p className="meta">
+                      {TIPOS_DE_GESTION[g.kind]} · {ESTADOS_DE_GESTION[g.status]} ·{' '}
+                      <span className={cuando.urgente ? 'pendiente' : undefined}>{cuando.texto}</span>
+                      {' · '}
+                      {g.partyName ?? 'sin nombre'}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <p className="meta">
+            <Link href="/gestiones?mias=1">Ver todas mis gestiones</Link>
+          </p>
+        </section>
+      </div>
+
+      <h2 className="sr">Indicadores</h2>
       <div className="indicadores">
         {datos.indicadores.map((k) => (
           <Link key={k.id} href={k.href} className={k.alerta && k.valor > 0 ? 'indicador indicador--alerta' : 'indicador'}>
@@ -31,68 +108,6 @@ export default async function InicioPage() {
           </Link>
         ))}
       </div>
-
-      <h2>A atender</h2>
-      {datos.aAtender.length === 0 ? (
-        <p className="estado">No tenés gestiones abiertas a tu nombre.</p>
-      ) : (
-        <div className="desborde">
-          <table>
-            <thead>
-              <tr>
-                <th>Gestión</th>
-                <th>Tipo</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-                <th>Vence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datos.aAtender.map((g) => (
-                <tr key={g.id}>
-                  <td>
-                    <Link href={`/gestiones/${g.id}`}>{g.title}</Link>
-                  </td>
-                  <td>{TIPOS_DE_GESTION[g.kind]}</td>
-                  <td>{g.partyName ?? 'sin nombre'}</td>
-                  <td>{ESTADOS_DE_GESTION[g.status]}</td>
-                  <td className={g.dueDate !== null && g.dueDate < hoy ? 'pendiente' : undefined}>{fecha(g.dueDate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <h2>Mis tareas</h2>
-      {datos.misTareas.length === 0 ? (
-        <p className="estado">No tenés tareas sin hacer.</p>
-      ) : (
-        <div className="desborde">
-          <table>
-            <thead>
-              <tr>
-                <th>Tarea</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-                <th>Vence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datos.misTareas.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <Link href={`/tareas/${t.id}`}>{t.title}</Link>
-                  </td>
-                  <td>{t.partyName ?? 'sin nombre'}</td>
-                  <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
-                  <td className={t.dueDate !== null && t.dueDate < hoy ? 'pendiente' : undefined}>{fecha(t.dueDate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       <h2>Equipo</h2>
       <p className="meta">Gestiones abiertas por responsable, en orden alfabético.</p>

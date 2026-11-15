@@ -25,4 +25,5 @@ Pantallas del prototipo que todavía no tienen datos reales detrás.
 
 - 15/11/2026: marco del prototipo en todas las pantallas (barra superior, menú lateral con la sección marcada, colores, tipografías, botones, tarjetas y tablas), ficha de cliente con encabezado y pestañas (Resumen, Pólizas, Riesgos, Gestiones, Tareas) y login con la marca.
 - 15/11/2026: pantalla Clientes (empresas y personas, con filtro por nombre, CUIT o DNI), buscador de la barra superior apuntando a Clientes, la búsqueda de siete campos queda en Pólizas, y fechas en día/mes/año en todas las pantallas.
+- 15/11/2026: Inicio con saludo y fecha, «Mis tareas» y «A atender» en dos tarjetas con el motivo de cada renglón (vencida, vence hoy, trabada), y los indicadores debajo.
 - Falta: la sección Riesgos como en el prototipo, que llega con T-0061, y lo que Emiliano marque al revisarlo en pantalla.
