@@ -3,6 +3,7 @@ import { ESTADOS_DE_TAREA, TASK_STATUSES, latestBatch, responsablesPosibles, tar
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { cambiarEstado, comentar, pasar } from '@/app/tareas/acciones'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -80,7 +81,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
           <input id="comentario-estado" name="comentario" maxLength={2000} />
         </div>
         <div className="acciones">
-          <button type="submit">Guardar estado</button>
+          <BotonEnviar>Guardar estado</BotonEnviar>
         </div>
       </form>
 
@@ -103,7 +104,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
           <input id="comentario-pase" name="comentario" maxLength={2000} />
         </div>
         <div className="acciones">
-          <button type="submit">Pasar</button>
+          <BotonEnviar>Pasar</BotonEnviar>
         </div>
       </form>
 
@@ -115,7 +116,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
           <textarea id="comentario" name="comentario" rows={3} required />
         </div>
         <div className="acciones">
-          <button type="submit">Comentar</button>
+          <BotonEnviar>Comentar</BotonEnviar>
         </div>
       </form>
 

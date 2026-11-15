@@ -2,6 +2,7 @@ import { SERVICE_CASE_KINDS, TIPOS_DE_GESTION, esTipoDeGestion, latestBatch, par
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { crear } from '@/app/gestiones/acciones'
 import { fechaDeHoy } from '@/lib/criterios'
@@ -93,7 +94,7 @@ export default async function NuevaGestionPage({
           <textarea id="nota" name="nota" rows={3} />
         </div>
         <div className="acciones">
-          <button type="submit">Crear gestión</button>
+          <BotonEnviar>Crear gestión</BotonEnviar>
         </div>
       </form>
     </main>

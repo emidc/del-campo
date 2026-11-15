@@ -2,6 +2,7 @@ import { gestion, latestBatch, party, policy, responsablesPosibles } from '@del-
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { crear } from '@/app/tareas/acciones'
 import { fechaDeHoy } from '@/lib/criterios'
@@ -96,7 +97,7 @@ export default async function NuevaTareaPage({
           <textarea id="comentario" name="comentario" rows={3} />
         </div>
         <div className="acciones">
-          <button type="submit">Crear tarea</button>
+          <BotonEnviar>Crear tarea</BotonEnviar>
         </div>
       </form>
     </main>

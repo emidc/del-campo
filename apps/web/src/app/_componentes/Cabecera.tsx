@@ -4,6 +4,30 @@ import Link from 'next/link'
 
 import { Navegacion } from './Navegacion'
 
+export function Logo() {
+  return (
+    <Link className="logo" href="/inicio" aria-label="Broker OS · Del Campo, ir al inicio">
+      <span className="logo__d">D</span>
+      <span className="logo__texto">
+        <b>BROKER OS</b>
+        <span>Del Campo · Gestión de riesgos</span>
+      </span>
+    </Link>
+  )
+}
+
+export function AccesoABuscar() {
+  return (
+    <Link className="superior__buscar" href="/buscar">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="M16 16l4.5 4.5" />
+      </svg>
+      <span>Buscar clientes, empresas, pólizas…</span>
+    </Link>
+  )
+}
+
 /**
  * El marco de todas las pantallas: barra superior y menú lateral, como en el prototipo.
  *
@@ -15,20 +39,8 @@ export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly 
   return (
     <>
       <header className="superior">
-        <Link className="logo" href="/inicio" aria-label="Broker OS · Del Campo, ir al inicio">
-          <span className="logo__d">D</span>
-          <span className="logo__texto">
-            <b>BROKER OS</b>
-            <span>Del Campo · Gestión de riesgos</span>
-          </span>
-        </Link>
-        <Link className="superior__buscar" href="/buscar">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="M16 16l4.5 4.5" />
-          </svg>
-          <span>Buscar clientes, empresas, pólizas…</span>
-        </Link>
+        <Logo />
+        <AccesoABuscar />
         <div className="superior__sesion">
           <span className="meta">{email}</span>
           <a className="boton boton--secundario boton--chico" href="/api/auth/logout">

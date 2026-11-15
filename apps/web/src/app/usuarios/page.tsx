@@ -1,5 +1,6 @@
 import { equipo, latestBatch } from '@del-campo/api'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
@@ -52,7 +53,7 @@ export default async function UsuariosPage({
           {datos.administro && usuario.estado !== 'INACTIVE' && usuario.id !== datos.yo ? (
             <form action={darDeBaja}>
               <input type="hidden" name="usuario" value={usuario.id} />
-              <button type="submit">Dar de baja</button>
+              <BotonEnviar>Dar de baja</BotonEnviar>
             </form>
           ) : null}
         </article>
@@ -65,7 +66,7 @@ export default async function UsuariosPage({
             Correo de Google{' '}
             <input type="email" name="email" required placeholder="nombre@delcampobroker.com" />
           </label>{' '}
-          <button type="submit">Invitar</button>
+          <BotonEnviar>Invitar</BotonEnviar>
         </form>
       ) : null}
     </main>
