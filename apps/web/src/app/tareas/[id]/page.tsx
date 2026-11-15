@@ -6,12 +6,10 @@ import { notFound } from 'next/navigation'
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { cambiarEstado, comentar, pasar } from '@/app/tareas/acciones'
-import { fecha } from '@/lib/formato'
+import { fecha, fechaHora } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
-
-const momento = (marca: string): string => marca.slice(0, 16).replace('T', ' ')
 
 const describir = (evento: TaskEvent): string => {
   switch (evento.kind) {
@@ -36,33 +34,54 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <p className="meta">
-        <Link href="/tareas">← Tareas</Link>
-      </p>
+      <nav className="migas" aria-label="Migas de pan">
+        <Link href="/tareas">Tareas</Link>
+        <span aria-hidden="true">›</span>
+        <span>{t.title}</span>
+      </nav>
+      <header className="encabezado">
+        <div>
+          <p className="antetitulo">Tarea</p>
+          <h1>{t.title}</h1>
+          <div className="chips">
+            <span className="chip">{ESTADOS_DE_TAREA[t.status]}</span>
+            {t.dueDate === null ? null : <span className="chip">Vence {fecha(t.dueDate)}</span>}
+          </div>
+        </div>
+      </header>
 
-      <h1>{t.title}</h1>
-      <p className="meta">
-        <strong>{ESTADOS_DE_TAREA[t.status]}</strong>
-        {' · Cliente '}
-        <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
-        {t.policyId === null ? null : (
-          <>
-            {' · Póliza '}
-            <Link href={`/poliza/${t.policyId}`}>{t.policyNumber}</Link>
-          </>
-        )}
-        {t.serviceCaseId === null ? null : (
-          <>
-            {' · Gestión '}
-            <Link href={`/gestiones/${t.serviceCaseId}`}>{t.serviceCaseTitle}</Link>
-          </>
-        )}
-      </p>
-      <p className="meta">
-        Responsable: {t.assignedToMe ? 'vos' : (t.assignedEmail ?? 'nadie')}
-        {t.dueDate === null ? null : ` · Vence ${fecha(t.dueDate)}`}
-        {t.doneAt === null ? null : ` · Hecha el ${momento(t.doneAt)}`}
-      </p>
+      <section className="tarjeta ficha-datos">
+        <dl className="kv">
+          <dt>Cliente</dt>
+          <dd className="nombre">
+            <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
+          </dd>
+          {t.policyId === null ? null : (
+            <>
+              <dt>Póliza</dt>
+              <dd>
+                <Link href={`/poliza/${t.policyId}`}>{t.policyNumber}</Link>
+              </dd>
+            </>
+          )}
+          {t.serviceCaseId === null ? null : (
+            <>
+              <dt>Gestión</dt>
+              <dd>
+                <Link href={`/gestiones/${t.serviceCaseId}`}>{t.serviceCaseTitle}</Link>
+              </dd>
+            </>
+          )}
+          <dt>Responsable</dt>
+          <dd>{t.assignedToMe ? 'Vos' : (t.assignedEmail ?? 'Nadie')}</dd>
+          {t.doneAt === null ? null : (
+            <>
+              <dt>Hecha</dt>
+              <dd>{fechaHora(t.doneAt)}</dd>
+            </>
+          )}
+        </dl>
+      </section>
 
       <h2>Estado</h2>
       <form action={cambiarEstado} className="buscador">
@@ -125,7 +144,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
       {t.events.map((evento) => (
         <article className="tarjeta" key={evento.id}>
           <p className="meta" style={{ margin: 0 }}>
-            {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
+            {fechaHora(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
           {evento.body === null || evento.kind === 'ASIGNACION' ? null : (
             <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>

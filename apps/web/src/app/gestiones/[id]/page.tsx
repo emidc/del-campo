@@ -38,12 +38,11 @@ import {
   sumarAlSiniestro,
   tomar,
 } from '@/app/gestiones/acciones'
-import { fecha } from '@/lib/formato'
+import { fecha, fechaHora } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
-const momento = (marca: string): string => marca.slice(0, 16).replace('T', ' ')
 
 const describir = (evento: ServiceCaseEvent): string => {
   switch (evento.kind) {
@@ -101,27 +100,46 @@ export default async function GestionPage({
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <p className="meta">
-        <Link href="/gestiones">← Gestiones</Link>
-      </p>
+      <nav className="migas" aria-label="Migas de pan">
+        <Link href="/gestiones">Gestiones</Link>
+        <span aria-hidden="true">›</span>
+        <span>{g.title}</span>
+      </nav>
+      <header className="encabezado">
+        <div>
+          <p className="antetitulo">{TIPOS_DE_GESTION[g.kind]}</p>
+          <h1>{g.title}</h1>
+          <div className="chips">
+            <span className="chip">{ESTADOS_DE_GESTION[g.status]}</span>
+            {g.dueDate === null ? null : <span className="chip">Vence {fecha(g.dueDate)}</span>}
+          </div>
+        </div>
+      </header>
 
-      <h1>{g.title}</h1>
-      <p className="meta">
-        {TIPOS_DE_GESTION[g.kind]} · <strong>{ESTADOS_DE_GESTION[g.status]}</strong>
-        {' · Cliente '}
-        <Link href={`/parte/${g.partyId}`}>{g.partyName ?? 'sin nombre'}</Link>
-        {g.policyId === null ? null : (
-          <>
-            {' · Póliza '}
-            <Link href={`/poliza/${g.policyId}`}>{g.policyNumber}</Link>
-          </>
-        )}
-      </p>
-      <p className="meta">
-        Responsable: {g.assignedToMe ? 'vos' : (g.assignedEmail ?? 'nadie')}
-        {g.dueDate === null ? null : ` · Vence ${fecha(g.dueDate)}`}
-        {cerrada && g.closedAt !== null ? ` · Cerrada el ${momento(g.closedAt)}` : null}
-      </p>
+      <section className="tarjeta ficha-datos">
+        <dl className="kv">
+          <dt>Cliente</dt>
+          <dd className="nombre">
+            <Link href={`/parte/${g.partyId}`}>{g.partyName ?? 'sin nombre'}</Link>
+          </dd>
+          {g.policyId === null ? null : (
+            <>
+              <dt>Póliza</dt>
+              <dd>
+                <Link href={`/poliza/${g.policyId}`}>{g.policyNumber}</Link>
+              </dd>
+            </>
+          )}
+          <dt>Responsable</dt>
+          <dd>{g.assignedToMe ? 'Vos' : (g.assignedEmail ?? 'Nadie')}</dd>
+          {cerrada && g.closedAt !== null ? (
+            <>
+              <dt>Cerrada</dt>
+              <dd>{fechaHora(g.closedAt)}</dd>
+            </>
+          ) : null}
+        </dl>
+      </section>
       {cerrada && g.outcome !== null ? <p className="estado">Resultado: {g.outcome}</p> : null}
 
       {g.claimStage === null ? null : (
@@ -173,7 +191,7 @@ export default async function GestionPage({
                         {r.doneAt === null ? null : (
                           <span className="meta">
                             {' '}
-                            · {momento(r.doneAt)} · {r.doneByEmail ?? 'integrante dado de baja'}
+                            · {fechaHora(r.doneAt)} · {r.doneByEmail ?? 'integrante dado de baja'}
                           </span>
                         )}
                       </li>
@@ -360,7 +378,7 @@ export default async function GestionPage({
               </p>
               <p className="meta">
                 {o.validUntil === null ? null : `Vale hasta ${o.validUntil} · `}
-                Actualizada el {momento(o.updatedAt)}
+                Actualizada el {fechaHora(o.updatedAt)}
                 {o.note === null ? null : ` · ${o.note}`}
               </p>
               <form action={responderCotizacion} className="buscador" style={{ marginTop: '0.5rem' }}>
@@ -528,7 +546,7 @@ export default async function GestionPage({
       {g.events.map((evento) => (
         <article className="tarjeta" key={evento.id}>
           <p className="meta" style={{ margin: 0 }}>
-            {momento(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
+            {fechaHora(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'} · {describir(evento)}
           </p>
           {evento.body === null || ['ASIGNACION', 'ETAPA', 'REQUISITO', 'PROPUESTA', 'INTERLOCUTOR'].includes(evento.kind) ? null : <p style={{ margin: '0.35rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p>}
         </article>
