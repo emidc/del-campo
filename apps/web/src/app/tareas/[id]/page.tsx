@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { cambiarEstado, comentar, pasar } from '@/app/tareas/acciones'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -59,7 +60,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
       </p>
       <p className="meta">
         Responsable: {t.assignedToMe ? 'vos' : (t.assignedEmail ?? 'nadie')}
-        {t.dueDate === null ? null : ` · Vence ${t.dueDate}`}
+        {t.dueDate === null ? null : ` · Vence ${fecha(t.dueDate)}`}
         {t.doneAt === null ? null : ` · Hecha el ${momento(t.doneAt)}`}
       </p>
 

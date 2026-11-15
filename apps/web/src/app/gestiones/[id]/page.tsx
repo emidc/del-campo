@@ -38,6 +38,7 @@ import {
   sumarAlSiniestro,
   tomar,
 } from '@/app/gestiones/acciones'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -118,7 +119,7 @@ export default async function GestionPage({
       </p>
       <p className="meta">
         Responsable: {g.assignedToMe ? 'vos' : (g.assignedEmail ?? 'nadie')}
-        {g.dueDate === null ? null : ` · Vence ${g.dueDate}`}
+        {g.dueDate === null ? null : ` · Vence ${fecha(g.dueDate)}`}
         {cerrada && g.closedAt !== null ? ` · Cerrada el ${momento(g.closedAt)}` : null}
       </p>
       {cerrada && g.outcome !== null ? <p className="estado">Resultado: {g.outcome}</p> : null}
@@ -452,7 +453,7 @@ export default async function GestionPage({
               <span className="meta">
                 {' '}
                 · {ESTADOS_DE_TAREA[t.status]} · {t.assignedToMe ? 'vos' : (t.assignedEmail ?? 'sin responsable')}
-                {t.dueDate === null ? null : ` · vence ${t.dueDate}`}
+                {t.dueDate === null ? null : ` · vence ${fecha(t.dueDate)}`}
               </span>
             </li>
           ))}

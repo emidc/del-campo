@@ -52,7 +52,7 @@ export type { AuthorizationHandshake, AuthorizationRequest } from './session/oid
 export { batchLabel, latestBatch } from './vs01/batch.ts'
 export type { BatchStamp } from './vs01/batch.ts'
 
-export { party, policy, search } from './vs01/queries.ts'
+export { TOPE_DE_CLIENTES, clientes, party, policy, search } from './vs01/queries.ts'
 export type { LinkLevel } from '@del-campo/db'
 export type {
   DocumentTally,

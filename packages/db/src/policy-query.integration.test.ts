@@ -8,7 +8,7 @@ import { after, describe, it } from 'node:test'
 
 import postgres from 'postgres'
 
-import { getPartyOverview, getPolicyDetail, searchPolicies } from './policy-query.ts'
+import { getPartyOverview, getPolicyDetail, listClients, searchPolicies } from './policy-query.ts'
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..')
 const AS_OF = '2026-09-21'
@@ -569,6 +569,49 @@ describe('Party merge — resolucion canonica transitiva', () => {
         new Set(detail.history.map((version) => version.holder.partyId)),
         new Set([canonicalId]),
       )
+    })
+  })
+
+  it('lista los clientes por tipo, filtra por nombre o número y deja afuera a las aseguradoras', async () => {
+    await inRollbackTransaction(async (tx) => {
+      const nueva = async (kind: 'PERSON' | 'ORGANIZATION'): Promise<string> => {
+        const rows = await tx<IdRow[]>`insert into party (kind) values (${kind}) returning id`
+        const row = rows[0]
+        assert.ok(row)
+        return row.id
+      }
+      const empresa = await nueva('ORGANIZATION')
+      await tx`insert into organization_profile (party_id, legal_name, cuit) values (${empresa}, 'Zzlista Viñedos Sintéticos SA', '30-99000111-2')`
+      const otra = await nueva('ORGANIZATION')
+      await tx`insert into organization_profile (party_id, legal_name) values (${otra}, 'Zzlista Transportes Sintéticos SRL')`
+      const aseguradora = await nueva('ORGANIZATION')
+      await tx`insert into organization_profile (party_id, legal_name) values (${aseguradora}, 'Zzlista Aseguradora Sintética')`
+      await tx`insert into insurer (organization_party_id, canonical_name) values (${aseguradora}, 'Zzlista Aseguradora Sintética')`
+      const persona = await nueva('PERSON')
+      await tx`insert into person_profile (party_id, first_name, last_name, dni) values (${persona}, 'Zzlista', 'Sintética', '99.000.111')`
+      await tx`insert into organization_membership (organization_party_id, person_party_id) values (${empresa}, ${persona})`
+
+      const empresas = await listClients(tx, 'ORGANIZATION', 'zzlista', 50)
+      assert.deepEqual(
+        empresas.clients.map((c) => c.partyId),
+        [otra, empresa],
+        'por nombre, en orden alfabético y sin la aseguradora',
+      )
+      assert.equal(empresas.total, 2)
+      assert.equal(empresas.clients.find((c) => c.partyId === empresa)?.contacts, 1)
+
+      const porCuit = await listClients(tx, 'ORGANIZATION', '3099000111', 50)
+      assert.deepEqual(porCuit.clients.map((c) => c.partyId), [empresa], 'el CUIT se encuentra sin guiones')
+
+      const personas = await listClients(tx, 'PERSON', '99000111', 50)
+      assert.deepEqual(personas.clients.map((c) => c.partyId), [persona], 'el DNI se encuentra sin puntos')
+
+      const tope = await listClients(tx, 'ORGANIZATION', 'zzlista', 1)
+      assert.equal(tope.clients.length, 1)
+      assert.equal(tope.total, 2, 'el total cuenta todas las coincidencias aunque el tope recorte')
+
+      const literal = await listClients(tx, 'ORGANIZATION', 'zzlista%_', 50)
+      assert.equal(literal.total, 0, 'los comodines del texto se buscan como texto')
     })
   })
 })

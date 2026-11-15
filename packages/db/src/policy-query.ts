@@ -854,3 +854,109 @@ export const getPartyOverview = async (
     contacts: contactRows.map(membershipFromRow),
   }
 }
+
+export interface ClientSummary {
+  readonly partyId: string
+  readonly kind: 'PERSON' | 'ORGANIZATION'
+  readonly displayName: string
+  readonly dni: string | null
+  readonly cuit: string | null
+  readonly policies: number
+  readonly contacts: number
+}
+
+export interface ClientList {
+  readonly clients: readonly ClientSummary[]
+  /** Cuántos coinciden en total; `clients` trae como mucho `limit`. */
+  readonly total: number
+}
+
+interface ClientRow {
+  readonly party_id: string
+  readonly kind: 'PERSON' | 'ORGANIZATION'
+  readonly display_name: string | null
+  readonly dni: string | null
+  readonly cuit: string | null
+  readonly policies: number
+  readonly contacts: number
+  readonly total: number
+}
+
+/**
+ * La lista de clientes de un tipo, por nombre. Deja afuera las partes fusionadas y las
+ * organizaciones que son aseguradoras: están en `party`, pero no son clientes. El texto
+ * filtra por nombre, CUIT o DNI; en los números ignora guiones y puntos.
+ */
+export const listClients = async (
+  sql: QueryExecutor,
+  kind: 'PERSON' | 'ORGANIZATION',
+  text: string,
+  limit: number,
+): Promise<ClientList> => {
+  const needle = text.trim()
+  const pattern = `%${needle.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+  const digits = needle.replace(/\D/g, '')
+  const digitPattern = digits === '' ? null : `%${digits}%`
+  const rows = await sql<ClientRow[]>`
+    with candidates as (
+      select
+        p.id as party_id,
+        p.kind,
+        coalesce(
+          nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
+          op.trade_name,
+          op.legal_name
+        ) as display_name,
+        nullif(concat_ws(' ', pp.last_name, pp.first_name), '') as sort_name,
+        op.legal_name,
+        pp.dni,
+        op.cuit
+      from party p
+      left join person_profile pp on pp.party_id = p.id
+      left join organization_profile op on op.party_id = p.id
+      where p.kind = ${kind}
+        and p.status = 'ACTIVE'
+        and p.merged_into_party_id is null
+        and not exists (select 1 from insurer i where i.organization_party_id = p.id)
+    ), matching as (
+      select *
+      from candidates c
+      where ${needle} = ''
+        or c.display_name ilike ${pattern}
+        or c.sort_name ilike ${pattern}
+        or c.legal_name ilike ${pattern}
+        or (${digitPattern}::text is not null and (
+          regexp_replace(coalesce(c.cuit, ''), '\\D', '', 'g') like ${digitPattern}
+          or regexp_replace(coalesce(c.dni, ''), '\\D', '', 'g') like ${digitPattern}
+        ))
+    )
+    select
+      m.party_id,
+      m.kind,
+      m.display_name,
+      m.dni,
+      m.cuit,
+      (select count(distinct pv.policy_id) from policy_version pv where pv.holder_party_id = m.party_id)::int as policies,
+      (
+        select count(distinct om.person_party_id)
+        from organization_membership om
+        where om.organization_party_id = m.party_id and om.valid_to is null
+      )::int as contacts,
+      (count(*) over ())::int as total
+    from matching m
+    order by lower(coalesce(m.sort_name, m.display_name, '')), m.party_id
+    limit ${limit}
+  `
+  return {
+    clients: rows.map((row) => ({
+      partyId: row.party_id,
+      kind: row.kind,
+      displayName: row.display_name ?? 'sin nombre',
+      dni: row.dni,
+      cuit: row.cuit,
+      policies: row.policies,
+      contacts: row.contacts,
+    })),
+    total: rows[0]?.total ?? 0,
+  }
+}

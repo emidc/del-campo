@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -55,7 +56,7 @@ export default async function InicioPage() {
                   <td>{TIPOS_DE_GESTION[g.kind]}</td>
                   <td>{g.partyName ?? 'sin nombre'}</td>
                   <td>{ESTADOS_DE_GESTION[g.status]}</td>
-                  <td className={g.dueDate !== null && g.dueDate < hoy ? 'pendiente' : undefined}>{g.dueDate ?? '—'}</td>
+                  <td className={g.dueDate !== null && g.dueDate < hoy ? 'pendiente' : undefined}>{fecha(g.dueDate)}</td>
                 </tr>
               ))}
             </tbody>
@@ -85,7 +86,7 @@ export default async function InicioPage() {
                   </td>
                   <td>{t.partyName ?? 'sin nombre'}</td>
                   <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
-                  <td className={t.dueDate !== null && t.dueDate < hoy ? 'pendiente' : undefined}>{t.dueDate ?? '—'}</td>
+                  <td className={t.dueDate !== null && t.dueDate < hoy ? 'pendiente' : undefined}>{fecha(t.dueDate)}</td>
                 </tr>
               ))}
             </tbody>

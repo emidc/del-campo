@@ -6,6 +6,7 @@ import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import type { ValorDeParametro, Valores } from '@/lib/criterios'
 import { CAMPOS, fechaDeHoy, leerCriterios } from '@/lib/criterios'
+import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
@@ -68,7 +69,7 @@ function Candidato({
       <p className="meta">
         {version === null
           ? 'Sin versión vigente a la fecha consultada'
-          : `Vigencia ${version.termStartDate} → ${version.termEndDate}${
+          : `Vigencia ${fecha(version.termStartDate)} → ${fecha(version.termEndDate)}${
               version.status === null ? '' : ` · ${version.status}`
             }`}
       </p>
@@ -141,8 +142,8 @@ export default async function BuscarPage({
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <p className="antetitulo">Clientes</p>
-      <h1>Clientes y pólizas</h1>
+      <p className="antetitulo">Pólizas</p>
+      <h1>Buscar pólizas</h1>
       <Formulario valores={valores} />
       {resultado === null ? (
         <p className="estado">
