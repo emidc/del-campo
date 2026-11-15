@@ -931,3 +931,8 @@ button.esperando {
 .encabezado + .grid-2 {
   margin-top: 18px;
 }
+
+td.pendiente {
+  font-size: inherit;
+  font-weight: 600;
+}

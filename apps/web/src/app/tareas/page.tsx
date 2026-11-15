@@ -36,27 +36,24 @@ export default async function TareasPage({
   )
   const hoy = fechaDeHoy()
 
-  const filtro = (etiqueta: string, activo: boolean, href: string) =>
-    activo ? <strong>{etiqueta}</strong> : <Link href={href}>{etiqueta}</Link>
+  const pestana = (etiqueta: string, activo: boolean, href: string) => (
+    <Link key={href} href={href} aria-current={activo ? 'page' : undefined}>
+      {etiqueta}
+    </Link>
+  )
 
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1>Tareas</h1>
-      <p className="meta">
-        {filtro('Todas las que ves', !mias && !hechas && estado === undefined, '/tareas')}
-        {' · '}
-        {filtro('Las mías', mias && estado === undefined, '/tareas?mias=1')}
-        {TASK_STATUSES.filter((e) => e !== 'HECHA').map((e) => (
-          <span key={e}>
-            {' · '}
-            {filtro(ESTADOS_DE_TAREA[e], estado === e, `/tareas?estado=${e}`)}
-          </span>
-        ))}
-        {' · '}
-        {filtro('Incluir hechas', hechas, '/tareas?hechas=1')}
-      </p>
+      <p className="antetitulo">Tareas</p>
+      <h1>Tareas ({lista.length})</h1>
+      <nav className="pestanas" aria-label="Filtros de tareas">
+        {pestana('Todas', !mias && !hechas && estado === undefined && parte === undefined, '/tareas')}
+        {pestana('Las mías', mias && estado === undefined, '/tareas?mias=1')}
+        {TASK_STATUSES.filter((e) => e !== 'HECHA').map((e) => pestana(ESTADOS_DE_TAREA[e], estado === e, `/tareas?estado=${e}`))}
+        {pestana('Con las hechas', hechas, '/tareas?hechas=1')}
+      </nav>
       {parte === undefined ? (
         <p className="meta">Para crear una tarea, abrí la ficha del cliente, una póliza o una gestión y usá «Nueva tarea».</p>
       ) : (
