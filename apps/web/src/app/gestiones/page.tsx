@@ -39,23 +39,24 @@ export default async function GestionesPage({
   )
   const hoy = fechaDeHoy()
 
-  const filtro = (etiqueta: string, activo: boolean, href: string) =>
-    activo ? <strong>{etiqueta}</strong> : <Link href={href}>{etiqueta}</Link>
+  const pestana = (etiqueta: string, activo: boolean, href: string) => (
+    <Link href={href} aria-current={activo ? 'page' : undefined}>
+      {etiqueta}
+    </Link>
+  )
 
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1>Gestiones</h1>
-      <p className="meta">
-        {filtro('Todas las abiertas', !mias && !cerradas, '/gestiones')}
-        {' · '}
-        {filtro('Las mías', mias && !cerradas, '/gestiones?mias=1')}
-        {' · '}
-        {filtro('Incluir cerradas', cerradas, '/gestiones?cerradas=1')}
-        {' · '}
-        <Link href="/gestiones/equipo">Equipo</Link>
-      </p>
+      <p className="antetitulo">Gestiones</p>
+      <h1>Gestiones ({lista.length})</h1>
+      <nav className="pestanas" aria-label="Filtros de gestiones">
+        {pestana('Abiertas', !mias && !cerradas && !acotada && responsable === undefined, '/gestiones')}
+        {pestana('Las mías', mias && !cerradas, '/gestiones?mias=1')}
+        {pestana('Con las cerradas', cerradas, '/gestiones?cerradas=1')}
+        {pestana('Equipo', false, '/gestiones/equipo')}
+      </nav>
       {responsable === undefined ? null : (
         <p className="meta">
           Mostrando las abiertas {responsable === 'SIN_RESPONSABLE' ? 'sin responsable' : 'de un integrante'}.{' '}
