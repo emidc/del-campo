@@ -940,3 +940,23 @@ td.pendiente {
 .ficha-datos {
   margin-top: 18px;
 }
+
+/* ── Filtros en chips (Renovaciones) ───────────────────────────────────────── */
+
+a.chip {
+  text-decoration: none;
+}
+
+a.chip:hover {
+  border-color: var(--marca);
+}
+
+.chip--activo {
+  background: var(--marca);
+  border-color: var(--marca);
+  color: #fff;
+}
+
+.chips--segunda {
+  margin-top: 8px;
+}

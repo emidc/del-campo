@@ -68,8 +68,11 @@ export default async function RenovacionesPage({
     const s = q.toString()
     return s === '' ? '/renovaciones' : `/renovaciones?${s}`
   }
-  const opcion = (etiqueta: string, activo: boolean, href: string) =>
-    activo ? <strong>{etiqueta}</strong> : <Link href={href}>{etiqueta}</Link>
+  const opcion = (etiqueta: string, activo: boolean, href: string) => (
+    <Link key={href + etiqueta} href={href} className={activo ? 'chip chip--activo' : 'chip'} aria-current={activo ? 'true' : undefined}>
+      {etiqueta}
+    </Link>
+  )
 
   const nuevaGestion = (r: RenewalItem) =>
     `/gestiones/nueva?${new URLSearchParams({
@@ -90,38 +93,33 @@ export default async function RenovacionesPage({
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <h1>Renovaciones</h1>
-      <p className="meta">
-        Pólizas cuya vigencia termina entre {desde} y {hasta}. Salen de las pólizas importadas: una póliza sin
-        sucesora en Broker OS puede estar renovada en la compañía después de la fecha del lote.
-      </p>
-      <p className="meta">
-        {(Object.keys(TRAMOS) as Tramo[]).map((t, i) => (
-          <span key={t}>
-            {i === 0 ? null : ' · '}
-            {opcion(TRAMOS[t].etiqueta, t === tramo, enlace({ tramo: t }))}
-          </span>
+      <p className="antetitulo">Renovaciones</p>
+      <h1>Renovaciones ({lista.length})</h1>
+      <nav className="pestanas" aria-label="Tramo de vencimiento">
+        {(Object.keys(TRAMOS) as Tramo[]).map((t) => (
+          <Link key={t} href={enlace({ tramo: t })} aria-current={t === tramo ? 'page' : undefined}>
+            {TRAMOS[t].etiqueta}
+          </Link>
         ))}
-      </p>
-      <p className="meta">
+      </nav>
+      <div className="chips">
         {opcion('Todas', modo === undefined, enlace({ modo: undefined }))}
-        {' · '}
         {opcion(`Manuales (${cuenta('MANUAL')}, ${cuenta('MANUAL', 'PENDIENTE')} pendientes)`, modo === 'MANUAL', enlace({ modo: 'MANUAL' }))}
-        {' · '}
         {opcion(
           `Automáticas (${cuenta('AUTOMATIC')}, ${cuenta('AUTOMATIC', 'PENDIENTE')} pendientes)`,
           modo === 'AUTOMATIC',
           enlace({ modo: 'AUTOMATIC' }),
         )}
-      </p>
-      <p className="meta">
+      </div>
+      <div className="chips chips--segunda">
         {opcion('Cualquier estado', estado === undefined, enlace({ estado: undefined }))}
-        {(Object.keys(ESTADOS_DE_RENOVACION) as RenewalState[]).map((e) => (
-          <span key={e}>
-            {' · '}
-            {opcion(ESTADOS_DE_RENOVACION[e], estado === e, enlace({ estado: e }))}
-          </span>
-        ))}
+        {(Object.keys(ESTADOS_DE_RENOVACION) as RenewalState[]).map((e) =>
+          opcion(ESTADOS_DE_RENOVACION[e], estado === e, enlace({ estado: e })),
+        )}
+      </div>
+      <p className="meta">
+        Pólizas cuya vigencia termina entre el {fecha(desde)} y el {fecha(hasta)}. Salen de las pólizas importadas: una
+        póliza sin sucesora en Broker OS puede estar renovada en la compañía después de la fecha del lote.
       </p>
 
       {lista.length === 0 ? (
