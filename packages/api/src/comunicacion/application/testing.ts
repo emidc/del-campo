@@ -1,4 +1,4 @@
-// Payloads de prueba. Parten de los fixtures de `contexts/communication/fixtures/`, que
+// Payloads de prueba. Parten de los fixtures de `../fixtures/`, que
 // tienen la forma documentada por Meta (los sintéticos) o capturada y redactada en
 // T-0020 (los `real-*`), y solo cambian los valores: ninguno es un dato real (R-19).
 

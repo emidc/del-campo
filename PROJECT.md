@@ -40,12 +40,12 @@ entre la empresa y el equipo.
 ## 3. Dónde estamos
 
 Ya funciona en `apps/web`: login con Google, clientes y pólizas importados de Zoho,
-búsqueda, fichas, gestiones, renovaciones, siniestros, cotizaciones, tareas e inicio con
-indicadores.
+búsqueda, fichas, gestiones, renovaciones, siniestros, cotizaciones, tareas, inicio con
+indicadores y la sección Comunicación, que recibe y responde WhatsApp desde el 16/11/2026.
 
-Queda del rumbo anterior y se va a retirar: Risk OS y Communication OS como aplicaciones
-separadas (`apps/risk`, `apps/communication`, `contexts/`), cada una con su base y su
-login, y los roles por función. Mientras tanto no se invierte más en ellas.
+Queda del rumbo anterior y se va a retirar: Risk OS como aplicación separada (`apps/risk`,
+`contexts/risk`), con su base y su login, y los roles por función. Mientras tanto no se
+invierte más en ella. Communication OS ya se retiró (`T-0066`).
 
 Postergado al 01/01/2027 por Emiliano: el refresco de datos de Zoho (`T-0037`) y la semana
 de prueba sin Zoho (`T-0055`).

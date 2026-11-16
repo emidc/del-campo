@@ -1,6 +1,6 @@
 {
   "//": [
-    "Igual que apps/communication (D-0058): extiende el raíz y sobrescribe solo lo que Next.js",
+    "Como toda app de contexto (D-0058): extiende el raíz y sobrescribe solo lo que Next.js",
     "necesita."
   ],
   "extends": "../../tsconfig.json",
