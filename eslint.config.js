@@ -43,7 +43,7 @@ const prohibirImports = (regex, mensaje) =>
 // ── D-0063 · Contextos ───────────────────────────────────────────────────────
 // Cada contexto es un paquete bajo `contexts/`. Broker (`packages/*`, `apps/*`) no
 // importa ningún contexto, ni por nombre ni por ruta relativa.
-const CONTEXTOS = ['communication', 'risk']
+const CONTEXTOS = ['risk']
 
 const brokerNoImportaContextos = [
   ...prohibirImports(
@@ -159,12 +159,10 @@ export default tseslint.config(
       // El arnés de Project OS y sus copias en REVIEWS son .mjs anteriores a este
       // workspace: no están en el programa de TypeScript y R-25 no los alcanza.
       '**/*.mjs',
-      // …salvo dentro de la app y del contexto de communication, que no tienen .mjs
-      // propios: uno nuevo ahí se lintea con sus límites, y como no está en ningún
-      // tsconfig, falla. Sin esto, un .mjs saltaba R-25 (hallazgo C3 de T-0025).
-      '!apps/communication/**/*.mjs',
+      // …salvo dentro de la app y del contexto de risk, que no tienen .mjs propios: uno
+      // nuevo ahí se lintea con sus límites, y como no está en ningún tsconfig, falla.
+      // Sin esto, un .mjs saltaba R-25 (hallazgo C3 de T-0025).
       '!apps/risk/**/*.mjs',
-      '!contexts/communication/**/*.mjs',
       '!contexts/risk/**/*.mjs',
     ],
   },
@@ -209,11 +207,11 @@ export default tseslint.config(
   // ── R-25, D-0063 · Broker no importa contextos ────────────────────────────
   // Va antes del bloque de packages/domain: ese bloque redefine no-restricted-syntax y,
   // en flat config, el último gana. Por eso domain repite esta lista en el suyo.
-  // La app de un contexto (apps/communication) tiene su propio bloque, más abajo: D-0063
+  // La app de un contexto (apps/risk) tiene su propio bloque, más abajo: D-0063
   // le permite importar su contexto. Toda otra app, presente o futura, queda acá.
   {
     files: ['packages/**/*.ts', 'apps/**/*.{ts,tsx}'],
-    ignores: ['apps/communication/**', 'apps/risk/**'],
+    ignores: ['apps/risk/**'],
     rules: {
       'no-restricted-syntax': ['error', ...brokerNoImportaContextos],
     },
@@ -259,7 +257,7 @@ export default tseslint.config(
       'la web pasa por api, no por la base'),
   },
 
-  // ── R-25, D-0063 · contextos (contexts/communication, contexts/risk) ──────
+  // ── R-25, D-0063 · contextos (contexts/risk) ─────────────────────────────
   // Tres bloques por contexto, en orden de especificidad; cada uno repite la lista del
   // anterior porque redefine la misma regla. domain no importa nada fuera de domain;
   // persistence no importa application; application es lo único que el paquete exporta
@@ -300,22 +298,9 @@ export default tseslint.config(
     },
   ]),
 
-  // ── R-25, D-0063 · apps/communication (T-0025) ──────────────────────────
-  // Puede importar: @del-campo/communication (solo la raíz), next, react, react-dom,
-  // node:* y relativos dentro de apps/communication. Nada más del workspace.
-  {
-    files: ['apps/communication/**/*.{ts,tsx,js,mjs}'],
-    plugins: { local: { rules: { 'sin-salir-de': sinSalirDe } } },
-    rules: {
-      'no-restricted-syntax': ['error', ...appDeContexto('communication')],
-      'local/sin-salir-de': ['error', 'apps/communication'],
-    },
-  },
-
   // ── R-25, D-0063 · apps/risk (T-0030) ───────────────────────────────────
-  // Lo mismo para Risk OS: @del-campo/risk (solo la raíz), next, react, react-dom, node:* y
-  // relativos dentro de apps/risk. Ni Broker OS, ni communication, ni archivos internos del
-  // contexto.
+  // Puede importar: @del-campo/risk (solo la raíz), next, react, react-dom, node:* y
+  // relativos dentro de apps/risk. Ni Broker OS ni archivos internos del contexto.
   {
     files: ['apps/risk/**/*.{ts,tsx,js,mjs}'],
     plugins: { local: { rules: { 'sin-salir-de': sinSalirDe } } },

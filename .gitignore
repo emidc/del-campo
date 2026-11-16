@@ -22,8 +22,6 @@ CLAUDE.local.md
 # encuentra los tipos del framework en un clon limpio, antes de que exista un build.
 apps/web/.next/
 apps/web/*.tsbuildinfo
-apps/communication/.next/
-apps/communication/*.tsbuildinfo
 apps/risk/.next/
 apps/risk/*.tsbuildinfo
 .ci-base/
