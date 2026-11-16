@@ -67,19 +67,20 @@ export interface ConversationList {
   readonly deliveries: DeliveryHealth
 }
 
+/** Las conversaciones, sin el estado de las entregas: es lo que puede leer `broker_app`. */
+export const conversationSummaries = async (sql: Conexion, now: Date = new Date()): Promise<ConversationSummary[]> =>
+  (await listConversations(sql)).map((r) => ({
+    id: r.id,
+    profileName: r.profileName,
+    waIdLast4: r.waIdLast4,
+    bsuid: r.bsuid,
+    lastMessageAt: r.lastMessageAt,
+    window: serviceWindow(r.lastInboundAt, now),
+  }))
+
 export const conversationList = async (sql: Conexion, now: Date = new Date()): Promise<ConversationList> => {
-  const [rows, deliveries] = await Promise.all([listConversations(sql), deliveryHealth(sql, now)])
-  return {
-    conversations: rows.map((r) => ({
-      id: r.id,
-      profileName: r.profileName,
-      waIdLast4: r.waIdLast4,
-      bsuid: r.bsuid,
-      lastMessageAt: r.lastMessageAt,
-      window: serviceWindow(r.lastInboundAt, now),
-    })),
-    deliveries,
-  }
+  const [conversations, deliveries] = await Promise.all([conversationSummaries(sql, now), deliveryHealth(sql, now)])
+  return { conversations, deliveries }
 }
 
 export type ThreadItem =
@@ -105,13 +106,16 @@ export type ThreadItem =
       readonly at: Date
     }
 
-export interface ConversationThread {
+export interface ConversationMessages {
   readonly id: number
   readonly label: ParticipantLabel
   readonly items: ThreadItem[]
   readonly window: ServiceWindow
   /** Cloud API envía a un `wa_id`: sin teléfono no se puede responder desde acá. */
   readonly canReply: boolean
+}
+
+export interface ConversationThread extends ConversationMessages {
   readonly deliveries: DeliveryHealth
 }
 
@@ -120,20 +124,19 @@ export interface ConversationThread {
  * los intentos sin confirmar intercalados por hora. El orden de `sort` es estable: dos
  * mensajes del mismo instante conservan el desempate de `listThread`.
  */
-export const conversationThread = async (
+export const conversationMessages = async (
   sql: Conexion,
   id: number,
   now: Date = new Date(),
-): Promise<ConversationThread | null> => {
+): Promise<ConversationMessages | null> => {
   const found = await conversationParticipant(sql, id)
   if (found === null) return null
   const { participant } = found
-  const [messages, unsupported, attempts, lastInbound, deliveries] = await Promise.all([
+  const [messages, unsupported, attempts, lastInbound] = await Promise.all([
     listThread(sql, participant),
     listUnsupported(sql, participant),
     participant.waId === null ? Promise.resolve([]) : listOpenAttempts(sql, participant.waId),
     lastInboundAt(sql, participant),
-    deliveryHealth(sql, now),
   ])
 
   const items: ThreadItem[] = [
@@ -170,6 +173,15 @@ export const conversationThread = async (
     items,
     window: serviceWindow(lastInbound, now),
     canReply: participant.waId !== null,
-    deliveries,
   }
+}
+
+/** El hilo con el estado de las entregas, para quien puede leer las entregas crudas. */
+export const conversationThread = async (
+  sql: Conexion,
+  id: number,
+  now: Date = new Date(),
+): Promise<ConversationThread | null> => {
+  const thread = await conversationMessages(sql, id, now)
+  return thread === null ? null : { ...thread, deliveries: await deliveryHealth(sql, now) }
 }

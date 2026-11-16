@@ -960,3 +960,59 @@ a.chip:hover {
 .chips--segunda {
   margin-top: 8px;
 }
+
+/* ── Comunicación: el hilo de una conversación ─────────────────────────────── */
+
+.hilo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  max-width: 78%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--borde);
+  background: var(--panel);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.msg--entra {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.msg--sale {
+  align-self: flex-end;
+  background: #e8f1f4;
+  border-bottom-right-radius: 4px;
+}
+
+.msg--duda {
+  border-color: var(--alerta-borde);
+  background: var(--alerta-fondo);
+  color: var(--alerta);
+}
+
+.msg--nota {
+  align-self: center;
+  max-width: 100%;
+  background: var(--panel-2);
+  color: var(--tinta-suave);
+  font-size: 0.86rem;
+}
+
+.msg__meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+}
+
+@media (max-width: 700px) {
+  .msg {
+    max-width: 92%;
+  }
+}
