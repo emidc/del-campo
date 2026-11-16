@@ -936,3 +936,7 @@ td.pendiente {
   font-size: inherit;
   font-weight: 600;
 }
+
+.ficha-datos {
+  margin-top: 18px;
+}

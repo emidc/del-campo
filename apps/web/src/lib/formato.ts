@@ -41,3 +41,6 @@ const CONCILIACION: Readonly<Record<string, string>> = {
 
 /** Estados de conciliación y de resolución documental, en español; lo desconocido se muestra tal cual. */
 export const estadoDocumental = (valor: string): string => CONCILIACION[valor] ?? valor
+
+/** Una marca de tiempo ISO como `DD/MM/AAAA HH:MM`, con la hora tal como viene guardada. */
+export const fechaHora = (marca: string): string => `${fecha(marca)} ${marca.slice(11, 16)}`.trim()

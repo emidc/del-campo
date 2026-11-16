@@ -28,4 +28,5 @@ Pantallas del prototipo que todavía no tienen datos reales detrás.
 - 15/11/2026: Inicio con saludo y fecha, «Mis tareas» y «A atender» en dos tarjetas con el motivo de cada renglón (vencida, vence hoy, trabada), y los indicadores debajo.
 - 15/11/2026: ficha de póliza con encabezado, datos y documentos en tarjetas, y estados de póliza y documentales en español (lo que no se conoce se muestra como viene del origen).
 - 15/11/2026: listas de Gestiones y Tareas con los filtros en pestañas, antetítulo y cantidad en el título.
+- 15/11/2026: fichas de gestión y de tarea con migas, encabezado con estado y vencimiento, y los datos en una tarjeta; fechas y horas en día/mes/año.
 - Falta: la sección Riesgos como en el prototipo, que llega con T-0061, y lo que Emiliano marque al revisarlo en pantalla.
