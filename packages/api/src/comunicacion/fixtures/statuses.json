@@ -1,0 +1,33 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "900000000000001",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": { "display_phone_number": "15550100001", "phone_number_id": "800000000000001" },
+            "statuses": [
+              {
+                "id": "wamid.SYNTH-OUTBOUND-0001",
+                "status": "sent",
+                "timestamp": "1790000030",
+                "recipient_id": "15550199001",
+                "conversation": { "id": "SYNTH-CONVERSATION-0001", "origin": { "type": "service" } },
+                "pricing": { "billable": true, "pricing_model": "PMP", "category": "service" }
+              },
+              {
+                "id": "wamid.SYNTH-OUTBOUND-0001",
+                "status": "delivered",
+                "timestamp": "1790000031",
+                "recipient_id": "15550199001"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

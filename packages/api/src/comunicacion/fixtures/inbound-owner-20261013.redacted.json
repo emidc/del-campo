@@ -1,0 +1,50 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "900000000000001",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "15550000001",
+              "phone_number_id": "900000000000002"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Persona Sintética 1"
+                },
+                "wa_id": "15550000002",
+                "user_id": "AR.SYNTH-USER-0001",
+                "country_code": "AR"
+              }
+            ],
+            "messages": [
+              {
+                "from": "15550000002",
+                "from_user_id": "AR.SYNTH-USER-0001",
+                "id": "wamid.SYNTH-INBOUND-20261013",
+                "timestamp": "1790000000",
+                "text": {
+                  "body": "Texto sintético 1."
+                },
+                "from_logical_id": "900000000000003",
+                "type": "text",
+                "internal_1p_only_data": {
+                  "account_context": {
+                    "waac_id": "900000000000004",
+                    "cs_id": "900000000000002",
+                    "account_context_type": "non_paid_messaging"
+                  }
+                }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}

@@ -180,3 +180,7 @@ export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './m
 // T-0060: usuarios del equipo desde la app.
 export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
 export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'
+
+// T-0066: Comunicación como sección. Las entradas sin sesión: el webhook de WhatsApp y
+// las tareas programadas.
+export { tareaDeReproceso, tareaDeRetencion, whatsappWebhook } from './comunicacion/entrada.ts'
