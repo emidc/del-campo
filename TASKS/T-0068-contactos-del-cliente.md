@@ -1,7 +1,7 @@
 ---
 id: T-0068
 title: Cargar teléfono y mail en la ficha del cliente
-status: READY
+status: ACTIVE
 created: 2026-11-16
 linear:
 ---
@@ -24,3 +24,7 @@ identificar» no tiene forma de vincularlo con el cliente.
 ## Fuera de alcance
 
 Recibir o enviar correo desde Broker OS. Verificar que el teléfono o el mail sean del cliente.
+
+## Avance
+
+- 16/11/2026: tarjeta «Teléfonos y mails» en el Resumen de la ficha (ver, agregar, corregir y dar de baja), y «¿Es un cliente?» en la conversación sin identificar, que busca el cliente y le guarda el teléfono. Migración `0022`. Queda que Emiliano la aplique en producción y lo pruebe.

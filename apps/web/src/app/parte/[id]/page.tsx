@@ -1,8 +1,11 @@
 import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_TAREA,
+  MENSAJE_DE_CONTACTO,
   TIPOS_DE_GESTION,
+  contactosDeCliente,
   conversacionesDeCliente,
+  esResultadoDeContacto,
   gestiones,
   latestBatch,
   party,
@@ -12,12 +15,15 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 
+import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
 import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
+
+import { agregar, corregir, quitar } from './acciones'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,16 +43,19 @@ export default async function PartePage({
 }) {
   const principal = await requireAdmitted()
   const { id } = await params
-  const crudo = (await searchParams).seccion
+  const parametros = await searchParams
+  const crudo = parametros.seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
+  const avisoDeContacto = typeof parametros.c === 'string' && esResultadoDeContacto(parametros.c) ? parametros.c : null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, `${asOf}T12:00:00Z`),
       gestiones(principal, { onlyMine: false, includeClosed: true, partyId: id }),
       tareas(principal, { onlyMine: false, includeDone: true, partyId: id }),
       conversacionesDeCliente(principal, id),
+      contactosDeCliente(principal, id),
     ]),
   )
   if (vista === null) notFound()
@@ -107,6 +116,7 @@ export default async function PartePage({
 
       {seccion === 'resumen' ? (
         <div className="grid-2">
+          <div>
           <section className="tarjeta">
             <h2>Datos</h2>
             <dl className="kv">
@@ -138,6 +148,66 @@ export default async function PartePage({
               </dd>
             </dl>
           </section>
+
+          <section className="tarjeta" id="contactos">
+            <h2>Teléfonos y mails</h2>
+            {avisoDeContacto === null ? null : (
+              <p className={avisoDeContacto === 'guardado' || avisoDeContacto === 'quitado' ? 'estado' : 'estado estado--aviso'} role="status">
+                {MENSAJE_DE_CONTACTO[avisoDeContacto]}
+              </p>
+            )}
+            {susContactos.length === 0 ? (
+              <p className="meta">Ninguno cargado. Con el teléfono cargado, sus conversaciones de WhatsApp aparecen en esta ficha.</p>
+            ) : (
+              <ul className="lista">
+                {susContactos.map((c) => (
+                  <li key={c.id} className="contacto">
+                    <div>
+                      <p className="meta">{c.channel === 'EMAIL' ? 'Mail' : 'Teléfono'}</p>
+                      {c.value}
+                    </div>
+                    <details>
+                      <summary>Corregir</summary>
+                      <form action={corregir} className="fila">
+                        <input type="hidden" name="parte" value={id} />
+                        <input type="hidden" name="contacto" value={c.id} />
+                        <input
+                          name="valor"
+                          type={c.channel === 'EMAIL' ? 'email' : 'tel'}
+                          defaultValue={c.value}
+                          required
+                          maxLength={120}
+                          aria-label={c.channel === 'EMAIL' ? 'Mail corregido' : 'Teléfono corregido'}
+                        />
+                        <BotonEnviar className="boton--chico">Guardar</BotonEnviar>
+                      </form>
+                    </details>
+                    <form action={quitar}>
+                      <input type="hidden" name="parte" value={id} />
+                      <input type="hidden" name="contacto" value={c.id} />
+                      <BotonEnviar className="boton--secundario boton--chico">Dar de baja</BotonEnviar>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={agregar} className="contacto-nuevo">
+              <input type="hidden" name="parte" value={id} />
+              <div className="campo">
+                <label htmlFor="canal">Agregar</label>
+                <select id="canal" name="canal" defaultValue="PHONE">
+                  <option value="PHONE">Teléfono</option>
+                  <option value="EMAIL">Mail</option>
+                </select>
+              </div>
+              <div className="campo">
+                <label htmlFor="valor">Número o dirección</label>
+                <input id="valor" name="valor" required maxLength={120} placeholder="261 555 0101" />
+              </div>
+              <BotonEnviar>Agregar</BotonEnviar>
+            </form>
+          </section>
+          </div>
 
           {/* Navegación organizacional de §63: empresa → contactos y contacto → empresas. */}
           <div>

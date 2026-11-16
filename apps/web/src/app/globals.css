@@ -1016,3 +1016,57 @@ a.chip:hover {
     max-width: 92%;
   }
 }
+
+/* ── Teléfonos y mails del cliente (T-0068) ────────────────────────────────── */
+
+.contacto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.contacto > div {
+  flex: 1 1 12rem;
+  overflow-wrap: anywhere;
+}
+
+.contacto summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--tinta-suave);
+}
+
+.contacto details[open] {
+  flex-basis: 100%;
+  order: 3;
+}
+
+.contacto details .fila {
+  margin-top: 8px;
+}
+
+.contacto details input {
+  flex: 1 1 12rem;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-chico);
+  padding: 6px 10px;
+  min-height: 34px;
+  font: inherit;
+}
+
+.contacto-nuevo {
+  display: grid;
+  grid-template-columns: 8rem 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+}
+
+@media (max-width: 520px) {
+  .contacto-nuevo {
+    grid-template-columns: 1fr;
+  }
+}
