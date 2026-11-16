@@ -64,6 +64,7 @@ En este orden. El detalle de cada una está en `TASKS/` y en Linear.
 | 5 | `T-0064` Portal de empresa con su panel de riesgos | La empresa ve y comenta sus riesgos |
 | 6 | `T-0065` Retirar Risk OS separado | Menos código y costo |
 | 7 | `T-0066` Comunicación como sección | Un solo sistema de verdad |
+| 8 | `T-0068` Teléfono y mail en la ficha del cliente | Que cada conversación de WhatsApp quede vinculada a su cliente |
 
 `T-0067` (acercar la interfaz al prototipo) avanza en paralelo, pantalla por pantalla, a
 medida que se toca cada sección. `T-0060` y `T-0062` no dependen del ejercicio y pueden
