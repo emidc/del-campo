@@ -29,4 +29,5 @@ Pantallas del prototipo que todavía no tienen datos reales detrás.
 - 15/11/2026: ficha de póliza con encabezado, datos y documentos en tarjetas, y estados de póliza y documentales en español (lo que no se conoce se muestra como viene del origen).
 - 15/11/2026: listas de Gestiones y Tareas con los filtros en pestañas, antetítulo y cantidad en el título.
 - 15/11/2026: fichas de gestión y de tarea con migas, encabezado con estado y vencimiento, y los datos en una tarjeta; fechas y horas en día/mes/año.
+- 16/11/2026: Renovaciones con los tramos en pestañas y los filtros de modo y estado en chips; Equipo en tabla con el formulario de invitación en tarjeta.
 - Falta: la sección Riesgos como en el prototipo, que llega con T-0061, y lo que Emiliano marque al revisarlo en pantalla.

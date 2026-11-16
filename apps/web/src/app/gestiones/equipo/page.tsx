@@ -18,6 +18,7 @@ export default async function EquipoPage() {
         <Link href="/gestiones">← Gestiones</Link>
       </p>
 
+      <p className="antetitulo">Gestiones</p>
       <h1>Carga del equipo</h1>
       <p className="meta">Gestiones abiertas por responsable. Vencidas: con fecha de vencimiento anterior a hoy.</p>
 
