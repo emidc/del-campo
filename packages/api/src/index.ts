@@ -184,3 +184,22 @@ export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'
 // T-0066: Comunicación como sección. Las entradas sin sesión: el webhook de WhatsApp y
 // las tareas programadas.
 export { tareaDeReproceso, tareaDeRetencion, whatsappWebhook } from './comunicacion/entrada.ts'
+export {
+  MAX_REPLY_LENGTH,
+  MENSAJE_DE_RESPUESTA,
+  conversacion,
+  conversaciones,
+  conversacionesDeCliente,
+  esResultadoDeRespuesta,
+  responderConversacion,
+} from './comunicacion/seccion.ts'
+export type {
+  ClienteDeConversacion,
+  Conversacion,
+  ConversacionResumen,
+  Conversaciones,
+  ConversationMessages,
+  DeliveryHealth,
+  ResultadoDeRespuesta,
+  ThreadItem,
+} from './comunicacion/seccion.ts'

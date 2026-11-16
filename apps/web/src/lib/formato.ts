@@ -44,3 +44,16 @@ export const estadoDocumental = (valor: string): string => CONCILIACION[valor] ?
 
 /** Una marca de tiempo ISO como `DD/MM/AAAA HH:MM`, con la hora tal como viene guardada. */
 export const fechaHora = (marca: string): string => `${fecha(marca)} ${marca.slice(11, 16)}`.trim()
+
+const HORA_ARGENTINA = new Intl.DateTimeFormat('es-AR', {
+  timeZone: 'America/Argentina/Buenos_Aires',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
+/** Un instante como `DD/MM/AAAA HH:MM`, en hora de Argentina. Para lo que llega con hora propia, como un mensaje. */
+export const instante = (momento: Date): string => HORA_ARGENTINA.format(momento).replace(',', '')

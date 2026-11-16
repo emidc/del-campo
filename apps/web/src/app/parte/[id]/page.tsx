@@ -2,6 +2,7 @@ import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_TAREA,
   TIPOS_DE_GESTION,
+  conversacionesDeCliente,
   gestiones,
   latestBatch,
   party,
@@ -14,12 +15,13 @@ import { Suspense } from 'react'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
-import { fecha } from '@/lib/formato'
+import { contacto } from '@/app/comunicacion/etiquetas'
+import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
-const SECCIONES = ['resumen', 'polizas', 'riesgos', 'gestiones', 'tareas'] as const
+const SECCIONES = ['resumen', 'polizas', 'riesgos', 'gestiones', 'tareas', 'comunicacion'] as const
 type Seccion = (typeof SECCIONES)[number]
 
 const esSeccion = (valor: string | undefined): valor is Seccion =>
@@ -38,12 +40,13 @@ export default async function PartePage({
   const crudo = (await searchParams).seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, `${asOf}T12:00:00Z`),
       gestiones(principal, { onlyMine: false, includeClosed: true, partyId: id }),
       tareas(principal, { onlyMine: false, includeDone: true, partyId: id }),
+      conversacionesDeCliente(principal, id),
     ]),
   )
   if (vista === null) notFound()
@@ -59,6 +62,7 @@ export default async function PartePage({
     ...(esEmpresa ? ([['riesgos', 'Riesgos']] as const) : []),
     ['gestiones', `Gestiones (${String(gestionesAbiertas)})`],
     ['tareas', `Tareas (${String(tareasPendientes)})`],
+    ['comunicacion', `WhatsApp (${String(susConversaciones.length)})`],
   ]
 
   return (
@@ -289,6 +293,43 @@ export default async function PartePage({
                       <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
                       <td className={t.dueDate !== null && t.dueDate < asOf && t.status !== 'HECHA' ? 'pendiente' : undefined}>
                         {fecha(t.dueDate)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {seccion === 'comunicacion' ? (
+        <section className="tarjeta">
+          <h2>WhatsApp</h2>
+          {susConversaciones.length === 0 ? (
+            <p className="meta">
+              No hay conversaciones de WhatsApp con los teléfonos cargados de este cliente. Las de un teléfono que no está cargado quedan en
+              Comunicación, como «Sin identificar».
+            </p>
+          ) : (
+            <div className="desborde">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Contacto</th>
+                    <th>Último mensaje</th>
+                    <th>Respuesta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {susConversaciones.map((c) => (
+                    <tr key={c.id}>
+                      <td className="nombre">
+                        <Link href={`/comunicacion/${String(c.id)}`}>{contacto(c)}</Link>
+                      </td>
+                      <td>{instante(c.lastMessageAt)}</td>
+                      <td>
+                        {c.window.open && c.window.closesAt !== null ? `Hasta ${instante(c.window.closesAt)}` : <span className="meta">Ventana cerrada</span>}
                       </td>
                     </tr>
                   ))}

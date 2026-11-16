@@ -15,7 +15,7 @@ import {
   type AttemptRow,
 } from '../persistence/attempts.ts'
 import { conversationParticipant, lastInboundAt } from '../persistence/conversations.ts'
-import type { Conexion, Sql } from '../persistence/database.ts'
+import type { Conexion } from '../persistence/database.ts'
 import type { Participant } from '../domain/payload.ts'
 import { outboundMessageProblem } from './operations.ts'
 
@@ -26,7 +26,7 @@ import { outboundMessageProblem } from './operations.ts'
 export type Phase = <T>(op: (sql: Conexion) => Promise<T>) => Promise<T>
 
 export interface ReplyDeps {
-  readonly sql: Sql
+  readonly sql: Conexion
   readonly phase?: Phase
   /** Quién responde (`app_user.id`). Queda en el intento (`sent_by_user_id`); como `broker_app` es obligatorio. */
   readonly author?: string | null
