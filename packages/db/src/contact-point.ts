@@ -49,7 +49,7 @@ export const listContactPoints = async (sql: QueryExecutor, partyId: string): Pr
     select id, channel, value, source
     from contact_point
     where party_id = ${partyId} and status = 'ACTIVE' and (valid_to is null or valid_to > now())
-    order by (channel = 'EMAIL'), created_at, value`
+    order by (channel = 'EMAIL'), created_at, value collate "C"`
 
 export type AddContactResult = { readonly kind: 'ok'; readonly id: string } | { readonly kind: 'duplicate' }
 
