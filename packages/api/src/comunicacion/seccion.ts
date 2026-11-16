@@ -2,6 +2,8 @@
 // toda consulta, corre por `conDatos`: como `broker_app`, a nombre de quien mira, con RLS
 // decidiendo. Todo el equipo ve todas las conversaciones (decisión de Emiliano, 15/11/2026).
 
+import { addContactPoint } from '@del-campo/db'
+
 import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
@@ -16,6 +18,7 @@ import {
 import { sendReply, type Phase, type ReplyResult } from './application/reply.ts'
 import { cloudApiConfigProblem, cloudApiSender, type TextSender } from './integration/cloud-api.ts'
 import { listConversationParties } from './persistence/clientes.ts'
+import { conversationParticipant } from './persistence/conversations.ts'
 import type { Conexion } from './persistence/database.ts'
 
 export type { ConversationMessages, DeliveryHealth, ReplyResult }
@@ -108,6 +111,34 @@ export const conversacion = async (principal: Principal, id: number): Promise<Co
   if (leida === null) return null
   return { ...leida, entregas: await deliveryHealth(conexion), envioConfigurado: envioConfigurado() !== null }
 }
+
+export type ResultadoDeVinculo = 'vinculado' | 'inexistente' | 'sin-telefono'
+
+/**
+ * T-0068 — Vincula una conversación con un cliente: le carga al cliente el teléfono de
+ * quien escribe. El número sale de la base y no pasa por el navegador. Si el cliente ya
+ * lo tenía, queda igual.
+ */
+export const vincularConversacionCon = async (
+  conexion: Conexion,
+  principal: Principal,
+  conversationId: number,
+  partyId: string,
+): Promise<ResultadoDeVinculo> => {
+  if (!UUID.test(partyId)) return 'inexistente'
+  return conDatos(conexion, principal, async (tx) => {
+    const participante = await conversationParticipant(tx, conversationId)
+    const [cliente] = await tx<{ id: string }[]>`select id from party where id = ${partyId}`
+    if (participante === null || cliente === undefined) return 'inexistente'
+    const { waId } = participante.participant
+    if (waId === null) return 'sin-telefono'
+    await addContactPoint(tx, partyId, 'PHONE', { value: `+${waId}`, normalized: waId })
+    return 'vinculado'
+  })
+}
+
+export const vincularConversacion = (principal: Principal, conversationId: number, partyId: string): Promise<ResultadoDeVinculo> =>
+  vincularConversacionCon(sql(), principal, conversationId, partyId)
 
 export interface Respuesta {
   readonly idempotencyKey: string

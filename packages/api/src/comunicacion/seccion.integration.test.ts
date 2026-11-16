@@ -10,7 +10,7 @@ import postgres from 'postgres'
 import { AccesoDenegado } from '../acceso/datos.ts'
 import type { Principal } from '../session/admission.ts'
 import type { SendOutcome } from './integration/cloud-api.ts'
-import { conversacionesCon, responderCon, type EnvioConfigurado } from './seccion.ts'
+import { conversacionesCon, responderCon, vincularConversacionCon, type EnvioConfigurado } from './seccion.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -142,6 +142,39 @@ describe('sección Comunicación (T-0066)', () => {
       const r = await responderCon(tx, principal('sub-com'), null, { idempotencyKey: KEY, conversationId: 1, body: 'x' })
       assert.equal(r.kind, 'not-configured')
       assert.equal((await tx`select 1 from communication.outbound_attempt`).length, 0)
+    })
+  })
+  it('vincular una conversación sin identificar le carga el teléfono al cliente (T-0068)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const [beto] = await tx<{ id: string }[]>`insert into party (kind) values ('PERSON') returning id`
+      assert.ok(beto)
+      await tx`insert into person_profile (party_id, first_name, last_name) values (${beto.id}, 'Beto', 'Sintético')`
+      const desconocida = (await conversacionesCon(tx, principal('sub-com'))).conversaciones.find((c) => c.profileName === 'Desconocido')
+      assert.ok(desconocida)
+
+      assert.equal(await vincularConversacionCon(tx, principal('sub-com'), desconocida.id, beto.id), 'vinculado')
+      // Repetirlo no duplica el teléfono.
+      assert.equal(await vincularConversacionCon(tx, principal('sub-com'), desconocida.id, beto.id), 'vinculado')
+
+      const deBeto = await conversacionesCon(tx, principal('sub-com'), beto.id)
+      assert.deepEqual(deBeto.conversaciones.map((c) => [c.profileName, c.clientes]), [
+        ['Desconocido', [{ partyId: beto.id, name: 'Beto Sintético' }]],
+      ])
+      const telefonos = await tx<{ value: string; source: string; autor: string }[]>`
+        select value, source, created_by_user_id as autor from contact_point where party_id = ${beto.id}`
+      assert.deepEqual([...telefonos], [{ value: '+5492615550999', source: 'Broker OS', autor: m.usuario }])
+    })
+  })
+
+  it('no vincula una conversación o un cliente que no existen', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      assert.equal(await vincularConversacionCon(tx, principal('sub-com'), 999999999, m.ana), 'inexistente')
+      const [conv] = (await conversacionesCon(tx, principal('sub-com'))).conversaciones
+      assert.ok(conv)
+      assert.equal(await vincularConversacionCon(tx, principal('sub-com'), conv.id, '00000000-0000-4000-8000-00000000dead'), 'inexistente')
+      assert.equal(await vincularConversacionCon(tx, principal('sub-com'), conv.id, 'no-es-un-id'), 'inexistente')
     })
   })
 })

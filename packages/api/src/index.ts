@@ -192,6 +192,7 @@ export {
   conversacionesDeCliente,
   esResultadoDeRespuesta,
   responderConversacion,
+  vincularConversacion,
 } from './comunicacion/seccion.ts'
 export type {
   ClienteDeConversacion,
@@ -201,5 +202,19 @@ export type {
   ConversationMessages,
   DeliveryHealth,
   ResultadoDeRespuesta,
+  ResultadoDeVinculo,
   ThreadItem,
 } from './comunicacion/seccion.ts'
+
+// T-0068: teléfonos y mails del cliente.
+export {
+  CANALES_DE_CONTACTO,
+  MENSAJE_DE_CONTACTO,
+  agregarContacto,
+  contactosDeCliente,
+  corregirContacto,
+  esCanalDeContacto,
+  esResultadoDeContacto,
+  quitarContacto,
+} from './clientes/contactos.ts'
+export type { CanalDeContacto, ContactChannel, ContactPoint, ResultadoDeContacto } from './clientes/contactos.ts'

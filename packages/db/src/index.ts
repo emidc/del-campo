@@ -105,3 +105,12 @@ export {
   updateClaimContact,
 } from './claim-contact.ts'
 export type { ClaimContact, ClaimContactRole, NewClaimContact } from './claim-contact.ts'
+export {
+  BROKER_OS_SOURCE,
+  CONTACT_CHANNELS,
+  addContactPoint,
+  cleanContact,
+  endContactPoint,
+  listContactPoints,
+} from './contact-point.ts'
+export type { AddContactResult, CleanContact, ContactChannel, ContactPoint } from './contact-point.ts'
