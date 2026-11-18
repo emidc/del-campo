@@ -125,6 +125,12 @@ export default async function ConversacionPage({
           <h1>{titulo}</h1>
           <div className="chips">
             <span className="chip">{contacto({ profileName: hilo.label.profileName, waIdLast4: hilo.label.waIdLast4, bsuid: hilo.label.bsuid })}</span>
+            {hilo.waId === null ? null : (
+              <details className="numero-completo">
+                <summary>Ver número completo</summary>
+                <a href={`tel:+${hilo.waId}`}>+{hilo.waId}</a>
+              </details>
+            )}
             {c.clientes.length === 0 ? (
               <span className="chip">Sin identificar</span>
             ) : (

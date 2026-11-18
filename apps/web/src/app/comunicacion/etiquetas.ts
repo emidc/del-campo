@@ -1,6 +1,6 @@
 import type { ConversacionResumen, DeliveryHealth } from '@del-campo/api'
 
-/** Cómo se nombra a quien escribe: su nombre de perfil de WhatsApp y el final del teléfono, nunca el número entero. */
+/** Cómo se nombra a quien escribe: su nombre de perfil de WhatsApp y el final del teléfono. El número entero se ve a pedido en el hilo. */
 export const contacto = (c: Pick<ConversacionResumen, 'profileName' | 'waIdLast4' | 'bsuid'>): string => {
   const numero = c.waIdLast4 === null ? null : `teléfono terminado en ${c.waIdLast4}`
   return [c.profileName, numero].filter((parte) => parte !== null).join(' · ') || 'Contacto sin teléfono'

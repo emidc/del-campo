@@ -135,7 +135,9 @@ describe('hilo', () => {
     const out = thread.items.find((i) => i.kind === 'message' && i.direction === 'outbound')
     // (N7) el título del estado pasa por la redacción; acá no tiene nada que redactar.
     assert.ok(out?.kind === 'message' && out.errorCode === 131026 && out.errorTitle === 'Message undeliverable')
-    const serialized = JSON.stringify(thread)
+    // El teléfono completo viaja sólo en `waId`, para verlo a pedido; el `wamid` nunca.
+    assert.equal(thread.waId, ANA)
+    const serialized = JSON.stringify({ ...thread, waId: null })
     for (const forbidden of [ANA, 'wamid.']) assert.ok(!serialized.includes(forbidden), forbidden)
   })
 

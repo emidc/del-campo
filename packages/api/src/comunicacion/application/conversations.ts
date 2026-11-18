@@ -1,5 +1,5 @@
-// Lo que la UI lee (T-0025). Ninguna de estas formas lleva el `wamid` ni el `wa_id`
-// completo: la app no puede mostrar lo que no recibe (CO01 §2, R-19).
+// Lo que la UI lee (T-0025). Ninguna lleva el `wamid`. La lista sólo lleva el final del
+// teléfono; el hilo lleva además el `wa_id` completo, que el equipo puede ver a pedido.
 
 import { visibleAttemptState } from '../domain/reply.ts'
 import { redactErrorTitle } from '../integration/cloud-api.ts'
@@ -109,6 +109,8 @@ export type ThreadItem =
 export interface ConversationMessages {
   readonly id: number
   readonly label: ParticipantLabel
+  /** El teléfono completo de quien escribe, tal como lo manda WhatsApp (sin `+`). */
+  readonly waId: string | null
   readonly items: ThreadItem[]
   readonly window: ServiceWindow
   /** Cloud API envía a un `wa_id`: sin teléfono no se puede responder desde acá. */
@@ -170,6 +172,7 @@ export const conversationMessages = async (
       waIdLast4: participant.waId === null ? null : participant.waId.slice(-4),
       bsuid: participant.waId === null ? participant.bsuid : null,
     },
+    waId: participant.waId,
     items,
     window: serviceWindow(lastInbound, now),
     canReply: participant.waId !== null,
