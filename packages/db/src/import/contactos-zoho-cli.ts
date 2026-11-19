@@ -5,6 +5,10 @@
 // Sin `--aplicar` no escribe nada: muestra qué haría. Con `--aplicar` lo hace en una sola
 // transacción. La salida son conteos; la lista para revisar (ID de Zoho, columna y motivo,
 // sin el valor) va a un CSV en la carpeta temporal del sistema, nunca al repositorio.
+//
+// Si la base no tiene el vínculo cliente↔ID de Zoho (`party_source_link`), se puede leer
+// de otra base con los mismos clientes: CONTACTOS_VINCULOS_URL. Sólo se usan los vínculos
+// cuyo cliente existe en la base que se carga.
 
 import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -48,18 +52,22 @@ for (const [entidad, ruta] of [['Contactos', rutaContactos], ['Cuentas', rutaCue
   }
 }
 
-const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url) || !url.includes('@')
-const sql = postgres(url, { max: 1, ssl: local ? false : 'require', onnotice: () => undefined })
+const conectarA = (u: string): postgres.Sql => {
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(u) || !u.includes('@')
+  return postgres(u, { max: 1, ssl: local ? false : 'require', onnotice: () => undefined })
+}
+const sql = conectarA(url)
+const urlVinculos = process.env.CONTACTOS_VINCULOS_URL
+const sqlVinculos = urlVinculos === undefined || urlVinculos === '' ? sql : conectarA(urlVinculos)
 
 try {
   await sql.begin(async (tx) => {
-    const clientes = new Map<string, string>()
-    for (const r of await tx<{ k: string; party_id: string }[]>`
+    const vinculos = await (sqlVinculos === sql ? tx : sqlVinculos)<{ k: string; party_id: string }[]>`
       select source_entity_type || ':' || source_record_id as k, party_id
       from party_source_link
-      where source_system = 'Zoho' and source_entity_type in ('Contactos', 'Cuentas')`) {
-      clientes.set(r.k, r.party_id)
-    }
+      where source_system = 'Zoho' and source_entity_type in ('Contactos', 'Cuentas')`
+    const enLaBase = new Set((await tx<{ id: string }[]>`select id from party`).map((r) => r.id))
+    const clientes = new Map(vinculos.filter((r) => enLaBase.has(r.party_id)).map((r) => [r.k, r.party_id]))
     const existentes = await tx<Existente[]>`
       select id, party_id as "partyId", channel, value, normalized_value as "normalizedValue", source
       from contact_point
@@ -96,4 +104,5 @@ try {
   })
 } finally {
   await sql.end()
+  if (sqlVinculos !== sql) await sqlVinculos.end()
 }
