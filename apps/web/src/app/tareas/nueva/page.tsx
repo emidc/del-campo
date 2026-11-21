@@ -87,7 +87,7 @@ export default async function NuevaTareaPage({
               .filter((i) => i.email !== principal.email)
               .map((i) => (
                 <option key={i.userId} value={i.userId}>
-                  {i.email}
+                  {i.name}
                 </option>
               ))}
           </select>

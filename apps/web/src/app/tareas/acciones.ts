@@ -5,6 +5,7 @@
 
 import {
   cambiarEstadoTarea,
+  cambiarGestionTarea,
   cambiarPrioridadTarea,
   cambiarSeguimientoTarea,
   cambiarVencimientoTarea,
@@ -135,6 +136,10 @@ export async function editarCampo(_previo: Resultado, form: FormData): Promise<R
     case 'seguimiento':
       if (valor !== null && !esSeguimientoDeTarea(valor)) return fallo('Elegí una etapa de seguimiento.')
       escritura = cambiarSeguimientoTarea(principal, id, valor)
+      break
+    case 'gestion':
+      if (valor !== null && !esUuid(valor)) return fallo('Elegí una gestión de la lista.')
+      escritura = cambiarGestionTarea(principal, id, valor)
       break
     case 'semana':
       escritura = marcarTareaDeLaSemana(principal, id, valor === '1')

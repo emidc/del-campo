@@ -1510,3 +1510,56 @@ button.accion-icono:hover {
   border-color: var(--alerta-borde);
   background: var(--alerta-fondo);
 }
+
+/* ── Perfiles del equipo: retrato y nombre ────────────────────────────────── */
+
+.retrato {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--panel-2);
+  border: 1px solid var(--borde);
+}
+
+.retrato--iniciales {
+  color: var(--marca-profunda);
+  font-weight: 650;
+}
+
+.persona {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.perfil-foto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Las tres columnas de datos de la ficha de tarea, con filas a la misma altura. */
+.datos-tarea .kv dt,
+.datos-tarea .kv dd {
+  box-sizing: border-box;
+  height: 3.25rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Una fila que se está editando crece; las demás quedan a la misma altura. */
+.datos-tarea .kv dd.editable--abierto {
+  height: auto;
+  min-height: 3.25rem;
+  display: block;
+  overflow: visible;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}

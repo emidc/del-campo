@@ -105,7 +105,7 @@ export function TableroSemanal({
                   <Link href={`/tareas/${t.id}`} className="tarjeta-tarea__titulo">
                     {t.title}
                   </Link>
-                  <p className="meta">{t.assignedToMe ? 'Vos' : (t.assignedEmail ?? 'Sin responsable')}</p>
+                  <p className="meta">{t.assignedToMe ? 'Vos' : (t.assignedName ?? 'Sin responsable')}</p>
                   <div className="chips">
                     {t.dueDate === null ? null : (
                       <span className={t.dueDate < hoy && estadoDe(t) !== 'HECHA' ? 'chip chip--alerta' : 'chip'}>

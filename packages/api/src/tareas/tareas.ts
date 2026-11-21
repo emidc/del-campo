@@ -11,6 +11,7 @@ import type {
   TaskPriority,
   TaskStatus,
   TaskSummary,
+  TeamMemberProfile,
 } from '@del-campo/db'
 import {
   PRIORIDADES_DE_TAREA,
@@ -33,6 +34,7 @@ import {
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskServiceCase,
   setTaskWeekly,
 } from '@del-campo/db'
 
@@ -42,7 +44,7 @@ import { jobDenial } from '../comunicacion/entrada.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
-export type { NewTask, TaskAction, TaskDetail, TaskEvent, TaskFilter, TaskFollowUp, TaskPriority, TaskStatus, TaskSummary }
+export type { NewTask, TaskAction, TaskDetail, TaskEvent, TaskFilter, TaskFollowUp, TaskPriority, TaskStatus, TaskSummary, TeamMemberProfile }
 export { PRIORIDADES_DE_TAREA, SEGUIMIENTOS_DE_TAREA, TASK_FOLLOW_UPS, TASK_PRIORITIES, TASK_STATUSES }
 
 export const ESTADOS_DE_TAREA: Readonly<Record<TaskStatus, string>> = {
@@ -88,7 +90,7 @@ export const pasarTarea = async (
   comentario: string | null,
 ): Promise<void> => conDatos(sql(), principal, (ejecutor) => assignTask(ejecutor, id, usuario, comentario))
 
-export const responsablesPosibles = async (principal: Principal, parte: string): Promise<{ userId: string; email: string }[]> =>
+export const responsablesPosibles = async (principal: Principal, parte: string): Promise<TeamMemberProfile[]> =>
   conDatos(sql(), principal, (ejecutor) => listTaskAssignees(ejecutor, parte))
 
 export const cambiarVencimientoTarea = async (principal: Principal, id: string, fecha: string | null): Promise<void> =>
@@ -116,7 +118,7 @@ export const marcarTareaDeLaSemana = async (principal: Principal, id: string, se
   conDatos(sql(), principal, (ejecutor) => setTaskWeekly(ejecutor, id, semanal))
 
 /** Todo el equipo activo: cualquier integrante puede ser responsable de una tarea. */
-export const integrantesDelEquipo = async (principal: Principal): Promise<{ userId: string; email: string }[]> =>
+export const integrantesDelEquipo = async (principal: Principal): Promise<TeamMemberProfile[]> =>
   conDatos(sql(), principal, (ejecutor) => listTeamMembers(ejecutor))
 
 /**
@@ -136,3 +138,6 @@ export const tareaDeLimpiezaSemanal = async (
     values (null, 'worker', 'task.weekly_clear', null, ${String(destildadas)}, 'ok')`
   return new Response(JSON.stringify({ destildadas }), { headers: { 'content-type': 'application/json' } })
 }
+
+export const cambiarGestionTarea = async (principal: Principal, id: string, gestion: string | null): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => setTaskServiceCase(ejecutor, id, gestion))

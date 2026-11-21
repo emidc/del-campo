@@ -11,10 +11,9 @@ import { clientesQueCoinciden, crearDesdeListado } from '@/app/tareas/acciones'
 
 export function NuevaTarea({
   integrantes,
-  email,
 }: {
-  readonly integrantes: readonly { readonly userId: string; readonly email: string }[]
-  readonly email: string
+  /** Los demás integrantes; «Yo» va siempre primero. */
+  readonly integrantes: readonly { readonly userId: string; readonly etiqueta: string }[]
 }) {
   const dialogo = useRef<HTMLDialogElement>(null)
   const [estado, enviar] = useActionState(crearDesdeListado, null)
@@ -94,13 +93,11 @@ export function NuevaTarea({
               <label htmlFor="nueva-responsable">Responsable</label>
               <select id="nueva-responsable" name="responsable" defaultValue="">
                 <option value="">Yo</option>
-                {integrantes
-                  .filter((i) => i.email !== email)
-                  .map((i) => (
-                    <option key={i.userId} value={i.userId}>
-                      {i.email}
-                    </option>
-                  ))}
+                {integrantes.map((i) => (
+                  <option key={i.userId} value={i.userId}>
+                    {i.etiqueta}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

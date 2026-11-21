@@ -37,7 +37,7 @@ export function AccionesDelEquipo({
 }: {
   readonly tarea: string
   readonly acciones: readonly TaskAction[]
-  readonly integrantes: readonly { readonly userId: string; readonly email: string }[]
+  readonly integrantes: readonly { readonly userId: string; readonly etiqueta: string }[]
 }) {
   const [estado, enviar] = useActionState(involucrar, null)
   const formulario = useRef<HTMLFormElement>(null)
@@ -56,7 +56,7 @@ export function AccionesDelEquipo({
               <div>
                 <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{a.description}</p>
                 <p className="meta" style={{ margin: 0 }}>
-                  {a.assignedToMe ? 'Vos' : (a.assignedEmail ?? 'integrante dado de baja')}
+                  {a.assignedToMe ? 'Vos' : (a.assignedName ?? 'integrante dado de baja')}
                 </p>
               </div>
               <div className="fila">
@@ -79,7 +79,7 @@ export function AccionesDelEquipo({
             </option>
             {integrantes.map((i) => (
               <option key={i.userId} value={i.userId}>
-                {i.email}
+                {i.etiqueta}
               </option>
             ))}
           </select>

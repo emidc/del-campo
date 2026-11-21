@@ -27,8 +27,10 @@ import {
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskServiceCase,
   setTaskWeekly,
 } from './task.ts'
+import { getMemberPhoto, updateProfile } from './profile.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
 
@@ -332,6 +334,68 @@ describe('tareas (0017)', () => {
       assert.ok(t)
       assert.equal(t.weekly, false)
       assert.equal(t.status, 'HECHA')
+    })
+  })
+
+  it('perfiles: nombre y foto visibles para el equipo; cada uno edita el suyo y el administrador, cualquiera (0028)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const foto = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), type: 'image/jpeg' as const }
+      await como(tx, m.op)
+      await updateProfile(tx, m.op, 'Operadora', foto)
+      const id = await createTask(tx, {
+        title: 'Con nombre', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
+      await involveInTask(tx, id, m.op, 'Revisar')
+      const t = await getTask(tx, id)
+      assert.ok(t)
+      assert.equal(t.assignedName, 'Operadora')
+      assert.equal(t.assignedUserId, m.op)
+      assert.equal(t.events[0]?.authorName, 'Operadora')
+      assert.equal(t.actions[0]?.assignedName, 'Operadora')
+      const equipo = await listTaskAssignees(tx, m.cliente)
+      assert.deepEqual(
+        equipo.map((i) => [i.name, i.hasPhoto]).sort(),
+        [['Operadora', true], ['admin@sintetico.test', false], ['op2@sintetico.test', false]].sort(),
+      )
+      const guardada = await getMemberPhoto(tx, m.op)
+      assert.deepEqual(guardada === null ? null : [Array.from(guardada.bytes), guardada.type], [Array.from(foto.bytes), foto.type])
+
+      await tx`savepoint s1`
+      await assert.rejects(updateProfile(tx, m.op2, 'Otra persona'), /sólo la persona o un administrador/)
+      await tx`rollback to savepoint s1`
+
+      await como(tx, m.admin)
+      await updateProfile(tx, m.op2, 'Beto', null)
+      assert.equal((await listTeamMembers(tx)).find((i) => i.userId === m.op2)?.name, 'Beto')
+      await updateProfile(tx, m.op, '')
+      assert.equal((await listTeamMembers(tx)).find((i) => i.userId === m.op)?.name, 'op@sintetico.test')
+      assert.ok(await getMemberPhoto(tx, m.op), 'sin `photo`, la foto queda como estaba')
+    })
+  })
+
+  it('la gestión de una tarea se cambia, se quita y se vuelve a vincular, sólo del mismo cliente (0028)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.admin)
+      const gestion = await createServiceCase(tx, { kind: 'OTRO', title: 'Endoso', partyId: m.cliente, policyId: null, dueDate: null, note: null })
+      const ajena = await createServiceCase(tx, { kind: 'OTRO', title: 'Ajena', partyId: m.otroCliente, policyId: null, dueDate: null, note: null })
+      const id = await createTask(tx, {
+        title: 'Vincular', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
+      await setTaskServiceCase(tx, id, gestion)
+      assert.equal((await getTask(tx, id))?.serviceCaseTitle, 'Endoso')
+      await setTaskServiceCase(tx, id, null)
+      assert.equal((await getTask(tx, id))?.serviceCaseId, null)
+      await tx`savepoint s1`
+      await assert.rejects(setTaskServiceCase(tx, id, ajena), /de otro cliente/)
+      await tx`rollback to savepoint s1`
+      assert.deepEqual(
+        (await getTask(tx, id))?.events.filter((e) => e.kind === 'CAMBIO').map((e) => e.body),
+        ['Gestión: Endoso', 'Gestión: sin gestión'],
+      )
     })
   })
 })

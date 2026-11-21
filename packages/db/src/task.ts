@@ -35,6 +35,9 @@ export interface TaskSummary {
   readonly serviceCaseId: string | null
   readonly serviceCaseTitle: string | null
   readonly assignedEmail: string | null
+  readonly assignedUserId: string | null
+  /** Nombre visible del responsable (o su correo si no tiene). */
+  readonly assignedName: string | null
   readonly assignedToMe: boolean
   readonly dueDate: string | null
   readonly priority: TaskPriority | null
@@ -52,6 +55,7 @@ export interface TaskAction {
   readonly description: string
   readonly status: 'PENDIENTE' | 'HECHA'
   readonly assignedEmail: string | null
+  readonly assignedName: string | null
   readonly assignedToMe: boolean
   readonly createdAt: string
   readonly doneAt: string | null
@@ -64,6 +68,7 @@ export interface TaskEvent {
   readonly fromStatus: TaskStatus | null
   readonly toStatus: TaskStatus | null
   readonly authorEmail: string | null
+  readonly authorName: string | null
   readonly createdAt: string
 }
 
@@ -105,6 +110,8 @@ interface SummaryRow {
   readonly service_case_id: string | null
   readonly service_case_title: string | null
   readonly assigned_email: string | null
+  readonly assigned_user_id: string | null
+  readonly assigned_name: string | null
   readonly assigned_to_me: boolean
   readonly due_date: string | null
   readonly priority: TaskPriority | null
@@ -126,6 +133,8 @@ const resumen = (row: SummaryRow): TaskSummary => ({
   serviceCaseId: row.service_case_id,
   serviceCaseTitle: row.service_case_title,
   assignedEmail: row.assigned_email,
+  assignedUserId: row.assigned_user_id,
+  assignedName: row.assigned_name,
   assignedToMe: row.assigned_to_me,
   dueDate: row.due_date,
   priority: row.priority,
@@ -150,6 +159,8 @@ const seleccion = (sql: QueryExecutor) => sql`
     t.service_case_id,
     c.title as service_case_title,
     authz.correo_integrante(t.assigned_user_id) as assigned_email,
+    t.assigned_user_id,
+    authz.nombre_integrante(t.assigned_user_id) as assigned_name,
     coalesce(t.assigned_user_id = authz.usuario(), false) as assigned_to_me,
     to_char(t.due_date, 'YYYY-MM-DD') as due_date,
     t.priority,
@@ -165,6 +176,23 @@ const seleccion = (sql: QueryExecutor) => sql`
   left join policy p on p.id = t.policy_id
   left join service_case c on c.id = t.service_case_id
 `
+
+/** Un integrante del equipo con su nombre visible y si tiene foto. */
+export interface TeamMemberProfile {
+  readonly userId: string
+  readonly email: string
+  readonly name: string
+  readonly hasPhoto: boolean
+}
+
+interface PerfilRow {
+  readonly id: string
+  readonly email: string
+  readonly nombre: string
+  readonly con_foto: boolean
+}
+
+const perfil = (r: PerfilRow): TeamMemberProfile => ({ userId: r.id, email: r.email, name: r.nombre, hasPhoto: r.con_foto })
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -196,11 +224,13 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
       from_status: TaskStatus | null
       to_status: TaskStatus | null
       author_email: string | null
+      author_name: string | null
       created_at: string
     }[]
   >`
     select e.id, e.kind, e.body, e.from_status, e.to_status,
-      authz.correo_integrante(e.author_user_id) as author_email, e.created_at::text as created_at
+      authz.correo_integrante(e.author_user_id) as author_email,
+      authz.nombre_integrante(e.author_user_id) as author_name, e.created_at::text as created_at
     from task_event e
     where e.task_id = ${id}
     order by e.created_at, e.id
@@ -211,6 +241,7 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
       description: string
       status: TaskAction['status']
       assigned_email: string | null
+      assigned_name: string | null
       assigned_to_me: boolean
       created_at: string
       done_at: string | null
@@ -218,6 +249,7 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
   >`
     select a.id, a.description, a.status,
       authz.correo_integrante(a.assigned_user_id) as assigned_email,
+      authz.nombre_integrante(a.assigned_user_id) as assigned_name,
       coalesce(a.assigned_user_id = authz.usuario(), false) as assigned_to_me,
       a.created_at::text as created_at, a.done_at::text as done_at
     from task_action a
@@ -231,6 +263,7 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
       description: a.description,
       status: a.status,
       assignedEmail: a.assigned_email,
+      assignedName: a.assigned_name,
       assignedToMe: a.assigned_to_me,
       createdAt: a.created_at,
       doneAt: a.done_at,
@@ -242,6 +275,7 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
       fromStatus: e.from_status,
       toStatus: e.to_status,
       authorEmail: e.author_email,
+      authorName: e.author_name,
       createdAt: e.created_at,
     })),
   }
@@ -328,7 +362,7 @@ export const assignTask = async (
   }
   await sql`update task set assigned_user_id = ${userId}, updated_at = now() where id = ${id}`
   const [destino] = await sql<{ email: string | null }[]>`
-    select authz.correo_integrante(${userId}::uuid) as email
+    select authz.nombre_integrante(${userId}::uuid) as email
   `
   const a = destino?.email ?? 'sin responsable'
   await sql`
@@ -341,14 +375,14 @@ export const assignTask = async (
 export const listTaskAssignees = async (
   sql: QueryExecutor,
   partyId: string,
-): Promise<{ userId: string; email: string }[]> => {
+): Promise<TeamMemberProfile[]> => {
   if (!UUID.test(partyId)) return []
-  const rows = await sql<{ id: string; email: string }[]>`
-    select i.id, i.email from authz.integrantes_que_ven(${partyId}::uuid) i
-    where authz.ve_cliente(${partyId}::uuid)
-    order by i.email
+  const rows = await sql<PerfilRow[]>`
+    select e.id, e.email, e.nombre, e.con_foto from authz.equipo_visible() e
+    where e.id in (select i.id from authz.integrantes_que_ven(${partyId}::uuid) i)
+      and authz.ve_cliente(${partyId}::uuid)
   `
-  return rows.map((r) => ({ userId: r.id, email: r.email }))
+  return rows.map(perfil)
 }
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
@@ -410,7 +444,7 @@ export const involveInTask = async (
     returning id
   `
   if (fila === undefined) throw new Error('la acción no se creó')
-  const [destino] = await sql<{ email: string | null }[]>`select authz.correo_integrante(${userId}::uuid) as email`
+  const [destino] = await sql<{ email: string | null }[]>`select authz.nombre_integrante(${userId}::uuid) as email`
   await sql`
     insert into task_event (task_id, kind, body, author_user_id)
     values (${id}, 'ACCION', ${`Involucró a ${destino?.email ?? 'un integrante'}: ${texto}`}, authz.usuario())
@@ -458,9 +492,18 @@ export const clearDoneWeeklyTasks = async (sql: QueryExecutor): Promise<number> 
 }
 
 /** Los integrantes activos del equipo: a cualquiera se le puede asignar una tarea (0020). */
-export const listTeamMembers = async (sql: QueryExecutor): Promise<{ userId: string; email: string }[]> => {
-  const rows = await sql<{ id: string; email: string }[]>`
-    select i.id, i.email from authz.integrantes_que_ven(null) i order by i.email
-  `
-  return rows.map((r) => ({ userId: r.id, email: r.email }))
+export const listTeamMembers = async (sql: QueryExecutor): Promise<TeamMemberProfile[]> => {
+  const rows = await sql<PerfilRow[]>`select e.id, e.email, e.nombre, e.con_foto from authz.equipo_visible() e`
+  return rows.map(perfil)
+}
+
+/** Vincula la tarea a otra gestión del mismo cliente, o la desvincula con `null`. */
+export const setTaskServiceCase = async (sql: QueryExecutor, id: string, serviceCaseId: string | null): Promise<void> => {
+  if (!UUID.test(id) || (serviceCaseId !== null && !UUID.test(serviceCaseId))) throw new Error('gestión inexistente')
+  const [antes] = await sql<{ service_case_id: string | null }[]>`select service_case_id from task where id = ${id} for update`
+  if (antes === undefined) throw new Error('tarea inexistente o fuera de alcance')
+  if (antes.service_case_id === serviceCaseId) return
+  await sql`update task set service_case_id = ${serviceCaseId}, updated_at = now() where id = ${id}`
+  const [gestion] = await sql<{ title: string }[]>`select title from service_case where id = ${serviceCaseId}`
+  await registrarCambio(sql, id, `Gestión: ${gestion?.title ?? 'sin gestión'}`)
 }
