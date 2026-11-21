@@ -3,7 +3,7 @@ import { ESTADOS_DE_TAREA, PRIORIDADES_DE_TAREA, integrantesDelEquipo, latestBat
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
-import { etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
+import { PersonaEnLista, etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
 import { fechaDeHoy } from '@/lib/criterios'
 import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -51,6 +51,7 @@ export default async function TareasPage({
   )
   const hoy = fechaDeHoy()
   const etiquetas = etiquetasDeIntegrantes(integrantes)
+  const porId = new Map(integrantes.map((i) => [i.userId, i]))
 
   const enlace = (etiqueta: string, activo: boolean, href: string) => (
     <Link key={href} href={href} aria-current={activo ? 'page' : undefined}>
@@ -106,6 +107,7 @@ export default async function TareasPage({
               nombres={ESTADOS_DE_TAREA}
               prioridades={PRIORIDADES_DE_TAREA}
               hoy={hoy}
+              integrantes={Object.fromEntries(integrantes.map((i) => [i.userId, i]))}
             />
           )}
         </>
@@ -135,7 +137,13 @@ export default async function TareasPage({
                     <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
                   </td>
                   <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
-                  <td>{t.assignedToMe ? 'vos' : (t.assignedName ?? '—')}</td>
+                  <td>
+                    {t.assignedUserId === null ? (
+                      '—'
+                    ) : (
+                      <PersonaEnLista integrante={porId.get(t.assignedUserId)} reemplazo={t.assignedName ?? 'integrante dado de baja'} />
+                    )}
+                  </td>
                   <td className={t.dueDate !== null && t.dueDate < hoy && t.status !== 'HECHA' ? 'pendiente' : undefined}>
                     {fecha(t.dueDate)}
                   </td>

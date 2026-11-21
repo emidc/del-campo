@@ -4,10 +4,11 @@
 // soltar una tarjeta en otra columna se guarda el estado con la misma acción que la ficha;
 // si falla, la tarjeta vuelve a su columna y se muestra el error.
 
-import type { TaskStatus, TaskSummary } from '@del-campo/api'
+import type { TaskStatus, TaskSummary, TeamMemberProfile } from '@del-campo/api'
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 
+import { PersonaEnLista } from '@/app/_componentes/Retrato'
 import { editarCampo } from '@/app/tareas/acciones'
 
 const ESTADOS: readonly TaskStatus[] = ['PENDIENTE', 'EN_CURSO', 'TRABADA', 'EN_REVISION', 'HECHA']
@@ -17,11 +18,14 @@ export function TableroSemanal({
   nombres,
   prioridades,
   hoy,
+  integrantes,
 }: {
   readonly tareas: readonly TaskSummary[]
   readonly nombres: Readonly<Record<TaskStatus, string>>
   readonly prioridades: Readonly<Record<string, string>>
   readonly hoy: string
+  /** Foto y nombre de cada integrante, por id. */
+  readonly integrantes: Readonly<Record<string, TeamMemberProfile>>
 }) {
   const [estados, setEstados] = useState<Readonly<Record<string, TaskStatus>>>(() =>
     Object.fromEntries(tareas.map((t) => [t.id, t.status])),
@@ -105,7 +109,13 @@ export function TableroSemanal({
                   <Link href={`/tareas/${t.id}`} className="tarjeta-tarea__titulo">
                     {t.title}
                   </Link>
-                  <p className="meta">{t.assignedToMe ? 'Vos' : (t.assignedName ?? 'Sin responsable')}</p>
+                  <p className="meta">
+                    {t.assignedUserId === null ? (
+                      'Sin responsable'
+                    ) : (
+                      <PersonaEnLista integrante={integrantes[t.assignedUserId]} reemplazo={t.assignedName ?? 'integrante dado de baja'} />
+                    )}
+                  </p>
                   <div className="chips">
                     {t.dueDate === null ? null : (
                       <span className={t.dueDate < hoy && estadoDe(t) !== 'HECHA' ? 'chip chip--alerta' : 'chip'}>

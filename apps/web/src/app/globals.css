@@ -1590,3 +1590,9 @@ button.accion-icono:hover {
 .saludo .meta {
   margin: 0;
 }
+
+/* Responsable en las listas de tareas y gestiones. */
+.persona--lista {
+  gap: 8px;
+  white-space: nowrap;
+}
