@@ -41,3 +41,21 @@ export const etiquetasDeIntegrantes = <T extends { readonly name: string; readon
   )
   return new Map(integrantes.map((i) => [i, repetidos.has(i.name) && i.name !== i.email ? `${i.name} (${i.email})` : i.name]))
 }
+
+/** Foto y nombre de un integrante en una lista; sin integrante, el texto de reemplazo. */
+export function PersonaEnLista({
+  integrante,
+  reemplazo,
+}: {
+  readonly integrante: { readonly userId: string; readonly name: string; readonly hasPhoto: boolean } | undefined
+  readonly reemplazo: string
+}) {
+  return integrante === undefined ? (
+    <>{reemplazo}</>
+  ) : (
+    <span className="persona persona--lista">
+      <Retrato usuario={integrante.userId} nombre={integrante.name} conFoto={integrante.hasPhoto} tamano={24} />
+      <span>{integrante.name}</span>
+    </span>
+  )
+}
