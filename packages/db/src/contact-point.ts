@@ -90,3 +90,10 @@ export const endContactPoint = async (sql: QueryExecutor, partyId: string, id: s
     returning id`
   return rows.length === 1
 }
+
+/** Borra de la base un teléfono o un mail de ese cliente. `false` si no era suyo. */
+export const deleteContactPoint = async (sql: QueryExecutor, partyId: string, id: string): Promise<boolean> => {
+  const rows = await sql<{ id: string }[]>`
+    delete from contact_point where id = ${id} and party_id = ${partyId} returning id`
+  return rows.length === 1
+}

@@ -82,7 +82,7 @@ export async function corregir(_previo: Resultado, form: FormData): Promise<Resu
   return deContacto(parte, await intentar(corregirContacto(principal, parte, texto(form, 'contacto'), texto(form, 'valor'))))
 }
 
-/** Eliminar un teléfono o mail es, por ahora, la baja que ya existía: la fila queda inactiva. */
+/** Eliminar un teléfono o mail lo borra de la base. */
 export async function quitar(_previo: Resultado, form: FormData): Promise<Resultado> {
   const principal = await requireAdmitted()
   const parte = parteDe(form)

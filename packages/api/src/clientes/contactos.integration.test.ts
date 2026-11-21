@@ -86,15 +86,14 @@ describe('teléfonos y mails del cliente (T-0068)', () => {
     })
   })
 
-  it('dar de baja deja la fila con quién y cuándo, y se puede volver a cargar', async () => {
+  it('eliminar borra la fila de la base, y se puede volver a cargar', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       assert.equal(await quitarContactoCon(tx, quien, m.ana, m.importado), 'quitado')
       assert.equal(await quitarContactoCon(tx, quien, m.ana, m.importado), 'inexistente')
       assert.deepEqual(await valores(tx, m.ana), [])
-      const [fila] = await tx<{ status: string; cerrada: boolean; autor: string }[]>`
-        select status, valid_to is not null as cerrada, ended_by_user_id as autor from contact_point where id = ${m.importado}`
-      assert.deepEqual({ ...fila }, { status: 'INACTIVE', cerrada: true, autor: m.usuario })
+      const filas = await tx`select 1 from contact_point where id = ${m.importado}`
+      assert.equal(filas.length, 0)
 
       assert.equal(await agregarContactoCon(tx, quien, m.ana, 'EMAIL', 'ana@sintetico.test'), 'guardado')
       const [mail] = await contactosDeClienteCon(tx, quien, m.ana)

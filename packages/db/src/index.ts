@@ -110,6 +110,7 @@ export {
   CONTACT_CHANNELS,
   addContactPoint,
   cleanContact,
+  deleteContactPoint,
   endContactPoint,
   listContactPoints,
 } from './contact-point.ts'
