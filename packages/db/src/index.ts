@@ -148,7 +148,12 @@ export {
   deleteContact,
   linkOrganization,
   searchOrganizations,
+  searchPersons,
+  unlinkOrganization,
+  updateDriveFolder,
+  updateOrganizationCuit,
+  updateOrganizationName,
   updatePersonDni,
   updatePersonName,
 } from './party-edit.ts'
-export type { OrganizationOption, PartyEditResult } from './party-edit.ts'
+export type { OrganizationOption, PartyEditResult, PersonOption } from './party-edit.ts'
