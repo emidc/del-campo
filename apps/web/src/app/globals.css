@@ -1348,3 +1348,72 @@ button.accion-icono:hover {
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ── Detalle de tarea: todo el ancho, datos juntos y acciones del equipo ───── */
+
+.envoltorio--ancho {
+  --margen: 28px;
+}
+
+.datos-tarea {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 24px;
+}
+
+.datos-tarea .kv {
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);
+  align-content: start;
+}
+
+.datos-tarea .kv > :nth-child(-n + 2) {
+  border-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .datos-tarea {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .datos-tarea .kv + .kv > :nth-child(-n + 2) {
+    border-top: 1px solid var(--borde);
+  }
+}
+
+.formulario-compacto {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.formulario-compacto .acciones {
+  grid-column: auto;
+}
+
+@media (max-width: 700px) {
+  .formulario-compacto {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.accion-tarea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.accion-tarea__marcar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip--hecha {
+  color: var(--panel);
+  background: var(--acento);
+  border-color: var(--acento);
+}

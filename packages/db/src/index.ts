@@ -84,16 +84,36 @@ export type {
 } from './service-case.ts'
 // T-0052: tareas.
 export {
+  PRIORIDADES_DE_TAREA,
+  SEGUIMIENTOS_DE_TAREA,
+  TASK_FOLLOW_UPS,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   assignTask,
   changeTaskStatus,
   commentTask,
+  completeTaskAction,
   createTask,
+  deleteTask,
   getTask,
+  involveInTask,
   listTaskAssignees,
   listTasks,
+  setTaskDueDate,
+  setTaskFollowUp,
+  setTaskPriority,
 } from './task.ts'
-export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './task.ts'
+export type {
+  NewTask,
+  TaskAction,
+  TaskDetail,
+  TaskEvent,
+  TaskFilter,
+  TaskFollowUp,
+  TaskPriority,
+  TaskStatus,
+  TaskSummary,
+} from './task.ts'
 export { listRenewals } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
 export {

@@ -142,17 +142,39 @@ export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './re
 // T-0052: tareas.
 export {
   ESTADOS_DE_TAREA,
+  PRIORIDADES_DE_TAREA,
+  SEGUIMIENTOS_DE_TAREA,
+  TASK_FOLLOW_UPS,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   cambiarEstadoTarea,
+  cambiarPrioridadTarea,
+  cambiarSeguimientoTarea,
+  cambiarVencimientoTarea,
   comentarTarea,
+  completarAccionDeTarea,
   crearTarea,
+  eliminarTarea,
   esEstadoDeTarea,
+  esPrioridadDeTarea,
+  esSeguimientoDeTarea,
+  involucrarEnTarea,
   pasarTarea,
   responsablesPosibles,
   tarea,
   tareas,
 } from './tareas/tareas.ts'
-export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './tareas/tareas.ts'
+export type {
+  NewTask,
+  TaskAction,
+  TaskDetail,
+  TaskEvent,
+  TaskFilter,
+  TaskFollowUp,
+  TaskPriority,
+  TaskStatus,
+  TaskSummary,
+} from './tareas/tareas.ts'
 
 // T-0049: inicio con indicadores.
 export { inicio, resumirInicio } from './inicio/indicadores.ts'
