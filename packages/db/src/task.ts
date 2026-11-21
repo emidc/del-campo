@@ -39,6 +39,8 @@ export interface TaskSummary {
   readonly dueDate: string | null
   readonly priority: TaskPriority | null
   readonly followUp: TaskFollowUp | null
+  /** Va al tablero de «Tareas de la semana». */
+  readonly weekly: boolean
   readonly createdAt: string
   readonly updatedAt: string
   readonly doneAt: string | null
@@ -77,6 +79,8 @@ export interface TaskFilter {
   readonly partyId?: string
   readonly serviceCaseId?: string
   readonly status?: TaskStatus
+  /** Sólo las marcadas como tareas de la semana, en cualquier estado. */
+  readonly weekly?: boolean
 }
 
 export interface NewTask {
@@ -105,6 +109,7 @@ interface SummaryRow {
   readonly due_date: string | null
   readonly priority: TaskPriority | null
   readonly follow_up: TaskFollowUp | null
+  readonly weekly: boolean
   readonly created_at: string
   readonly updated_at: string
   readonly done_at: string | null
@@ -125,6 +130,7 @@ const resumen = (row: SummaryRow): TaskSummary => ({
   dueDate: row.due_date,
   priority: row.priority,
   followUp: row.follow_up,
+  weekly: row.weekly,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   doneAt: row.done_at,
@@ -148,6 +154,7 @@ const seleccion = (sql: QueryExecutor) => sql`
     to_char(t.due_date, 'YYYY-MM-DD') as due_date,
     t.priority,
     t.follow_up,
+    t.weekly,
     t.created_at::text as created_at,
     t.updated_at::text as updated_at,
     t.done_at::text as done_at
@@ -165,7 +172,8 @@ export const listTasks = async (sql: QueryExecutor, filter: TaskFilter = {}): Pr
   for (const id of [filter.partyId, filter.serviceCaseId]) if (id !== undefined && !UUID.test(id)) return []
   const rows = await sql<SummaryRow[]>`
     ${seleccion(sql)}
-    where (${filter.includeDone === true || filter.status === 'HECHA'} or t.status <> 'HECHA')
+    where (${filter.includeDone === true || filter.weekly === true || filter.status === 'HECHA'} or t.status <> 'HECHA')
+      and (${filter.weekly !== true} or t.weekly)
       and (${filter.status ?? null}::text is null or t.status = ${filter.status ?? null}::text)
       and (${filter.onlyMine !== true} or t.assigned_user_id = authz.usuario())
       and (${filter.partyId ?? null}::uuid is null or t.party_id = ${filter.partyId ?? null}::uuid)
@@ -431,4 +439,28 @@ export const completeTaskAction = async (sql: QueryExecutor, actionId: string): 
 export const deleteTask = async (sql: QueryExecutor, id: string): Promise<void> => {
   if (!UUID.test(id)) throw new Error('tarea inexistente o fuera de alcance')
   await sql`select public.eliminar_tarea(${id}::uuid)`
+}
+
+/** Marca o desmarca la tarea como tarea de la semana. */
+export const setTaskWeekly = async (sql: QueryExecutor, id: string, weekly: boolean): Promise<void> => {
+  if (!UUID.test(id)) throw new Error('tarea inexistente o fuera de alcance')
+  const filas = await sql`update task set weekly = ${weekly} where id = ${id} returning id`
+  if (filas.length === 0) throw new Error('tarea inexistente o fuera de alcance')
+}
+
+/**
+ * Limpieza de los lunes: destilda «Tarea de la semana» en las tareas Hechas. Corre fuera
+ * de la sesión, con la conexión de la app. Devuelve cuántas destildó.
+ */
+export const clearDoneWeeklyTasks = async (sql: QueryExecutor): Promise<number> => {
+  const filas = await sql`update task set weekly = false where weekly and status = 'HECHA' returning id`
+  return filas.length
+}
+
+/** Los integrantes activos del equipo: a cualquiera se le puede asignar una tarea (0020). */
+export const listTeamMembers = async (sql: QueryExecutor): Promise<{ userId: string; email: string }[]> => {
+  const rows = await sql<{ id: string; email: string }[]>`
+    select i.id, i.email from authz.integrantes_que_ven(null) i order by i.email
+  `
+  return rows.map((r) => ({ userId: r.id, email: r.email }))
 }

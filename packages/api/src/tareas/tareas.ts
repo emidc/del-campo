@@ -20,6 +20,7 @@ import {
   TASK_STATUSES,
   assignTask,
   changeTaskStatus,
+  clearDoneWeeklyTasks,
   commentTask,
   completeTaskAction,
   createTask,
@@ -28,12 +29,16 @@ import {
   involveInTask,
   listTaskAssignees,
   listTasks,
+  listTeamMembers,
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskWeekly,
 } from '@del-campo/db'
 
+import type { Conexion } from '../acceso/base.ts'
 import { conDatos } from '../acceso/datos.ts'
+import { jobDenial } from '../comunicacion/entrada.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
@@ -43,7 +48,7 @@ export { PRIORIDADES_DE_TAREA, SEGUIMIENTOS_DE_TAREA, TASK_FOLLOW_UPS, TASK_PRIO
 export const ESTADOS_DE_TAREA: Readonly<Record<TaskStatus, string>> = {
   PENDIENTE: 'Pendiente',
   EN_CURSO: 'En curso',
-  TRABADA: 'Trabada',
+  TRABADA: 'Bloqueada',
   EN_REVISION: 'En revisión',
   HECHA: 'Hecha',
 }
@@ -106,3 +111,28 @@ export const completarAccionDeTarea = async (principal: Principal, accion: strin
 
 export const eliminarTarea = async (principal: Principal, id: string): Promise<void> =>
   conDatos(sql(), principal, (ejecutor) => deleteTask(ejecutor, id))
+
+export const marcarTareaDeLaSemana = async (principal: Principal, id: string, semanal: boolean): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => setTaskWeekly(ejecutor, id, semanal))
+
+/** Todo el equipo activo: cualquier integrante puede ser responsable de una tarea. */
+export const integrantesDelEquipo = async (principal: Principal): Promise<{ userId: string; email: string }[]> =>
+  conDatos(sql(), principal, (ejecutor) => listTeamMembers(ejecutor))
+
+/**
+ * Limpieza del tablero semanal. Vercel la llama los lunes a las 03:00 UTC, que son las
+ * 00:00 de Mendoza: destilda «Tarea de la semana» en las Hechas. Exige `CRON_SECRET`.
+ */
+export const tareaDeLimpiezaSemanal = async (
+  request: Request,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  conexion: () => Conexion = sql,
+): Promise<Response> => {
+  const denied = jobDenial(request, env)
+  if (denied !== null) return denied
+  const destildadas = await clearDoneWeeklyTasks(conexion())
+  await conexion()`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (null, 'worker', 'task.weekly_clear', null, ${String(destildadas)}, 'ok')`
+  return new Response(JSON.stringify({ destildadas }), { headers: { 'content-type': 'application/json' } })
+}

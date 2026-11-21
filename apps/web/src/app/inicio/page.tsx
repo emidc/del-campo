@@ -53,7 +53,7 @@ export default async function InicioPage() {
                     </Link>
                     <p className="meta">
                       <span className={trabada || cuando.urgente ? 'pendiente' : undefined}>
-                        {trabada ? `Trabada · ${cuando.texto}` : cuando.texto}
+                        {trabada ? `Bloqueada · ${cuando.texto}` : cuando.texto}
                       </span>
                       {' · '}
                       {t.partyName ?? 'sin nombre'}

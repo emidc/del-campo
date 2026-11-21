@@ -91,6 +91,7 @@ export {
   TASK_STATUSES,
   assignTask,
   changeTaskStatus,
+  clearDoneWeeklyTasks,
   commentTask,
   completeTaskAction,
   createTask,
@@ -99,9 +100,11 @@ export {
   involveInTask,
   listTaskAssignees,
   listTasks,
+  listTeamMembers,
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskWeekly,
 } from './task.ts'
 export type {
   NewTask,

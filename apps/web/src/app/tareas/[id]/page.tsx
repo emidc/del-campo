@@ -17,6 +17,7 @@ import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
 import { comentar, editarCampo, eliminar, pasar } from '@/app/tareas/acciones'
+import { CasillaSemanal } from '@/app/tareas/CasillaSemanal'
 import { fecha, fechaHora } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
@@ -132,6 +133,10 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
             >
               {t.assignedToMe ? 'Vos' : (t.assignedEmail ?? 'Nadie')}
             </CampoEditable>
+            <dt>Tarea de la semana</dt>
+            <dd>
+              <CasillaSemanal key={String(t.weekly)} tarea={t.id} semanal={t.weekly} etiqueta="En el tablero semanal" />
+            </dd>
             <dt>Cliente</dt>
             <dd className="nombre">
               <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>

@@ -87,9 +87,9 @@ export const resumirInicio = (datos: DatosDeInicio): Inicio => {
     },
     {
       id: 'tareas-trabadas',
-      titulo: 'Tareas trabadas',
+      titulo: 'Tareas bloqueadas',
       valor: datos.tareas.filter((t) => t.status === 'TRABADA').length,
-      definicion: `De las ${String(datos.tareas.length)} tareas sin hacer que ves, las marcadas como trabadas.`,
+      definicion: `De las ${String(datos.tareas.length)} tareas sin hacer que ves, las marcadas como bloqueadas.`,
       href: '/tareas?estado=TRABADA',
       alerta: true,
     },
