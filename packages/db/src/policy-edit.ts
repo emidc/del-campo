@@ -38,10 +38,16 @@ export const isDate = (valor: string): boolean => {
  * que guarda Postgres. `null` si está vacío; `undefined` si no es un importe.
  */
 export const parseAmount = (crudo: string): string | null | undefined => {
-  const valor = crudo.replace(/[\s$]/g, '')
+  // Sin moneda ni espacios: «AR$ 39,204,000.00», «$ 12.000», «US$ 1.500,50».
+  const valor = crudo.replace(/^\s*[A-Za-z]{0,3}\$?/, '').replace(/\s/g, '')
   if (valor === '') return null
+  const coma = valor.lastIndexOf(',')
+  const punto = valor.lastIndexOf('.')
   let normal = valor
-  if (valor.includes(',')) normal = valor.replace(/\./g, '').replace(',', '.')
+  // Con los dos separadores, el último es el decimal (125.000,50 o 39,204,000.00).
+  if (coma >= 0 && punto >= 0) normal = coma > punto ? valor.replace(/\./g, '').replace(',', '.') : valor.replace(/,/g, '')
+  else if (/^\d{1,3}(,\d{3}){2,}$/.test(valor)) normal = valor.replace(/,/g, '')
+  else if (coma >= 0) normal = valor.replace(',', '.')
   else if (/^\d{1,3}(\.\d{3})+$/.test(valor)) normal = valor.replace(/\./g, '')
   return /^\d+(\.\d+)?$/.test(normal) ? normal : undefined
 }

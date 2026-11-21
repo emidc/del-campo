@@ -247,10 +247,16 @@ export type {
 } from './polizas/edicion.ts'
 export {
   asociarEmpresa,
+  asociarPersona,
   bloqueosDeContacto,
   buscarEmpresas,
+  buscarPersonas,
+  editarCarpeta,
+  editarCuit,
   editarDni,
   editarNombre,
+  editarRazonSocial,
   eliminarContacto,
+  quitarDeEmpresa,
 } from './clientes/edicion.ts'
-export type { OrganizationOption, PartyEditResult } from './clientes/edicion.ts'
+export type { OrganizationOption, PartyEditResult, PersonOption } from './clientes/edicion.ts'

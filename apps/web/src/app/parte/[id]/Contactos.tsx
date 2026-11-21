@@ -1,17 +1,16 @@
 'use client'
 
-// Teléfonos y mails, y empresas de la ficha: se editan en la misma fila, con un lápiz al
+// Teléfonos y mails, empresas de una persona y contactos de una empresa: se editan en la misma fila, con un lápiz al
 // pasar el cursor y un + para agregar.
 
-import type { OrganizationOption } from '@del-campo/api'
 import { useActionState, useEffect, useRef, useState } from 'react'
 
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import type { Resultado } from '@/app/_componentes/Edicion'
 import { BotonLapiz, Confirmar } from '@/app/_componentes/Edicion'
-import { IconoMas, IconoPapelera } from '@/app/_componentes/Iconos'
+import { IconoCruz, IconoMas, IconoPapelera } from '@/app/_componentes/Iconos'
 
-import { agregar, asociar, corregir, empresasQueCoinciden, quitar } from './acciones'
+import { agregar, asociar, asociarContacto, corregir, empresasQueCoinciden, personasQueCoinciden, quitar, quitarDeLaEmpresa } from './acciones'
 
 const useCerrarAlGuardar = (estado: Resultado, cerrar: () => void): void => {
   const ultimo = useRef<Resultado>(null)
@@ -113,16 +112,39 @@ export function NuevoContacto({ parte }: { readonly parte: string }) {
   )
 }
 
+interface OpcionDeBusqueda {
+  readonly partyId: string
+  readonly displayName: string
+  readonly detalle: string | null
+}
+
 /**
- * El + del panel Empresas: un buscador de empresas guardadas que sugiere mientras se
- * escribe. Sólo se puede asociar eligiendo un resultado de la lista.
+ * Un + que abre un buscador de clientes guardados que sugiere mientras se escribe. Sólo
+ * se puede asociar eligiendo un resultado de la lista.
  */
-export function AsociarEmpresa({ parte }: { readonly parte: string }) {
+function AsociarConBuscador({
+  parte,
+  campo,
+  accion,
+  buscar,
+  boton,
+  placeholder,
+  vacio,
+}: {
+  readonly parte: string
+  /** El nombre del campo con el id elegido. */
+  readonly campo: string
+  readonly accion: (previo: Resultado, form: FormData) => Promise<Resultado>
+  readonly buscar: (texto: string) => Promise<readonly OpcionDeBusqueda[]>
+  readonly boton: string
+  readonly placeholder: string
+  readonly vacio: string
+}) {
   const [abierto, setAbierto] = useState(false)
   const [texto, setTexto] = useState('')
-  const [opciones, setOpciones] = useState<readonly OrganizationOption[]>([])
-  const [elegida, setElegida] = useState<OrganizationOption | null>(null)
-  const [estado, guardar] = useActionState(asociar, null)
+  const [opciones, setOpciones] = useState<readonly OpcionDeBusqueda[]>([])
+  const [elegida, setElegida] = useState<OpcionDeBusqueda | null>(null)
+  const [estado, guardar] = useActionState(accion, null)
   const cerrar = () => {
     setAbierto(false)
     setTexto('')
@@ -138,7 +160,7 @@ export function AsociarEmpresa({ parte }: { readonly parte: string }) {
     }
     let vigente = true
     const espera = setTimeout(() => {
-      void empresasQueCoinciden(texto).then((resultado) => {
+      void buscar(texto).then((resultado) => {
         if (vigente) setOpciones(resultado)
       })
     }, 250)
@@ -146,18 +168,19 @@ export function AsociarEmpresa({ parte }: { readonly parte: string }) {
       vigente = false
       clearTimeout(espera)
     }
-  }, [texto, abierto, elegida])
+  }, [texto, abierto, elegida, buscar])
 
   if (!abierto)
     return (
-      <button type="button" className="boton-icono boton-icono--agregar" onClick={() => { setAbierto(true); }} aria-label="Asociar una empresa" title="Asociar una empresa">
+      <button type="button" className="boton-icono boton-icono--agregar" onClick={() => { setAbierto(true); }} aria-label={boton} title={boton}>
         <IconoMas />
       </button>
     )
+  const lista = `${campo}-sugeridos`
   return (
     <form action={guardar} className="buscador-empresa">
       <input type="hidden" name="parte" value={parte} />
-      <input type="hidden" name="empresa" value={elegida?.partyId ?? ''} />
+      <input type="hidden" name={campo} value={elegida?.partyId ?? ''} />
       <div className="edicion-en-fila">
         <input
           type="search"
@@ -166,30 +189,110 @@ export function AsociarEmpresa({ parte }: { readonly parte: string }) {
             setElegida(null)
             setTexto(e.target.value)
           }}
-          placeholder="Buscar empresa por nombre o CUIT"
-          aria-label="Buscar empresa"
+          placeholder={placeholder}
+          aria-label={placeholder}
           aria-autocomplete="list"
-          aria-controls="empresas-sugeridas"
+          aria-controls={lista}
           autoFocus
         />
         <Confirmar onCancelar={cerrar} etiqueta="Asociar" />
       </div>
       {elegida === null && opciones.length > 0 ? (
-        <ul id="empresas-sugeridas" className="sugerencias" role="listbox" aria-label="Empresas guardadas">
+        <ul id={lista} className="sugerencias" role="listbox" aria-label={boton}>
           {opciones.map((o) => (
             <li key={o.partyId} role="option" aria-selected={false}>
               <button type="button" onClick={() => { setElegida(o); }}>
                 <span className="nombre">{o.displayName}</span>
-                {o.cuit === null ? null : <span className="meta"> · CUIT {o.cuit}</span>}
+                {o.detalle === null ? null : <span className="meta"> · {o.detalle}</span>}
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      {elegida === null && texto.trim().length >= 2 && opciones.length === 0 ? (
-        <p className="meta">Sin empresas guardadas que coincidan.</p>
-      ) : null}
+      {elegida === null && texto.trim().length >= 2 && opciones.length === 0 ? <p className="meta">{vacio}</p> : null}
       <MensajeDeError estado={estado} />
     </form>
+  )
+}
+
+const buscarEmpresas = async (texto: string): Promise<readonly OpcionDeBusqueda[]> =>
+  (await empresasQueCoinciden(texto)).map((o) => ({ partyId: o.partyId, displayName: o.displayName, detalle: o.cuit === null ? null : `CUIT ${o.cuit}` }))
+
+const buscarPersonas = async (texto: string): Promise<readonly OpcionDeBusqueda[]> =>
+  (await personasQueCoinciden(texto)).map((o) => ({ partyId: o.partyId, displayName: o.displayName, detalle: o.dni === null ? null : `DNI ${o.dni}` }))
+
+/** El + del panel Empresas de una persona: asocia una empresa guardada. */
+export function AsociarEmpresa({ parte }: { readonly parte: string }) {
+  return (
+    <AsociarConBuscador
+      parte={parte}
+      campo="empresa"
+      accion={asociar}
+      buscar={buscarEmpresas}
+      boton="Asociar una empresa"
+      placeholder="Buscar empresa por nombre o CUIT"
+      vacio="Sin empresas guardadas que coincidan."
+    />
+  )
+}
+
+/** El + del panel Contactos de una empresa: asocia una persona guardada. */
+export function AsociarContacto({ parte }: { readonly parte: string }) {
+  return (
+    <AsociarConBuscador
+      parte={parte}
+      campo="persona"
+      accion={asociarContacto}
+      buscar={buscarPersonas}
+      boton="Asociar un contacto"
+      placeholder="Buscar contacto por nombre o DNI"
+      vacio="Sin contactos guardados que coincidan."
+    />
+  )
+}
+
+/** La ✕ de una fila de Contactos de una empresa: confirma y quita el vínculo. */
+export function QuitarDeEmpresa({
+  empresa,
+  empresaNombre,
+  persona,
+  personaNombre,
+}: {
+  readonly empresa: string
+  readonly empresaNombre: string
+  readonly persona: string
+  readonly personaNombre: string
+}) {
+  const dialogo = useRef<HTMLDialogElement>(null)
+  const [estado, enviar] = useActionState(quitarDeLaEmpresa, null)
+  useCerrarAlGuardar(estado, () => dialogo.current?.close())
+  const titulo = `quitar-${persona}`
+  return (
+    <>
+      <button
+        type="button"
+        className="boton-icono lapiz"
+        onClick={() => dialogo.current?.showModal()}
+        aria-label={`Quitar a ${personaNombre} de la empresa`}
+        title="Quitar de la empresa"
+      >
+        <IconoCruz />
+      </button>
+      <dialog ref={dialogo} className="dialogo" aria-labelledby={titulo}>
+        <h2 id={titulo}>¿Quitar a {personaNombre} de {empresaNombre}?</h2>
+        <form action={enviar}>
+          <input type="hidden" name="parte" value={empresa} />
+          <input type="hidden" name="persona" value={persona} />
+          <p>Se quita el vínculo con la empresa. La ficha de {personaNombre} sigue en Clientes, con sus demás vínculos.</p>
+          <MensajeDeError estado={estado} />
+          <div className="fila fila--fin">
+            <button type="button" className="boton boton--secundario" onClick={() => dialogo.current?.close()}>
+              Cancelar
+            </button>
+            <BotonEnviar className="boton boton--peligro">Quitar de la empresa</BotonEnviar>
+          </div>
+        </form>
+      </dialog>
+    </>
   )
 }

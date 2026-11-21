@@ -23,8 +23,8 @@ import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { eliminar, guardarDni, guardarNombre } from './acciones'
-import { AsociarEmpresa, FilaDeContacto, NuevoContacto } from './Contactos'
+import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarRazonSocial } from './acciones'
+import { AsociarContacto, AsociarEmpresa, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,15 +101,21 @@ export default async function PartePage({
             Nueva gestión
           </Link>
           <EliminarConDialogo
-            boton="Eliminar contacto"
-            titulo={bloqueos.length > 0 ? 'No se puede eliminar este contacto' : `¿Eliminar a ${vista.displayName}?`}
+            boton={esEmpresa ? 'Eliminar cliente' : 'Eliminar contacto'}
+            titulo={
+              bloqueos.length > 0
+                ? `No se puede eliminar ${esEmpresa ? 'este cliente' : 'este contacto'}`
+                : `¿Eliminar a ${vista.displayName}?`
+            }
             accion={eliminar}
-            ocultos={{ parte: vista.partyId }}
+            ocultos={{ parte: vista.partyId, tipo: esEmpresa ? 'empresa' : 'persona' }}
             bloqueo={bloqueos.length > 0 ? `${describirBloqueos(bloqueos)} Para eliminarlo no tiene que tener pólizas, gestiones ni tareas, en ningún estado.` : null}
           >
             <p>
-              Se borran {vista.displayName}, sus teléfonos, mails y vínculos con empresas. La eliminación es definitiva y no se puede
-              deshacer.
+              {esEmpresa
+                ? `Se borran ${vista.displayName}, sus teléfonos, mails y vínculos con contactos. Las fichas de sus contactos siguen en Clientes.`
+                : `Se borran ${vista.displayName}, sus teléfonos, mails y vínculos con empresas.`}{' '}
+              La eliminación es definitiva y no se puede deshacer.
             </p>
           </EliminarConDialogo>
         </div>
@@ -134,10 +140,14 @@ export default async function PartePage({
             <h2>Datos</h2>
             <dl className="kv">
               {esEmpresa ? (
-                <>
-                  <dt>Razón social</dt>
-                  <dd className="nombre">{vista.displayName}</dd>
-                </>
+                <CampoEditable
+                  etiqueta="Razón social"
+                  valor={vista.displayName}
+                  accion={guardarRazonSocial}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  <span className="nombre">{vista.displayName}</span>
+                </CampoEditable>
               ) : (
                 <NombreEditable
                   nombre={vista.firstName ?? ''}
@@ -148,19 +158,22 @@ export default async function PartePage({
                   {vista.displayName}
                 </NombreEditable>
               )}
-              {vista.cuit === null ? null : (
-                <>
-                  <dt>CUIT</dt>
-                  <dd>{vista.cuit}</dd>
-                </>
-              )}
-              {esEmpresa ? null : (
+              {esEmpresa ? (
+                <CampoEditable etiqueta="CUIT" valor={vista.cuit ?? ''} accion={guardarCuit} ocultos={{ parte: vista.partyId }}>
+                  {vista.cuit ?? '—'}
+                </CampoEditable>
+              ) : (
                 <CampoEditable etiqueta="DNI" valor={vista.dni ?? ''} accion={guardarDni} ocultos={{ parte: vista.partyId }}>
                   {vista.dni ?? '—'}
                 </CampoEditable>
               )}
-              <dt>Carpeta de Google Drive</dt>
-              <dd>
+              <CampoEditable
+                etiqueta="Carpeta de Google Drive"
+                tipo="url"
+                valor={vista.driveFolderUrl ?? ''}
+                accion={guardarCarpeta}
+                ocultos={{ parte: vista.partyId }}
+              >
                 {vista.driveFolderUrl === null ? (
                   '—'
                 ) : (
@@ -168,7 +181,7 @@ export default async function PartePage({
                     Abrir carpeta
                   </a>
                 )}
-              </dd>
+              </CampoEditable>
               <dt>Pólizas</dt>
               <dd>
                 <Link href={`/parte/${id}?seccion=polizas`}>{vista.policies.length} a la fecha</Link>
@@ -205,14 +218,27 @@ export default async function PartePage({
           <div>
             {esEmpresa || vista.contacts.length > 0 ? (
               <section className="tarjeta">
-                <h2>Contactos</h2>
+                <div className="encabezado-tarjeta">
+                  <h2>Contactos</h2>
+                  {esEmpresa ? <AsociarContacto parte={vista.partyId} /> : null}
+                </div>
                 {vista.contacts.length === 0 ? (
                   <p className="meta">Ninguno.</p>
                 ) : (
                   <ul className="lista">
                     {vista.contacts.map((miembro) => (
-                      <li key={miembro.partyId}>
-                        <Link href={`/parte/${miembro.partyId}`}>{miembro.displayName}</Link>
+                      <li key={miembro.partyId} className="editable">
+                        <span className="editable__valor">
+                          <Link href={`/parte/${miembro.partyId}`}>{miembro.displayName}</Link>
+                          {esEmpresa ? (
+                            <QuitarDeEmpresa
+                              empresa={vista.partyId}
+                              empresaNombre={vista.displayName}
+                              persona={miembro.partyId}
+                              personaNombre={miembro.displayName}
+                            />
+                          ) : null}
+                        </span>
                         <p className="meta">
                           {[miembro.roleOrPosition, miembro.isPrimary === true ? 'principal' : null]
                             .filter((dato) => dato !== null)

@@ -74,7 +74,7 @@ export function CampoEditable({
 }: {
   readonly etiqueta: string
   readonly valor: string
-  readonly tipo?: 'text' | 'date' | 'importe' | 'select'
+  readonly tipo?: 'text' | 'date' | 'importe' | 'select' | 'url'
   readonly opciones?: readonly Opcion[]
   readonly accion: Accion
   readonly ocultos: Ocultos
@@ -103,11 +103,11 @@ export function CampoEditable({
             ) : (
               <input
                 name="valor"
-                type={tipo === 'date' ? 'date' : 'text'}
+                type={tipo === 'date' ? 'date' : tipo === 'url' ? 'url' : 'text'}
                 inputMode={tipo === 'importe' ? 'decimal' : undefined}
                 defaultValue={valor}
                 aria-label={etiqueta}
-                maxLength={120}
+                maxLength={tipo === 'url' ? 500 : 160}
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') cerrar()

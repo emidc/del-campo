@@ -1,6 +1,6 @@
-// Pólizas y contactos editables (0023) como los usa el equipo: por `conDatos`, como
+// Pólizas, contactos y empresas editables (0023 y 0024) como los usa el equipo: por `conDatos`, como
 // `broker_app`, con RLS decidiendo. Contra Postgres real, con datos sintéticos y cada caso
-// en una transacción revertida. Requiere DATABASE_URL con 0023 aplicada.
+// en una transacción revertida. Requiere DATABASE_URL con 0024 aplicada.
 
 import assert from 'node:assert/strict'
 import { after, describe, it } from 'node:test'
@@ -10,11 +10,17 @@ import postgres from 'postgres'
 
 import {
   asociarEmpresaCon,
+  asociarPersonaCon,
   bloqueosDeContactoCon,
   buscarEmpresasCon,
+  buscarPersonasCon,
+  editarCarpetaCon,
+  editarCuitCon,
   editarDniCon,
   editarNombreCon,
+  editarRazonSocialCon,
   eliminarContactoCon,
+  quitarDeEmpresaCon,
 } from '../clientes/edicion.ts'
 import type { Principal } from '../session/admission.ts'
 import {
@@ -363,6 +369,71 @@ describe('ficha del contacto', () => {
       assert.deepEqual(await eliminarContactoCon(tx, quien, beto), [])
       assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from party where id = ${beto}`).n, 0)
       assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from contact_point where party_id = ${beto}`).n, 0)
+    })
+  })
+})
+
+describe('ficha de la empresa', () => {
+  const carpeta = 'https://drive.google.com/drive/folders/carpetaSintetica123'
+
+  it('edita razón social, CUIT y carpeta de Drive, y la ficha lee los valores nuevos', async () => {
+    await descartable(async (tx) => {
+      await sembrar(tx)
+      const org = await empresa(tx, 'Bodega Sintética SA')
+      await tx`
+        insert into document_link (resource_type, resource_id, drive_file_id, drive_url, drive_item_type, reconciliation_status, link_level)
+        values ('PARTY', ${org}, 'zoho', 'https://drive.google.com/drive/folders/deZoho', 'FOLDER', 'NOT_REFERENCED', 'ZOHO_UNVERIFIED')`
+      assert.deepEqual(await editarRazonSocialCon(tx, quien, org, '  001 - Bodega   Sintética SA '), { kind: 'ok' })
+      assert.equal((await editarRazonSocialCon(tx, quien, org, ' ')).kind, 'invalid')
+      assert.deepEqual(await editarCuitCon(tx, quien, org, '30 71234567 9'), { kind: 'ok' })
+      assert.equal((await editarCuitCon(tx, quien, org, '30-123')).kind, 'invalid')
+      assert.equal((await editarCarpetaCon(tx, quien, org, 'https://drive.google.com/file/d/archivo/view')).kind, 'invalid', 'un archivo no es carpeta')
+      assert.deepEqual(await editarCarpetaCon(tx, quien, org, carpeta), { kind: 'ok' })
+
+      const vista = await getPartyOverview(tx, org, '2026-11-21', '2026-11-21T12:00:00Z')
+      assert.equal(vista?.displayName, '001 - Bodega Sintética SA')
+      assert.equal(vista.cuit, '30-71234567-9')
+      assert.equal(vista.driveFolderUrl, carpeta, 'reemplaza a la de Zoho')
+      const enlaces = await tx<{ n: number }[]>`select count(*)::int as n from document_link where resource_type = 'PARTY' and resource_id = ${org}`
+      assert.equal(uno(enlaces).n, 1)
+
+      assert.deepEqual(await editarCarpetaCon(tx, quien, org, ''), { kind: 'ok' })
+      assert.equal((await getPartyOverview(tx, org, '2026-11-21', '2026-11-21T12:00:00Z'))?.driveFolderUrl, null)
+    })
+  })
+
+  it('asocia contactos guardados y los quita sin tocar sus fichas ni sus otros vínculos', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const org = await empresa(tx, 'Bodega Sintética SA')
+      const otra = await empresa(tx, 'Ferretería Sintética SRL')
+      assert.deepEqual((await buscarPersonasCon(tx, quien, 'sintét')).map((o) => o.partyId), [m.ana])
+      assert.deepEqual(await asociarPersonaCon(tx, quien, org, m.ana), { kind: 'ok' })
+      assert.equal((await asociarPersonaCon(tx, quien, org, otra)).kind, 'invalid', 'una empresa no es un contacto')
+      assert.deepEqual(await asociarEmpresaCon(tx, quien, m.ana, otra), { kind: 'ok' })
+      const ahora = '2099-01-01T00:00:00Z'
+      assert.deepEqual((await getPartyOverview(tx, org, '2026-11-21', ahora))?.contacts.map((c) => c.partyId), [m.ana])
+
+      assert.deepEqual(await quitarDeEmpresaCon(tx, quien, org, m.ana), { kind: 'ok' })
+      assert.equal((await quitarDeEmpresaCon(tx, quien, org, m.ana)).kind, 'not_found')
+      assert.deepEqual((await getPartyOverview(tx, org, '2026-11-21', ahora))?.contacts, [])
+      const ana = await getPartyOverview(tx, m.ana, '2026-11-21', ahora)
+      assert.deepEqual(ana?.organizations.map((o) => o.partyId), [otra])
+    })
+  })
+
+  it('una empresa con pólizas no se elimina; sin vínculos se borra y sus contactos quedan', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const org = await empresa(tx, 'Bodega Sintética SA')
+      await nuevaPoliza(tx, m.aseguradora, org, 'SIN-0002', '2027-01-01')
+      assert.deepEqual(await eliminarContactoCon(tx, quien, org), ['POLIZAS'])
+
+      const libre = await empresa(tx, 'Libre Sintética SA')
+      assert.deepEqual(await asociarPersonaCon(tx, quien, libre, m.ana), { kind: 'ok' })
+      assert.deepEqual(await eliminarContactoCon(tx, quien, libre), [])
+      assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from party where id = ${libre}`).n, 0)
+      assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from party where id = ${m.ana}`).n, 1)
     })
   })
 })

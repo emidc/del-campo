@@ -1,23 +1,30 @@
 'use server'
 
-// Acciones de la ficha del cliente: teléfonos y mails (T-0068), nombre y DNI, empresas y
-// borrado definitivo. Cada acción vuelve a pasar por el guard de sesión y por `conDatos`;
-// la base decide. Devuelven `{ ok }` o `{ error }` para que la fila quede abierta si falla.
+// Acciones de la ficha del cliente: teléfonos y mails (T-0068), nombre y DNI, razón social,
+// CUIT y carpeta de Drive, vínculos persona–empresa y borrado definitivo. Cada acción
+// vuelve a pasar por el guard de sesión y por `conDatos`; la base decide. Devuelven
+// `{ ok }` o `{ error }` para que la fila quede abierta si falla.
 
-import type { OrganizationOption, PartyEditResult, ResultadoDeContacto } from '@del-campo/api'
+import type { OrganizationOption, PartyEditResult, PersonOption, ResultadoDeContacto } from '@del-campo/api'
 import {
   MENSAJE_DE_CONTACTO,
   agregarContacto,
   asociarEmpresa,
+  asociarPersona,
   buscarEmpresas,
+  buscarPersonas,
   corregirContacto,
   describirBloqueos,
+  editarCarpeta,
+  editarCuit,
   editarDni,
   editarNombre,
+  editarRazonSocial,
   eliminarContacto,
   esCanalDeContacto,
   esUuid,
   quitarContacto,
+  quitarDeEmpresa,
 } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -82,7 +89,7 @@ export async function corregir(_previo: Resultado, form: FormData): Promise<Resu
   return deContacto(parte, await intentar(corregirContacto(principal, parte, texto(form, 'contacto'), texto(form, 'valor'))))
 }
 
-/** Eliminar un teléfono o mail es, por ahora, la baja que ya existía: la fila queda inactiva. */
+/** Eliminar un teléfono o mail lo borra de la base. */
 export async function quitar(_previo: Resultado, form: FormData): Promise<Resultado> {
   const principal = await requireAdmitted()
   const parte = parteDe(form)
@@ -117,6 +124,50 @@ export async function asociar(_previo: Resultado, form: FormData): Promise<Resul
   return deEdicion(parte, await intentar(asociarEmpresa(principal, parte, texto(form, 'empresa'))))
 }
 
+export async function guardarRazonSocial(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  return deEdicion(parte, await intentar(editarRazonSocial(principal, parte, texto(form, 'valor'))))
+}
+
+export async function guardarCuit(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  return deEdicion(parte, await intentar(editarCuit(principal, parte, texto(form, 'valor'))))
+}
+
+export async function guardarCarpeta(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  return deEdicion(parte, await intentar(editarCarpeta(principal, parte, texto(form, 'valor').slice(0, 500))))
+}
+
+/** Las personas guardadas que coinciden con lo que se va escribiendo. */
+export async function personasQueCoinciden(buscado: string): Promise<PersonOption[]> {
+  const principal = await requireAdmitted()
+  return (await intentar(buscarPersonas(principal, buscado.slice(0, 80)))) ?? []
+}
+
+/** Desde la ficha de una empresa: `parte` es la empresa y `persona`, el contacto. */
+export async function asociarContacto(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  return deEdicion(parte, await intentar(asociarPersona(principal, parte, texto(form, 'persona'))))
+}
+
+export async function quitarDeLaEmpresa(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  const resultado = await intentar(quitarDeEmpresa(principal, parte, texto(form, 'persona')))
+  if (resultado?.kind === 'not_found') return { ok: false, error: 'Ese contacto ya no estaba asociado.' }
+  return deEdicion(parte, resultado)
+}
+
 export async function eliminar(_previo: Resultado, form: FormData): Promise<Resultado> {
   const principal = await requireAdmitted()
   const parte = parteDe(form)
@@ -125,5 +176,5 @@ export async function eliminar(_previo: Resultado, form: FormData): Promise<Resu
   if (bloqueos === null) return { ok: false, error: 'No se pudo eliminar. El contacto sigue como estaba.' }
   if (bloqueos.length > 0) return { ok: false, error: `No se puede eliminar. ${describirBloqueos(bloqueos)}` }
   revalidatePath('/clientes')
-  redirect('/clientes?tipo=personas&eliminado=1')
+  redirect(texto(form, 'tipo') === 'empresa' ? '/clientes?eliminado=1' : '/clientes?tipo=personas&eliminado=1')
 }
