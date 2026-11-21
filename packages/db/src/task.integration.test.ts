@@ -15,10 +15,16 @@ import {
   assignTask,
   changeTaskStatus,
   commentTask,
+  completeTaskAction,
   createTask,
+  deleteTask,
   getTask,
+  involveInTask,
   listTaskAssignees,
   listTasks,
+  setTaskDueDate,
+  setTaskFollowUp,
+  setTaskPriority,
 } from './task.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
@@ -205,6 +211,93 @@ describe('tareas (0017)', () => {
         }),
         /de otro cliente/,
       )
+      await tx`rollback to savepoint s1`
+    })
+  })
+
+  it('vencimiento, prioridad y seguimiento se editan y quedan en la historia (0026)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createTask(tx, {
+        title: 'Cotizar flota', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: '2026-11-30', assignedUserId: null, comment: null,
+      })
+      await setTaskDueDate(tx, id, '2026-12-15')
+      await setTaskPriority(tx, id, 'ALTA')
+      await setTaskFollowUp(tx, id, 'COTIZANDO')
+      await setTaskFollowUp(tx, id, 'COTIZANDO')
+      const t = await getTask(tx, id)
+      assert.ok(t)
+      assert.equal(t.dueDate, '2026-12-15')
+      assert.equal(t.priority, 'ALTA')
+      assert.equal(t.followUp, 'COTIZANDO')
+      assert.equal(t.status, 'PENDIENTE')
+      assert.deepEqual(
+        t.events.filter((e) => e.kind === 'CAMBIO').map((e) => e.body),
+        ['Vencimiento: 30/11/2026 → 15/12/2026', 'Prioridad: Alta', 'Seguimiento: Cotizando'],
+      )
+    })
+  })
+
+  it('involucrar a alguien no cambia responsable ni estado, y sólo esa persona marca su acción (0026)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createTask(tx, {
+        title: 'Renovar póliza', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
+      await changeTaskStatus(tx, id, 'EN_CURSO', null)
+      const accion = await involveInTask(tx, id, m.op2, 'Pedir la inspección del vehículo')
+
+      await tx`savepoint s1`
+      await assert.rejects(completeTaskAction(tx, accion), /no es tuya/)
+      await tx`rollback to savepoint s1`
+
+      await como(tx, m.op2)
+      const antes = await getTask(tx, id)
+      assert.ok(antes)
+      assert.deepEqual(antes.actions.map((a) => [a.description, a.status, a.assignedToMe]), [['Pedir la inspección del vehículo', 'PENDIENTE', true]])
+      await completeTaskAction(tx, accion)
+
+      const t = await getTask(tx, id)
+      assert.ok(t)
+      const [hecha] = t.actions
+      assert.ok(hecha)
+      assert.equal(hecha.status, 'HECHA')
+      assert.ok(hecha.doneAt)
+      assert.equal(t.status, 'EN_CURSO')
+      assert.equal(t.assignedEmail, 'op@sintetico.test')
+      assert.deepEqual(
+        t.events.filter((e) => e.kind === 'ACCION').map((e) => e.body),
+        ['Involucró a op2@sintetico.test: Pedir la inspección del vehículo', 'Hizo: Pedir la inspección del vehículo'],
+      )
+    })
+  })
+
+  it('eliminar una tarea la borra con sus acciones y su historia (0026)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createTask(tx, {
+        title: 'Para borrar', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: 'algo',
+      })
+      const otra = await createTask(tx, {
+        title: 'Queda', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
+      await involveInTask(tx, id, m.admin, 'Revisar')
+      await deleteTask(tx, id)
+      assert.deepEqual((await listTasks(tx)).map((t) => t.id), [otra])
+      assert.equal(await getTask(tx, id), null)
+      await tx`reset role`
+      assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from task_event where task_id = ${id}`).n, 0)
+      assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from task_action where task_id = ${id}`).n, 0)
+      // Fuera de `eliminar_tarea`, la historia sigue sin poder borrarse.
+      await tx`savepoint s1`
+      await assert.rejects(tx`delete from task_event where task_id = ${otra}`, /sólo de alta/)
       await tx`rollback to savepoint s1`
     })
   })

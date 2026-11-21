@@ -10,6 +10,20 @@ type QueryExecutor = postgres.Sql | postgres.TransactionSql
 export const TASK_STATUSES = ['PENDIENTE', 'EN_CURSO', 'TRABADA', 'EN_REVISION', 'HECHA'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
+export const TASK_PRIORITIES = ['ALTA', 'MEDIA', 'BAJA'] as const
+export type TaskPriority = (typeof TASK_PRIORITIES)[number]
+export const PRIORIDADES_DE_TAREA: Readonly<Record<TaskPriority, string>> = { ALTA: 'Alta', MEDIA: 'Media', BAJA: 'Baja' }
+
+export const TASK_FOLLOW_UPS = ['COTIZANDO', 'EMITIENDO', 'GANADA', 'EN_SEGUIMIENTO', 'EN_PAUSA'] as const
+export type TaskFollowUp = (typeof TASK_FOLLOW_UPS)[number]
+export const SEGUIMIENTOS_DE_TAREA: Readonly<Record<TaskFollowUp, string>> = {
+  COTIZANDO: 'Cotizando',
+  EMITIENDO: 'Emitiendo',
+  GANADA: 'Ganada',
+  EN_SEGUIMIENTO: 'En seguimiento',
+  EN_PAUSA: 'En pausa',
+}
+
 export interface TaskSummary {
   readonly id: string
   readonly title: string
@@ -23,14 +37,27 @@ export interface TaskSummary {
   readonly assignedEmail: string | null
   readonly assignedToMe: boolean
   readonly dueDate: string | null
+  readonly priority: TaskPriority | null
+  readonly followUp: TaskFollowUp | null
   readonly createdAt: string
   readonly updatedAt: string
   readonly doneAt: string | null
 }
 
+/** Una acción puntual de la tarea a cargo de otra persona («Involucrar a alguien»). */
+export interface TaskAction {
+  readonly id: string
+  readonly description: string
+  readonly status: 'PENDIENTE' | 'HECHA'
+  readonly assignedEmail: string | null
+  readonly assignedToMe: boolean
+  readonly createdAt: string
+  readonly doneAt: string | null
+}
+
 export interface TaskEvent {
   readonly id: string
-  readonly kind: 'ALTA' | 'COMENTARIO' | 'ESTADO' | 'ASIGNACION'
+  readonly kind: 'ALTA' | 'COMENTARIO' | 'ESTADO' | 'ASIGNACION' | 'CAMBIO' | 'ACCION'
   readonly body: string | null
   readonly fromStatus: TaskStatus | null
   readonly toStatus: TaskStatus | null
@@ -40,6 +67,7 @@ export interface TaskEvent {
 
 export interface TaskDetail extends TaskSummary {
   readonly events: readonly TaskEvent[]
+  readonly actions: readonly TaskAction[]
 }
 
 export interface TaskFilter {
@@ -75,6 +103,8 @@ interface SummaryRow {
   readonly assigned_email: string | null
   readonly assigned_to_me: boolean
   readonly due_date: string | null
+  readonly priority: TaskPriority | null
+  readonly follow_up: TaskFollowUp | null
   readonly created_at: string
   readonly updated_at: string
   readonly done_at: string | null
@@ -93,6 +123,8 @@ const resumen = (row: SummaryRow): TaskSummary => ({
   assignedEmail: row.assigned_email,
   assignedToMe: row.assigned_to_me,
   dueDate: row.due_date,
+  priority: row.priority,
+  followUp: row.follow_up,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   doneAt: row.done_at,
@@ -114,6 +146,8 @@ const seleccion = (sql: QueryExecutor) => sql`
     authz.correo_integrante(t.assigned_user_id) as assigned_email,
     coalesce(t.assigned_user_id = authz.usuario(), false) as assigned_to_me,
     to_char(t.due_date, 'YYYY-MM-DD') as due_date,
+    t.priority,
+    t.follow_up,
     t.created_at::text as created_at,
     t.updated_at::text as updated_at,
     t.done_at::text as done_at
@@ -163,8 +197,36 @@ export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetai
     where e.task_id = ${id}
     order by e.created_at, e.id
   `
+  const actions = await sql<
+    {
+      id: string
+      description: string
+      status: TaskAction['status']
+      assigned_email: string | null
+      assigned_to_me: boolean
+      created_at: string
+      done_at: string | null
+    }[]
+  >`
+    select a.id, a.description, a.status,
+      authz.correo_integrante(a.assigned_user_id) as assigned_email,
+      coalesce(a.assigned_user_id = authz.usuario(), false) as assigned_to_me,
+      a.created_at::text as created_at, a.done_at::text as done_at
+    from task_action a
+    where a.task_id = ${id}
+    order by a.created_at, a.id
+  `
   return {
     ...resumen(row),
+    actions: actions.map((a) => ({
+      id: a.id,
+      description: a.description,
+      status: a.status,
+      assignedEmail: a.assigned_email,
+      assignedToMe: a.assigned_to_me,
+      createdAt: a.created_at,
+      doneAt: a.done_at,
+    })),
     events: events.map((e) => ({
       id: e.id,
       kind: e.kind,
@@ -279,4 +341,94 @@ export const listTaskAssignees = async (
     order by i.email
   `
   return rows.map((r) => ({ userId: r.id, email: r.email }))
+}
+
+const FECHA = /^\d{4}-\d{2}-\d{2}$/
+const legible = (iso: string | null): string => (iso === null ? 'sin fecha' : iso.split('-').reverse().join('/'))
+
+const registrarCambio = async (sql: QueryExecutor, id: string, texto: string): Promise<void> => {
+  await sql`
+    insert into task_event (task_id, kind, body, author_user_id)
+    values (${id}, 'CAMBIO', ${texto}, authz.usuario())
+  `
+}
+
+const actual = async (sql: QueryExecutor, id: string) => {
+  const [fila] = await sql<{ due_date: string | null; priority: TaskPriority | null; follow_up: TaskFollowUp | null }[]>`
+    select to_char(due_date, 'YYYY-MM-DD') as due_date, priority, follow_up from task where id = ${id} for update
+  `
+  if (fila === undefined) throw new Error('tarea inexistente o fuera de alcance')
+  return fila
+}
+
+/** Cambia el vencimiento (`null` lo quita) y lo deja en la historia. */
+export const setTaskDueDate = async (sql: QueryExecutor, id: string, dueDate: string | null): Promise<void> => {
+  if (dueDate !== null && !FECHA.test(dueDate)) throw new Error('fecha inválida')
+  const antes = await actual(sql, id)
+  if (antes.due_date === dueDate) return
+  await sql`update task set due_date = ${dueDate}, updated_at = now() where id = ${id}`
+  await registrarCambio(sql, id, `Vencimiento: ${legible(antes.due_date)} → ${legible(dueDate)}`)
+}
+
+export const setTaskPriority = async (sql: QueryExecutor, id: string, priority: TaskPriority | null): Promise<void> => {
+  const antes = await actual(sql, id)
+  if (antes.priority === priority) return
+  await sql`update task set priority = ${priority}, updated_at = now() where id = ${id}`
+  await registrarCambio(sql, id, `Prioridad: ${priority === null ? 'sin prioridad' : PRIORIDADES_DE_TAREA[priority]}`)
+}
+
+export const setTaskFollowUp = async (sql: QueryExecutor, id: string, followUp: TaskFollowUp | null): Promise<void> => {
+  const antes = await actual(sql, id)
+  if (antes.follow_up === followUp) return
+  await sql`update task set follow_up = ${followUp}, updated_at = now() where id = ${id}`
+  await registrarCambio(sql, id, `Seguimiento: ${followUp === null ? 'sin seguimiento' : SEGUIMIENTOS_DE_TAREA[followUp]}`)
+}
+
+/**
+ * Involucra a un integrante en una acción puntual de la tarea. El responsable y el estado
+ * de la tarea no cambian. Devuelve el id de la acción.
+ */
+export const involveInTask = async (
+  sql: QueryExecutor,
+  id: string,
+  userId: string,
+  description: string,
+): Promise<string> => {
+  const texto = description.trim()
+  if (texto === '') throw new Error('falta describir qué tiene que hacer')
+  const [fila] = await sql<{ id: string }[]>`
+    insert into task_action (task_id, assigned_user_id, description, created_by_user_id)
+    values (${id}, ${userId}, ${texto}, authz.usuario())
+    returning id
+  `
+  if (fila === undefined) throw new Error('la acción no se creó')
+  const [destino] = await sql<{ email: string | null }[]>`select authz.correo_integrante(${userId}::uuid) as email`
+  await sql`
+    insert into task_event (task_id, kind, body, author_user_id)
+    values (${id}, 'ACCION', ${`Involucró a ${destino?.email ?? 'un integrante'}: ${texto}`}, authz.usuario())
+  `
+  await tocar(sql, id)
+  return fila.id
+}
+
+/** La persona involucrada marca su acción como hecha. RLS rechaza a cualquier otra. */
+export const completeTaskAction = async (sql: QueryExecutor, actionId: string): Promise<void> => {
+  if (!UUID.test(actionId)) throw new Error('acción inexistente')
+  const [fila] = await sql<{ task_id: string; description: string }[]>`
+    update task_action set status = 'HECHA', done_at = now()
+    where id = ${actionId} and status = 'PENDIENTE'
+    returning task_id, description
+  `
+  if (fila === undefined) throw new Error('la acción no existe, ya está hecha o no es tuya')
+  await sql`
+    insert into task_event (task_id, kind, body, author_user_id)
+    values (${fila.task_id}, 'ACCION', ${`Hizo: ${fila.description}`}, authz.usuario())
+  `
+  await tocar(sql, fila.task_id)
+}
+
+/** Borra la tarea para siempre, con sus acciones y su historia. */
+export const deleteTask = async (sql: QueryExecutor, id: string): Promise<void> => {
+  if (!UUID.test(id)) throw new Error('tarea inexistente o fuera de alcance')
+  await sql`select public.eliminar_tarea(${id}::uuid)`
 }
