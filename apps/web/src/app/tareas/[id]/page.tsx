@@ -6,6 +6,7 @@ import {
   TASK_FOLLOW_UPS,
   TASK_PRIORITIES,
   TASK_STATUSES,
+  gestiones,
   latestBatch,
   responsablesPosibles,
   tarea,
@@ -16,6 +17,7 @@ import { notFound } from 'next/navigation'
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
+import { Retrato, etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
 import { comentar, editarCampo, eliminar, pasar } from '@/app/tareas/acciones'
 import { CasillaSemanal } from '@/app/tareas/CasillaSemanal'
 import { fecha, fechaHora } from '@/lib/formato'
@@ -49,8 +51,12 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
   const { id } = await params
   const [lote, t] = await consultar(Promise.all([latestBatch(principal), tarea(principal, id)]))
   if (t === null) notFound()
-  const integrantes = await consultar(responsablesPosibles(principal, t.partyId))
-  const responsable = integrantes.find((i) => i.email === t.assignedEmail)?.userId ?? ''
+  const [integrantes, gestionesDelCliente] = await consultar(
+    Promise.all([responsablesPosibles(principal, t.partyId), gestiones(principal, { partyId: t.partyId, includeClosed: true })]),
+  )
+  const etiquetas = etiquetasDeIntegrantes(integrantes)
+  const responsable = integrantes.find((i) => i.userId === t.assignedUserId)
+  const opcionesDeIntegrantes = integrantes.map((i) => ({ userId: i.userId, etiqueta: etiquetas.get(i) ?? i.name }))
   const campo = (nombre: string) => ({ id: t.id, campo: nombre })
 
   return (
@@ -82,6 +88,10 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
       <section className="tarjeta ficha-datos">
         <div className="datos-tarea">
           <dl className="kv">
+            <dt>Cliente</dt>
+            <dd className="nombre">
+              <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
+            </dd>
             <CampoEditable
               etiqueta="Estado"
               valor={t.status}
@@ -125,48 +135,46 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
             </CampoEditable>
             <CampoEditable
               etiqueta="Responsable"
-              valor={responsable}
+              valor={t.assignedUserId ?? ''}
               tipo="select"
-              opciones={[{ valor: '', etiqueta: 'Sin responsable' }, ...integrantes.map((i) => ({ valor: i.userId, etiqueta: i.email }))]}
+              opciones={[{ valor: '', etiqueta: 'Sin responsable' }, ...integrantes.map((i) => ({ valor: i.userId, etiqueta: etiquetas.get(i) ?? i.name }))]}
               accion={editarCampo}
               ocultos={campo('responsable')}
             >
-              {t.assignedToMe ? 'Vos' : (t.assignedEmail ?? 'Nadie')}
+              {t.assignedUserId === null ? (
+                'Nadie'
+              ) : (
+                <span className="persona">
+                  <Retrato usuario={t.assignedUserId} nombre={t.assignedName ?? ''} conFoto={responsable?.hasPhoto ?? false} />
+                  <span>{t.assignedName ?? 'integrante dado de baja'}</span>
+                </span>
+              )}
             </CampoEditable>
             <dt>Tarea de la semana</dt>
             <dd>
-              <CasillaSemanal key={String(t.weekly)} tarea={t.id} semanal={t.weekly} etiqueta="En el tablero semanal" />
+              <CasillaSemanal key={String(t.weekly)} tarea={t.id} semanal={t.weekly} />
             </dd>
-            <dt>Cliente</dt>
-            <dd className="nombre">
-              <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
-            </dd>
+            <CampoEditable
+              etiqueta="Gestión"
+              valor={t.serviceCaseId ?? ''}
+              tipo="select"
+              opciones={[
+                { valor: '', etiqueta: 'Sin gestión' },
+                ...gestionesDelCliente.map((g) => ({ valor: g.id, etiqueta: g.title })),
+              ]}
+              accion={editarCampo}
+              ocultos={campo('gestion')}
+            >
+              {t.serviceCaseId === null ? '—' : <Link href={`/gestiones/${t.serviceCaseId}`}>{t.serviceCaseTitle}</Link>}
+            </CampoEditable>
           </dl>
           <dl className="kv">
-            {t.policyId === null ? null : (
-              <>
-                <dt>Póliza</dt>
-                <dd>
-                  <Link href={`/poliza/${t.policyId}`}>{t.policyNumber}</Link>
-                </dd>
-              </>
-            )}
-            {t.serviceCaseId === null ? null : (
-              <>
-                <dt>Gestión</dt>
-                <dd>
-                  <Link href={`/gestiones/${t.serviceCaseId}`}>{t.serviceCaseTitle}</Link>
-                </dd>
-              </>
-            )}
+            <dt>Póliza</dt>
+            <dd>{t.policyId === null ? '—' : <Link href={`/poliza/${t.policyId}`}>{t.policyNumber}</Link>}</dd>
             <dt>Creada</dt>
             <dd>{fechaHora(t.createdAt)}</dd>
-            {t.doneAt === null ? null : (
-              <>
-                <dt>Hecha</dt>
-                <dd>{fechaHora(t.doneAt)}</dd>
-              </>
-            )}
+            <dt>Fecha de cierre</dt>
+            <dd>{t.doneAt === null ? '—' : fechaHora(t.doneAt)}</dd>
           </dl>
         </div>
       </section>
@@ -175,18 +183,18 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
         <div>
           <section className="tarjeta">
             <h2>Acciones del equipo</h2>
-            <AccionesDelEquipo tarea={t.id} acciones={t.actions} integrantes={integrantes} />
+            <AccionesDelEquipo tarea={t.id} acciones={t.actions} integrantes={opcionesDeIntegrantes} />
 
             <h3>Pasar a otra persona</h3>
             <form action={pasar} className="formulario-compacto">
               <input type="hidden" name="id" value={t.id} />
               <div className="campo">
                 <label htmlFor="responsable">Nuevo responsable</label>
-                <select id="responsable" name="responsable" defaultValue={responsable}>
+                <select id="responsable" name="responsable" defaultValue={t.assignedUserId ?? ''}>
                   <option value="">Sin responsable</option>
-                  {integrantes.map((i) => (
+                  {opcionesDeIntegrantes.map((i) => (
                     <option key={i.userId} value={i.userId}>
-                      {i.email}
+                      {i.etiqueta}
                     </option>
                   ))}
                 </select>
@@ -222,7 +230,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
             {t.events.map((evento) => (
               <li key={evento.id}>
                 <p className="meta" style={{ margin: 0 }}>
-                  {fechaHora(evento.createdAt)} · {evento.authorEmail ?? 'integrante dado de baja'}
+                  {fechaHora(evento.createdAt)} · {evento.authorName ?? 'integrante dado de baja'}
                 </p>
                 <p style={{ margin: '0.2rem 0 0' }}>{describir(evento)}</p>
                 {conCuerpo(evento) ? <p style={{ margin: '0.2rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p> : null}

@@ -104,8 +104,11 @@ export {
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskServiceCase,
   setTaskWeekly,
 } from './task.ts'
+export { MAX_PHOTO_BYTES, PHOTO_TYPES, getMemberPhoto, updateProfile } from './profile.ts'
+export type { MemberPhoto, PhotoType } from './profile.ts'
 export type {
   NewTask,
   TaskAction,
@@ -116,6 +119,7 @@ export type {
   TaskPriority,
   TaskStatus,
   TaskSummary,
+  TeamMemberProfile,
 } from './task.ts'
 export { listRenewals } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'

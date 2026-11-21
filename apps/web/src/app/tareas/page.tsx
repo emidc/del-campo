@@ -3,6 +3,7 @@ import { ESTADOS_DE_TAREA, PRIORIDADES_DE_TAREA, integrantesDelEquipo, latestBat
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
 import { fechaDeHoy } from '@/lib/criterios'
 import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -49,6 +50,7 @@ export default async function TareasPage({
     ]),
   )
   const hoy = fechaDeHoy()
+  const etiquetas = etiquetasDeIntegrantes(integrantes)
 
   const enlace = (etiqueta: string, activo: boolean, href: string) => (
     <Link key={href} href={href} aria-current={activo ? 'page' : undefined}>
@@ -68,7 +70,11 @@ export default async function TareasPage({
           </h1>
         </div>
         <div className="fila">
-          <NuevaTarea integrantes={integrantes} email={principal.email} />
+          <NuevaTarea
+            integrantes={integrantes
+              .filter((i) => i.email !== principal.email)
+              .map((i) => ({ userId: i.userId, etiqueta: etiquetas.get(i) ?? i.name }))}
+          />
         </div>
       </header>
       <nav className="pestanas" aria-label="Filtros de tareas">
@@ -129,7 +135,7 @@ export default async function TareasPage({
                     <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
                   </td>
                   <td className={t.status === 'TRABADA' ? 'pendiente' : undefined}>{ESTADOS_DE_TAREA[t.status]}</td>
-                  <td>{t.assignedToMe ? 'vos' : (t.assignedEmail ?? '—')}</td>
+                  <td>{t.assignedToMe ? 'vos' : (t.assignedName ?? '—')}</td>
                   <td className={t.dueDate !== null && t.dueDate < hoy && t.status !== 'HECHA' ? 'pendiente' : undefined}>
                     {fecha(t.dueDate)}
                   </td>

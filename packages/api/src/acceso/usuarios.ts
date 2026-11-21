@@ -14,6 +14,9 @@ export interface UsuarioDelEquipo {
   readonly email: string
   readonly estado: 'INVITED' | 'ACTIVE' | 'INACTIVE'
   readonly administra: boolean
+  /** Nombre visible; `null` si no lo cargaron y se muestra el correo. */
+  readonly nombre: string | null
+  readonly conFoto: boolean
 }
 
 export interface Equipo {
@@ -27,7 +30,8 @@ export const leerEquipo = async (conexion: Conexion, principal: Principal): Prom
     yo: yo.usuarioId,
     administro: yo.rol === 'ADMINISTRADOR',
     usuarios: await tx<UsuarioDelEquipo[]>`
-      select id, email, status as estado, coalesce(role = 'ADMINISTRADOR', false) as administra
+      select id, email, status as estado, coalesce(role = 'ADMINISTRADOR', false) as administra,
+        display_name as nombre, photo is not null as "conFoto"
       from app_user
       where role in ('ADMINISTRADOR', 'OPERADOR')
       order by (status = 'INACTIVE'), email

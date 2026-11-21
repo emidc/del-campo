@@ -148,6 +148,7 @@ export {
   TASK_PRIORITIES,
   TASK_STATUSES,
   cambiarEstadoTarea,
+  cambiarGestionTarea,
   cambiarPrioridadTarea,
   cambiarSeguimientoTarea,
   cambiarVencimientoTarea,
@@ -177,6 +178,7 @@ export type {
   TaskPriority,
   TaskStatus,
   TaskSummary,
+  TeamMemberProfile,
 } from './tareas/tareas.ts'
 
 // T-0049: inicio con indicadores.
@@ -204,6 +206,8 @@ export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './m
 
 // T-0060: usuarios del equipo desde la app.
 export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
+export { MAX_PHOTO_BYTES, PHOTO_TYPES, editarPerfil, fotoDeIntegrante } from './acceso/perfiles.ts'
+export type { MemberPhoto } from './acceso/perfiles.ts'
 export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'
 
 // T-0066: Comunicación como sección. Las entradas sin sesión: el webhook de WhatsApp y
