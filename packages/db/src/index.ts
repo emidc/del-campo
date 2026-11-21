@@ -157,3 +157,23 @@ export {
   updatePersonName,
 } from './party-edit.ts'
 export type { OrganizationOption, PartyEditResult, PersonOption } from './party-edit.ts'
+
+// Prospectos (0025).
+export {
+  PROSPECT_ORIGINS,
+  convertProspect,
+  createProspect,
+  getProspectStatus,
+  isProspectOrigin,
+  listProspects,
+  updateProspectOrigin,
+} from './prospect.ts'
+export type {
+  ConvertResult,
+  NewProspect,
+  NewProspectResult,
+  ProspectList,
+  ProspectListItem,
+  ProspectOrigin,
+  ProspectStatus,
+} from './prospect.ts'

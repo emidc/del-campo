@@ -1340,3 +1340,11 @@ button.accion-icono:hover {
   background: #fff;
   color: inherit;
 }
+
+/* «Convertir en cliente» en el encabezado de un prospecto: el aviso queda al lado. */
+.convertir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}

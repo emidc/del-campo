@@ -13,10 +13,12 @@ import {
   asociarPersona,
   buscarEmpresas,
   buscarPersonas,
+  convertirEnCliente,
   corregirContacto,
   describirBloqueos,
   editarCarpeta,
   editarCuit,
+  editarOrigen,
   editarDni,
   editarNombre,
   editarRazonSocial,
@@ -166,6 +168,32 @@ export async function quitarDeLaEmpresa(_previo: Resultado, form: FormData): Pro
   const resultado = await intentar(quitarDeEmpresa(principal, parte, texto(form, 'persona')))
   if (resultado?.kind === 'not_found') return { ok: false, error: 'Ese contacto ya no estaba asociado.' }
   return deEdicion(parte, resultado)
+}
+
+export async function guardarOrigen(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  const resultado = await intentar(editarOrigen(principal, parte, texto(form, 'valor')))
+  if (resultado?.kind === 'not_found') return { ok: false, error: 'Ya no es prospecto: el origen no se cambia.' }
+  return deEdicion(parte, resultado)
+}
+
+/**
+ * Convierte el prospecto en cliente. Un segundo clic o un reintento encuentra el rol ya
+ * cerrado y lleva a la misma ficha: nunca hay dos clientes.
+ */
+export async function convertir(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  const resultado = await intentar(convertirEnCliente(principal, parte))
+  if (resultado === null) return FALLO
+  if (resultado.kind === 'not_found') return sinParte
+  if (resultado.kind === 'missing') return { ok: false, error: `Para convertirlo en cliente, completá el ${resultado.field}.` }
+  revalidatePath('/clientes')
+  revalidatePath(`/parte/${parte}`)
+  redirect(`/parte/${parte}?convertido=1`)
 }
 
 export async function eliminar(_previo: Resultado, form: FormData): Promise<Resultado> {

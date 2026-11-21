@@ -1,11 +1,14 @@
 import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_TAREA,
+  ORIGENES_DE_PROSPECTO,
+  PROSPECT_ORIGINS,
   TIPOS_DE_GESTION,
   bloqueosDeContacto,
   contactosDeCliente,
   conversacionesDeCliente,
   describirBloqueos,
+  estadoDeProspecto,
   gestiones,
   latestBatch,
   party,
@@ -23,8 +26,8 @@ import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarRazonSocial } from './acciones'
-import { AsociarContacto, AsociarEmpresa, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
+import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarOrigen, guardarRazonSocial } from './acciones'
+import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +51,7 @@ export default async function PartePage({
   const crudo = parametros.seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, new Date().toISOString()),
@@ -57,11 +60,14 @@ export default async function PartePage({
       conversacionesDeCliente(principal, id),
       contactosDeCliente(principal, id),
       bloqueosDeContacto(principal, id),
+      estadoDeProspecto(principal, id),
     ]),
   )
   if (vista === null) notFound()
 
   const esEmpresa = vista.kind === 'ORGANIZATION'
+  const esProspecto = prospecto?.active === true
+  const origen = prospecto?.origin ?? null
   const seccion: Seccion = esSeccion(pedida) && (pedida !== 'riesgos' || esEmpresa) ? pedida : 'resumen'
   const gestionesAbiertas = susGestiones.filter((g) => g.status !== 'CERRADA').length
   const tareasPendientes = susTareas.filter((t) => t.status !== 'HECHA').length
@@ -80,13 +86,20 @@ export default async function PartePage({
       <Cabecera lote={lote} email={principal.email} />
 
       <nav className="migas" aria-label="Migas de pan">
-        <Link href={esEmpresa ? '/clientes' : '/clientes?tipo=personas'}>Clientes</Link>
+        {esProspecto ? (
+          <Link href="/clientes?tipo=prospectos">Prospectos</Link>
+        ) : (
+          <Link href={esEmpresa ? '/clientes' : '/clientes?tipo=personas'}>Clientes</Link>
+        )}
         <span aria-hidden="true">›</span>
         <span>{vista.displayName}</span>
       </nav>
       <header className="encabezado">
         <div>
-          <p className="antetitulo">{esEmpresa ? 'Empresa' : 'Persona'}</p>
+          <p className="antetitulo">
+            {esProspecto ? 'Prospecto · ' : ''}
+            {esEmpresa ? 'Empresa' : 'Persona'}
+          </p>
           <h1>{vista.displayName}</h1>
           <div className="chips">
             {vista.cuit === null ? null : <span className="chip">CUIT {vista.cuit}</span>}
@@ -94,6 +107,7 @@ export default async function PartePage({
           </div>
         </div>
         <div className="fila">
+          {esProspecto ? <ConvertirEnCliente parte={vista.partyId} /> : null}
           <Link className="boton boton--secundario" href={`/tareas/nueva?parte=${id}`}>
             Nueva tarea
           </Link>
@@ -120,6 +134,12 @@ export default async function PartePage({
           </EliminarConDialogo>
         </div>
       </header>
+
+      {parametros.convertido === '1' && !esProspecto ? (
+        <p className="estado" role="status">
+          Ahora es cliente: aparece en {esEmpresa ? 'Empresas' : 'Personas'}.
+        </p>
+      ) : null}
 
       <nav className="pestanas" aria-label="Secciones de la ficha">
         {pestanas.map(([clave, texto]) => (
@@ -182,6 +202,23 @@ export default async function PartePage({
                   </a>
                 )}
               </CampoEditable>
+              {esProspecto ? (
+                <CampoEditable
+                  etiqueta="Origen"
+                  tipo="select"
+                  valor={origen ?? ''}
+                  opciones={PROSPECT_ORIGINS.map((o) => ({ valor: o, etiqueta: ORIGENES_DE_PROSPECTO[o] }))}
+                  accion={guardarOrigen}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  {origen === null ? '—' : ORIGENES_DE_PROSPECTO[origen]}
+                </CampoEditable>
+              ) : origen === null ? null : (
+                <>
+                  <dt>Origen</dt>
+                  <dd>{ORIGENES_DE_PROSPECTO[origen]}</dd>
+                </>
+              )}
               <dt>Pólizas</dt>
               <dd>
                 <Link href={`/parte/${id}?seccion=polizas`}>{vista.policies.length} a la fecha</Link>
