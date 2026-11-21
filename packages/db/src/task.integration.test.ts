@@ -14,6 +14,7 @@ import { createServiceCase } from './service-case.ts'
 import {
   assignTask,
   changeTaskStatus,
+  clearDoneWeeklyTasks,
   commentTask,
   completeTaskAction,
   createTask,
@@ -22,9 +23,11 @@ import {
   involveInTask,
   listTaskAssignees,
   listTasks,
+  listTeamMembers,
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
+  setTaskWeekly,
 } from './task.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
@@ -299,6 +302,36 @@ describe('tareas (0017)', () => {
       await tx`savepoint s1`
       await assert.rejects(tx`delete from task_event where task_id = ${otra}`, /sólo de alta/)
       await tx`rollback to savepoint s1`
+    })
+  })
+
+  it('tareas de la semana: se marcan, se filtran y el lunes se destildan sólo las hechas (0027)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const nueva = (title: string) =>
+        createTask(tx, { title, partyId: m.cliente, policyId: null, serviceCaseId: null, dueDate: null, assignedUserId: null, comment: null })
+      const abierta = await nueva('Abierta')
+      const hecha = await nueva('Hecha')
+      const fuera = await nueva('Fuera del tablero')
+      await setTaskWeekly(tx, abierta, true)
+      await setTaskWeekly(tx, hecha, true)
+      await changeTaskStatus(tx, hecha, 'HECHA', null)
+      assert.equal((await getTask(tx, fuera))?.weekly, false)
+      assert.deepEqual((await listTasks(tx, { weekly: true, onlyMine: true })).map((t) => t.title).sort(), ['Abierta', 'Hecha'])
+      await como(tx, m.op2)
+      assert.deepEqual(await listTasks(tx, { weekly: true, onlyMine: true }), [])
+      assert.equal((await listTasks(tx, { weekly: true })).length, 2)
+      assert.deepEqual((await listTeamMembers(tx)).map((i) => i.email), ['admin@sintetico.test', 'op2@sintetico.test', 'op@sintetico.test'])
+
+      await tx`reset role`
+      assert.equal(await clearDoneWeeklyTasks(tx), 1)
+      await como(tx, m.op)
+      assert.deepEqual((await listTasks(tx, { weekly: true })).map((t) => t.title), ['Abierta'])
+      const t = await getTask(tx, hecha)
+      assert.ok(t)
+      assert.equal(t.weekly, false)
+      assert.equal(t.status, 'HECHA')
     })
   })
 })

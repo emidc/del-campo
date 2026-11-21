@@ -20,7 +20,7 @@ const renovacion = (id: string, cambios: Partial<RenewalItem>): RenewalItem => (
 
 const tarea = (id: string, cambios: Partial<TaskSummary>): TaskSummary => ({
   id, title: id, status: 'PENDIENTE', partyId: 'p', partyName: null, policyId: null, policyNumber: null,
-  serviceCaseId: null, serviceCaseTitle: null, assignedEmail: null, assignedToMe: false, dueDate: null, priority: null, followUp: null,
+  serviceCaseId: null, serviceCaseTitle: null, assignedEmail: null, assignedToMe: false, dueDate: null, priority: null, followUp: null, weekly: false,
   createdAt: '', updatedAt: '', doneAt: null, ...cambios,
 })
 

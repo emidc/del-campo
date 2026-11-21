@@ -158,10 +158,13 @@ export {
   esEstadoDeTarea,
   esPrioridadDeTarea,
   esSeguimientoDeTarea,
+  integrantesDelEquipo,
   involucrarEnTarea,
+  marcarTareaDeLaSemana,
   pasarTarea,
   responsablesPosibles,
   tarea,
+  tareaDeLimpiezaSemanal,
   tareas,
 } from './tareas/tareas.ts'
 export type {
