@@ -3,6 +3,7 @@ import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_RENOVACION,
   MODOS_DE_RENOVACION,
+  companiasActivas,
   esEstadoDeRenovacion,
   esModoDeRenovacion,
   latestBatch,
@@ -14,6 +15,8 @@ import { Cabecera } from '@/app/_componentes/Cabecera'
 import { fechaDeHoy } from '@/lib/criterios'
 import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
+
+import { Desplegable, Seguimiento } from './Seguimiento'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,12 +51,22 @@ export default async function RenovacionesPage({
   const modo: RenewalMode | undefined = esModoDeRenovacion(modoPedido) ? modoPedido : undefined
   const estadoPedido = uno(parametros.estado)
   const estado: RenewalState | undefined = esEstadoDeRenovacion(estadoPedido) ? estadoPedido : undefined
+  const compania = uno(parametros.compania)?.slice(0, 40)
+  const productor = uno(parametros.productor)?.slice(0, 120)
   const hoy = fechaDeHoy()
   const desde = sumarDias(hoy, TRAMOS[tramo].desde)
   const hasta = sumarDias(hoy, TRAMOS[tramo].hasta)
 
-  const [lote, todas] = await consultar(
-    Promise.all([latestBatch(principal), renovaciones(principal, { from: desde, to: hasta })]),
+  const [lote, delTramo, companias] = await consultar(
+    Promise.all([latestBatch(principal), renovaciones(principal, { from: desde, to: hasta }), companiasActivas(principal)]),
+  )
+  // Las opciones de Compañía y Productor salen de las renovaciones del tramo.
+  const companiasDelTramo = [...new Map(delTramo.map((r) => [r.insurerId, r.insurerName])).entries()].sort((a, b) =>
+    a[1].localeCompare(b[1], 'es'),
+  )
+  const productores = [...new Set(delTramo.map((r) => r.producer).filter((p) => p !== null))].sort((a, b) => a.localeCompare(b, 'es'))
+  const todas = delTramo.filter(
+    (r) => (compania === undefined || r.insurerId === compania) && (productor === undefined || r.producer === productor),
   )
   const lista = todas.filter(
     (r) => (modo === undefined || r.renewalMode === modo) && (estado === undefined || r.state === estado),
@@ -63,7 +76,7 @@ export default async function RenovacionesPage({
 
   const enlace = (cambios: Record<string, string | undefined>) => {
     const q = new URLSearchParams()
-    const valores = { tramo, modo, estado, ...cambios }
+    const valores = { tramo, modo, estado, compania, productor, ...cambios }
     for (const [k, v] of Object.entries(valores)) if (v !== undefined && !(k === 'tramo' && v === '30')) q.set(k, v)
     const s = q.toString()
     return s === '' ? '/renovaciones' : `/renovaciones?${s}`
@@ -117,6 +130,20 @@ export default async function RenovacionesPage({
           opcion(ESTADOS_DE_RENOVACION[e], estado === e, enlace({ estado: e })),
         )}
       </div>
+      <div className="fila filtros-desplegables">
+        <Desplegable
+          etiqueta="Compañía"
+          valor={compania ?? ''}
+          opciones={companiasDelTramo.map(([id, nombre]) => ({ valor: id, etiqueta: nombre, href: enlace({ compania: id }) }))}
+          limpiar={enlace({ compania: undefined })}
+        />
+        <Desplegable
+          etiqueta="Productor"
+          valor={productor ?? ''}
+          opciones={productores.map((p) => ({ valor: p, etiqueta: p, href: enlace({ productor: p }) }))}
+          limpiar={enlace({ productor: undefined })}
+        />
+      </div>
       <p className="meta">
         Pólizas cuya vigencia termina entre el {fecha(desde)} y el {fecha(hasta)}. Salen de las pólizas importadas: una
         póliza sin sucesora en Broker OS puede estar renovada en la compañía después de la fecha del lote.
@@ -132,6 +159,7 @@ export default async function RenovacionesPage({
                 <th>Fin de vigencia</th>
                 <th>Póliza</th>
                 <th>Tomador</th>
+                <th>Productor</th>
                 <th>Riesgo</th>
                 <th>Modo</th>
                 <th>Estado</th>
@@ -150,26 +178,25 @@ export default async function RenovacionesPage({
                   <td>
                     <Link href={`/parte/${r.holderPartyId}`}>{r.holderName ?? 'sin nombre'}</Link>
                   </td>
+                  <td>{r.producer ?? '—'}</td>
                   <td>{r.productReference ?? '—'}</td>
                   <td>{MODOS_DE_RENOVACION[r.renewalMode]}</td>
                   <td>{ESTADOS_DE_RENOVACION[r.state]}</td>
                   <td>
-                    {r.successorPolicyId !== null ? (
-                      <Link href={`/poliza/${r.successorPolicyId}`}>Nueva: {r.successorPolicyNumber}</Link>
-                    ) : r.caseId !== null ? (
-                      <Link href={`/gestiones/${r.caseId}`}>
-                        {r.caseStatus === null ? 'Gestión' : ESTADOS_DE_GESTION[r.caseStatus]}
-                        {r.caseAssignedEmail === null ? ' · sin responsable' : ` · ${r.caseAssignedEmail}`}
-                      </Link>
-                    ) : (
-                      <Link href={nuevaGestion(r)}>Crear gestión</Link>
-                    )}
-                    {r.successorPolicyId === null ? (
-                      <>
-                        {' · '}
-                        <Link href={seguimiento(r)}>Tarea de seguimiento</Link>
-                      </>
-                    ) : null}
+                    <Seguimiento
+                      item={r}
+                      companias={companias}
+                      gestionHref={nuevaGestion(r)}
+                      tareaHref={seguimiento(r)}
+                      gestion={
+                        r.caseId !== null && r.successorPolicyId === null ? (
+                          <Link href={`/gestiones/${r.caseId}`}>
+                            {r.caseStatus === null ? 'Gestión' : ESTADOS_DE_GESTION[r.caseStatus]}
+                            {r.caseAssignedEmail === null ? ' · sin responsable' : ` · ${r.caseAssignedEmail}`}
+                          </Link>
+                        ) : null
+                      }
+                    />
                   </td>
                 </tr>
               ))}

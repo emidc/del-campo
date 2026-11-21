@@ -3,6 +3,7 @@
   "framework": "nextjs",
   "crons": [
     { "path": "/api/jobs/reprocess", "schedule": "0 10 * * *" },
-    { "path": "/api/jobs/retention", "schedule": "0 6 * * *" }
+    { "path": "/api/jobs/retention", "schedule": "0 6 * * *" },
+    { "path": "/api/jobs/vencimientos", "schedule": "0 3 * * *" }
   ]
 }

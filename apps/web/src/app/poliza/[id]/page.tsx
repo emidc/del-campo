@@ -1,12 +1,15 @@
-import { latestBatch, policy } from '@del-campo/api'
+import { effectiveStatus, latestBatch, policy, todayInMendoza } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
 import { fechaDeHoy } from '@/lib/criterios'
-import { estadoDePoliza, estadoDocumental, fecha } from '@/lib/formato'
+import { estadoDePoliza, estadoDocumental, fecha, importe, importeEditable, tipoDeEndoso } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
+
+import { editarCampo, eliminar } from '../acciones'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,9 +27,16 @@ export default async function PolizaPage({
   if (vista === null) notFound()
 
   const { detail, access } = vista
-  const vigente = detail.currentVersion
-  /** Prima y modo de renovación están en el historial: se toman de la versión vigente o, si no hay, de la más reciente. */
-  const ultima = detail.history.find((h) => h.id === vigente?.id) ?? detail.history[0]
+  /**
+   * Los datos están en el historial: se toman de la versión vigente o, si no hay (una
+   * renovación que todavía no empezó), de la más reciente.
+   */
+  const actual = detail.history.find((h) => h.id === detail.currentVersion?.id) ?? detail.history[0]
+  const hoy = todayInMendoza()
+  const estado = actual === undefined ? null : estadoDePoliza(effectiveStatus(actual.status, actual.termEndDate, hoy))
+  /** Sólo la versión abierta se edita: las cerradas son historia. */
+  const editable = actual?.effectiveTo === null
+  const ocultos = (campo: string) => ({ poliza: detail.policyId, campo })
 
   return (
     <main className="envoltorio">
@@ -42,11 +52,11 @@ export default async function PolizaPage({
           <p className="antetitulo">Póliza · {detail.insurer.name}</p>
           <h1>Póliza {detail.policyNumber}</h1>
           <div className="chips">
-            {vigente === null ? null : (
+            {actual === undefined ? null : (
               <>
-                <span className="chip">{estadoDePoliza(vigente.status)}</span>
+                <span className="chip">{estado}</span>
                 <span className="chip">
-                  {fecha(vigente.termStartDate)} → {fecha(vigente.termEndDate)}
+                  {fecha(actual.termStartDate)} → {fecha(actual.termEndDate)}
                 </span>
               </>
             )}
@@ -59,6 +69,17 @@ export default async function PolizaPage({
           <Link className="boton" href={`/gestiones/nueva?poliza=${detail.policyId}`}>
             Nueva gestión
           </Link>
+          <EliminarConDialogo
+            boton="Eliminar póliza"
+            titulo={`¿Eliminar la póliza ${detail.policyNumber}?`}
+            accion={eliminar}
+            ocultos={{ poliza: detail.policyId }}
+          >
+            <p>
+              Se borran la póliza {detail.policyNumber} de {detail.insurer.name}, su historial de versiones y sus endosos. La
+              eliminación es definitiva y no se puede deshacer.
+            </p>
+          </EliminarConDialogo>
         </div>
       </header>
 
@@ -74,31 +95,101 @@ export default async function PolizaPage({
                 <Link href={`/parte/${detail.holder.partyId}`}>{detail.holder.displayName}</Link>
               )}
             </dd>
+            {editable ? (
+              <CampoEditable etiqueta="Número de póliza" valor={detail.policyNumber} accion={editarCampo} ocultos={ocultos('numero')}>
+                {detail.policyNumber}
+              </CampoEditable>
+            ) : null}
             <dt>Aseguradora</dt>
             <dd>{detail.insurer.name}</dd>
-            {vigente === null ? null : (
+            {actual === undefined ? null : editable ? (
+              <>
+                <CampoEditable etiqueta="Inicio de vigencia" tipo="date" valor={actual.termStartDate} accion={editarCampo} ocultos={ocultos('inicio')}>
+                  {fecha(actual.termStartDate)}
+                </CampoEditable>
+                <CampoEditable etiqueta="Fin de vigencia" tipo="date" valor={actual.termEndDate} accion={editarCampo} ocultos={ocultos('fin')}>
+                  {fecha(actual.termEndDate)}
+                </CampoEditable>
+                <dt>Estado</dt>
+                <dd>{estado}</dd>
+                <CampoEditable etiqueta="Productor" valor={actual.producer ?? ''} accion={editarCampo} ocultos={ocultos('productor')}>
+                  {actual.producer ?? '—'}
+                </CampoEditable>
+                <CampoEditable etiqueta="Tipo de riesgo" valor={actual.productReference ?? ''} accion={editarCampo} ocultos={ocultos('tipoRiesgo')}>
+                  {actual.productReference ?? '—'}
+                </CampoEditable>
+                <CampoEditable etiqueta="Prima" tipo="importe" valor={importeEditable(actual.premium)} accion={editarCampo} ocultos={ocultos('prima')}>
+                  {importe(actual.premium, actual.currency)}
+                </CampoEditable>
+                <CampoEditable etiqueta="Premio" tipo="importe" valor={importeEditable(actual.totalPremium)} accion={editarCampo} ocultos={ocultos('premio')}>
+                  {importe(actual.totalPremium, actual.currency)}
+                </CampoEditable>
+                <CampoEditable
+                  etiqueta="Suma asegurada"
+                  tipo="importe"
+                  valor={importeEditable(actual.sumInsured)}
+                  accion={editarCampo}
+                  ocultos={ocultos('sumaAsegurada')}
+                >
+                  {importe(actual.sumInsured, actual.currency)}
+                </CampoEditable>
+                <CampoEditable etiqueta="Moneda" valor={actual.currency ?? ''} accion={editarCampo} ocultos={ocultos('moneda')}>
+                  {actual.currency ?? '—'}
+                </CampoEditable>
+                <CampoEditable etiqueta="Forma de pago" valor={actual.paymentMethod ?? ''} accion={editarCampo} ocultos={ocultos('formaPago')}>
+                  {actual.paymentMethod ?? '—'}
+                </CampoEditable>
+                <CampoEditable
+                  etiqueta="Renovación"
+                  tipo="select"
+                  valor={actual.renewalMode}
+                  opciones={[
+                    { valor: 'MANUAL', etiqueta: 'Manual' },
+                    { valor: 'AUTOMATIC', etiqueta: 'Automática' },
+                  ]}
+                  accion={editarCampo}
+                  ocultos={ocultos('renovacion')}
+                >
+                  {actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}
+                </CampoEditable>
+              </>
+            ) : (
               <>
                 <dt>Vigencia</dt>
                 <dd>
-                  {fecha(vigente.termStartDate)} → {fecha(vigente.termEndDate)}
+                  {fecha(actual.termStartDate)} → {fecha(actual.termEndDate)}
                 </dd>
                 <dt>Estado</dt>
-                <dd>{estadoDePoliza(vigente.status)}</dd>
-              </>
-            )}
-            {ultima === undefined ? null : (
-              <>
+                <dd>{estado}</dd>
+                <dt>Productor</dt>
+                <dd>{actual.producer ?? '—'}</dd>
+                <dt>Tipo de riesgo</dt>
+                <dd>{actual.productReference ?? '—'}</dd>
                 <dt>Prima</dt>
-                <dd>{ultima.premium === null ? '—' : `${ultima.premium} ${ultima.currency ?? ''}`.trim()}</dd>
+                <dd>{importe(actual.premium, actual.currency)}</dd>
+                <dt>Premio</dt>
+                <dd>{importe(actual.totalPremium, actual.currency)}</dd>
+                <dt>Suma asegurada</dt>
+                <dd>{importe(actual.sumInsured, actual.currency)}</dd>
+                <dt>Forma de pago</dt>
+                <dd>{actual.paymentMethod ?? '—'}</dd>
                 <dt>Renovación</dt>
-                <dd>{ultima.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</dd>
+                <dd>{actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</dd>
               </>
             )}
-            {detail.renewedFromPolicyId === null ? null : (
+            {detail.renewedFrom === null ? null : (
               <>
                 <dt>Renueva a</dt>
                 <dd>
-                  <Link href={`/poliza/${detail.renewedFromPolicyId}`}>La póliza anterior</Link>
+                  <Link href={`/poliza/${detail.renewedFrom.policyId}`}>{detail.renewedFrom.policyNumber}</Link>
+                </dd>
+              </>
+            )}
+            {detail.renewedBy === null ? null : (
+              <>
+                <dt>Renovada por</dt>
+                <dd>
+                  <Link href={`/poliza/${detail.renewedBy.policyId}`}>{detail.renewedBy.policyNumber}</Link>
                 </dd>
               </>
             )}
@@ -125,8 +216,10 @@ export default async function PolizaPage({
               <th>Tomador</th>
               <th>Estado</th>
               <th>Prima</th>
+              <th>Premio</th>
               <th>Renovación</th>
               <th>Endoso</th>
+              <th>Tipo de endoso</th>
             </tr>
           </thead>
           <tbody>
@@ -137,22 +230,12 @@ export default async function PolizaPage({
                   {fecha(entrada.termStartDate)} → {fecha(entrada.termEndDate)}
                 </td>
                 <td>{entrada.holder.displayName}</td>
-                <td>{estadoDePoliza(entrada.status)}</td>
-                <td>
-                  {entrada.premium === null
-                    ? '—'
-                    : `${entrada.premium} ${entrada.currency ?? ''}`.trim()}
-                </td>
+                <td>{estadoDePoliza(entrada.effectiveTo === null ? effectiveStatus(entrada.status, entrada.termEndDate, hoy) : entrada.status)}</td>
+                <td>{importe(entrada.premium, entrada.currency)}</td>
+                <td>{importe(entrada.totalPremium, entrada.currency)}</td>
                 <td>{entrada.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</td>
-                <td>
-                  {entrada.endorsement === null
-                    ? '—'
-                    : `${entrada.endorsement.kind}${
-                        entrada.endorsement.number === null
-                          ? ''
-                          : ` ${entrada.endorsement.number}`
-                      }`}
-                </td>
+                <td>{entrada.endorsement?.number ?? '—'}</td>
+                <td>{tipoDeEndoso(entrada.endorsement?.kind)}</td>
               </tr>
             ))}
           </tbody>

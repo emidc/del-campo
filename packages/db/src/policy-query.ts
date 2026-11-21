@@ -68,8 +68,19 @@ export interface PolicyVersionHistoryEntry extends CurrentPolicyVersion {
   readonly renewalMode: 'AUTOMATIC' | 'MANUAL'
   readonly premium: string | null
   readonly currency: string | null
+  /** Premio: prima más impuestos y recargos. */
+  readonly totalPremium: string | null
+  readonly sumInsured: string | null
+  readonly producer: string | null
+  readonly paymentMethod: string | null
   readonly coverageData: unknown
   readonly endorsement: EndorsementSummary | null
+}
+
+/** Una póliza del otro lado de una renovación, con el número que se muestra en el enlace. */
+export interface LinkedPolicy {
+  readonly policyId: string
+  readonly policyNumber: string
 }
 
 export interface DocumentLinkSummary {
@@ -98,6 +109,10 @@ export interface PolicyDetail {
   readonly policyId: string
   readonly policyNumber: string
   readonly renewedFromPolicyId: string | null
+  /** La póliza que esta renueva («Renueva a»). */
+  readonly renewedFrom: LinkedPolicy | null
+  /** La póliza que renovó a esta («Renovada por»). */
+  readonly renewedBy: LinkedPolicy | null
   readonly insurer: InsurerSummary
   readonly holder: HolderSummary | null
   readonly currentVersion: CurrentPolicyVersion | null
@@ -118,8 +133,12 @@ export interface PartyOverview {
   readonly partyId: string
   readonly kind: 'PERSON' | 'ORGANIZATION'
   readonly displayName: string
+  readonly firstName: string | null
+  readonly lastName: string | null
   readonly dni: string | null
   readonly cuit: string | null
+  /** La carpeta de Drive del cliente: la comprobada por una persona o, si no hay, la que informó Zoho. */
+  readonly driveFolderUrl: string | null
   readonly policies: readonly PolicyCandidate[]
   readonly organizations: readonly PartyMembershipSummary[]
   readonly contacts: readonly PartyMembershipSummary[]
@@ -150,6 +169,9 @@ interface CandidateRow {
 
 interface PolicyIdentityRow extends CandidateRow {
   readonly renewed_from_policy_id: string | null
+  readonly renewed_from_number: string | null
+  readonly renewed_by_id: string | null
+  readonly renewed_by_number: string | null
 }
 
 interface HistoryRow {
@@ -169,6 +191,10 @@ interface HistoryRow {
   readonly renewal_mode: 'AUTOMATIC' | 'MANUAL'
   readonly premium: string | null
   readonly currency: string | null
+  readonly total_premium: string | null
+  readonly sum_insured: string | null
+  readonly producer: string | null
+  readonly payment_method: string | null
   readonly coverage_data: unknown
   readonly endorsement_id: string | null
   readonly endorsement_number: string | null
@@ -202,8 +228,11 @@ interface PartyRow {
   readonly party_id: string
   readonly kind: 'PERSON' | 'ORGANIZATION'
   readonly display_name: string
+  readonly first_name: string | null
+  readonly last_name: string | null
   readonly dni: string | null
   readonly cuit: string | null
+  readonly drive_folder_url: string | null
 }
 
 interface MembershipRow {
@@ -440,6 +469,9 @@ const policyIdentity = async (
       p.id as policy_id,
       p.policy_number,
       p.renewed_from_policy_id,
+      anterior.policy_number as renewed_from_number,
+      sucesora.id as renewed_by_id,
+      sucesora.policy_number as renewed_by_number,
       i.id as insurer_id,
       i.canonical_name as insurer_name,
       holder.id as holder_party_id,
@@ -476,6 +508,13 @@ const policyIdentity = async (
       ), array[]::text[]) as unresolved_reasons
     from policy p
     join insurer i on i.id = p.insurer_id
+    left join policy anterior on anterior.id = p.renewed_from_policy_id
+    left join lateral (
+      select s.id, s.policy_number from policy s
+      where s.renewed_from_policy_id = p.id
+      order by s.created_at desc, s.id
+      limit 1
+    ) sucesora on true
     left join lateral (
       select selected.* from policy_version selected
       where selected.policy_id = p.id
@@ -538,6 +577,10 @@ export const getPolicyDetail = async (
         pv.renewal_mode,
         pv.premium::text,
         pv.currency,
+        pv.total_premium::text,
+        pv.sum_insured::text,
+        pv.producer,
+        pv.payment_method,
         pv.coverage_data,
         e.id as endorsement_id,
         e.number as endorsement_number,
@@ -597,6 +640,10 @@ export const getPolicyDetail = async (
     renewalMode: row.renewal_mode,
     premium: row.premium,
     currency: row.currency,
+    totalPremium: row.total_premium,
+    sumInsured: row.sum_insured,
+    producer: row.producer,
+    paymentMethod: row.payment_method,
     coverageData: row.coverage_data,
     endorsement: row.endorsement_id === null || row.endorsement_kind === null
       ? null
@@ -614,6 +661,12 @@ export const getPolicyDetail = async (
     policyId: identity.policy_id,
     policyNumber: identity.policy_number,
     renewedFromPolicyId: identity.renewed_from_policy_id,
+    renewedFrom: identity.renewed_from_policy_id === null || identity.renewed_from_number === null
+      ? null
+      : { policyId: identity.renewed_from_policy_id, policyNumber: identity.renewed_from_number },
+    renewedBy: identity.renewed_by_id === null || identity.renewed_by_number === null
+      ? null
+      : { policyId: identity.renewed_by_id, policyNumber: identity.renewed_by_number },
     insurer: { id: identity.insurer_id, name: identity.insurer_name },
     holder: holderFromRow(identity),
     currentVersion: currentVersionFromRow(identity),
@@ -751,8 +804,17 @@ export const getPartyOverview = async (
         op.trade_name,
         op.legal_name
       ) as display_name,
+      pp.first_name,
+      pp.last_name,
       pp.dni,
-      op.cuit
+      op.cuit,
+      (
+        select dl.drive_url from document_link dl
+        where dl.resource_type = 'PARTY' and dl.resource_id = p.id
+          and dl.drive_item_type = 'FOLDER' and dl.drive_url is not null
+        order by (dl.link_level = 'HUMAN') desc, dl.created_at desc
+        limit 1
+      ) as drive_folder_url
     from resolution resolved
     join party p on p.id = resolved.id
     left join person_profile pp on pp.party_id = p.id
@@ -847,8 +909,11 @@ export const getPartyOverview = async (
     partyId: party.party_id,
     kind: party.kind,
     displayName: party.display_name,
+    firstName: party.first_name,
+    lastName: party.last_name,
     dni: party.dni,
     cuit: party.cuit,
+    driveFolderUrl: party.drive_folder_url,
     policies,
     organizations: organizationRows.map(membershipFromRow),
     contacts: contactRows.map(membershipFromRow),

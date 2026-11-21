@@ -21,6 +21,7 @@ const ESTADOS_DE_POLIZA: Readonly<Record<string, string>> = {
   ACTIVE: 'Vigente',
   INACTIVE: 'No vigente',
   EXPIRED: 'Vencida',
+  RENEWED: 'Renovada',
   CANCELLED: 'Anulada',
   CANCELED: 'Anulada',
 }
@@ -57,3 +58,34 @@ const HORA_ARGENTINA = new Intl.DateTimeFormat('es-AR', {
 
 /** Un instante como `DD/MM/AAAA HH:MM`, en hora de Argentina. Para lo que llega con hora propia, como un mensaje. */
 export const instante = (momento: Date): string => HORA_ARGENTINA.format(momento).replace(',', '')
+
+const IMPORTE = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 })
+
+/** Un importe guardado («12345.5») como se lee en Argentina («12.345,5»), con su moneda. */
+export const importe = (valor: string | null | undefined, moneda?: string | null): string => {
+  if (valor === null || valor === undefined || valor === '') return '—'
+  const n = Number(valor)
+  const texto = Number.isFinite(n) ? IMPORTE.format(n) : valor
+  return moneda === null || moneda === undefined || moneda === '' ? texto : `${texto} ${moneda}`
+}
+
+/** El importe para precargar en un campo editable: sin moneda, en formato argentino. */
+export const importeEditable = (valor: string | null | undefined): string => (valor === null || valor === undefined ? '' : importe(valor))
+
+const TIPOS_DE_ENDOSO: Readonly<Record<string, string>> = {
+  REFACTURACION: 'Refacturación',
+  ANULACION: 'Anulación',
+  CAMBIODECOBERTURA: 'Cambio de cobertura',
+  CAMBIO_COBERTURA: 'Cambio de cobertura',
+  CAMBIO_DE_COBERTURA: 'Cambio de cobertura',
+}
+
+/**
+ * El tipo de un endoso: Refacturación, Anulación o Cambio de cobertura, sin importar cómo
+ * lo haya escrito el origen. Lo desconocido se muestra tal cual; sin endoso, una raya.
+ */
+export const tipoDeEndoso = (kind: string | null | undefined): string => {
+  if (kind === null || kind === undefined || kind.trim() === '' || kind === 'DESCONOCIDO') return '—'
+  const clave = kind.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, '_')
+  return TIPOS_DE_ENDOSO[clave] ?? TIPOS_DE_ENDOSO[clave.replace(/_/g, '')] ?? kind
+}

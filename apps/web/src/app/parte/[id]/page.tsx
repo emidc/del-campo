@@ -1,11 +1,11 @@
 import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_TAREA,
-  MENSAJE_DE_CONTACTO,
   TIPOS_DE_GESTION,
+  bloqueosDeContacto,
   contactosDeCliente,
   conversacionesDeCliente,
-  esResultadoDeContacto,
+  describirBloqueos,
   gestiones,
   latestBatch,
   party,
@@ -15,15 +15,16 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 
-import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { CampoEditable, EliminarConDialogo, NombreEditable } from '@/app/_componentes/Edicion'
 import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
 import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { agregar, corregir, quitar } from './acciones'
+import { eliminar, guardarDni, guardarNombre } from './acciones'
+import { AsociarEmpresa, FilaDeContacto, NuevoContacto } from './Contactos'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,16 +47,16 @@ export default async function PartePage({
   const parametros = await searchParams
   const crudo = parametros.seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
-  const avisoDeContacto = typeof parametros.c === 'string' && esResultadoDeContacto(parametros.c) ? parametros.c : null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos] = await consultar(
     Promise.all([
       latestBatch(principal),
-      party(principal, id, asOf, `${asOf}T12:00:00Z`),
+      party(principal, id, asOf, new Date().toISOString()),
       gestiones(principal, { onlyMine: false, includeClosed: true, partyId: id }),
       tareas(principal, { onlyMine: false, includeDone: true, partyId: id }),
       conversacionesDeCliente(principal, id),
       contactosDeCliente(principal, id),
+      bloqueosDeContacto(principal, id),
     ]),
   )
   if (vista === null) notFound()
@@ -99,6 +100,18 @@ export default async function PartePage({
           <Link className="boton" href={`/gestiones/nueva?parte=${id}`}>
             Nueva gestión
           </Link>
+          <EliminarConDialogo
+            boton="Eliminar contacto"
+            titulo={bloqueos.length > 0 ? 'No se puede eliminar este contacto' : `¿Eliminar a ${vista.displayName}?`}
+            accion={eliminar}
+            ocultos={{ parte: vista.partyId }}
+            bloqueo={bloqueos.length > 0 ? `${describirBloqueos(bloqueos)} Para eliminarlo no tiene que tener pólizas, gestiones ni tareas, en ningún estado.` : null}
+          >
+            <p>
+              Se borran {vista.displayName}, sus teléfonos, mails y vínculos con empresas. La eliminación es definitiva y no se puede
+              deshacer.
+            </p>
+          </EliminarConDialogo>
         </div>
       </header>
 
@@ -120,20 +133,42 @@ export default async function PartePage({
           <section className="tarjeta">
             <h2>Datos</h2>
             <dl className="kv">
-              <dt>{esEmpresa ? 'Razón social' : 'Nombre'}</dt>
-              <dd className="nombre">{vista.displayName}</dd>
+              {esEmpresa ? (
+                <>
+                  <dt>Razón social</dt>
+                  <dd className="nombre">{vista.displayName}</dd>
+                </>
+              ) : (
+                <NombreEditable
+                  nombre={vista.firstName ?? ''}
+                  apellido={vista.lastName ?? ''}
+                  accion={guardarNombre}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  {vista.displayName}
+                </NombreEditable>
+              )}
               {vista.cuit === null ? null : (
                 <>
                   <dt>CUIT</dt>
                   <dd>{vista.cuit}</dd>
                 </>
               )}
-              {vista.dni === null ? null : (
-                <>
-                  <dt>DNI</dt>
-                  <dd>{vista.dni}</dd>
-                </>
+              {esEmpresa ? null : (
+                <CampoEditable etiqueta="DNI" valor={vista.dni ?? ''} accion={guardarDni} ocultos={{ parte: vista.partyId }}>
+                  {vista.dni ?? '—'}
+                </CampoEditable>
               )}
+              <dt>Carpeta de Google Drive</dt>
+              <dd>
+                {vista.driveFolderUrl === null ? (
+                  '—'
+                ) : (
+                  <a href={vista.driveFolderUrl} target="_blank" rel="noreferrer">
+                    Abrir carpeta
+                  </a>
+                )}
+              </dd>
               <dt>Pólizas</dt>
               <dd>
                 <Link href={`/parte/${id}?seccion=polizas`}>{vista.policies.length} a la fecha</Link>
@@ -150,62 +185,19 @@ export default async function PartePage({
           </section>
 
           <section className="tarjeta" id="contactos">
-            <h2>Teléfonos y mails</h2>
-            {avisoDeContacto === null ? null : (
-              <p className={avisoDeContacto === 'guardado' || avisoDeContacto === 'quitado' ? 'estado' : 'estado estado--aviso'} role="status">
-                {MENSAJE_DE_CONTACTO[avisoDeContacto]}
-              </p>
-            )}
+            <div className="encabezado-tarjeta">
+              <h2>Teléfonos y mails</h2>
+              <NuevoContacto parte={vista.partyId} />
+            </div>
             {susContactos.length === 0 ? (
               <p className="meta">Ninguno cargado. Con el teléfono cargado, sus conversaciones de WhatsApp aparecen en esta ficha.</p>
             ) : (
               <ul className="lista">
                 {susContactos.map((c) => (
-                  <li key={c.id} className="contacto">
-                    <div>
-                      <p className="meta">{c.channel === 'EMAIL' ? 'Mail' : 'Teléfono'}</p>
-                      {c.value}
-                    </div>
-                    <details>
-                      <summary>Corregir</summary>
-                      <form action={corregir} className="fila">
-                        <input type="hidden" name="parte" value={id} />
-                        <input type="hidden" name="contacto" value={c.id} />
-                        <input
-                          name="valor"
-                          type={c.channel === 'EMAIL' ? 'email' : 'tel'}
-                          defaultValue={c.value}
-                          required
-                          maxLength={120}
-                          aria-label={c.channel === 'EMAIL' ? 'Mail corregido' : 'Teléfono corregido'}
-                        />
-                        <BotonEnviar className="boton--chico">Guardar</BotonEnviar>
-                      </form>
-                    </details>
-                    <form action={quitar}>
-                      <input type="hidden" name="parte" value={id} />
-                      <input type="hidden" name="contacto" value={c.id} />
-                      <BotonEnviar className="boton--secundario boton--chico">Dar de baja</BotonEnviar>
-                    </form>
-                  </li>
+                  <FilaDeContacto key={c.id} parte={vista.partyId} contacto={c} />
                 ))}
               </ul>
             )}
-            <form action={agregar} className="contacto-nuevo">
-              <input type="hidden" name="parte" value={id} />
-              <div className="campo">
-                <label htmlFor="canal">Agregar</label>
-                <select id="canal" name="canal" defaultValue="PHONE">
-                  <option value="PHONE">Teléfono</option>
-                  <option value="EMAIL">Mail</option>
-                </select>
-              </div>
-              <div className="campo">
-                <label htmlFor="valor">Número o dirección</label>
-                <input id="valor" name="valor" required maxLength={120} placeholder="261 555 0101" />
-              </div>
-              <BotonEnviar>Agregar</BotonEnviar>
-            </form>
           </section>
           </div>
 
@@ -234,7 +226,10 @@ export default async function PartePage({
             ) : null}
             {!esEmpresa || vista.organizations.length > 0 ? (
               <section className="tarjeta">
-                <h2>Empresas</h2>
+                <div className="encabezado-tarjeta">
+                  <h2>Empresas</h2>
+                  {esEmpresa ? null : <AsociarEmpresa parte={vista.partyId} />}
+                </div>
                 {vista.organizations.length === 0 ? (
                   <p className="meta">Ninguna.</p>
                 ) : (

@@ -15,6 +15,7 @@
 
 import type { MapaAseguradoras } from './catalog.ts'
 import type { Ejecutor } from './db.ts'
+import { datosDePoliza } from './datos-de-poliza.ts'
 import { CAMPOS_ENDOSO, CAMPOS_POLIZA } from './zoho-fields.ts'
 import type { ClaseDeFallo } from './failure-classes.ts'
 
@@ -245,15 +246,18 @@ export const importarPolizas = async (sql: Ejecutor, batchId: string, mapaAsegur
     const premium = vacioComoNulo(fila.raw[CAMPOS_POLIZA.prima])
     const moneda = vacioComoNulo(fila.raw[CAMPOS_POLIZA.moneda])
     const producto = vacioComoNulo(fila.raw[CAMPOS_POLIZA.riesgo])
+    const datos = datosDePoliza(fila.raw)
 
     await sql`
       insert into policy_version (
         policy_id, version_number, effective_from, effective_to, holder_party_id,
         product_reference, term_start_date, term_end_date, renewal_mode, premium, currency,
+        status, producer, total_premium, sum_insured, payment_method,
         source_event_type, source_event_id
       ) values (
         ${policyId}, 1, ${termStart}::date, null, ${holderPartyId},
         ${producto}, ${termStart}::date, ${termEnd}::date, ${renewalMode}, ${premium}, ${moneda},
+        ${datos.status}, ${datos.producer}, ${datos.totalPremium}::numeric, ${datos.sumInsured}::numeric, ${datos.paymentMethod},
         'Polizas', ${fila.source_record_id}
       )
       on conflict (policy_id, version_number) do nothing
