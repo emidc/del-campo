@@ -45,3 +45,22 @@ export const updateProfile = async (
     )
   `
 }
+
+export interface OwnProfile {
+  readonly userId: string
+  readonly email: string
+  /** El nombre visible guardado, o el correo si no cargó uno. */
+  readonly name: string
+  readonly hasDisplayName: boolean
+  readonly hasPhoto: boolean
+}
+
+/** El perfil de quien está usando la app, tal como quedó guardado en Equipo. */
+export const getOwnProfile = async (sql: QueryExecutor): Promise<OwnProfile | null> => {
+  const [fila] = await sql<{ id: string; email: string; nombre: string; con_foto: boolean }[]>`
+    select e.id, e.email, e.nombre, e.con_foto from authz.equipo_visible() e where e.id = authz.usuario()
+  `
+  return fila === undefined
+    ? null
+    : { userId: fila.id, email: fila.email, name: fila.nombre, hasDisplayName: fila.nombre !== fila.email, hasPhoto: fila.con_foto }
+}

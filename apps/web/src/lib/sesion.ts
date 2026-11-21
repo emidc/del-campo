@@ -1,6 +1,7 @@
-import type { GuardConfig, Principal } from '@del-campo/api'
-import { AccesoDenegado, SESSION_COOKIE, admissionConfig, admitCookie, sessionConfig } from '@del-campo/api'
+import type { GuardConfig, OwnProfile, Principal } from '@del-campo/api'
+import { AccesoDenegado, SESSION_COOKIE, admissionConfig, admitCookie, miPerfil, sessionConfig } from '@del-campo/api'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 
 /**
@@ -42,3 +43,9 @@ export const consultar = async <T>(consultas: Promise<T>): Promise<T> => {
     throw error
   }
 }
+
+/**
+ * El perfil guardado en Equipo de quien está en sesión (nombre y foto). Se consulta una
+ * vez por pedido aunque lo usen la barra superior y la página.
+ */
+export const perfilPropio = cache(async (): Promise<OwnProfile | null> => consultar(miPerfil(await requireAdmitted())))

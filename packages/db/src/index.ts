@@ -107,8 +107,8 @@ export {
   setTaskServiceCase,
   setTaskWeekly,
 } from './task.ts'
-export { MAX_PHOTO_BYTES, PHOTO_TYPES, getMemberPhoto, updateProfile } from './profile.ts'
-export type { MemberPhoto, PhotoType } from './profile.ts'
+export { MAX_PHOTO_BYTES, PHOTO_TYPES, getMemberPhoto, getOwnProfile, updateProfile } from './profile.ts'
+export type { MemberPhoto, OwnProfile, PhotoType } from './profile.ts'
 export type {
   NewTask,
   TaskAction,
