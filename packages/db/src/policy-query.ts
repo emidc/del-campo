@@ -983,6 +983,10 @@ export const listClients = async (
         and p.status = 'ACTIVE'
         and p.merged_into_party_id is null
         and not exists (select 1 from insurer i where i.organization_party_id = p.id)
+        -- Un prospecto pendiente se lista en Prospectos, no acá (0025).
+        and not exists (
+          select 1 from party_role r where r.party_id = p.id and r.role = 'PROSPECT' and r.valid_to is null
+        )
     ), matching as (
       select *
       from candidates c

@@ -260,3 +260,15 @@ export {
   quitarDeEmpresa,
 } from './clientes/edicion.ts'
 export type { OrganizationOption, PartyEditResult, PersonOption } from './clientes/edicion.ts'
+export {
+  ORIGENES_DE_PROSPECTO,
+  PROSPECT_ORIGINS,
+  TOPE_DE_PROSPECTOS,
+  convertirEnCliente,
+  crearProspecto,
+  editarOrigen,
+  estadoDeProspecto,
+  isProspectOrigin,
+  prospectos,
+} from './clientes/prospectos.ts'
+export type { ConvertResult, NewProspect, ProspectList, ProspectOrigin, ProspectStatus } from './clientes/prospectos.ts'

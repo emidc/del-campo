@@ -10,7 +10,17 @@ import type { Resultado } from '@/app/_componentes/Edicion'
 import { BotonLapiz, Confirmar } from '@/app/_componentes/Edicion'
 import { IconoCruz, IconoMas, IconoPapelera } from '@/app/_componentes/Iconos'
 
-import { agregar, asociar, asociarContacto, corregir, empresasQueCoinciden, personasQueCoinciden, quitar, quitarDeLaEmpresa } from './acciones'
+import {
+  agregar,
+  asociar,
+  asociarContacto,
+  convertir,
+  corregir,
+  empresasQueCoinciden,
+  personasQueCoinciden,
+  quitar,
+  quitarDeLaEmpresa,
+} from './acciones'
 
 const useCerrarAlGuardar = (estado: Resultado, cerrar: () => void): void => {
   const ultimo = useRef<Resultado>(null)
@@ -294,5 +304,17 @@ export function QuitarDeEmpresa({
         </form>
       </dialog>
     </>
+  )
+}
+
+/** «Convertir en cliente»: si falta el CUIT o el DNI, lo dice al lado del botón. */
+export function ConvertirEnCliente({ parte }: { readonly parte: string }) {
+  const [estado, enviar] = useActionState(convertir, null)
+  return (
+    <form action={enviar} className="convertir">
+      <input type="hidden" name="parte" value={parte} />
+      <BotonEnviar className="boton">Convertir en cliente</BotonEnviar>
+      <MensajeDeError estado={estado} />
+    </form>
   )
 }
