@@ -197,7 +197,16 @@ h3 {
   min-width: 0;
 }
 
-.superior__sesion .meta {
+.superior__persona {
+  min-width: 32px;
+}
+
+.superior__persona .retrato {
+  flex: none;
+}
+
+.superior__sesion .meta,
+.superior__nombre {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -285,8 +294,13 @@ h3 {
   }
 
   .logo__texto span,
-  .superior__sesion .meta {
+  .superior__sesion .meta,
+  .superior__nombre {
     display: none;
+  }
+
+  .superior__sesion {
+    flex: none;
   }
 
   .lateral {
@@ -1562,4 +1576,17 @@ button.accion-icono:hover {
   overflow: visible;
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+/* Saludo del inicio, con la foto guardada en Equipo. */
+.saludo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.saludo h1,
+.saludo .meta {
+  margin: 0;
 }

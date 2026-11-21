@@ -30,7 +30,7 @@ import {
   setTaskServiceCase,
   setTaskWeekly,
 } from './task.ts'
-import { getMemberPhoto, updateProfile } from './profile.ts'
+import { getMemberPhoto, getOwnProfile, updateProfile } from './profile.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
 
@@ -359,6 +359,8 @@ describe('tareas (0017)', () => {
         equipo.map((i) => [i.name, i.hasPhoto]).sort(),
         [['Operadora', true], ['admin@sintetico.test', false], ['op2@sintetico.test', false]].sort(),
       )
+      const propio = await getOwnProfile(tx)
+      assert.deepEqual(propio && [propio.userId, propio.name, propio.hasDisplayName, propio.hasPhoto], [m.op, 'Operadora', true, true])
       const guardada = await getMemberPhoto(tx, m.op)
       assert.deepEqual(guardada === null ? null : [Array.from(guardada.bytes), guardada.type], [Array.from(foto.bytes), foto.type])
 
@@ -372,6 +374,8 @@ describe('tareas (0017)', () => {
       await updateProfile(tx, m.op, '')
       assert.equal((await listTeamMembers(tx)).find((i) => i.userId === m.op)?.name, 'op@sintetico.test')
       assert.ok(await getMemberPhoto(tx, m.op), 'sin `photo`, la foto queda como estaba')
+      const delAdmin = await getOwnProfile(tx)
+      assert.deepEqual(delAdmin && [delAdmin.userId, delAdmin.hasDisplayName], [m.admin, false])
     })
   })
 

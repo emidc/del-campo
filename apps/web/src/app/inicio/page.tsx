@@ -2,9 +2,10 @@ import { ESTADOS_DE_GESTION, TIPOS_DE_GESTION, inicio, latestBatch } from '@del-
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { Retrato } from '@/app/_componentes/Retrato'
 import { fechaDeHoy } from '@/lib/criterios'
 import { fecha, fechaLarga } from '@/lib/formato'
-import { consultar, requireAdmitted } from '@/lib/sesion'
+import { consultar, perfilPropio, requireAdmitted } from '@/lib/sesion'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,18 +24,25 @@ const motivo = (vence: string | null, hoy: string): { readonly texto: string; re
 export default async function InicioPage() {
   const principal = await requireAdmitted()
   const hoy = fechaDeHoy()
-  const [lote, datos] = await consultar(Promise.all([latestBatch(principal), inicio(principal, hoy)]))
+  const [lote, datos, perfil] = await consultar(Promise.all([latestBatch(principal), inicio(principal, hoy), perfilPropio()]))
 
-  const primero = principal.displayName?.trim().split(/\s+/)[0]
+  // El nombre guardado en Equipo; si nadie lo cargó, el de la cuenta de Google.
+  const guardado = perfil?.hasDisplayName === true ? perfil.name : principal.displayName
+  const primero = guardado?.trim().split(/\s+/)[0]
   const nombre = primero === undefined || primero === '' ? null : primero
 
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
 
-      <p className="antetitulo">Inicio</p>
-      <h1>{nombre === null ? 'Buen día' : `Buen día, ${nombre}`}</h1>
-      <p className="meta">{fechaLarga(hoy)}</p>
+      <div className="saludo">
+        {perfil === null ? null : <Retrato usuario={perfil.userId} nombre={perfil.name} conFoto={perfil.hasPhoto} tamano={56} />}
+        <div>
+          <p className="antetitulo">Inicio</p>
+          <h1>{nombre === null ? 'Buen día' : `Buen día, ${nombre}`}</h1>
+          <p className="meta">{fechaLarga(hoy)}</p>
+        </div>
+      </div>
 
       <div className="grid-2 grid-2--par">
         <section className="tarjeta">
