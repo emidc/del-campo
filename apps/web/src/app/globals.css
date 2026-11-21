@@ -1046,42 +1046,297 @@ a.chip:hover {
   overflow-wrap: anywhere;
 }
 
-.contacto summary {
-  cursor: pointer;
-  font-size: 13px;
+/* ── Edición en la misma fila ──────────────────────────────────────────────── */
+
+.icono {
+  flex: none;
+}
+
+.boton-icono,
+button.boton-icono {
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--tinta-suave);
+  border-radius: var(--radio-chico);
+  padding: 4px;
+  min-height: 30px;
+  min-width: 30px;
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.contacto details[open] {
+.boton-icono:hover,
+button.boton-icono:hover {
+  background: var(--papel);
+  border-color: var(--borde);
+  color: var(--marca);
+}
+
+button.boton-icono--marca {
+  background: var(--marca);
+  color: #fff;
+}
+
+button.boton-icono--marca:hover {
+  background: var(--marca-profunda);
+  color: #fff;
+}
+
+.boton-icono--agregar {
+  border-color: var(--borde);
+}
+
+.editable__valor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+
+/* El lápiz aparece al pasar el cursor sobre la fila o al llegar con el teclado. */
+.editable .lapiz {
+  opacity: 0;
+}
+
+.editable:hover .lapiz,
+.editable .lapiz:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .editable .lapiz {
+    opacity: 1;
+  }
+}
+
+.edicion-en-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.edicion-en-fila input,
+.edicion-en-fila select {
+  flex: 1 1 9rem;
+  min-width: 0;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-chico);
+  padding: 5px 9px;
+  min-height: 34px;
+  font: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.edicion-en-fila select {
+  flex: 0 1 8rem;
+}
+
+.fila-acciones {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.error-en-fila {
   flex-basis: 100%;
-  order: 3;
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--alerta);
 }
 
-.contacto details .fila {
+.encabezado-tarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.encabezado-tarjeta h2 {
+  margin: 0;
+}
+
+.contacto .fila {
   margin-top: 8px;
 }
 
-.contacto details input {
-  flex: 1 1 12rem;
+.sugerencias {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+}
+
+.sugerencias button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  min-height: 34px;
+  white-space: normal;
+}
+
+.sugerencias button:hover,
+.sugerencias button:focus-visible {
+  background: var(--papel);
+  color: inherit;
+}
+
+/* ── Borrado definitivo y modales ──────────────────────────────────────────── */
+
+button.boton--peligro,
+.boton--peligro {
+  background: var(--panel);
+  border-color: #a33a2b;
+  color: #a33a2b;
+}
+
+button.boton--peligro:hover {
+  background: #a33a2b;
+  color: #fff;
+}
+
+button.boton--peligro-suave {
+  color: #a33a2b;
+  border-color: var(--borde);
+  gap: 6px;
+}
+
+.dialogo {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 22px;
+  max-width: min(30rem, calc(100vw - 32px));
+  color: var(--tinta);
+}
+
+.dialogo--ancho {
+  max-width: min(44rem, calc(100vw - 32px));
+  width: 100%;
+}
+
+.dialogo::backdrop {
+  background: rgb(19 41 77 / 0.35);
+}
+
+.dialogo h2 {
+  margin-top: 0;
+}
+
+.fila--fin {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.formulario-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.formulario-modal .campo > span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta-suave);
+}
+
+.formulario-modal input,
+.formulario-modal select {
   border: 1px solid var(--borde-control);
   border-radius: var(--radio-chico);
-  padding: 6px 10px;
-  min-height: 34px;
+  padding: 8px 10px;
+  min-height: 40px;
   font: inherit;
+  background: #fff;
+  color: inherit;
 }
 
-.contacto-nuevo {
-  display: grid;
-  grid-template-columns: 8rem 1fr auto;
-  gap: 0.75rem;
-  align-items: end;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--borde);
+.formulario-modal input[readonly] {
+  background: var(--panel-2);
 }
 
-@media (max-width: 520px) {
-  .contacto-nuevo {
-    grid-template-columns: 1fr;
-  }
+/* ── Seguimiento de renovaciones ───────────────────────────────────────────── */
+
+.acciones-seguimiento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.accion-icono,
+button.accion-icono {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+  color: var(--marca);
+}
+
+.accion-icono:hover,
+button.accion-icono:hover {
+  background: var(--papel);
+  color: var(--marca-profunda);
+}
+
+/* El nombre de la acción, al pasar el cursor o al enfocar con el teclado. */
+.accion-icono::after {
+  content: attr(data-nombre);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--marca-profunda);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+}
+
+.accion-icono:hover::after,
+.accion-icono:focus-visible::after {
+  opacity: 1;
+}
+
+.filtros-desplegables {
+  margin: 10px 0 4px;
+}
+
+.filtro-desplegable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filtro-desplegable select {
+  border: 1px solid var(--borde-control);
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: inherit;
 }

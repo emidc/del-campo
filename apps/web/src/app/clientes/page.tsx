@@ -37,6 +37,11 @@ export default async function ClientesPage({
 
       <p className="antetitulo">Clientes</p>
       <h1>{personas ? 'Personas' : 'Empresas'}</h1>
+      {uno(parametros.eliminado) === '1' ? (
+        <p className="estado" role="status">
+          El contacto se eliminó definitivamente.
+        </p>
+      ) : null}
 
       <nav className="pestanas" aria-label="Tipo de cliente">
         <Link href={hacia('empresas')} aria-current={personas ? undefined : 'page'}>

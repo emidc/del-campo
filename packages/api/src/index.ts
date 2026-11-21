@@ -218,3 +218,39 @@ export {
   quitarContacto,
 } from './clientes/contactos.ts'
 export type { CanalDeContacto, ContactChannel, ContactPoint, ResultadoDeContacto } from './clientes/contactos.ts'
+
+// Pólizas y contactos editables desde la app (0023).
+export {
+  BLOQUEOS,
+  POLICY_FIELDS,
+  describirBloqueos,
+  editarCampoDePoliza,
+  effectiveStatus,
+  eliminarPoliza,
+  esUuid,
+  isPolicyField,
+  refacturar,
+  renovarPoliza,
+  siguienteEndoso,
+  tareaDeVencimiento,
+  todayInMendoza,
+} from './polizas/edicion.ts'
+export type {
+  DeleteBlocker,
+  EditResult,
+  PolicyField,
+  PolicyTerms,
+  RebillingInput,
+  RebillingResult,
+  RenewResult,
+  RenewalInput,
+} from './polizas/edicion.ts'
+export {
+  asociarEmpresa,
+  bloqueosDeContacto,
+  buscarEmpresas,
+  editarDni,
+  editarNombre,
+  eliminarContacto,
+} from './clientes/edicion.ts'
+export type { OrganizationOption, PartyEditResult } from './clientes/edicion.ts'

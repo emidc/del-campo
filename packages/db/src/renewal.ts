@@ -26,17 +26,29 @@ export interface RenewalFilter {
   readonly to: string
   readonly mode?: RenewalMode
   readonly state?: RenewalState
+  readonly insurerId?: string
+  readonly producer?: string
 }
 
 export interface RenewalItem {
   readonly policyId: string
   readonly policyNumber: string
+  readonly insurerId: string
   readonly insurerName: string
+  readonly producer: string | null
   readonly holderPartyId: string
   readonly holderName: string | null
   readonly productReference: string | null
+  readonly termStartDate: string
   readonly termEndDate: string
   readonly renewalMode: RenewalMode
+  readonly premium: string | null
+  readonly totalPremium: string | null
+  readonly sumInsured: string | null
+  readonly currency: string | null
+  readonly paymentMethod: string | null
+  /** El número que le tocaría a la próxima refacturación de esta póliza. */
+  readonly nextEndorsementNumber: number
   readonly state: RenewalState
   readonly successorPolicyId: string | null
   readonly successorPolicyNumber: string | null
@@ -50,12 +62,21 @@ const FECHA = /^\d{4}-\d{2}-\d{2}$/
 interface Row {
   readonly policy_id: string
   readonly policy_number: string
+  readonly insurer_id: string
   readonly insurer_name: string
+  readonly producer: string | null
   readonly holder_party_id: string
   readonly holder_name: string | null
   readonly product_reference: string | null
+  readonly term_start_date: string
   readonly term_end_date: string
   readonly renewal_mode: RenewalMode
+  readonly premium: string | null
+  readonly total_premium: string | null
+  readonly sum_insured: string | null
+  readonly currency: string | null
+  readonly payment_method: string | null
+  readonly next_endorsement_number: number
   readonly successor_id: string | null
   readonly successor_number: string | null
   readonly case_id: string | null
@@ -73,7 +94,9 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
     select
       p.id as policy_id,
       p.policy_number,
+      i.id as insurer_id,
       i.canonical_name as insurer_name,
+      pv.producer,
       pv.holder_party_id,
       coalesce(
         nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
@@ -82,8 +105,18 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
         pa.display_name_cache
       ) as holder_name,
       pv.product_reference,
+      to_char(pv.term_start_date, 'YYYY-MM-DD') as term_start_date,
       to_char(pv.term_end_date, 'YYYY-MM-DD') as term_end_date,
       pv.renewal_mode,
+      pv.premium::text,
+      pv.total_premium::text,
+      pv.sum_insured::text,
+      pv.currency,
+      pv.payment_method,
+      (
+        select coalesce(max(case when e.number ~ '^[0-9]{1,9}$' then e.number::int end), 0) + 1
+        from endorsement e where e.policy_id = p.id
+      ) as next_endorsement_number,
       sucesora.id as successor_id,
       sucesora.policy_number as successor_number,
       gestion.id as case_id,
@@ -117,6 +150,8 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
     ) gestion on true
     where pv.term_end_date between ${filter.from}::date and ${filter.to}::date
       and (${filter.mode ?? null}::text is null or pv.renewal_mode = ${filter.mode ?? null}::text)
+      and (${filter.insurerId ?? null}::uuid is null or p.insurer_id = ${filter.insurerId ?? null}::uuid)
+      and (${filter.producer ?? null}::text is null or pv.producer = ${filter.producer ?? null}::text)
     order by pv.term_end_date, i.canonical_name, p.policy_number
     limit 1000
   `
@@ -124,12 +159,21 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
     (row): RenewalItem => ({
       policyId: row.policy_id,
       policyNumber: row.policy_number,
+      insurerId: row.insurer_id,
       insurerName: row.insurer_name,
+      producer: row.producer,
       holderPartyId: row.holder_party_id,
       holderName: row.holder_name,
       productReference: row.product_reference,
+      termStartDate: row.term_start_date,
       termEndDate: row.term_end_date,
       renewalMode: row.renewal_mode,
+      premium: row.premium,
+      totalPremium: row.total_premium,
+      sumInsured: row.sum_insured,
+      currency: row.currency,
+      paymentMethod: row.payment_method,
+      nextEndorsementNumber: row.next_endorsement_number,
       state: estado(row),
       successorPolicyId: row.successor_id,
       successorPolicyNumber: row.successor_number,

@@ -114,3 +114,40 @@ export {
   listContactPoints,
 } from './contact-point.ts'
 export type { AddContactResult, CleanContact, ContactChannel, ContactPoint } from './contact-point.ts'
+
+// Pólizas y contactos editables desde la app (0023).
+export {
+  POLICY_FIELDS,
+  POLICY_STATUS,
+  deletePolicy,
+  effectiveStatus,
+  expirePolicies,
+  isDate,
+  isPolicyField,
+  nextEndorsementNumber,
+  parseAmount,
+  registerRebilling,
+  renewPolicy,
+  statusFromZoho,
+  todayInMendoza,
+  updatePolicyField,
+} from './policy-edit.ts'
+export type {
+  DeleteBlocker,
+  EditResult,
+  PolicyField,
+  PolicyTerms,
+  RebillingInput,
+  RebillingResult,
+  RenewResult,
+  RenewalInput,
+} from './policy-edit.ts'
+export {
+  contactBlockers,
+  deleteContact,
+  linkOrganization,
+  searchOrganizations,
+  updatePersonDni,
+  updatePersonName,
+} from './party-edit.ts'
+export type { OrganizationOption, PartyEditResult } from './party-edit.ts'

@@ -392,7 +392,7 @@ describe('T-0023 — catálogo: toda función propia fija su search_path', () =>
 
     assert.deepEqual(despues, antes)
     // Revertir 0006 sólo saca el SET de las funciones que 0006 fijó. Las que crean 0007
-    // (T-0035), 0013 (T-0045), 0015 (T-0050), 0016 (T-0051), 0017 (T-0052) y 0018 (T-0053) traen su search_path en la definición y lo conservan.
+    // (T-0035), 0013 (T-0045), 0015 (T-0050), 0016 (T-0051), 0017 (T-0052), 0018 (T-0053) y 0023 traen su search_path en la definición y lo conservan.
     const de0007 = (firma: string): boolean =>
       firma.startsWith('authz.') || [
         'audit_event_solo_insercion()',
@@ -405,6 +405,9 @@ describe('T-0023 — catálogo: toda función propia fija su search_path', () =>
         'siniestro_interlocutor_de_siniestro()',
         'siniestro_orden(text)',
         'siniestro_requisitos_de_fabrica()',
+        'bloqueos_de_contacto(uuid)',
+        'eliminar_contacto(uuid)',
+        'eliminar_poliza(uuid)',
       ].includes(firma)
     assert.deepEqual(
       sinSearchPath(revertida),
@@ -418,7 +421,8 @@ describe('T-0023 — catálogo: toda función propia fija su search_path', () =>
     // Las funciones de predicado de `authz` (0007, T-0035) son SECURITY DEFINER y fijan un
     // search_path vacío, más estricto: califican cada nombre (D-0022, condición 4).
     for (const fila of antes) {
-      const esperado = fila.firma.startsWith('authz.') ? ['search_path=""'] : ['search_path=public, pg_temp']
+      const estricta = fila.firma.startsWith('authz.') || ['bloqueos_de_contacto(uuid)', 'eliminar_contacto(uuid)', 'eliminar_poliza(uuid)'].includes(fila.firma)
+      const esperado = estricta ? ['search_path=""'] : ['search_path=public, pg_temp']
       assert.deepEqual(fila.config, esperado, fila.firma)
     }
   })

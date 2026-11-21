@@ -377,6 +377,8 @@ describe('detalle e historial — limites de DOMAIN.md §63', () => {
         'insurer',
         'policyId',
         'policyNumber',
+        'renewedBy',
+        'renewedFrom',
         'renewedFromPolicyId',
       ])
     })

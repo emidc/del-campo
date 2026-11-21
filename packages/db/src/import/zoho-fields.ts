@@ -20,6 +20,11 @@ export const CAMPOS_POLIZA = {
   prima: 'Prima',
   premio: 'Premio',
   moneda: 'Moneda',
+  // Encabezados por confirmar contra el export: no figuraban en el manifiesto de T-0004.
+  // Si no existen, la columna queda vacía y el script de carga lo informa.
+  productor: 'Productor',
+  sumaAsegurada: 'Suma asegurada',
+  formaDePago: 'Forma de pago',
   // T-0022 / D-0064: enlace de Drive informado por Zoho para el documento de la póliza.
   urlDriveDocPoliza: 'URL drive doc poliza',
 } as const

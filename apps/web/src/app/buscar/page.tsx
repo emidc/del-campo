@@ -144,6 +144,11 @@ export default async function BuscarPage({
       <Cabecera lote={lote} email={principal.email} />
       <p className="antetitulo">Pólizas</p>
       <h1>Buscar pólizas</h1>
+      {params.eliminada === '1' ? (
+        <p className="estado" role="status">
+          La póliza se eliminó definitivamente.
+        </p>
+      ) : null}
       <Formulario valores={valores} />
       {resultado === null ? (
         <p className="estado">
