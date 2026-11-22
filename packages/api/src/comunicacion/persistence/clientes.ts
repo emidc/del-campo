@@ -10,6 +10,8 @@ export interface ConversationParty {
   readonly conversationId: number
   readonly partyId: string
   readonly name: string
+  /** El integrante del equipo responsable de los mensajes del cliente (0031), si tiene. */
+  readonly ownerUserId: string | null
 }
 
 const filas = (rows: (Omit<ConversationParty, 'conversationId'> & { conversationId: string })[]): ConversationParty[] =>
@@ -33,7 +35,7 @@ export const listConversationParties = async (sql: Conexion, partyId: string | n
         and length(regexp_replace(value, '\\D', '', 'g')) >= 10
         and (${partyId}::uuid is null or party_id = ${partyId}::uuid)
     )
-    select c.id as "conversationId", pa.id as "partyId",
+    select c.id as "conversationId", pa.id as "partyId", pa.message_owner_user_id as "ownerUserId",
            coalesce(
              nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
              op.trade_name,

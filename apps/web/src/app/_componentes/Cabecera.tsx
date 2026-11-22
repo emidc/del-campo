@@ -1,8 +1,8 @@
 import type { BatchStamp } from '@del-campo/api'
-import { batchLabel } from '@del-campo/api'
+import { avisosPendientes, batchLabel } from '@del-campo/api'
 import Link from 'next/link'
 
-import { perfilPropio } from '@/lib/sesion'
+import { perfilPropio, requireAdmitted } from '@/lib/sesion'
 
 import { Navegacion } from './Navegacion'
 import { Retrato } from './Retrato'
@@ -51,6 +51,9 @@ export function AccesoABuscar() {
 export async function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly email: string }) {
   // El nombre y la foto guardados en Equipo; sin perfil, la barra muestra el correo.
   const perfil = await perfilPropio()
+  // T-0072: los mensajes sin responder cuyo aviso le llega a quien mira. Si la cuenta
+  // falla, la pantalla se ve igual, sin el número.
+  const avisos = await avisosPendientes(await requireAdmitted()).catch(() => 0)
   return (
     <>
       <header className="superior">
@@ -71,6 +74,7 @@ export async function Cabecera({ lote, email }: { readonly lote: BatchStamp; rea
         </div>
       </header>
       <Navegacion
+        avisos={{ comunicacion: avisos }}
         pie={
           <span className={lote.known ? 'lote' : 'lote lote--desconocido'}>
             {batchLabel(lote)}

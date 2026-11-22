@@ -10,8 +10,10 @@ import {
   describirBloqueos,
   estadoDeProspecto,
   gestiones,
+  integrantesDelEquipo,
   latestBatch,
   party,
+  responsableDeMensajes,
   tareas,
 } from '@del-campo/api'
 import Link from 'next/link'
@@ -20,12 +22,22 @@ import { Suspense } from 'react'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { CampoEditable, EliminarConDialogo, NombreEditable } from '@/app/_componentes/Edicion'
+import { Retrato, etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
 import { fechaDeHoy } from '@/lib/criterios'
 import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarOrigen, guardarRazonSocial } from './acciones'
+import {
+  eliminar,
+  guardarCarpeta,
+  guardarCuit,
+  guardarDni,
+  guardarNombre,
+  guardarOrigen,
+  guardarRazonSocial,
+  guardarResponsableDeMensajes,
+} from './acciones'
 import { SeccionRiesgos } from './SeccionRiesgos'
 import { esSubseccion } from './riesgos'
 import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
@@ -59,7 +71,7 @@ export default async function PartePage({
   const subRiesgos = esSubseccion(listaPedida) ? listaPedida : 'riesgos'
   const itemRiesgo = unico('item') ?? null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto, integrantes, responsableId] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, new Date().toISOString()),
@@ -69,9 +81,13 @@ export default async function PartePage({
       contactosDeCliente(principal, id),
       bloqueosDeContacto(principal, id),
       estadoDeProspecto(principal, id),
+      integrantesDelEquipo(principal),
+      responsableDeMensajes(principal, id),
     ]),
   )
   if (vista === null) notFound()
+  const etiquetasEquipo = etiquetasDeIntegrantes(integrantes)
+  const responsable = integrantes.find((i) => i.userId === responsableId)
 
   const esEmpresa = vista.kind === 'ORGANIZATION'
   const esProspecto = prospecto?.active === true
@@ -227,6 +243,26 @@ export default async function PartePage({
                   <dd>{ORIGENES_DE_PROSPECTO[origen]}</dd>
                 </>
               )}
+              <CampoEditable
+                etiqueta="Responsable de mensajes"
+                tipo="select"
+                valor={responsable?.userId ?? ''}
+                opciones={[
+                  { valor: '', etiqueta: 'Sin asignar (avisa a Victoria)' },
+                  ...integrantes.map((i) => ({ valor: i.userId, etiqueta: etiquetasEquipo.get(i) ?? i.name })),
+                ]}
+                accion={guardarResponsableDeMensajes}
+                ocultos={{ parte: vista.partyId }}
+              >
+                {responsable === undefined ? (
+                  <span className="meta">Sin asignar: los avisos de WhatsApp le llegan a Victoria</span>
+                ) : (
+                  <span className="persona">
+                    <Retrato usuario={responsable.userId} nombre={responsable.name} conFoto={responsable.hasPhoto} />
+                    <span>{responsable.name}</span>
+                  </span>
+                )}
+              </CampoEditable>
               <dt>Pólizas</dt>
               <dd>
                 <Link href={`/parte/${id}?seccion=polizas`}>{vista.policies.length} a la fecha</Link>

@@ -27,6 +27,8 @@ export interface ConversationSummary extends ParticipantLabel {
   readonly id: number
   readonly lastMessageAt: Date
   readonly window: ServiceWindow
+  /** El último mensaje es del participante: nadie del equipo le contestó todavía. */
+  readonly awaitingReply: boolean
 }
 
 /**
@@ -76,6 +78,7 @@ export const conversationSummaries = async (sql: Conexion, now: Date = new Date(
     bsuid: r.bsuid,
     lastMessageAt: r.lastMessageAt,
     window: serviceWindow(r.lastInboundAt, now),
+    awaitingReply: r.lastInboundAt !== null && r.lastInboundAt.getTime() >= r.lastMessageAt.getTime(),
   }))
 
 export const conversationList = async (sql: Conexion, now: Date = new Date()): Promise<ConversationList> => {

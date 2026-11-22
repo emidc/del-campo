@@ -65,6 +65,7 @@ En este orden. El detalle de cada una está en `TASKS/` y en Linear.
 | 5 | `T-0060` Usuarios: equipo y cliente | En curso | Base para el portal y menos complejidad |
 | 6 | `T-0064` Portal de empresa con su panel de riesgos | Pendiente | La empresa ve y comenta sus riesgos |
 | 7 | `T-0065` Retirar Risk OS separado | Pendiente | Menos código y costo |
+| 8 | `T-0072` Avisos de mensajes al responsable del cliente | En curso | Cada mensaje de WhatsApp le avisa a quien le toca |
 
 Hechas: `T-0066` Comunicación como sección, `T-0068` teléfono y mail en la ficha,
 `T-0069` datos editables y prospectos, `T-0070` Tareas y Equipo.

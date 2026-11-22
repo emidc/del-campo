@@ -65,12 +65,20 @@ const SECCIONES = [
 ] as const
 
 /** El menú lateral. Es de cliente sólo para marcar la sección en la que se está. */
-export function Navegacion({ pie }: { readonly pie: ReactNode }) {
+export function Navegacion({
+  pie,
+  avisos = {},
+}: {
+  readonly pie: ReactNode
+  /** Cuántos avisos pendientes tiene quien mira en cada sección (T-0072). */
+  readonly avisos?: Readonly<Partial<Record<string, number>>>
+}) {
   const ruta = usePathname()
   return (
     <nav className="lateral" aria-label="Navegación principal">
       {SECCIONES.map((s) => {
         const actual = s.rutas.some((r) => ruta === r || ruta.startsWith(`${r}/`))
+        const pendientes = avisos[s.id] ?? 0
         return (
           <Link
             key={s.id}
@@ -82,6 +90,11 @@ export function Navegacion({ pie }: { readonly pie: ReactNode }) {
               {ICONOS[s.id]}
             </svg>
             <span>{s.texto}</span>
+            {pendientes > 0 ? (
+              <span className="lateral__aviso" aria-label={`${String(pendientes)} sin responder para vos`}>
+                {pendientes}
+              </span>
+            ) : null}
           </Link>
         )
       })}

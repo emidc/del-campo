@@ -22,6 +22,7 @@ import {
   editarDni,
   editarNombre,
   editarRazonSocial,
+  editarResponsableDeMensajes,
   eliminarContacto,
   esCanalDeContacto,
   esUuid,
@@ -145,6 +146,15 @@ export async function guardarCarpeta(_previo: Resultado, form: FormData): Promis
   const parte = parteDe(form)
   if (parte === null) return sinParte
   return deEdicion(parte, await intentar(editarCarpeta(principal, parte, texto(form, 'valor').slice(0, 500))))
+}
+
+/** T-0072 — Quién recibe los avisos de WhatsApp del cliente. Vacío: nadie (le llegan a Victoria). */
+export async function guardarResponsableDeMensajes(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const parte = parteDe(form)
+  if (parte === null) return sinParte
+  const usuario = texto(form, 'valor')
+  return deEdicion(parte, await intentar(editarResponsableDeMensajes(principal, parte, usuario === '' ? null : usuario)))
 }
 
 /** Las personas guardadas que coinciden con lo que se va escribiendo. */
