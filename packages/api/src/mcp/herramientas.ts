@@ -3,6 +3,7 @@
 
 import type { Principal } from '../session/admission.ts'
 import { party, policy, search } from '../vs01/queries.ts'
+import { HERRAMIENTAS_RIESGOS } from './herramientas-riesgos.ts'
 import type { Herramienta } from './servidor.ts'
 import { ErrorDeHerramienta } from './servidor.ts'
 
@@ -119,9 +120,11 @@ const leerPoliza: Herramienta<ContextoMcp> = {
   },
 }
 
-export const HERRAMIENTAS_MCP: readonly Herramienta<ContextoMcp>[] = [buscarClientes, leerCliente, leerPoliza]
+export const HERRAMIENTAS_MCP: readonly Herramienta<ContextoMcp>[] = [buscarClientes, leerCliente, leerPoliza, ...HERRAMIENTAS_RIESGOS]
 
 export const INSTRUCCIONES_MCP =
   'Broker OS es el sistema de Del Campo Broker. Estas herramientas leen clientes y pólizas reales con el usuario ' +
   'de la persona del equipo que conectó el agente. Los datos provienen del último lote importado de Zoho y pueden ' +
-  'no estar al día. No inventar datos que las herramientas no devuelvan.'
+  'no estar al día. No inventar datos que las herramientas no devuelvan. Las herramientas de riesgos guardan el ' +
+  'trabajo del agente firmado con su nombre y versión; lo que propone queda para que una persona del equipo lo revise ' +
+  'en la ficha de la empresa. Guardar sólo lo que la persona aprobó en la conversación.'
