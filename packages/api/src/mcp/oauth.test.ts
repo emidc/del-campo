@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 
 import {
   canjear,
+  credencialesManuales,
   emitirCodigo,
   metadatosDelRecurso,
   metadatosDelServidor,
@@ -150,6 +151,35 @@ describe('OAuth del MCP', () => {
     assert.ok(v.ok)
     const url = new URL(rechazar(v.pedido))
     assert.equal(url.searchParams.get('error'), 'access_denied')
+  })
+
+  it('las credenciales manuales (Gemini) sirven para el canje con secreto', async () => {
+    const cred = await credencialesManuales(RETORNO, 'Gemini', SECRETO)
+    assert.ok(cred !== null)
+    const code = await codigoPara(cred.clientId)
+    const campos = {
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: RETORNO,
+      code_verifier: VERIFICADOR,
+      client_id: cred.clientId,
+      client_secret: cred.clientSecret,
+    }
+    assert.equal((await canjear(pedido('/api/oauth/token', formulario(campos)), SECRETO)).status, 200)
+    assert.equal(await credencialesManuales('http://malo.example/cb', 'x', SECRETO), null)
+  })
+
+  it('sin PKCE, el canje exige el secreto del cliente', async () => {
+    const cred = await credencialesManuales(RETORNO, 'Gemini', SECRETO)
+    assert.ok(cred !== null)
+    const sinPkce = { ...parametros(cred.clientId), code_challenge: undefined, code_challenge_method: undefined }
+    const v = await validarAutorizacion(sinPkce, SECRETO)
+    assert.ok(v.ok)
+    const code = new URL(await emitirCodigo(v.pedido, USUARIO, SECRETO)).searchParams.get('code') ?? ''
+    const campos = { grant_type: 'authorization_code', code, redirect_uri: RETORNO, client_id: cred.clientId }
+    assert.equal((await canjear(pedido('/api/oauth/token', formulario(campos)), SECRETO)).status, 400)
+    const conSecreto = { ...campos, client_secret: cred.clientSecret }
+    assert.equal((await canjear(pedido('/api/oauth/token', formulario(conSecreto)), SECRETO)).status, 200)
   })
 
   it('rechaza registrar direcciones que no son https', async () => {

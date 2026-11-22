@@ -109,6 +109,20 @@ const iguales = (a: string, b: string): boolean => {
   return x.length === y.length && timingSafeEqual(x, y)
 }
 
+/**
+ * Para los agentes que no se registran solos (Gemini pide Client ID y Client secret a mano):
+ * el mismo cliente que daría el registro dinámico, con secreto, para una sola dirección de retorno.
+ */
+export const credencialesManuales = async (
+  redirectUri: string,
+  nombre: string,
+  secreto: string,
+): Promise<{ readonly clientId: string; readonly clientSecret: string } | null> => {
+  if (!redireccionValida(redirectUri)) return null
+  const clientId = await sellar('cliente', { uris: [redirectUri], nombre: nombre.slice(0, 100) }, secreto)
+  return { clientId, clientSecret: secretoDeCliente(clientId, secreto) }
+}
+
 /** RFC 7591: registro dinámico. El cliente queda dentro de su propio client_id. */
 export const registrarCliente = async (request: Request, secreto: string): Promise<Response> => {
   let cuerpo: Record<string, unknown>
@@ -145,7 +159,8 @@ export interface PedidoDeAutorizacion {
   readonly nombreCliente: string
   readonly redirectUri: string
   readonly state: string | null
-  readonly codeChallenge: string
+  /** null si el agente no usa PKCE: entonces el canje exige el secreto del cliente. */
+  readonly codeChallenge: string | null
 }
 
 export type Autorizacion =
@@ -174,8 +189,8 @@ export const validarAutorizacion = async (
   if (parametros.response_type !== 'code') {
     return { ok: false, mensaje: 'Pedido inválido.', volverA: conError(redirectUri, 'unsupported_response_type', state) }
   }
-  const challenge = parametros.code_challenge ?? ''
-  if (parametros.code_challenge_method !== 'S256' || !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)) {
+  const challenge = parametros.code_challenge ?? null
+  if (challenge !== null && (parametros.code_challenge_method !== 'S256' || !/^[A-Za-z0-9_-]{43,128}$/.test(challenge))) {
     return { ok: false, mensaje: 'Pedido inválido.', volverA: conError(redirectUri, 'invalid_request', state) }
   }
   return {
@@ -251,12 +266,17 @@ export const canjear = async (request: Request, secreto: string): Promise<Respon
     case 'authorization_code': {
       const codigo = await abrir('codigo', form.get('code') ?? '', secreto)
       const verificador = form.get('code_verifier') ?? ''
+      // Sin PKCE, sólo un cliente que presentó su secreto (ya verificado arriba) puede canjear.
+      const pruebaValida =
+        typeof codigo?.challenge === 'string'
+          ? createHash('sha256').update(verificador).digest('base64url') === codigo.challenge
+          : cred.secreto !== null && cred.secreto !== ''
       if (
         codigo === null ||
         typeof codigo.usuarioId !== 'string' ||
         codigo.clientId !== cred.id ||
         codigo.redirectUri !== form.get('redirect_uri') ||
-        createHash('sha256').update(verificador).digest('base64url') !== codigo.challenge
+        !pruebaValida
       ) {
         return errorOauth('invalid_grant', 'Código inválido o vencido')
       }

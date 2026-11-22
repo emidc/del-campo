@@ -2,7 +2,7 @@
 
 // T-0062 — Generar y revocar el token personal para conectar Claude.
 
-import { generarTokenMcp, quitarTokenMcp } from '@del-campo/api'
+import { credencialesManuales, generarTokenMcp, quitarTokenMcp, sessionConfig } from '@del-campo/api'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -22,5 +22,21 @@ export async function generar(): Promise<void> {
 export async function revocar(): Promise<void> {
   const principal = await requireAdmitted()
   await consultar(quitarTokenMcp(principal))
+  redirect('/conectar')
+}
+
+/** Client ID y Client secret para un agente que los pide a mano (Gemini), atados a su redirect URI. */
+export async function credencialesOauth(datos: FormData): Promise<void> {
+  await requireAdmitted()
+  const uri = datos.get('redirect_uri')
+  const cred = typeof uri === 'string' ? await credencialesManuales(uri.trim(), 'Gemini', sessionConfig().secret) : null
+  const jar = await cookies()
+  jar.set('mcp_oauth_nuevo', JSON.stringify(cred ?? { error: true }), {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/conectar',
+    maxAge: 60,
+  })
   redirect('/conectar')
 }

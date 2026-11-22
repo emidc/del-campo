@@ -5,14 +5,27 @@ import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { generar, revocar } from './acciones'
+import { credencialesOauth, generar, revocar } from './acciones'
 
 export const dynamic = 'force-dynamic'
+
+type Credenciales = { readonly clientId: string; readonly clientSecret: string } | { readonly error: true }
+
+const leerCredenciales = (valor: string | undefined): Credenciales | null => {
+  if (valor === undefined) return null
+  try {
+    return JSON.parse(valor) as Credenciales
+  } catch {
+    return null
+  }
+}
 
 export default async function ConectarPage() {
   const principal = await requireAdmitted()
   const [lote, desde] = await consultar(Promise.all([latestBatch(principal), tokenMcpDesde(principal)]))
-  const nuevo = (await cookies()).get('mcp_token_nuevo')?.value ?? null
+  const jar = await cookies()
+  const nuevo = jar.get('mcp_token_nuevo')?.value ?? null
+  const oauth = leerCredenciales(jar.get('mcp_oauth_nuevo')?.value)
   const cabeceras = await headers()
   const origen = `${cabeceras.get('x-forwarded-proto') ?? 'https'}://${cabeceras.get('host') ?? ''}`
 
@@ -62,10 +75,35 @@ export default async function ConectarPage() {
           <code style={{ wordBreak: 'break-all' }}>{`${origen}/api/mcp`}</code>
         </p>
         <ul className="meta">
-          <li>Gemini: Personalizar, Aplicaciones conectadas, Custom. Pegá la dirección y dejá vacíos Client ID y Client secret.</li>
+          <li>
+            Gemini: Personalizar, Aplicaciones conectadas, Custom. Pegá la dirección, abrí Advanced Settings, tocá
+            Copy redirect URI y pegalo acá abajo. Copiá el Client ID y el Client secret que aparecen en los campos de
+            Gemini y tocá Next.
+          </li>
           <li>Claude: Configuración, Conectores, Agregar conector personalizado. Pegá la dirección.</li>
           <li>ChatGPT: con el modo desarrollador activo, Crear aplicación. Pegá la dirección y elegí OAuth.</li>
         </ul>
+        <form action={credencialesOauth}>
+          <input name="redirect_uri" type="url" required placeholder="Redirect URI de Gemini" style={{ width: '100%' }} />
+          <BotonEnviar>Generar Client ID y Client secret</BotonEnviar>
+        </form>
+        {oauth === null ? null : 'error' in oauth ? (
+          <p className="meta">Ese redirect URI no sirve: tiene que empezar con https://.</p>
+        ) : (
+          <>
+            <p className="meta">Client ID</p>
+            <p>
+              <code style={{ wordBreak: 'break-all' }}>{oauth.clientId}</code>
+            </p>
+            <p className="meta">Client secret</p>
+            <p>
+              <code style={{ wordBreak: 'break-all' }}>{oauth.clientSecret}</code>
+            </p>
+            <p className="meta">
+              <b>Copialos ahora: no se vuelven a mostrar.</b>
+            </p>
+          </>
+        )}
         <p className="meta">El acceso se renueva solo y vence a los 30 días sin uso, o antes si te dan de baja del equipo.</p>
       </article>
 
