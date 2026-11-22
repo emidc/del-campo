@@ -80,7 +80,7 @@ describe('servidor MCP', () => {
   it('tools/list publica nombre, descripción, esquema y si es de sólo lectura', async () => {
     const r = await pedir(rpc('tools/list'))
     assert.deepEqual(r.json.result.tools, [
-      { name: 'eco', description: 'Devuelve lo que recibe', inputSchema: { type: 'object' }, annotations: { readOnlyHint: true } },
+      { name: 'eco', description: 'Devuelve lo que recibe', inputSchema: { type: 'object' }, annotations: { readOnlyHint: true, openWorldHint: false } },
     ])
   })
 

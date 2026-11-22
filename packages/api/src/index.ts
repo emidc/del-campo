@@ -202,7 +202,23 @@ export { leerCuerpo, riesgosDeEmpresa } from './riesgos/cliente.ts'
 export type { DepsRiesgos, ResultadoRiesgos, RiesgoEnFicha, RiesgosVinculados } from './riesgos/cliente.ts'
 
 // T-0062: servidor MCP y token personal.
-export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './mcp/http.ts'
+export {
+  autorizarAgente,
+  generarTokenMcp,
+  mcpBrokerOs,
+  mcpBrokerOsOauth,
+  quitarTokenMcp,
+  tokenMcpDesde,
+} from './mcp/http.ts'
+export {
+  canjear,
+  metadatosDelRecurso,
+  metadatosDelServidor,
+  rechazar,
+  registrarCliente,
+  validarAutorizacion,
+} from './mcp/oauth.ts'
+export type { Autorizacion, PedidoDeAutorizacion } from './mcp/oauth.ts'
 
 // T-0060: usuarios del equipo desde la app.
 export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'

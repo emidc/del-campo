@@ -1,6 +1,6 @@
 // T-0062 — Servidor MCP de Broker OS, sobre `Request`/`Response` estándar (transporte
 // "Streamable HTTP", sin estado y con respuestas JSON). Implementa lo que un cliente como
-// Claude necesita: initialize, tools/list y tools/call. Sin dependencias: el protocolo es
+// Claude o ChatGPT necesita: initialize, tools/list y tools/call. Sin dependencias: el protocolo es
 // JSON-RPC 2.0 y cabe en este archivo.
 //
 // Las herramientas no viven acá (ver `herramientas.ts`): este módulo sólo las despacha.
@@ -74,7 +74,9 @@ const despachar = async <Contexto>(
           name: h.name,
           description: h.description,
           inputSchema: h.inputSchema,
-          annotations: { readOnlyHint: h.soloLectura },
+          // ChatGPT pide confirmación para lo que no es de sólo lectura y avisa si la herramienta
+          // sale a internet; las de Broker OS no salen del sistema.
+          annotations: { readOnlyHint: h.soloLectura, openWorldHint: false },
         })),
       })
     case 'tools/call': {
