@@ -43,6 +43,15 @@ export default async function ConectarPage() {
         </article>
       )}
 
+      <article className="tarjeta">
+        <h3>Gemini</h3>
+        <p className="meta">
+          Gemini no usa esta dirección: pide iniciar sesión. Entrá a gemini.google.com, Personalizar, Aplicaciones
+          conectadas, Custom, y pegá <code>{`${origen}/api/mcp`}</code>. Gemini te trae a Broker OS para que
+          autorices con tu usuario.
+        </p>
+      </article>
+
       <p className="meta">
         {desde === null
           ? 'Todavía no generaste una dirección.'

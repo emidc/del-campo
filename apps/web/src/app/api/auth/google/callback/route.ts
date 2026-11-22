@@ -59,8 +59,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     redirectTo = '/login?motivo=INVALID_TOKEN'
   }
 
+  // Quien venía de autorizar un agente (OAuth del MCP) vuelve a esa pantalla.
+  const volver = request.cookies.get('oauth_volver')?.value ?? ''
+  if (cookieValue !== null && volver.startsWith('/oauth/autorizar?')) redirectTo = volver
+
   const response = NextResponse.redirect(new URL(redirectTo, config.baseUrl))
   response.cookies.delete(HANDSHAKE_COOKIE)
+  response.cookies.delete('oauth_volver')
   if (cookieValue !== null) {
     // Los atributos salen de `sessionCookie`, que es lo que los tests describen. Copiarlos
     // inline acá los dejaría fuera del alcance de esos tests: sacarle `httpOnly` a una

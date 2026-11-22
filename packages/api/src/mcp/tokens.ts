@@ -64,3 +64,23 @@ export const resolverTokenMcp = async (conexion: Conexion, token: string): Promi
   await conexion`update mcp_token set last_used_at = now() where id = ${fila.id}`
   return { usuarioId: fila.usuarioId, principal: { sub: fila.sub, email: fila.email, displayName: null } }
 }
+
+/** La misma identidad que `resolverTokenMcp`, para un agente que entró por OAuth. */
+export const resolverUsuarioMcp = async (conexion: Conexion, usuarioId: string): Promise<TitularDeToken | null> => {
+  if (!/^[0-9a-f-]{36}$/i.test(usuarioId)) return null
+  const [fila] = await conexion<{ usuarioId: string; sub: string; email: string }[]>`
+    select u.id as "usuarioId", c.subject as sub, u.email
+    from app_user u
+    join user_credential c on c.user_id = u.id and c.provider = 'google'
+    where u.id = ${usuarioId} and u.status = 'ACTIVE'
+  `
+  if (fila === undefined) return null
+  return { usuarioId: fila.usuarioId, principal: { sub: fila.sub, email: fila.email, displayName: null } }
+}
+
+/** El id de usuario de quien está en sesión, para firmar el código OAuth. */
+export const usuarioIdDe = async (conexion: Conexion, principal: Principal): Promise<string> => {
+  const quien = await conPrincipal(conexion, identidadDe(principal), (_tx, p) => Promise.resolve(p.usuarioId))
+  if (!quien.ok) throw new AccesoDenegado(quien.motivo)
+  return quien.valor
+}
