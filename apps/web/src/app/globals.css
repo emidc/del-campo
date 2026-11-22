@@ -259,6 +259,19 @@ h3 {
   color: #fff;
 }
 
+.lateral__aviso {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--alerta-fondo);
+  border: 1px solid var(--alerta-borde);
+  color: var(--alerta);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .lateral__separado {
   margin-top: 17px;
   position: relative;

@@ -173,11 +173,13 @@ export type {
 export {
   contactBlockers,
   deleteContact,
+  getMessageOwner,
   linkOrganization,
   searchOrganizations,
   searchPersons,
   unlinkOrganization,
   updateDriveFolder,
+  updateMessageOwner,
   updateOrganizationCuit,
   updateOrganizationName,
   updatePersonDni,

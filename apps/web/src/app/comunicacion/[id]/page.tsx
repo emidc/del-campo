@@ -140,6 +140,9 @@ export default async function ConversacionPage({
                 </Link>
               ))
             )}
+            <span className="chip" title="Cualquiera del equipo puede responder esta conversación">
+              Aviso a: {c.avisaA?.name ?? 'nadie del equipo'}
+            </span>
           </div>
         </div>
       </header>

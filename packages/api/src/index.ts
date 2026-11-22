@@ -232,6 +232,7 @@ export { tareaDeReproceso, tareaDeRetencion, whatsappWebhook } from './comunicac
 export {
   MAX_REPLY_LENGTH,
   MENSAJE_DE_RESPUESTA,
+  avisosPendientes,
   conversacion,
   conversaciones,
   conversacionesDeCliente,
@@ -301,8 +302,10 @@ export {
   editarDni,
   editarNombre,
   editarRazonSocial,
+  editarResponsableDeMensajes,
   eliminarContacto,
   quitarDeEmpresa,
+  responsableDeMensajes,
 } from './clientes/edicion.ts'
 export type { OrganizationOption, PartyEditResult, PersonOption } from './clientes/edicion.ts'
 export {

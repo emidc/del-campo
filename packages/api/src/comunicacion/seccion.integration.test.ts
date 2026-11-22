@@ -10,7 +10,8 @@ import postgres from 'postgres'
 import { AccesoDenegado } from '../acceso/datos.ts'
 import type { Principal } from '../session/admission.ts'
 import type { SendOutcome } from './integration/cloud-api.ts'
-import { conversacionesCon, responderCon, vincularConversacionCon, type EnvioConfigurado } from './seccion.ts'
+import { editarResponsableDeMensajesCon, responsableDeMensajesCon } from '../clientes/edicion.ts'
+import { avisosPendientesCon, conversacionesCon, responderCon, vincularConversacionCon, type EnvioConfigurado } from './seccion.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -175,6 +176,54 @@ describe('sección Comunicación (T-0066)', () => {
       assert.ok(conv)
       assert.equal(await vincularConversacionCon(tx, principal('sub-com'), conv.id, '00000000-0000-4000-8000-00000000dead'), 'inexistente')
       assert.equal(await vincularConversacionCon(tx, principal('sub-com'), conv.id, 'no-es-un-id'), 'inexistente')
+    })
+  })
+
+  it('el aviso va al responsable del cliente, a Victoria sin responsable y a Matías sin cliente (T-0072)', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const integrante = async (correo: string): Promise<string> => {
+        const [u] = await tx<{ id: string }[]>`
+          insert into app_user (email, status, auth_provider, role) values (${correo}, 'ACTIVE', 'google', 'OPERADOR') returning id`
+        if (u === undefined) throw new Error('sin semilla')
+        await tx`insert into user_credential (user_id, provider, subject) values (${u.id}, 'google', ${correo})`
+        return u.id
+      }
+      const victoria = await integrante('victoria@delcamposeguros.com')
+      const matias = await integrante('matias@delcamposeguros.com')
+      const avisos = async () =>
+        (await conversacionesCon(tx, principal('sub-com'))).conversaciones.map((c) => [c.profileName, c.avisaA?.userId, c.awaitingReply])
+
+      assert.deepEqual(await avisos(), [
+        ['Ana', victoria, true],
+        ['Desconocido', matias, true],
+      ])
+      assert.equal(await avisosPendientesCon(tx, principal('victoria@delcamposeguros.com')), 1)
+
+      // Cualquiera del equipo asigna el responsable desde la ficha, y queda quién lo hizo.
+      assert.deepEqual(await editarResponsableDeMensajesCon(tx, principal('sub-com'), m.ana, m.usuario), { kind: 'ok' })
+      assert.equal(await responsableDeMensajesCon(tx, principal('sub-com'), m.ana), m.usuario)
+      assert.deepEqual(await avisos(), [
+        ['Ana', m.usuario, true],
+        ['Desconocido', matias, true],
+      ])
+      assert.equal(await avisosPendientesCon(tx, principal('sub-com')), 1)
+      assert.equal(await avisosPendientesCon(tx, principal('victoria@delcamposeguros.com')), 0)
+      const [auditoria] = await tx<{ actor: string }[]>`
+        select actor_user_id as actor from audit_event where action = 'party.update_message_owner' and object_id = ${m.ana}`
+      assert.equal(auditoria?.actor, m.usuario)
+
+      // Una respuesta del equipo saca la conversación de los pendientes.
+      await tx`
+        insert into communication.message (wamid, direction, phone_number_id, wa_id, body, wa_timestamp)
+        values ('wamid.SINT-OUT-A', 'outbound', ${NUMERO}, '5492615550101', 'Respuesta', now())`
+      assert.equal(await avisosPendientesCon(tx, principal('sub-com')), 0)
+
+      // Sin responsable vuelve a Victoria; alguien de afuera del equipo no puede serlo.
+      assert.deepEqual(await editarResponsableDeMensajesCon(tx, principal('sub-com'), m.ana, null), { kind: 'ok' })
+      assert.equal(await responsableDeMensajesCon(tx, principal('sub-com'), m.ana), null)
+      const otro = await editarResponsableDeMensajesCon(tx, principal('sub-com'), m.ana, '00000000-0000-4000-8000-00000000dead')
+      assert.equal(otro.kind, 'invalid')
     })
   })
 })

@@ -190,3 +190,27 @@ export const deleteContact = async (sql: QueryExecutor, partyId: string): Promis
   const [fila] = await sql<{ bloqueos: DeleteBlocker[] }[]>`select public.eliminar_contacto(${partyId}::uuid) as bloqueos`
   return fila?.bloqueos ?? []
 }
+
+/**
+ * T-0072 — El integrante del equipo responsable de los mensajes de un cliente: le llegan
+ * los avisos de su WhatsApp. `null` lo quita (el aviso pasa a Victoria). La base exige que
+ * sea del equipo; acá además tiene que estar activo.
+ */
+export const updateMessageOwner = async (sql: QueryExecutor, partyId: string, userId: string | null): Promise<PartyEditResult> => {
+  if (userId !== null) {
+    const [activo] = await sql`select 1 from authz.equipo_visible() e where e.id = ${userId}::uuid`
+    if (activo === undefined) return { kind: 'invalid', message: 'Elegí a alguien del equipo.' }
+  }
+  const filas = await sql`
+    update party set message_owner_user_id = ${userId}, updated_at = now()
+    where id = ${partyId} and status = 'ACTIVE' returning id`
+  if (filas.length === 0) return { kind: 'not_found' }
+  await auditar(sql, 'party.update_message_owner', partyId)
+  return { kind: 'ok' }
+}
+
+/** El responsable de los mensajes de un cliente, o `null` si no tiene. */
+export const getMessageOwner = async (sql: QueryExecutor, partyId: string): Promise<string | null> => {
+  const [fila] = await sql<{ owner: string | null }[]>`select message_owner_user_id as owner from party where id = ${partyId}`
+  return fila?.owner ?? null
+}

@@ -6,11 +6,13 @@ import type { DeleteBlocker, OrganizationOption, PartyEditResult, PersonOption }
 import {
   contactBlockers,
   deleteContact,
+  getMessageOwner,
   linkOrganization,
   searchOrganizations,
   searchPersons,
   unlinkOrganization,
   updateDriveFolder,
+  updateMessageOwner,
   updateOrganizationCuit,
   updateOrganizationName,
   updatePersonDni,
@@ -87,3 +89,24 @@ export const asociarPersona = (principal: Principal, empresaId: string, personaI
   asociarPersonaCon(sql(), principal, empresaId, personaId)
 export const quitarDeEmpresa = (principal: Principal, empresaId: string, personaId: string): Promise<PartyEditResult> =>
   quitarDeEmpresaCon(sql(), principal, empresaId, personaId)
+
+/** T-0072 — Quién recibe los avisos de WhatsApp del cliente. `null`: nadie asignado (Victoria). */
+export const editarResponsableDeMensajesCon = (
+  conexion: Conexion,
+  principal: Principal,
+  partyId: string,
+  userId: string | null,
+): Promise<PartyEditResult> =>
+  !esUuid(partyId)
+    ? Promise.resolve(noEncontrado)
+    : userId !== null && !esUuid(userId)
+      ? Promise.resolve({ kind: 'invalid', message: 'Elegí a alguien del equipo.' })
+      : conDatos(conexion, principal, (tx) => updateMessageOwner(tx, partyId, userId))
+
+export const responsableDeMensajesCon = (conexion: Conexion, principal: Principal, partyId: string): Promise<string | null> =>
+  esUuid(partyId) ? conDatos(conexion, principal, (tx) => getMessageOwner(tx, partyId)) : Promise.resolve(null)
+
+export const editarResponsableDeMensajes = (principal: Principal, partyId: string, userId: string | null): Promise<PartyEditResult> =>
+  editarResponsableDeMensajesCon(sql(), principal, partyId, userId)
+export const responsableDeMensajes = (principal: Principal, partyId: string): Promise<string | null> =>
+  responsableDeMensajesCon(sql(), principal, partyId)

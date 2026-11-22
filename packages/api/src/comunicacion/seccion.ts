@@ -2,7 +2,7 @@
 // toda consulta, corre por `conDatos`: como `broker_app`, a nombre de quien mira, con RLS
 // decidiendo. Todo el equipo ve todas las conversaciones (decisión de Emiliano, 15/11/2026).
 
-import { addContactPoint } from '@del-campo/db'
+import { addContactPoint, listTeamMembers, type TeamMemberProfile } from '@del-campo/db'
 
 import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
@@ -18,6 +18,7 @@ import {
 import { sendReply, type Phase, type ReplyResult } from './application/reply.ts'
 import { cloudApiConfigProblem, cloudApiSender, type TextSender } from './integration/cloud-api.ts'
 import { listConversationParties } from './persistence/clientes.ts'
+import { destinatarioDelAviso } from './domain/avisos.ts'
 import { conversationParticipant } from './persistence/conversations.ts'
 import type { Conexion } from './persistence/database.ts'
 
@@ -33,6 +34,8 @@ export interface ClienteDeConversacion {
 export interface ConversacionResumen extends ConversationSummary {
   /** Los clientes cuyo teléfono coincide con el del participante. Vacío: sin identificar. */
   readonly clientes: ClienteDeConversacion[]
+  /** A quién le llega el aviso de sus mensajes (T-0072). `null`: a nadie del equipo. */
+  readonly avisaA: TeamMemberProfile | null
 }
 
 export interface Conversaciones {
@@ -60,10 +63,16 @@ export const envioConfigurado = (env: Readonly<Record<string, string | undefined
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const agrupar = (pares: { conversationId: number; partyId: string; name: string }[]): Map<number, ClienteDeConversacion[]> => {
-  const porConversacion = new Map<number, ClienteDeConversacion[]>()
-  for (const { conversationId, partyId, name } of pares) {
-    porConversacion.set(conversationId, [...(porConversacion.get(conversationId) ?? []), { partyId, name }])
+type Pares = readonly { conversationId: number; partyId: string; name: string; ownerUserId: string | null }[]
+
+const agrupar = (pares: Pares): Map<number, { clientes: ClienteDeConversacion[]; responsables: (string | null)[] }> => {
+  const porConversacion = new Map<number, { clientes: ClienteDeConversacion[]; responsables: (string | null)[] }>()
+  for (const { conversationId, partyId, name, ownerUserId } of pares) {
+    const previo = porConversacion.get(conversationId) ?? { clientes: [], responsables: [] }
+    porConversacion.set(conversationId, {
+      clientes: [...previo.clientes, { partyId, name }],
+      responsables: [...previo.responsables, ownerUserId],
+    })
   }
   return porConversacion
 }
@@ -73,17 +82,37 @@ const agrupar = (pares: { conversationId: number; partyId: string; name: string 
  * están atascadas, sin contenido) se cuenta con la conexión de la app, después de que la
  * base admitió a la persona.
  */
+const resumenesCon = async (tx: Conexion, partyId: string | null): Promise<ConversacionResumen[]> => {
+  const resumenes = await conversationSummaries(tx)
+  const clientes = agrupar(await listConversationParties(tx, partyId))
+  const equipo = await listTeamMembers(tx)
+  return resumenes
+    .filter((c) => partyId === null || clientes.has(c.id))
+    .map((c) => {
+      const suyos = clientes.get(c.id) ?? { clientes: [], responsables: [] }
+      return { ...c, clientes: suyos.clientes, avisaA: destinatarioDelAviso(suyos.responsables, equipo) }
+    })
+}
+
 export const conversacionesCon = async (conexion: Conexion, principal: Principal, partyId: string | null = null): Promise<Conversaciones> =>
 {
-  const lista = await conDatos(conexion, principal, async (tx) => {
-    const resumenes = await conversationSummaries(tx)
-    const clientes = agrupar(await listConversationParties(tx, partyId))
-    return resumenes
-      .filter((c) => partyId === null || clientes.has(c.id))
-      .map((c) => ({ ...c, clientes: clientes.get(c.id) ?? [] }))
-  })
+  const lista = await conDatos(conexion, principal, (tx) => resumenesCon(tx, partyId))
   return { conversaciones: lista, entregas: await deliveryHealth(conexion) }
 }
+
+/**
+ * T-0072 — Los avisos de quien mira: las conversaciones que esperan respuesta y cuyo aviso
+ * le llega a esa persona. Es el número que muestra el menú en Comunicación.
+ */
+export const avisosPendientesCon = (conexion: Conexion, principal: Principal): Promise<number> =>
+  conDatos(conexion, principal, async (tx) => {
+    const [fila] = await tx<{ id: string | null }[]>`select authz.usuario() as id`
+    const yo = fila?.id ?? null
+    if (yo === null) return 0
+    return (await resumenesCon(tx, null)).filter((c) => c.awaitingReply && c.avisaA?.userId === yo).length
+  })
+
+export const avisosPendientes = (principal: Principal): Promise<number> => avisosPendientesCon(sql(), principal)
 
 /** Todas las conversaciones, la más reciente primero. */
 export const conversaciones = (principal: Principal): Promise<Conversaciones> => conversacionesCon(sql(), principal)
@@ -96,6 +125,8 @@ export interface Conversacion {
   readonly hilo: ConversationMessages
   readonly entregas: DeliveryHealth
   readonly clientes: ClienteDeConversacion[]
+  /** A quién le llega el aviso de sus mensajes (T-0072). */
+  readonly avisaA: TeamMemberProfile | null
   /** Si este entorno tiene configurado el envío por Cloud API. */
   readonly envioConfigurado: boolean
 }
@@ -106,7 +137,8 @@ export const conversacion = async (principal: Principal, id: number): Promise<Co
     const hilo = await conversationMessages(tx, id)
     if (hilo === null) return null
     const clientes = (await listConversationParties(tx)).filter((c) => c.conversationId === id)
-    return { hilo, clientes: clientes.map(({ partyId, name }) => ({ partyId, name })) }
+    const avisaA = destinatarioDelAviso(clientes.map((c) => c.ownerUserId), await listTeamMembers(tx))
+    return { hilo, clientes: clientes.map(({ partyId, name }) => ({ partyId, name })), avisaA }
   })
   if (leida === null) return null
   return { ...leida, entregas: await deliveryHealth(conexion), envioConfigurado: envioConfigurado() !== null }
