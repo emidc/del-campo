@@ -26,4 +26,4 @@ Herramientas para otras secciones (gestiones, siniestros, comunicación): se agr
 ## Avance
 
 - 2026-11-13: primera parte. Servidor en `/api/mcp/<token>`, token personal desde la pantalla "Conectar Claude", y herramientas de lectura: `buscar_clientes`, `leer_cliente`, `leer_poliza`. Cada llamada queda en la auditoría con origen `mcp`.
-- Falta: las herramientas de riesgos (leer, crear, editar y comentar), que dependen de `T-0061`.
+- 2026-11-22: herramientas del agente de riesgos (`mcp/herramientas-riesgos.ts`): `leer_riesgos_empresa`, `leer_coberturas_poliza`, `cifras_de_cartera`, `guardar_item_riesgo`, `comentar_item_riesgo`, `registrar_ubicacion`, `registrar_condiciones`, `registrar_coberturas`, `registrar_relevamiento` y `registrar_conclusion`. Todo lo que escriben queda firmado con el agente (`riesgos@1`) y la persona. La conclusión aplica la escala de la plantilla de notas v2: nivel 2 pide la condición declarada o confirmada; nivel 3 cita la póliza, y "no cubre" sólo con el texto que lo dice (si no, queda pendiente).
