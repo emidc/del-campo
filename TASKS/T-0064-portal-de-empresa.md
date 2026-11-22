@@ -3,7 +3,7 @@ id: T-0064
 title: Portal de empresa con su panel de riesgos
 status: READY
 created: 2026-11-13
-linear:
+linear: EMI-134
 ---
 
 ## Para qué
@@ -11,7 +11,7 @@ linear:
 Que la empresa cliente vea sus riesgos, su plan de acción y su transferencia, y pueda
 comentar cada ítem con el equipo de Del Campo.
 
-Necesita T-0060 y T-0061.
+Necesita T-0060 (falta el usuario cliente). T-0061 ya está.
 
 ## Listo cuando
 

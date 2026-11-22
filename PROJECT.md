@@ -40,8 +40,10 @@ entre la empresa y el equipo.
 ## 3. Dónde estamos
 
 Ya funciona en `apps/web`: login con Google, clientes y pólizas importados de Zoho,
-búsqueda, fichas, gestiones, renovaciones, siniestros, cotizaciones, tareas, inicio con
-indicadores y la sección Comunicación, que recibe y responde WhatsApp desde el 16/11/2026.
+búsqueda, fichas editables, prospectos, gestiones, renovaciones, siniestros, cotizaciones, tareas con tablero semanal, inicio con
+indicadores, la sección Comunicación, que recibe y responde WhatsApp desde el 16/11/2026,
+la sección Riesgos en la ficha de empresa y el servidor MCP con las herramientas del agente
+de riesgos.
 
 Queda del rumbo anterior y se va a retirar: Risk OS como aplicación separada (`apps/risk`,
 `contexts/risk`), con su base y su login, y los roles por función. Mientras tanto no se
@@ -54,21 +56,21 @@ de prueba sin Zoho (`T-0055`).
 
 En este orden. El detalle de cada una está en `TASKS/` y en Linear.
 
-| # | Tarea | Qué habilita |
-|---|---|---|
-| 0 | Ejercicio de riesgos con una empresa real (Emiliano y Manuel, fuera del repo) | Las tres listas de referencia y el criterio para el agente |
-| 1 | `T-0061` Sección Riesgos de cada empresa | Ver y editar riesgos, acciones y transferencia en Broker OS |
-| 2 | `T-0062` Servidor MCP de Broker OS | Que un agente lea y guarde datos |
-| 3 | `T-0063` Agente de riesgos v1 | Manuel hace un análisis con el agente y queda guardado |
-| 4 | `T-0060` Usuarios: equipo y cliente | Base para el portal y menos complejidad |
-| 5 | `T-0064` Portal de empresa con su panel de riesgos | La empresa ve y comenta sus riesgos |
-| 6 | `T-0065` Retirar Risk OS separado | Menos código y costo |
-| 7 | `T-0066` Comunicación como sección | Un solo sistema de verdad |
-| 8 | `T-0068` Teléfono y mail en la ficha del cliente | Que cada conversación de WhatsApp quede vinculada a su cliente |
+| # | Tarea | Estado | Qué habilita |
+|---|---|---|---|
+| 1 | `T-0061` Sección Riesgos de cada empresa | Hecha | Ver y editar riesgos, acciones y transferencia en Broker OS |
+| 2 | `T-0062` Servidor MCP de Broker OS | Hecha | Que un agente lea y guarde datos |
+| 3 | `T-0063` Agente de riesgos v1 | En curso | Manuel hace un análisis con el agente y queda guardado |
+| 4 | `T-0071` Riesgos de las empresas piloto | En curso | Primeros análisis reales; Antucura ya está cargada |
+| 5 | `T-0060` Usuarios: equipo y cliente | En curso | Base para el portal y menos complejidad |
+| 6 | `T-0064` Portal de empresa con su panel de riesgos | Pendiente | La empresa ve y comenta sus riesgos |
+| 7 | `T-0065` Retirar Risk OS separado | Pendiente | Menos código y costo |
+
+Hechas: `T-0066` Comunicación como sección, `T-0068` teléfono y mail en la ficha,
+`T-0069` datos editables y prospectos, `T-0070` Tareas y Equipo.
 
 `T-0067` (acercar la interfaz al prototipo) avanza en paralelo, pantalla por pantalla, a
-medida que se toca cada sección. `T-0060` y `T-0062` no dependen del ejercicio y pueden
-empezar antes.
+medida que se toca cada sección.
 
 ## 5. Qué no estamos haciendo
 

@@ -1,9 +1,9 @@
 ---
 id: T-0059
 title: Corregir el rumbo: reglas, tareas y plan
-status: ACTIVE
+status: DONE
 created: 2026-11-13
-linear:
+linear: EMI-129
 ---
 
 ## Para qué
@@ -19,3 +19,6 @@ que decir eso y dejar de exigir el proceso anterior.
 - Las tareas que ya no aplican están en `DROPPED` y las nuevas (T-0060 a T-0067) existen.
 - CI corre sólo `pnpm check` (tipos, lint y tests).
 - Linear refleja las mismas tareas.
+
+## Avance
+- 22/11/2026: Linear y las tareas del repo quedan al día con lo hecho hasta el 22/11.

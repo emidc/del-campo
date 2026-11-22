@@ -3,7 +3,7 @@ id: T-0067
 title: Acercar la interfaz de Broker OS al prototipo
 status: ACTIVE
 created: 2026-11-13
-linear:
+linear: EMI-135
 ---
 
 ## Para qué
@@ -30,4 +30,5 @@ Pantallas del prototipo que todavía no tienen datos reales detrás.
 - 15/11/2026: listas de Gestiones y Tareas con los filtros en pestañas, antetítulo y cantidad en el título.
 - 15/11/2026: fichas de gestión y de tarea con migas, encabezado con estado y vencimiento, y los datos en una tarjeta; fechas y horas en día/mes/año.
 - 16/11/2026: Renovaciones con los tramos en pestañas y los filtros de modo y estado en chips; Equipo en tabla con el formulario de invitación en tarjeta.
-- Falta: la sección Riesgos como en el prototipo, que llega con T-0061, y lo que Emiliano marque al revisarlo en pantalla.
+- 21/11/2026: fichas y listas editables, Tareas con tablero semanal, Equipo y responsables con nombre y foto (PRs 184 a 191, ver T-0069 y T-0070).
+- 22/11/2026: sección Riesgos en la ficha de empresa (PR 193).
