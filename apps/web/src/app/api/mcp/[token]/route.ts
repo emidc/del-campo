@@ -10,7 +10,7 @@ interface Contexto {
 /**
  * Servidor MCP de Broker OS (T-0062). No usa la cookie de sesión: quien llama es un agente
  * con el token personal de alguien del equipo, que va en la URL porque es lo que admiten
- * los conectores personalizados de Claude y de ChatGPT (este último, con "Sin autenticación").
+ * los conectores personalizados de Claude, ChatGPT ("Sin autenticación") y Gemini (sin OAuth).
  */
 const atender = async (request: Request, { params }: Contexto): Promise<Response> =>
   mcpBrokerOs(request, (await params).token)

@@ -19,11 +19,11 @@ export default async function ConectarPage() {
   return (
     <main className="envoltorio">
       <Cabecera lote={lote} email={principal.email} />
-      <h1>Conectar Claude o ChatGPT</h1>
+      <h1>Conectar Claude, ChatGPT o Gemini</h1>
       <p className="meta">
-        Con esta dirección, Claude o ChatGPT pueden leer clientes y pólizas de Broker OS con tu usuario y dejar
+        Con esta dirección, Claude, ChatGPT o Gemini pueden leer clientes y pólizas de Broker OS con tu usuario y dejar
         trabajo de riesgos para revisar. Es personal: no la compartas. Si se filtra, generá una nueva y la anterior
-        deja de funcionar. La misma dirección sirve para los dos.
+        deja de funcionar. La misma dirección sirve para los tres.
       </p>
 
       {nuevo === null ? null : (
@@ -39,6 +39,10 @@ export default async function ConectarPage() {
           <p className="meta">
             En ChatGPT: Configuración, Aplicaciones, Configuración avanzada, activá el modo desarrollador. Después
             Crear aplicación, pegala como URL del servidor MCP, elegí Sin autenticación y confirmá.
+          </p>
+          <p className="meta">
+            En Gemini: entrá a gemini.google.com/devmode, Crear nueva, Conectar a un servidor MCP, pegala como URL
+            (sin completar OAuth), aceptá el aviso y elegí las acciones.
           </p>
         </article>
       )}
