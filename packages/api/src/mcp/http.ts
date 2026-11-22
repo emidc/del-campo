@@ -34,7 +34,7 @@ export const mcpBrokerOs = async (request: Request, token: string): Promise<Resp
   )
 }
 
-/** Lo que usa la pantalla "Conectar Claude": generar, revocar y consultar el token propio. */
+/** Lo que usa la pantalla "Conectar un agente": generar, revocar y consultar el token propio. */
 export const generarTokenMcp = (principal: Principal): Promise<string> => crearTokenMcp(sql(), principal)
 export const quitarTokenMcp = (principal: Principal): Promise<void> => revocarTokenMcp(sql(), principal)
 export const tokenMcpDesde = (principal: Principal): Promise<Date | null> => tokenMcpVigente(sql(), principal)
