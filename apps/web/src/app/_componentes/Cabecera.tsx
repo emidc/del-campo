@@ -2,7 +2,10 @@ import type { BatchStamp } from '@del-campo/api'
 import { batchLabel } from '@del-campo/api'
 import Link from 'next/link'
 
+import { perfilPropio } from '@/lib/sesion'
+
 import { Navegacion } from './Navegacion'
+import { Retrato } from './Retrato'
 
 export function Logo() {
   return (
@@ -45,14 +48,23 @@ export function AccesoABuscar() {
  * para que los resultados no aparenten ser datos en vivo de Zoho; cuando la base no declara
  * ningún lote, se dice eso mismo en vez de callar.
  */
-export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly email: string }) {
+export async function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly email: string }) {
+  // El nombre y la foto guardados en Equipo; sin perfil, la barra muestra el correo.
+  const perfil = await perfilPropio()
   return (
     <>
       <header className="superior">
         <Logo />
         <AccesoABuscar />
         <div className="superior__sesion">
-          <span className="meta">{email}</span>
+          {perfil === null ? (
+            <span className="meta">{email}</span>
+          ) : (
+            <span className="persona superior__persona" title={perfil.email}>
+              <Retrato usuario={perfil.userId} nombre={perfil.name} conFoto={perfil.hasPhoto} tamano={32} />
+              <span className="superior__nombre">{perfil.hasDisplayName ? perfil.name : perfil.email}</span>
+            </span>
+          )}
           <a className="boton boton--secundario boton--chico" href="/api/auth/logout">
             Salir
           </a>

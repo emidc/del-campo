@@ -1,8 +1,9 @@
 import type { ServiceCaseSummary } from '@del-campo/api'
-import { ESTADOS_DE_GESTION, ETAPAS_DE_SINIESTRO, TIPOS_DE_GESTION, gestiones, latestBatch } from '@del-campo/api'
+import { ESTADOS_DE_GESTION, ETAPAS_DE_SINIESTRO, TIPOS_DE_GESTION, gestiones, integrantesDelEquipo, latestBatch } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { PersonaEnLista } from '@/app/_componentes/Retrato'
 import { fechaDeHoy } from '@/lib/criterios'
 import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -25,7 +26,7 @@ export default async function GestionesPage({
   const responsable = uno(parametros.responsable)
   // Desde la ficha de un cliente o de una póliza se ven también las cerradas: es su historia.
   const acotada = parte !== undefined || poliza !== undefined
-  const [lote, lista] = await consultar(
+  const [lote, lista, integrantes] = await consultar(
     Promise.all([
       latestBatch(principal),
       gestiones(principal, {
@@ -35,9 +36,12 @@ export default async function GestionesPage({
         ...(poliza === undefined ? {} : { policyId: poliza }),
         ...(responsable === undefined ? {} : { assignedUserId: responsable }),
       }),
+      integrantesDelEquipo(principal),
     ]),
   )
   const hoy = fechaDeHoy()
+  // La lista trae el correo del responsable; la foto y el nombre salen del perfil de Equipo.
+  const porCorreo = new Map(integrantes.map((i) => [i.email, i]))
 
   const pestana = (etiqueta: string, activo: boolean, href: string) => (
     <Link href={href} aria-current={activo ? 'page' : undefined}>
@@ -111,7 +115,9 @@ export default async function GestionesPage({
                         ? ` · cotizaron ${String(g.quote.quoted)} de ${String(g.quote.requested)}`
                         : ` · eligió ${g.quote.chosenInsurer}`}
                   </td>
-                  <td>{g.assignedToMe ? 'vos' : (g.assignedEmail ?? '—')}</td>
+                  <td>
+                    {g.assignedEmail === null ? '—' : <PersonaEnLista integrante={porCorreo.get(g.assignedEmail)} reemplazo={g.assignedEmail} />}
+                  </td>
                   <td className={g.dueDate !== null && g.dueDate < hoy && g.status !== 'CERRADA' ? 'pendiente' : undefined}>
                     {fecha(g.dueDate)}
                   </td>

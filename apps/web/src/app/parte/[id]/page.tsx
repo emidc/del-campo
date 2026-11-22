@@ -1,11 +1,14 @@
 import {
   ESTADOS_DE_GESTION,
   ESTADOS_DE_TAREA,
-  MENSAJE_DE_CONTACTO,
+  ORIGENES_DE_PROSPECTO,
+  PROSPECT_ORIGINS,
   TIPOS_DE_GESTION,
+  bloqueosDeContacto,
   contactosDeCliente,
   conversacionesDeCliente,
-  esResultadoDeContacto,
+  describirBloqueos,
+  estadoDeProspecto,
   gestiones,
   latestBatch,
   party,
@@ -15,15 +18,16 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 
-import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { CampoEditable, EliminarConDialogo, NombreEditable } from '@/app/_componentes/Edicion'
 import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
 import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { agregar, corregir, quitar } from './acciones'
+import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarOrigen, guardarRazonSocial } from './acciones'
+import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,21 +50,24 @@ export default async function PartePage({
   const parametros = await searchParams
   const crudo = parametros.seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
-  const avisoDeContacto = typeof parametros.c === 'string' && esResultadoDeContacto(parametros.c) ? parametros.c : null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto] = await consultar(
     Promise.all([
       latestBatch(principal),
-      party(principal, id, asOf, `${asOf}T12:00:00Z`),
+      party(principal, id, asOf, new Date().toISOString()),
       gestiones(principal, { onlyMine: false, includeClosed: true, partyId: id }),
       tareas(principal, { onlyMine: false, includeDone: true, partyId: id }),
       conversacionesDeCliente(principal, id),
       contactosDeCliente(principal, id),
+      bloqueosDeContacto(principal, id),
+      estadoDeProspecto(principal, id),
     ]),
   )
   if (vista === null) notFound()
 
   const esEmpresa = vista.kind === 'ORGANIZATION'
+  const esProspecto = prospecto?.active === true
+  const origen = prospecto?.origin ?? null
   const seccion: Seccion = esSeccion(pedida) && (pedida !== 'riesgos' || esEmpresa) ? pedida : 'resumen'
   const gestionesAbiertas = susGestiones.filter((g) => g.status !== 'CERRADA').length
   const tareasPendientes = susTareas.filter((t) => t.status !== 'HECHA').length
@@ -79,13 +86,20 @@ export default async function PartePage({
       <Cabecera lote={lote} email={principal.email} />
 
       <nav className="migas" aria-label="Migas de pan">
-        <Link href={esEmpresa ? '/clientes' : '/clientes?tipo=personas'}>Clientes</Link>
+        {esProspecto ? (
+          <Link href="/clientes?tipo=prospectos">Prospectos</Link>
+        ) : (
+          <Link href={esEmpresa ? '/clientes' : '/clientes?tipo=personas'}>Clientes</Link>
+        )}
         <span aria-hidden="true">›</span>
         <span>{vista.displayName}</span>
       </nav>
       <header className="encabezado">
         <div>
-          <p className="antetitulo">{esEmpresa ? 'Empresa' : 'Persona'}</p>
+          <p className="antetitulo">
+            {esProspecto ? 'Prospecto · ' : ''}
+            {esEmpresa ? 'Empresa' : 'Persona'}
+          </p>
           <h1>{vista.displayName}</h1>
           <div className="chips">
             {vista.cuit === null ? null : <span className="chip">CUIT {vista.cuit}</span>}
@@ -93,14 +107,39 @@ export default async function PartePage({
           </div>
         </div>
         <div className="fila">
+          {esProspecto ? <ConvertirEnCliente parte={vista.partyId} /> : null}
           <Link className="boton boton--secundario" href={`/tareas/nueva?parte=${id}`}>
             Nueva tarea
           </Link>
           <Link className="boton" href={`/gestiones/nueva?parte=${id}`}>
             Nueva gestión
           </Link>
+          <EliminarConDialogo
+            boton={esEmpresa ? 'Eliminar cliente' : 'Eliminar contacto'}
+            titulo={
+              bloqueos.length > 0
+                ? `No se puede eliminar ${esEmpresa ? 'este cliente' : 'este contacto'}`
+                : `¿Eliminar a ${vista.displayName}?`
+            }
+            accion={eliminar}
+            ocultos={{ parte: vista.partyId, tipo: esEmpresa ? 'empresa' : 'persona' }}
+            bloqueo={bloqueos.length > 0 ? `${describirBloqueos(bloqueos)} Para eliminarlo no tiene que tener pólizas, gestiones ni tareas, en ningún estado.` : null}
+          >
+            <p>
+              {esEmpresa
+                ? `Se borran ${vista.displayName}, sus teléfonos, mails y vínculos con contactos. Las fichas de sus contactos siguen en Clientes.`
+                : `Se borran ${vista.displayName}, sus teléfonos, mails y vínculos con empresas.`}{' '}
+              La eliminación es definitiva y no se puede deshacer.
+            </p>
+          </EliminarConDialogo>
         </div>
       </header>
+
+      {parametros.convertido === '1' && !esProspecto ? (
+        <p className="estado" role="status">
+          Ahora es cliente: aparece en {esEmpresa ? 'Empresas' : 'Personas'}.
+        </p>
+      ) : null}
 
       <nav className="pestanas" aria-label="Secciones de la ficha">
         {pestanas.map(([clave, texto]) => (
@@ -120,18 +159,64 @@ export default async function PartePage({
           <section className="tarjeta">
             <h2>Datos</h2>
             <dl className="kv">
-              <dt>{esEmpresa ? 'Razón social' : 'Nombre'}</dt>
-              <dd className="nombre">{vista.displayName}</dd>
-              {vista.cuit === null ? null : (
-                <>
-                  <dt>CUIT</dt>
-                  <dd>{vista.cuit}</dd>
-                </>
+              {esEmpresa ? (
+                <CampoEditable
+                  etiqueta="Razón social"
+                  valor={vista.displayName}
+                  accion={guardarRazonSocial}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  <span className="nombre">{vista.displayName}</span>
+                </CampoEditable>
+              ) : (
+                <NombreEditable
+                  nombre={vista.firstName ?? ''}
+                  apellido={vista.lastName ?? ''}
+                  accion={guardarNombre}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  {vista.displayName}
+                </NombreEditable>
               )}
-              {vista.dni === null ? null : (
+              {esEmpresa ? (
+                <CampoEditable etiqueta="CUIT" valor={vista.cuit ?? ''} accion={guardarCuit} ocultos={{ parte: vista.partyId }}>
+                  {vista.cuit ?? '—'}
+                </CampoEditable>
+              ) : (
+                <CampoEditable etiqueta="DNI" valor={vista.dni ?? ''} accion={guardarDni} ocultos={{ parte: vista.partyId }}>
+                  {vista.dni ?? '—'}
+                </CampoEditable>
+              )}
+              <CampoEditable
+                etiqueta="Carpeta de Google Drive"
+                tipo="url"
+                valor={vista.driveFolderUrl ?? ''}
+                accion={guardarCarpeta}
+                ocultos={{ parte: vista.partyId }}
+              >
+                {vista.driveFolderUrl === null ? (
+                  '—'
+                ) : (
+                  <a href={vista.driveFolderUrl} target="_blank" rel="noreferrer">
+                    Abrir carpeta
+                  </a>
+                )}
+              </CampoEditable>
+              {esProspecto ? (
+                <CampoEditable
+                  etiqueta="Origen"
+                  tipo="select"
+                  valor={origen ?? ''}
+                  opciones={PROSPECT_ORIGINS.map((o) => ({ valor: o, etiqueta: ORIGENES_DE_PROSPECTO[o] }))}
+                  accion={guardarOrigen}
+                  ocultos={{ parte: vista.partyId }}
+                >
+                  {origen === null ? '—' : ORIGENES_DE_PROSPECTO[origen]}
+                </CampoEditable>
+              ) : origen === null ? null : (
                 <>
-                  <dt>DNI</dt>
-                  <dd>{vista.dni}</dd>
+                  <dt>Origen</dt>
+                  <dd>{ORIGENES_DE_PROSPECTO[origen]}</dd>
                 </>
               )}
               <dt>Pólizas</dt>
@@ -150,62 +235,19 @@ export default async function PartePage({
           </section>
 
           <section className="tarjeta" id="contactos">
-            <h2>Teléfonos y mails</h2>
-            {avisoDeContacto === null ? null : (
-              <p className={avisoDeContacto === 'guardado' || avisoDeContacto === 'quitado' ? 'estado' : 'estado estado--aviso'} role="status">
-                {MENSAJE_DE_CONTACTO[avisoDeContacto]}
-              </p>
-            )}
+            <div className="encabezado-tarjeta">
+              <h2>Teléfonos y mails</h2>
+              <NuevoContacto parte={vista.partyId} />
+            </div>
             {susContactos.length === 0 ? (
               <p className="meta">Ninguno cargado. Con el teléfono cargado, sus conversaciones de WhatsApp aparecen en esta ficha.</p>
             ) : (
               <ul className="lista">
                 {susContactos.map((c) => (
-                  <li key={c.id} className="contacto">
-                    <div>
-                      <p className="meta">{c.channel === 'EMAIL' ? 'Mail' : 'Teléfono'}</p>
-                      {c.value}
-                    </div>
-                    <details>
-                      <summary>Corregir</summary>
-                      <form action={corregir} className="fila">
-                        <input type="hidden" name="parte" value={id} />
-                        <input type="hidden" name="contacto" value={c.id} />
-                        <input
-                          name="valor"
-                          type={c.channel === 'EMAIL' ? 'email' : 'tel'}
-                          defaultValue={c.value}
-                          required
-                          maxLength={120}
-                          aria-label={c.channel === 'EMAIL' ? 'Mail corregido' : 'Teléfono corregido'}
-                        />
-                        <BotonEnviar className="boton--chico">Guardar</BotonEnviar>
-                      </form>
-                    </details>
-                    <form action={quitar}>
-                      <input type="hidden" name="parte" value={id} />
-                      <input type="hidden" name="contacto" value={c.id} />
-                      <BotonEnviar className="boton--secundario boton--chico">Dar de baja</BotonEnviar>
-                    </form>
-                  </li>
+                  <FilaDeContacto key={c.id} parte={vista.partyId} contacto={c} />
                 ))}
               </ul>
             )}
-            <form action={agregar} className="contacto-nuevo">
-              <input type="hidden" name="parte" value={id} />
-              <div className="campo">
-                <label htmlFor="canal">Agregar</label>
-                <select id="canal" name="canal" defaultValue="PHONE">
-                  <option value="PHONE">Teléfono</option>
-                  <option value="EMAIL">Mail</option>
-                </select>
-              </div>
-              <div className="campo">
-                <label htmlFor="valor">Número o dirección</label>
-                <input id="valor" name="valor" required maxLength={120} placeholder="261 555 0101" />
-              </div>
-              <BotonEnviar>Agregar</BotonEnviar>
-            </form>
           </section>
           </div>
 
@@ -213,14 +255,27 @@ export default async function PartePage({
           <div>
             {esEmpresa || vista.contacts.length > 0 ? (
               <section className="tarjeta">
-                <h2>Contactos</h2>
+                <div className="encabezado-tarjeta">
+                  <h2>Contactos</h2>
+                  {esEmpresa ? <AsociarContacto parte={vista.partyId} /> : null}
+                </div>
                 {vista.contacts.length === 0 ? (
                   <p className="meta">Ninguno.</p>
                 ) : (
                   <ul className="lista">
                     {vista.contacts.map((miembro) => (
-                      <li key={miembro.partyId}>
-                        <Link href={`/parte/${miembro.partyId}`}>{miembro.displayName}</Link>
+                      <li key={miembro.partyId} className="editable">
+                        <span className="editable__valor">
+                          <Link href={`/parte/${miembro.partyId}`}>{miembro.displayName}</Link>
+                          {esEmpresa ? (
+                            <QuitarDeEmpresa
+                              empresa={vista.partyId}
+                              empresaNombre={vista.displayName}
+                              persona={miembro.partyId}
+                              personaNombre={miembro.displayName}
+                            />
+                          ) : null}
+                        </span>
                         <p className="meta">
                           {[miembro.roleOrPosition, miembro.isPrimary === true ? 'principal' : null]
                             .filter((dato) => dato !== null)
@@ -234,7 +289,10 @@ export default async function PartePage({
             ) : null}
             {!esEmpresa || vista.organizations.length > 0 ? (
               <section className="tarjeta">
-                <h2>Empresas</h2>
+                <div className="encabezado-tarjeta">
+                  <h2>Empresas</h2>
+                  {esEmpresa ? null : <AsociarEmpresa parte={vista.partyId} />}
+                </div>
                 {vista.organizations.length === 0 ? (
                   <p className="meta">Ninguna.</p>
                 ) : (

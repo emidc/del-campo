@@ -3,7 +3,7 @@
 // decidiendo. Todo el equipo los ve y los edita.
 
 import type { ContactChannel, ContactPoint } from '@del-campo/db'
-import { addContactPoint, cleanContact, endContactPoint, listContactPoints } from '@del-campo/db'
+import { addContactPoint, cleanContact, deleteContactPoint, endContactPoint, listContactPoints } from '@del-campo/db'
 
 import type { Conexion } from '../acceso/base.ts'
 import { conDatos } from '../acceso/datos.ts'
@@ -28,7 +28,7 @@ export const MENSAJE_DE_CONTACTO: Readonly<Record<ResultadoDeContacto, string>> 
   guardado: 'Guardado.',
   invalido: 'No se guardó. Un teléfono va con característica (por ejemplo 261 555 0101) y un mail con la forma nombre@dominio.com.',
   repetido: 'Este cliente ya lo tiene cargado.',
-  quitado: 'Dado de baja.',
+  quitado: 'Eliminado.',
   inexistente: 'Ese teléfono o mail ya no estaba cargado.',
 }
 
@@ -52,7 +52,7 @@ export const agregarContactoCon = async (
 
 export const quitarContactoCon = async (conexion: Conexion, principal: Principal, partyId: string, id: string): Promise<ResultadoDeContacto> => {
   if (!UUID.test(partyId) || !UUID.test(id)) return 'inexistente'
-  return (await conDatos(conexion, principal, (tx) => endContactPoint(tx, partyId, id))) ? 'quitado' : 'inexistente'
+  return (await conDatos(conexion, principal, (tx) => deleteContactPoint(tx, partyId, id))) ? 'quitado' : 'inexistente'
 }
 
 /**

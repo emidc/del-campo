@@ -2,9 +2,11 @@ import { equipo, latestBatch } from '@del-campo/api'
 
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { Retrato, fotoDe } from '@/app/_componentes/Retrato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 import { darDeBaja, invitar } from './acciones'
+import { EditarPerfil } from './EditarPerfil'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,32 +51,45 @@ export default async function UsuariosPage({
           <thead>
             <tr>
               <th>Persona</th>
+              <th>Correo</th>
               <th>Estado</th>
               <th>Permisos</th>
-              {datos.administro ? <th>Acción</th> : null}
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
             {datos.usuarios.map((usuario) => (
               <tr key={usuario.id}>
-                <td className="nombre">
-                  {usuario.email}
-                  {usuario.id === datos.yo ? ' (vos)' : ''}
+                <td>
+                  <span className="persona">
+                    <Retrato usuario={usuario.id} nombre={usuario.nombre ?? usuario.email} conFoto={usuario.conFoto} tamano={40} />
+                    <span className="nombre">
+                      {usuario.nombre ?? 'Sin nombre'}
+                      {usuario.id === datos.yo ? ' (vos)' : ''}
+                    </span>
+                  </span>
                 </td>
+                <td>{usuario.email}</td>
                 <td>{ESTADOS[usuario.estado]}</td>
                 <td>{usuario.administra ? 'Administra usuarios' : '—'}</td>
-                {datos.administro ? (
-                  <td>
-                    {usuario.estado !== 'INACTIVE' && usuario.id !== datos.yo ? (
+                <td>
+                  <div className="fila">
+                    {datos.administro || usuario.id === datos.yo ? (
+                      <EditarPerfil
+                        usuario={usuario.id}
+                        email={usuario.email}
+                        nombre={usuario.nombre}
+                        foto={usuario.conFoto ? fotoDe(usuario.id) : null}
+                      />
+                    ) : null}
+                    {datos.administro && usuario.estado !== 'INACTIVE' && usuario.id !== datos.yo ? (
                       <form action={darDeBaja}>
                         <input type="hidden" name="usuario" value={usuario.id} />
                         <BotonEnviar className="boton--secundario boton--chico">Dar de baja</BotonEnviar>
                       </form>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                ) : null}
+                    ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

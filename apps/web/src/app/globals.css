@@ -197,7 +197,16 @@ h3 {
   min-width: 0;
 }
 
-.superior__sesion .meta {
+.superior__persona {
+  min-width: 32px;
+}
+
+.superior__persona .retrato {
+  flex: none;
+}
+
+.superior__sesion .meta,
+.superior__nombre {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -285,8 +294,13 @@ h3 {
   }
 
   .logo__texto span,
-  .superior__sesion .meta {
+  .superior__sesion .meta,
+  .superior__nombre {
     display: none;
+  }
+
+  .superior__sesion {
+    flex: none;
   }
 
   .lateral {
@@ -1046,42 +1060,539 @@ a.chip:hover {
   overflow-wrap: anywhere;
 }
 
-.contacto summary {
-  cursor: pointer;
-  font-size: 13px;
+/* ── Edición en la misma fila ──────────────────────────────────────────────── */
+
+.icono {
+  flex: none;
+}
+
+.boton-icono,
+button.boton-icono {
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--tinta-suave);
+  border-radius: var(--radio-chico);
+  padding: 4px;
+  min-height: 30px;
+  min-width: 30px;
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.contacto details[open] {
+.boton-icono:hover,
+button.boton-icono:hover {
+  background: var(--papel);
+  border-color: var(--borde);
+  color: var(--marca);
+}
+
+button.boton-icono--marca {
+  background: var(--marca);
+  color: #fff;
+}
+
+button.boton-icono--marca:hover {
+  background: var(--marca-profunda);
+  color: #fff;
+}
+
+.boton-icono--agregar {
+  border-color: var(--borde);
+}
+
+.editable__valor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+
+/* El lápiz aparece al pasar el cursor sobre la fila o al llegar con el teclado. */
+.editable .lapiz {
+  opacity: 0;
+}
+
+.editable:hover .lapiz,
+.editable .lapiz:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .editable .lapiz {
+    opacity: 1;
+  }
+}
+
+.edicion-en-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.edicion-en-fila input,
+.edicion-en-fila select {
+  flex: 1 1 9rem;
+  min-width: 0;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-chico);
+  padding: 5px 9px;
+  min-height: 34px;
+  font: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.edicion-en-fila select {
+  flex: 0 1 8rem;
+}
+
+.fila-acciones {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.error-en-fila {
   flex-basis: 100%;
-  order: 3;
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--alerta);
 }
 
-.contacto details .fila {
+.encabezado-tarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.encabezado-tarjeta h2 {
+  margin: 0;
+}
+
+.contacto .fila {
   margin-top: 8px;
 }
 
-.contacto details input {
-  flex: 1 1 12rem;
+.sugerencias {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+}
+
+.sugerencias button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  min-height: 34px;
+  white-space: normal;
+}
+
+.sugerencias button:hover,
+.sugerencias button:focus-visible {
+  background: var(--papel);
+  color: inherit;
+}
+
+/* ── Borrado definitivo y modales ──────────────────────────────────────────── */
+
+button.boton--peligro,
+.boton--peligro {
+  background: var(--panel);
+  border-color: #a33a2b;
+  color: #a33a2b;
+}
+
+button.boton--peligro:hover {
+  background: #a33a2b;
+  color: #fff;
+}
+
+button.boton--peligro-suave {
+  color: #a33a2b;
+  border-color: var(--borde);
+  gap: 6px;
+}
+
+.dialogo {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 22px;
+  max-width: min(30rem, calc(100vw - 32px));
+  color: var(--tinta);
+}
+
+.dialogo--ancho {
+  max-width: min(44rem, calc(100vw - 32px));
+  width: 100%;
+}
+
+.dialogo::backdrop {
+  background: rgb(19 41 77 / 0.35);
+}
+
+.dialogo h2 {
+  margin-top: 0;
+}
+
+.fila--fin {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.formulario-modal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.formulario-modal .campo > span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta-suave);
+}
+
+.formulario-modal input,
+.formulario-modal select {
   border: 1px solid var(--borde-control);
   border-radius: var(--radio-chico);
-  padding: 6px 10px;
-  min-height: 34px;
+  padding: 8px 10px;
+  min-height: 40px;
   font: inherit;
+  background: #fff;
+  color: inherit;
 }
 
-.contacto-nuevo {
+.formulario-modal input[readonly] {
+  background: var(--panel-2);
+}
+
+/* ── Seguimiento de renovaciones ───────────────────────────────────────────── */
+
+.acciones-seguimiento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.accion-icono,
+button.accion-icono {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+  color: var(--marca);
+}
+
+.accion-icono:hover,
+button.accion-icono:hover {
+  background: var(--papel);
+  color: var(--marca-profunda);
+}
+
+/* El nombre de la acción, al pasar el cursor o al enfocar con el teclado. */
+.accion-icono::after {
+  content: attr(data-nombre);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--marca-profunda);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+}
+
+.accion-icono:hover::after,
+.accion-icono:focus-visible::after {
+  opacity: 1;
+}
+
+.filtros-desplegables {
+  margin: 10px 0 4px;
+}
+
+.filtro-desplegable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filtro-desplegable select {
+  border: 1px solid var(--borde-control);
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: inherit;
+}
+
+/* «Convertir en cliente» en el encabezado de un prospecto: el aviso queda al lado. */
+.convertir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Detalle de tarea: todo el ancho, datos juntos y acciones del equipo ───── */
+
+.envoltorio--ancho {
+  --margen: 28px;
+}
+
+.datos-tarea {
   display: grid;
-  grid-template-columns: 8rem 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 24px;
+}
+
+.datos-tarea .kv {
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);
+  align-content: start;
+}
+
+.datos-tarea .kv > :nth-child(-n + 2) {
+  border-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .datos-tarea {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .datos-tarea .kv + .kv > :nth-child(-n + 2) {
+    border-top: 1px solid var(--borde);
+  }
+}
+
+.formulario-compacto {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr) auto;
   gap: 0.75rem;
   align-items: end;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--borde);
 }
 
-@media (max-width: 520px) {
-  .contacto-nuevo {
-    grid-template-columns: 1fr;
+.formulario-compacto .acciones {
+  grid-column: auto;
+}
+
+@media (max-width: 700px) {
+  .formulario-compacto {
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.accion-tarea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.accion-tarea__marcar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip--hecha {
+  color: var(--panel);
+  background: var(--acento);
+  border-color: var(--acento);
+}
+
+/* ── Tareas: alta desde el listado, casilla semanal y tablero ─────────────── */
+
+.formulario-alta {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.formulario-alta__par {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.casilla-semanal {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.casilla-semanal label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.casilla-semanal input {
+  width: 18px;
+  height: 18px;
+}
+
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .tablero {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  }
+}
+
+.tablero__columna {
+  background: var(--panel-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px;
+  min-height: 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tablero__columna--destino {
+  border-color: var(--acento);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.tablero__titulo {
+  font-size: 14px;
+  margin: 2px 4px 4px;
+}
+
+.tarjeta-tarea {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  padding: 10px 12px;
+  cursor: grab;
+}
+
+.tarjeta-tarea--arrastrada {
+  opacity: 0.5;
+}
+
+.tarjeta-tarea__titulo {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tarjeta-tarea .meta {
+  margin: 4px 0 6px;
+}
+
+.chip--alerta {
+  color: var(--alerta);
+  border-color: var(--alerta-borde);
+  background: var(--alerta-fondo);
+}
+
+/* ── Perfiles del equipo: retrato y nombre ────────────────────────────────── */
+
+.retrato {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--panel-2);
+  border: 1px solid var(--borde);
+}
+
+.retrato--iniciales {
+  color: var(--marca-profunda);
+  font-weight: 650;
+}
+
+.persona {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.perfil-foto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Las tres columnas de datos de la ficha de tarea, con filas a la misma altura. */
+.datos-tarea .kv dt,
+.datos-tarea .kv dd {
+  box-sizing: border-box;
+  height: 3.25rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Una fila que se está editando crece; las demás quedan a la misma altura. */
+.datos-tarea .kv dd.editable--abierto {
+  height: auto;
+  min-height: 3.25rem;
+  display: block;
+  overflow: visible;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Saludo del inicio, con la foto guardada en Equipo. */
+.saludo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.saludo h1,
+.saludo .meta {
+  margin: 0;
+}
+
+/* Responsable en las listas de tareas y gestiones. */
+.persona--lista {
+  gap: 8px;
+  white-space: nowrap;
 }

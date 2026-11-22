@@ -142,17 +142,44 @@ export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './re
 // T-0052: tareas.
 export {
   ESTADOS_DE_TAREA,
+  PRIORIDADES_DE_TAREA,
+  SEGUIMIENTOS_DE_TAREA,
+  TASK_FOLLOW_UPS,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   cambiarEstadoTarea,
+  cambiarGestionTarea,
+  cambiarPrioridadTarea,
+  cambiarSeguimientoTarea,
+  cambiarVencimientoTarea,
   comentarTarea,
+  completarAccionDeTarea,
   crearTarea,
+  eliminarTarea,
   esEstadoDeTarea,
+  esPrioridadDeTarea,
+  esSeguimientoDeTarea,
+  integrantesDelEquipo,
+  involucrarEnTarea,
+  marcarTareaDeLaSemana,
   pasarTarea,
   responsablesPosibles,
   tarea,
+  tareaDeLimpiezaSemanal,
   tareas,
 } from './tareas/tareas.ts'
-export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './tareas/tareas.ts'
+export type {
+  NewTask,
+  TaskAction,
+  TaskDetail,
+  TaskEvent,
+  TaskFilter,
+  TaskFollowUp,
+  TaskPriority,
+  TaskStatus,
+  TaskSummary,
+  TeamMemberProfile,
+} from './tareas/tareas.ts'
 
 // T-0049: inicio con indicadores.
 export { inicio, resumirInicio } from './inicio/indicadores.ts'
@@ -179,6 +206,8 @@ export { generarTokenMcp, mcpBrokerOs, quitarTokenMcp, tokenMcpDesde } from './m
 
 // T-0060: usuarios del equipo desde la app.
 export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
+export { MAX_PHOTO_BYTES, PHOTO_TYPES, editarPerfil, fotoDeIntegrante, miPerfil } from './acceso/perfiles.ts'
+export type { MemberPhoto, OwnProfile } from './acceso/perfiles.ts'
 export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'
 
 // T-0066: Comunicación como sección. Las entradas sin sesión: el webhook de WhatsApp y
@@ -218,3 +247,57 @@ export {
   quitarContacto,
 } from './clientes/contactos.ts'
 export type { CanalDeContacto, ContactChannel, ContactPoint, ResultadoDeContacto } from './clientes/contactos.ts'
+
+// Pólizas y contactos editables desde la app (0023).
+export {
+  BLOQUEOS,
+  POLICY_FIELDS,
+  describirBloqueos,
+  editarCampoDePoliza,
+  effectiveStatus,
+  eliminarPoliza,
+  esUuid,
+  isPolicyField,
+  refacturar,
+  renovarPoliza,
+  siguienteEndoso,
+  tareaDeVencimiento,
+  todayInMendoza,
+} from './polizas/edicion.ts'
+export type {
+  DeleteBlocker,
+  EditResult,
+  PolicyField,
+  PolicyTerms,
+  RebillingInput,
+  RebillingResult,
+  RenewResult,
+  RenewalInput,
+} from './polizas/edicion.ts'
+export {
+  asociarEmpresa,
+  asociarPersona,
+  bloqueosDeContacto,
+  buscarEmpresas,
+  buscarPersonas,
+  editarCarpeta,
+  editarCuit,
+  editarDni,
+  editarNombre,
+  editarRazonSocial,
+  eliminarContacto,
+  quitarDeEmpresa,
+} from './clientes/edicion.ts'
+export type { OrganizationOption, PartyEditResult, PersonOption } from './clientes/edicion.ts'
+export {
+  ORIGENES_DE_PROSPECTO,
+  PROSPECT_ORIGINS,
+  TOPE_DE_PROSPECTOS,
+  convertirEnCliente,
+  crearProspecto,
+  editarOrigen,
+  estadoDeProspecto,
+  isProspectOrigin,
+  prospectos,
+} from './clientes/prospectos.ts'
+export type { ConvertResult, NewProspect, ProspectList, ProspectOrigin, ProspectStatus } from './clientes/prospectos.ts'

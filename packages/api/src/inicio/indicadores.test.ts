@@ -12,14 +12,15 @@ const gestion = (id: string, cambios: Partial<ServiceCaseSummary>): ServiceCaseS
 })
 
 const renovacion = (id: string, cambios: Partial<RenewalItem>): RenewalItem => ({
-  policyId: id, policyNumber: id, insurerName: 'A', holderPartyId: 'h', holderName: null, productReference: null,
-  termEndDate: '2026-11-20', renewalMode: 'MANUAL', state: 'PENDIENTE', successorPolicyId: null,
+  policyId: id, policyNumber: id, insurerId: 'i', insurerName: 'A', producer: null, holderPartyId: 'h', holderName: null, productReference: null,
+  termStartDate: '2025-11-20', termEndDate: '2026-11-20', renewalMode: 'MANUAL', premium: null, totalPremium: null, sumInsured: null,
+  currency: null, paymentMethod: null, nextEndorsementNumber: 1, state: 'PENDIENTE', successorPolicyId: null,
   successorPolicyNumber: null, caseId: null, caseStatus: null, caseAssignedEmail: null, ...cambios,
 })
 
 const tarea = (id: string, cambios: Partial<TaskSummary>): TaskSummary => ({
   id, title: id, status: 'PENDIENTE', partyId: 'p', partyName: null, policyId: null, policyNumber: null,
-  serviceCaseId: null, serviceCaseTitle: null, assignedEmail: null, assignedToMe: false, dueDate: null,
+  serviceCaseId: null, serviceCaseTitle: null, assignedEmail: null, assignedUserId: null, assignedName: null, assignedToMe: false, dueDate: null, priority: null, followUp: null, weekly: false,
   createdAt: '', updatedAt: '', doneAt: null, ...cambios,
 })
 

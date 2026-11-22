@@ -84,16 +84,43 @@ export type {
 } from './service-case.ts'
 // T-0052: tareas.
 export {
+  PRIORIDADES_DE_TAREA,
+  SEGUIMIENTOS_DE_TAREA,
+  TASK_FOLLOW_UPS,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   assignTask,
   changeTaskStatus,
+  clearDoneWeeklyTasks,
   commentTask,
+  completeTaskAction,
   createTask,
+  deleteTask,
   getTask,
+  involveInTask,
   listTaskAssignees,
   listTasks,
+  listTeamMembers,
+  setTaskDueDate,
+  setTaskFollowUp,
+  setTaskPriority,
+  setTaskServiceCase,
+  setTaskWeekly,
 } from './task.ts'
-export type { NewTask, TaskDetail, TaskEvent, TaskFilter, TaskStatus, TaskSummary } from './task.ts'
+export { MAX_PHOTO_BYTES, PHOTO_TYPES, getMemberPhoto, getOwnProfile, updateProfile } from './profile.ts'
+export type { MemberPhoto, OwnProfile, PhotoType } from './profile.ts'
+export type {
+  NewTask,
+  TaskAction,
+  TaskDetail,
+  TaskEvent,
+  TaskFilter,
+  TaskFollowUp,
+  TaskPriority,
+  TaskStatus,
+  TaskSummary,
+  TeamMemberProfile,
+} from './task.ts'
 export { listRenewals } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
 export {
@@ -110,7 +137,106 @@ export {
   CONTACT_CHANNELS,
   addContactPoint,
   cleanContact,
+  deleteContactPoint,
   endContactPoint,
   listContactPoints,
 } from './contact-point.ts'
 export type { AddContactResult, CleanContact, ContactChannel, ContactPoint } from './contact-point.ts'
+
+// Pólizas y contactos editables desde la app (0023).
+export {
+  POLICY_FIELDS,
+  POLICY_STATUS,
+  deletePolicy,
+  effectiveStatus,
+  expirePolicies,
+  isDate,
+  isPolicyField,
+  nextEndorsementNumber,
+  parseAmount,
+  registerRebilling,
+  renewPolicy,
+  statusFromZoho,
+  todayInMendoza,
+  updatePolicyField,
+} from './policy-edit.ts'
+export type {
+  DeleteBlocker,
+  EditResult,
+  PolicyField,
+  PolicyTerms,
+  RebillingInput,
+  RebillingResult,
+  RenewResult,
+  RenewalInput,
+} from './policy-edit.ts'
+export {
+  contactBlockers,
+  deleteContact,
+  linkOrganization,
+  searchOrganizations,
+  searchPersons,
+  unlinkOrganization,
+  updateDriveFolder,
+  updateOrganizationCuit,
+  updateOrganizationName,
+  updatePersonDni,
+  updatePersonName,
+} from './party-edit.ts'
+export type { OrganizationOption, PartyEditResult, PersonOption } from './party-edit.ts'
+
+// Prospectos (0025).
+export {
+  PROSPECT_ORIGINS,
+  convertProspect,
+  createProspect,
+  getProspectStatus,
+  isProspectOrigin,
+  listProspects,
+  updateProspectOrigin,
+} from './prospect.ts'
+export type {
+  ConvertResult,
+  NewProspect,
+  NewProspectResult,
+  ProspectList,
+  ProspectListItem,
+  ProspectOrigin,
+  ProspectStatus,
+} from './prospect.ts'
+export {
+  confirmCoverage,
+  coverageHistory,
+  coveragesAt,
+  createLocation,
+  listConclusions,
+  listCurrentFacts,
+  portfolioWithCondition,
+  recordConclusion,
+  recordCoverage,
+  recordFact,
+  recordSurvey,
+  reviewConclusion,
+  tallyFindings,
+} from './riesgos.ts'
+export type {
+  Conclusion,
+  ConclusionLevel,
+  Coverage,
+  CoverageKind,
+  CurrentFact,
+  FactSource,
+  FactStatus,
+  FindingAspect,
+  FindingPriority,
+  FindingResult,
+  FindingTally,
+  NewConclusion,
+  NewCoverage,
+  NewEvidence,
+  NewFact,
+  NewFinding,
+  NewLocation,
+  NewSurvey,
+  PortfolioMatch,
+} from './riesgos.ts'
