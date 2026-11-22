@@ -29,7 +29,7 @@ export async function revocar(): Promise<void> {
 export async function credencialesOauth(datos: FormData): Promise<void> {
   await requireAdmitted()
   const uri = datos.get('redirect_uri')
-  const cred = typeof uri === 'string' ? await credencialesManuales(uri.trim(), 'Gemini', sessionConfig().secret) : null
+  const cred = typeof uri === 'string' ? credencialesManuales(uri.trim(), sessionConfig().secret) : null
   const jar = await cookies()
   jar.set('mcp_oauth_nuevo', JSON.stringify(cred ?? { error: true }), {
     httpOnly: true,

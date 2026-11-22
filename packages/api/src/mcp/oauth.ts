@@ -103,6 +103,14 @@ const redireccionValida = (uri: unknown): uri is string => {
 const secretoDeCliente = (clientId: string, secreto: string): string =>
   createHmac('sha256', clave(secreto)).update(clientId).digest('base64url')
 
+/**
+ * Client ID corto para un cliente con una sola dirección de retorno: no lleva datos, se
+ * verifica recalculándolo a partir del redirect_uri. Gemini rechaza un Client ID con forma de JWT.
+ */
+const ID_CORTO = 'bos_'
+const idCorto = (redirectUri: string, secreto: string): string =>
+  ID_CORTO + createHmac('sha256', clave(secreto)).update(`cliente\n${redirectUri}`).digest('base64url').slice(0, 32)
+
 const iguales = (a: string, b: string): boolean => {
   const x = Buffer.from(a)
   const y = Buffer.from(b)
@@ -113,13 +121,12 @@ const iguales = (a: string, b: string): boolean => {
  * Para los agentes que no se registran solos (Gemini pide Client ID y Client secret a mano):
  * el mismo cliente que daría el registro dinámico, con secreto, para una sola dirección de retorno.
  */
-export const credencialesManuales = async (
+export const credencialesManuales = (
   redirectUri: string,
-  nombre: string,
   secreto: string,
-): Promise<{ readonly clientId: string; readonly clientSecret: string } | null> => {
+): { readonly clientId: string; readonly clientSecret: string } | null => {
   if (!redireccionValida(redirectUri)) return null
-  const clientId = await sellar('cliente', { uris: [redirectUri], nombre: nombre.slice(0, 100) }, secreto)
+  const clientId = idCorto(redirectUri, secreto)
   return { clientId, clientSecret: secretoDeCliente(clientId, secreto) }
 }
 
@@ -138,7 +145,7 @@ export const registrarCliente = async (request: Request, secreto: string): Promi
   const nombre = typeof cuerpo.client_name === 'string' ? cuerpo.client_name.slice(0, 100) : 'Agente'
   const metodo = cuerpo.token_endpoint_auth_method
   const conSecreto = metodo === 'client_secret_post' || metodo === 'client_secret_basic'
-  const clientId = await sellar('cliente', { uris, nombre }, secreto)
+  const clientId = uris.length === 1 && typeof uris[0] === 'string' ? idCorto(uris[0], secreto) : await sellar('cliente', { uris, nombre }, secreto)
   return json(
     {
       client_id: clientId,
@@ -180,9 +187,13 @@ export const validarAutorizacion = async (
   parametros: Readonly<Record<string, string | undefined>>,
   secreto: string,
 ): Promise<Autorizacion> => {
-  const cliente = await abrir('cliente', parametros.client_id ?? '', secreto)
-  const uris = cliente?.uris
+  const clientId = parametros.client_id ?? ''
   const redirectUri = parametros.redirect_uri ?? ''
+  // Un id corto sólo vale con el redirect_uri del que salió: si no coincide, es esa dirección la que falla.
+  const cliente = clientId.startsWith(ID_CORTO)
+    ? { uris: iguales(clientId, idCorto(redirectUri, secreto)) ? [redirectUri] : [], nombre: 'tu asistente' }
+    : await abrir('cliente', clientId, secreto)
+  const uris = cliente?.uris
   if (cliente === null || !Array.isArray(uris)) return { ok: false, mensaje: 'El agente no está registrado.', volverA: null }
   if (!uris.includes(redirectUri)) return { ok: false, mensaje: 'La dirección de retorno no coincide.', volverA: null }
   const state = parametros.state ?? null

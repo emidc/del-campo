@@ -154,8 +154,9 @@ describe('OAuth del MCP', () => {
   })
 
   it('las credenciales manuales (Gemini) sirven para el canje con secreto', async () => {
-    const cred = await credencialesManuales(RETORNO, 'Gemini', SECRETO)
+    const cred = credencialesManuales(RETORNO, SECRETO)
     assert.ok(cred !== null)
+    assert.match(cred.clientId, /^bos_[A-Za-z0-9_-]{32}$/)
     const code = await codigoPara(cred.clientId)
     const campos = {
       grant_type: 'authorization_code',
@@ -166,11 +167,11 @@ describe('OAuth del MCP', () => {
       client_secret: cred.clientSecret,
     }
     assert.equal((await canjear(pedido('/api/oauth/token', formulario(campos)), SECRETO)).status, 200)
-    assert.equal(await credencialesManuales('http://malo.example/cb', 'x', SECRETO), null)
+    assert.equal(credencialesManuales('http://malo.example/cb', SECRETO), null)
   })
 
   it('sin PKCE, el canje exige el secreto del cliente', async () => {
-    const cred = await credencialesManuales(RETORNO, 'Gemini', SECRETO)
+    const cred = credencialesManuales(RETORNO, SECRETO)
     assert.ok(cred !== null)
     const sinPkce = { ...parametros(cred.clientId), code_challenge: undefined, code_challenge_method: undefined }
     const v = await validarAutorizacion(sinPkce, SECRETO)
