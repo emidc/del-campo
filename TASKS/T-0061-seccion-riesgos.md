@@ -1,9 +1,9 @@
 ---
 id: T-0061
 title: Sección Riesgos de cada empresa en Broker OS
-status: BLOCKED
+status: DONE
 created: 2026-11-13
-linear:
+linear: EMI-131
 ---
 
 ## Para qué
@@ -11,9 +11,6 @@ linear:
 Manuel y Emiliano necesitan ver y editar, en la ficha de cada empresa, el resultado del
 trabajo de riesgos: la lista de riesgos, el plan de acción y la transferencia, con
 comentarios en cada ítem. Reemplaza a Risk OS como aplicación separada.
-
-Espera el resultado del ejercicio con una empresa real (13/11/2026): las columnas que
-Emiliano y Manuel terminen usando son los campos de esta sección.
 
 ## Listo cuando
 
@@ -26,3 +23,6 @@ Emiliano y Manuel terminen usando son los campos de esta sección.
 ## Fuera de alcance
 
 Cualquier lógica del método de análisis (valoraciones automáticas, pasos, aprobaciones): eso es del agente (T-0063). Migrar los datos históricos de Risk OS.
+
+## Avance
+- 22/11/2026: modelo de datos de riesgos (migración `0029`, PR 192) y sección Riesgos en la ficha de empresa con las tres listas, comentarios y registro de quién y cuándo (migración `0030`, PR 193). Primera empresa cargada: Antucura (carga piloto).

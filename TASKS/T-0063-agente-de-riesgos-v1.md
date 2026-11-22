@@ -1,9 +1,9 @@
 ---
 id: T-0063
 title: Agente de riesgos v1
-status: BLOCKED
+status: ACTIVE
 created: 2026-11-13
-linear:
+linear: EMI-133
 ---
 
 ## Para qué
@@ -11,8 +11,7 @@ linear:
 Que Manuel pueda hacer el análisis de riesgos de una empresa conversando con un agente que
 conoce el criterio de Del Campo y guarda el resultado en Broker OS.
 
-Espera el resultado del ejercicio con una empresa real (listas finales y registro de
-criterios), T-0061 y T-0062.
+Usa la sección Riesgos (T-0061) y el MCP (T-0062), ya hechos.
 
 ## Listo cuando
 
@@ -24,3 +23,6 @@ criterios), T-0061 y T-0062.
 ## Fuera de alcance
 
 Otros agentes. Se definen cuando éste esté en uso.
+
+## Avance
+- 22/11/2026: desbloqueada. Ya están la sección Riesgos (T-0061) y las herramientas MCP del agente (T-0062). Sigue con el análisis de las empresas piloto (T-0071).

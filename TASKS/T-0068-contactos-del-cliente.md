@@ -1,9 +1,9 @@
 ---
 id: T-0068
 title: Cargar teléfono y mail en la ficha del cliente
-status: ACTIVE
+status: DONE
 created: 2026-11-16
-linear:
+linear: EMI-138
 ---
 
 ## Para qué
@@ -28,3 +28,4 @@ Recibir o enviar correo desde Broker OS. Verificar que el teléfono o el mail se
 ## Avance
 
 - 16/11/2026: tarjeta «Teléfonos y mails» en el Resumen de la ficha (ver, agregar, corregir y dar de baja), y «¿Es un cliente?» en la conversación sin identificar, que busca el cliente y le guarda el teléfono. Migración `0022`. Queda que Emiliano la aplique en producción y lo pruebe.
+- 22/11/2026: teléfonos y mails de Zoho pasados a +54 y sin repetidos (PR 183). Contactos editables en la ficha (PRs 184 y 185).

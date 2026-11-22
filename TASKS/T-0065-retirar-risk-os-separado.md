@@ -1,9 +1,9 @@
 ---
 id: T-0065
 title: Retirar Risk OS como aplicación separada
-status: BLOCKED
+status: READY
 created: 2026-11-13
-linear:
+linear: EMI-136
 ---
 
 ## Para qué
@@ -11,7 +11,7 @@ linear:
 Con la sección Riesgos dentro de Broker OS (T-0061), la aplicación, la base y el login
 propios de Risk OS son código y costo sin uso.
 
-Espera T-0061.
+T-0061 ya está.
 
 ## Listo cuando
 
@@ -22,3 +22,6 @@ Espera T-0061.
 ## Fuera de alcance
 
 Communication OS (T-0066).
+
+## Avance
+- 22/11/2026: desbloqueada, T-0061 está hecha. Decisión de Emiliano: los 46 relevamientos de Risk OS no se migran en bloque; se rescatan de a poco, con inspecciones nuevas cargadas en la sección Riesgos.
