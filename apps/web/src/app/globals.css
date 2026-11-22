@@ -1688,8 +1688,41 @@ button.accion-icono:hover {
   color: var(--tinta-suave);
 }
 
+.nota__cuerpo {
+  cursor: pointer;
+  border-radius: var(--radio-chico);
+  outline-offset: 4px;
+}
+
 .nota__acciones {
-  margin-top: 8px;
+  margin-top: 6px;
+  gap: 4px 14px;
+}
+
+.nota__acciones form {
+  display: contents;
+}
+
+button.nota__accion {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  min-height: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-suave);
+  cursor: pointer;
+}
+
+button.nota__accion:hover {
+  background: none;
+  color: var(--marca-profunda);
+  text-decoration: underline;
+}
+
+button.nota__accion--peligro,
+button.nota__accion--peligro:hover {
+  color: #a33a2b;
 }
 
 .nota-formulario {

@@ -17,8 +17,8 @@ import { join } from 'node:path'
 import postgres from 'postgres'
 
 import { leerCsv } from './csv.ts'
-import { COLUMNAS_NOTA, aplicar, planificar } from './notas-zoho.ts'
-import type { NotaZoho } from './notas-zoho.ts'
+import { COLUMNAS_NOTA, aplicar, aplicarLimpiezas, limpiezas, planificar } from './notas-zoho.ts'
+import type { NotaCargada, NotaZoho } from './notas-zoho.ts'
 
 const [rutaContactos, rutaCuentas] = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 const aplicarCambios = process.argv.includes('--aplicar')
@@ -68,6 +68,9 @@ try {
     )
 
     const plan = planificar(notas, clientes, cargadas)
+    const aLimpiar = limpiezas(
+      await tx<NotaCargada[]>`select id, title, body from party_note where source = 'Zoho' and updated_at is null`,
+    )
     const porMotivo = new Map<string, number>()
     for (const r of plan.revisar) porMotivo.set(`${r.entidad} ${r.motivo}`, (porMotivo.get(`${r.entidad} ${r.motivo}`) ?? 0) + 1)
 
@@ -81,6 +84,7 @@ try {
         `clientes con ID de Zoho en la base: ${n(clientes.size)}`,
         `altas: ${n(plan.altas.length)} en ${n(new Set(plan.altas.map((a) => a.partyId)).size)} clientes`,
         `ya cargadas: ${n(plan.yaCargadas)}`,
+        `cargadas con HTML para pasar a texto: ${n(aLimpiar.length)}`,
         `repetidas en el export: ${n(plan.repetidas)}`,
         `a revisar: ${n(plan.revisar.length)}`,
         ...[...porMotivo].sort().map(([m, c]) => `  ${m}: ${String(c)}`),
@@ -94,6 +98,7 @@ try {
       return
     }
     await aplicar(tx, plan)
+    await aplicarLimpiezas(tx, aLimpiar)
     process.stdout.write('✓ notas cargadas.\n')
   })
 } finally {
