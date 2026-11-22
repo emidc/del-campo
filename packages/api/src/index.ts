@@ -212,6 +212,7 @@ export {
 } from './mcp/http.ts'
 export {
   canjear,
+  credencialesManuales,
   metadatosDelRecurso,
   metadatosDelServidor,
   rechazar,

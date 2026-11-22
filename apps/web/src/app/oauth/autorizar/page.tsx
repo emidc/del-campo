@@ -50,8 +50,8 @@ export default async function AutorizarPage({
           redirect_uri: pedido.redirectUri,
           state: pedido.state ?? undefined,
           response_type: 'code',
-          code_challenge: pedido.codeChallenge,
-          code_challenge_method: 'S256',
+          code_challenge: pedido.codeChallenge ?? undefined,
+          code_challenge_method: pedido.codeChallenge === null ? undefined : 'S256',
         }).map(([k, v]) => (v === undefined ? null : <input key={k} type="hidden" name={k} value={v} />))}
         <BotonEnviar name="decision" value="autorizar">
           Autorizar
