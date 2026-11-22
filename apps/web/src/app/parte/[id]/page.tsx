@@ -11,6 +11,7 @@ import {
   estadoDeProspecto,
   gestiones,
   integrantesDelEquipo,
+  notasDeCliente,
   latestBatch,
   party,
   responsableDeMensajes,
@@ -38,13 +39,15 @@ import {
   guardarRazonSocial,
   guardarResponsableDeMensajes,
 } from './acciones'
+import type { NotaDeFicha } from './Notas'
+import { NuevaNota, TarjetaDeNota } from './Notas'
 import { SeccionRiesgos } from './SeccionRiesgos'
 import { esSubseccion } from './riesgos'
 import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
 
 export const dynamic = 'force-dynamic'
 
-const SECCIONES = ['resumen', 'polizas', 'riesgos', 'gestiones', 'tareas', 'comunicacion'] as const
+const SECCIONES = ['resumen', 'polizas', 'riesgos', 'gestiones', 'tareas', 'comunicacion', 'notas'] as const
 type Seccion = (typeof SECCIONES)[number]
 
 const esSeccion = (valor: string | undefined): valor is Seccion =>
@@ -71,7 +74,7 @@ export default async function PartePage({
   const subRiesgos = esSubseccion(listaPedida) ? listaPedida : 'riesgos'
   const itemRiesgo = unico('item') ?? null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto, integrantes, responsableId] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto, integrantes, responsableId, susNotas] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, new Date().toISOString()),
@@ -83,6 +86,7 @@ export default async function PartePage({
       estadoDeProspecto(principal, id),
       integrantesDelEquipo(principal),
       responsableDeMensajes(principal, id),
+      notasDeCliente(principal, id),
     ]),
   )
   if (vista === null) notFound()
@@ -95,6 +99,23 @@ export default async function PartePage({
   const seccion: Seccion = esSeccion(pedida) && (pedida !== 'riesgos' || esEmpresa) ? pedida : 'resumen'
   const gestionesAbiertas = susGestiones.filter((g) => g.status !== 'CERRADA').length
   const tareasPendientes = susTareas.filter((t) => t.status !== 'HECHA').length
+  const verArchivadas = unico('archivadas') === '1'
+  const notas: NotaDeFicha[] = susNotas.map((n) => ({
+    id: n.id,
+    titulo: n.title,
+    texto: n.body,
+    archivada: n.archived,
+    meta: [
+      n.author ?? 'Sin autor',
+      instante(n.createdAt),
+      n.source === 'Zoho' ? 'Zoho' : null,
+      n.updatedAt === null ? null : `Modificada por ${n.updatedBy ?? 'el equipo'} el ${instante(n.updatedAt)}`,
+    ]
+      .filter((dato) => dato !== null)
+      .join(' · '),
+  }))
+  const notasActivas = notas.filter((n) => !n.archivada)
+  const notasArchivadas = notas.filter((n) => n.archivada)
 
   const pestanas: readonly (readonly [Seccion, string])[] = [
     ['resumen', 'Resumen'],
@@ -103,6 +124,7 @@ export default async function PartePage({
     ['gestiones', `Gestiones (${String(gestionesAbiertas)})`],
     ['tareas', `Tareas (${String(tareasPendientes)})`],
     ['comunicacion', `WhatsApp (${String(susConversaciones.length)})`],
+    ['notas', `Notas (${String(notasActivas.length)})`],
   ]
 
   return (
@@ -508,6 +530,41 @@ export default async function PartePage({
                 </tbody>
               </table>
             </div>
+          )}
+        </section>
+      ) : null}
+
+      {seccion === 'notas' ? (
+        <section className="tarjeta">
+          <div className="encabezado-tarjeta">
+            <h2>Notas</h2>
+            <NuevaNota parte={vista.partyId} />
+          </div>
+          {notasActivas.length === 0 ? (
+            <p className="meta">No hay notas activas.</p>
+          ) : (
+            <ul className="lista">
+              {notasActivas.map((n) => (
+                <TarjetaDeNota key={n.id} parte={vista.partyId} nota={n} />
+              ))}
+            </ul>
+          )}
+          {notasArchivadas.length === 0 ? null : verArchivadas ? (
+            <>
+              <div className="encabezado-tarjeta notas-archivadas">
+                <h3>Archivadas ({notasArchivadas.length})</h3>
+                <Link href={`/parte/${id}?seccion=notas`}>Ocultar notas archivadas</Link>
+              </div>
+              <ul className="lista">
+                {notasArchivadas.map((n) => (
+                  <TarjetaDeNota key={n.id} parte={vista.partyId} nota={n} />
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="notas-archivadas">
+              <Link href={`/parte/${id}?seccion=notas&archivadas=1`}>Ver notas archivadas ({notasArchivadas.length})</Link>
+            </p>
           )}
         </section>
       ) : null}

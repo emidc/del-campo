@@ -143,6 +143,10 @@ export {
 } from './contact-point.ts'
 export type { AddContactResult, CleanContact, ContactChannel, ContactPoint } from './contact-point.ts'
 
+// Notas de una parte (0032).
+export { addPartyNote, cleanNote, deletePartyNote, listPartyNotes, setPartyNoteArchived, updatePartyNote } from './party-note.ts'
+export type { NoteText, PartyNote } from './party-note.ts'
+
 // Pólizas y contactos editables desde la app (0023).
 export {
   POLICY_FIELDS,

@@ -266,6 +266,10 @@ export {
 } from './clientes/contactos.ts'
 export type { CanalDeContacto, ContactChannel, ContactPoint, ResultadoDeContacto } from './clientes/contactos.ts'
 
+// Notas de una parte (0032).
+export { MENSAJE_DE_NOTA, agregarNota, archivarNota, editarNota, eliminarNota, notasDeCliente } from './clientes/notas.ts'
+export type { PartyNote, ResultadoDeNota } from './clientes/notas.ts'
+
 // Pólizas y contactos editables desde la app (0023).
 export {
   BLOQUEOS,
