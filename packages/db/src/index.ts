@@ -211,6 +211,8 @@ export {
   createLocation,
   listConclusions,
   listCurrentFacts,
+  listLocations,
+  listSurveys,
   portfolioWithCondition,
   recordConclusion,
   recordCoverage,
@@ -227,10 +229,12 @@ export type {
   CurrentFact,
   FactSource,
   FactStatus,
+  Finding,
   FindingAspect,
   FindingPriority,
   FindingResult,
   FindingTally,
+  Location,
   NewConclusion,
   NewCoverage,
   NewEvidence,
@@ -239,4 +243,21 @@ export type {
   NewLocation,
   NewSurvey,
   PortfolioMatch,
+  Survey,
 } from './riesgos.ts'
+
+// T-0061: listas de riesgos de cada empresa (0030).
+export {
+  MAX_FIELD_LENGTH,
+  RISK_LISTS,
+  RISK_LIST_COLUMNS,
+  RISK_LIST_PREFIX,
+  cleanRiskItemCode,
+  cleanRiskItemFields,
+  commentRiskItem,
+  createRiskItem,
+  listRiskItems,
+  retireRiskItem,
+  updateRiskItem,
+} from './listas-de-riesgos.ts'
+export type { NewRiskItem, RiskItem, RiskItemComment, RiskItemFields, RiskItemWrite, RiskList, RiskListColumn } from './listas-de-riesgos.ts'
