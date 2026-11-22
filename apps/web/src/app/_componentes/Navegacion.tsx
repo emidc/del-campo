@@ -61,7 +61,7 @@ const SECCIONES = [
   { id: 'renovaciones', texto: 'Renovaciones', href: '/renovaciones', rutas: ['/renovaciones'] },
   { id: 'comunicacion', texto: 'Comunicación', href: '/comunicacion', rutas: ['/comunicacion'] },
   { id: 'equipo', texto: 'Equipo', href: '/usuarios', rutas: ['/usuarios'], separador: true },
-  { id: 'conectar', texto: 'Conectar Claude', href: '/conectar', rutas: ['/conectar'] },
+  { id: 'conectar', texto: 'Conectar MCP', href: '/conectar', rutas: ['/conectar'] },
 ] as const
 
 /** El menú lateral. Es de cliente sólo para marcar la sección en la que se está. */
