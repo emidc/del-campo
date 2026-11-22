@@ -1596,3 +1596,63 @@ button.accion-icono:hover {
   gap: 8px;
   white-space: nowrap;
 }
+
+/* T-0061 — Sección Riesgos de la ficha de empresa. */
+.chips--riesgos {
+  margin-bottom: 16px;
+}
+
+.chips--riesgos .chip {
+  text-decoration: none;
+}
+
+.tabla-riesgos td {
+  vertical-align: top;
+}
+
+.tabla-riesgos .fila--elegida td {
+  background: var(--fondo-suave, #f3f6f4);
+}
+
+.detalle-riesgo {
+  margin-bottom: 18px;
+}
+
+.texto-largo {
+  white-space: pre-line;
+}
+
+.campos-riesgo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.campos-riesgo .campo--ancho,
+.formulario-riesgo .campo--ancho {
+  grid-column: 1 / -1;
+}
+
+.formulario-riesgo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.condiciones {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.relevamiento,
+.bajas {
+  margin-top: 12px;
+}
+
+.relevamiento summary,
+.bajas summary {
+  cursor: pointer;
+  padding: 8px 0;
+}

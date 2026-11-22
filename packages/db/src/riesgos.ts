@@ -389,3 +389,59 @@ export const listConclusions = async (
     where c.party_id = ${partyId} and (${opciones.toReview !== true} or c.review is null)
     order by c.created_at
   `
+
+// ── Lo que muestra la ficha ─────────────────────────────────────────────────
+
+export interface Location {
+  readonly id: string
+  readonly name: string
+  readonly address: string | null
+  readonly locality: string | null
+  readonly province: string | null
+}
+
+export const listLocations = async (sql: QueryExecutor, partyId: string): Promise<readonly Location[]> =>
+  sql<Location[]>`
+    select id, name, address, locality, province from client_location where party_id = ${partyId} order by name, id
+  `
+
+export interface Finding {
+  readonly id: string
+  readonly area: string | null
+  readonly topic: string
+  readonly aspect: FindingAspect
+  readonly result: FindingResult
+  readonly priority: FindingPriority | null
+  readonly description: string
+  readonly recommendation: string | null
+  readonly sourceLocation: string | null
+}
+
+export interface Survey {
+  readonly id: string
+  readonly locationName: string | null
+  readonly visitedOn: string
+  readonly performedBy: string
+  readonly sourceDocument: string | null
+  readonly summary: string | null
+  readonly findings: readonly Finding[]
+}
+
+/** Los relevamientos de una empresa, del más reciente al más viejo, con sus hallazgos. */
+export const listSurveys = async (sql: QueryExecutor, partyId: string): Promise<readonly Survey[]> =>
+  sql<Survey[]>`
+    select s.id, l.name as "locationName", s.visited_on::text as "visitedOn", s.performed_by as "performedBy",
+           s.source_document as "sourceDocument", s.summary,
+           coalesce((
+             select json_agg(json_build_object(
+                      'id', h.id, 'area', h.area, 'topic', h.topic, 'aspect', h.aspect, 'result', h.result,
+                      'priority', h.priority, 'description', h.description, 'recommendation', h.recommendation,
+                      'sourceLocation', h.source_location)
+                    order by array_position(array['CRITICA','ALTA','MEDIA','BAJA'], h.priority) nulls last, h.created_at, h.id)
+             from survey_finding h where h.survey_id = s.id
+           ), '[]'::json) as findings
+    from survey s
+    left join client_location l on l.id = s.location_id
+    where s.party_id = ${partyId}
+    order by s.visited_on desc, s.created_at desc
+  `

@@ -20,13 +20,14 @@ import { Suspense } from 'react'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { CampoEditable, EliminarConDialogo, NombreEditable } from '@/app/_componentes/Edicion'
-import { Riesgos } from '@/app/_componentes/Riesgos'
 import { fechaDeHoy } from '@/lib/criterios'
 import { contacto } from '@/app/comunicacion/etiquetas'
 import { fecha, instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 import { eliminar, guardarCarpeta, guardarCuit, guardarDni, guardarNombre, guardarOrigen, guardarRazonSocial } from './acciones'
+import { SeccionRiesgos } from './SeccionRiesgos'
+import { esSubseccion } from './riesgos'
 import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
 
 export const dynamic = 'force-dynamic'
@@ -50,6 +51,13 @@ export default async function PartePage({
   const parametros = await searchParams
   const crudo = parametros.seccion
   const pedida = Array.isArray(crudo) ? crudo[0] : crudo
+  const unico = (clave: string): string | undefined => {
+    const valor = parametros[clave]
+    return Array.isArray(valor) ? valor[0] : valor
+  }
+  const listaPedida = unico('lista')
+  const subRiesgos = esSubseccion(listaPedida) ? listaPedida : 'riesgos'
+  const itemRiesgo = unico('item') ?? null
   const asOf = fechaDeHoy()
   const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto] = await consultar(
     Promise.all([
@@ -349,12 +357,12 @@ export default async function PartePage({
         </section>
       ) : null}
 
-      {/* C4-03b: los riesgos de Risk OS, sólo en una empresa, sin esperar a Risk OS. */}
+      {/* T-0061: las listas de riesgos de la empresa, desde la base de Broker OS. */}
       {seccion === 'riesgos' ? (
         <section className="tarjeta">
           <h2>Riesgos</h2>
-          <Suspense fallback={<p className="meta">Consultando Risk OS…</p>}>
-            <Riesgos principal={principal} partyId={id} />
+          <Suspense fallback={<p className="meta">Cargando riesgos…</p>}>
+            <SeccionRiesgos principal={principal} partyId={id} sub={subRiesgos} itemId={itemRiesgo} />
           </Suspense>
         </section>
       ) : null}

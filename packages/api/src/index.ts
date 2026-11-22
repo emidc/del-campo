@@ -301,3 +301,17 @@ export {
   prospectos,
 } from './clientes/prospectos.ts'
 export type { ConvertResult, NewProspect, ProspectList, ProspectOrigin, ProspectStatus } from './clientes/prospectos.ts'
+
+// T-0061: la sección Riesgos de la ficha de empresa, desde la base de Broker OS.
+export {
+  MENSAJE_DE_ITEM,
+  comentarItemDeRiesgo,
+  crearItemDeRiesgo,
+  darDeBajaItemDeRiesgo,
+  editarItemDeRiesgo,
+  esListaDeRiesgos,
+  listasDeRiesgos,
+} from './riesgos/seccion.ts'
+export type { ResultadoDeItem, RiesgosDeEmpresa, RiskItem, RiskItemFields, RiskList } from './riesgos/seccion.ts'
+export { RISK_LISTS, RISK_LIST_COLUMNS, RISK_LIST_PREFIX } from '@del-campo/db'
+export type { Conclusion, CurrentFact, Finding, Location, RiskListColumn, Survey } from '@del-campo/db'
