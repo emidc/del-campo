@@ -80,6 +80,7 @@ export default async function UsuariosPage({
                         email={usuario.email}
                         nombre={usuario.nombre}
                         foto={usuario.conFoto ? fotoDe(usuario.id) : null}
+                        emailEditable={datos.administro && usuario.estado === 'INVITED'}
                       />
                     ) : null}
                     {datos.administro && usuario.estado !== 'INACTIVE' && usuario.id !== datos.yo ? (

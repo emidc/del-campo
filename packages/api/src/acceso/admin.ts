@@ -30,6 +30,7 @@ export type RechazoAdmin =
   | 'ASIGNACION_SUPERPUESTA'
   | 'ASIGNACION_INEXISTENTE'
   | 'ULTIMO_ADMINISTRADOR'
+  | 'YA_ACTIVO'
 
 export type ResultadoAdmin<T> =
   | { readonly ok: true; readonly valor: T }
@@ -177,6 +178,40 @@ export const invitar = (
     },
     arranque,
   )
+}
+
+/**
+ * Corrige el correo de alguien invitado que todavía no entró, y el de su invitación
+ * pendiente, que es con el que se lo reconoce al volver de Google. Con la cuenta ya
+ * activa no se toca: la identidad es la credencial de Google y el correo es su reflejo.
+ */
+export const cambiarEmail = (
+  conexion: Conexion,
+  pedido: { readonly actor: string; readonly usuarioId: string; readonly email: string },
+): Promise<ResultadoAdmin<null>> => {
+  const email = normalizarEmail(pedido.email)
+  return operar(conexion, pedido.actor, {
+    accion: 'usuario.cambiar_email',
+    tipoObjeto: 'app_user',
+    hacer: async (tx) => {
+      const [actual] = await tx<{ status: string; email: string }[]>`
+        select status, email from app_user where id = ${pedido.usuarioId} for update
+      `
+      if (actual === undefined) return rechazo('USUARIO_INEXISTENTE')
+      if (actual.status !== 'INVITED') return rechazo('YA_ACTIVO')
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return rechazo('EMAIL_INVALIDO')
+      if (email === actual.email) return { ok: true, valor: null, idObjeto: pedido.usuarioId }
+      const ocupado = await tx`
+        select 1 from app_user where email = ${email} and id <> ${pedido.usuarioId}
+        union all
+        select 1 from user_invitation where email = ${email} and consumed_at is null and user_id <> ${pedido.usuarioId}
+      `
+      if (ocupado.length > 0) return rechazo('YA_EXISTE')
+      await tx`update app_user set email = ${email} where id = ${pedido.usuarioId}`
+      await tx`update user_invitation set email = ${email} where user_id = ${pedido.usuarioId} and consumed_at is null`
+      return { ok: true, valor: null, idObjeto: pedido.usuarioId }
+    },
+  })
 }
 
 /** Quedarse sin ningún Administrador activo dejaría el sistema sin quien administre. */

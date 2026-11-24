@@ -7,7 +7,8 @@ import { after, describe, it } from 'node:test'
 import postgres from 'postgres'
 
 import type { Principal } from '../session/admission.ts'
-import { darDeBajaDelEquipoCon, invitarAlEquipoCon, leerEquipo } from './usuarios.ts'
+import { ingresar } from './base.ts'
+import { cambiarEmailDelEquipoCon, darDeBajaDelEquipoCon, invitarAlEquipoCon, leerEquipo } from './usuarios.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -90,5 +91,55 @@ describe('usuarios del equipo desde la app', () => {
       return darDeBajaDelEquipoCon(tx, principal('sub-admin'), admin)
     })
     assert.equal(r, 'ULTIMO_ADMINISTRADOR')
+  })
+
+  it('un Administrador corrige el correo de una invitada y ella entra con el nuevo', async () => {
+    const google = (sujeto: string, email: string) =>
+      ({ proveedor: 'google', sujeto, email, emailVerificado: true, nombre: null }) as const
+    const r = await descartable(async (tx) => {
+      await usuario(tx, 'sub-admin', 'ADMINISTRADOR')
+      await invitarAlEquipoCon(tx, principal('sub-admin'), 'mal@sintetico.test')
+      const [invitada] = await tx<{ id: string }[]>`select id from app_user where email = 'mal@sintetico.test'`
+      if (invitada === undefined) throw new Error('sin invitada')
+      const cambio = await cambiarEmailDelEquipoCon(tx, principal('sub-admin'), invitada.id, ' Bien@Sintetico.test ')
+      const conViejo = await ingresar(tx, google('sub-x', 'mal@sintetico.test'))
+      const conNuevo = await ingresar(tx, google('sub-bien', 'bien@sintetico.test'))
+      const yaActiva = await cambiarEmailDelEquipoCon(tx, principal('sub-admin'), invitada.id, 'otro@sintetico.test')
+      const [fila] = await tx<{ email: string; status: string }[]>`select email, status from app_user where id = ${invitada.id}`
+      return { cambio, conViejo: conViejo.tipo, conNuevo: conNuevo.tipo, yaActiva, fila }
+    })
+    assert.equal(r.cambio, null)
+    assert.equal(r.conViejo, 'RECHAZA')
+    assert.equal(r.conNuevo, 'VINCULA')
+    assert.equal(r.yaActiva, 'YA_ACTIVO')
+    assert.deepEqual(r.fila, { email: 'bien@sintetico.test', status: 'ACTIVE' })
+  })
+
+  it('el correo nuevo tiene que ser válido, no estar en uso y lo cambia sólo un Administrador', async () => {
+    const r = await descartable(async (tx) => {
+      await usuario(tx, 'sub-admin', 'ADMINISTRADOR')
+      await usuario(tx, 'sub-op', 'OPERADOR')
+      await invitarAlEquipoCon(tx, principal('sub-admin'), 'una@sintetico.test')
+      await invitarAlEquipoCon(tx, principal('sub-admin'), 'otra@sintetico.test')
+      const [una] = await tx<{ id: string }[]>`select id from app_user where email = 'una@sintetico.test'`
+      if (una === undefined) throw new Error('sin invitada')
+      const admin = principal('sub-admin')
+      return {
+        invalido: await cambiarEmailDelEquipoCon(tx, admin, una.id, 'sin-arroba'),
+        sinDominio: await cambiarEmailDelEquipoCon(tx, admin, una.id, 'a@b'),
+        deOtraInvitada: await cambiarEmailDelEquipoCon(tx, admin, una.id, 'OTRA@sintetico.test'),
+        deUnaActiva: await cambiarEmailDelEquipoCon(tx, admin, una.id, 'sub-op@sintetico.test'),
+        noAdmin: await cambiarEmailDelEquipoCon(tx, principal('sub-op'), una.id, 'nueva@sintetico.test'),
+        mismo: await cambiarEmailDelEquipoCon(tx, admin, una.id, 'una@sintetico.test'),
+      }
+    })
+    assert.deepEqual(r, {
+      invalido: 'EMAIL_INVALIDO',
+      sinDominio: 'EMAIL_INVALIDO',
+      deOtraInvitada: 'YA_EXISTE',
+      deUnaActiva: 'YA_EXISTE',
+      noAdmin: 'ACTOR_NO_AUTORIZADO',
+      mismo: null,
+    })
   })
 })
