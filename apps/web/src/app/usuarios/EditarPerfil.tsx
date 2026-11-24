@@ -42,7 +42,7 @@ export function EditarPerfil({
   readonly emailEditable?: boolean
 }) {
   const dialogo = useRef<HTMLDialogElement>(null)
-  const [estado, enviar] = useActionState<Resultado, FormData>(guardarPerfil, null)
+  const [estado, enviar, guardando] = useActionState<Resultado, FormData>(guardarPerfil, null)
   const [, iniciar] = useTransition()
   const [nueva, setNueva] = useState<Blob | null>(null)
   const [vista, setVista] = useState<string | null>(null)
@@ -126,7 +126,7 @@ export function EditarPerfil({
             <button type="button" className="boton boton--secundario" onClick={() => dialogo.current?.close()}>
               Cancelar
             </button>
-            <button type="submit" className="boton">
+            <button type="submit" className={guardando ? 'boton esperando' : 'boton'} disabled={guardando} aria-busy={guardando}>
               Guardar
             </button>
           </div>

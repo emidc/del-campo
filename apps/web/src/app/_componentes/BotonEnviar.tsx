@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom'
 
 /**
  * El botón de enviar de un formulario. Mientras la acción del servidor responde, se
- * deshabilita y muestra el brillo de espera, para que nadie mande dos veces lo mismo.
+ * deshabilita y muestra el aro de espera, para que nadie mande dos veces lo mismo.
  */
 export function BotonEnviar({ className, children, ...resto }: ButtonHTMLAttributes<HTMLButtonElement>) {
   const { pending } = useFormStatus()
