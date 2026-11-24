@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import type { ReactNode } from 'react'
+
+import { IndicadorDeCarga } from './_componentes/IndicadorDeCarga'
 
 import './globals.css'
 
@@ -20,7 +23,12 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={null}>
+          <IndicadorDeCarga />
+        </Suspense>
+        {children}
+      </body>
     </html>
   )
 }
