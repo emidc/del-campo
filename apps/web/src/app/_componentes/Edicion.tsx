@@ -180,7 +180,7 @@ export function NombreEditable({
 
 /**
  * El título (h1) de la ficha de una tarea o gestión, editable en el lugar. El lápiz aparece
- * al pasar el cursor o al llegar con el teclado. Enter o salir del campo guarda, Esc
+ * al pasar el cursor o al llegar con el teclado. Enter, ✓ o salir del campo guarda; Esc o ✕
  * cancela, y un nombre vacío no se acepta.
  */
 export function TituloEditable({
@@ -277,10 +277,16 @@ export function TituloEditable({
             cerrar()
           }
         }}
-        onBlur={() => {
+        onBlur={(e) => {
+          // Pasar con Tab a ✕ o ✓ no es salir del campo: guarda o cancela el botón.
+          if (e.relatedTarget instanceof Node && e.currentTarget.form?.contains(e.relatedTarget)) return
           if (!cancelado.current && !enviando) formulario.current?.requestSubmit()
         }}
       />
+      {/* Con el mouse, el clic en ✕ o ✓ no le saca el foco al campo, así no guarda antes de tiempo. */}
+      <span className="titulo-editable__botones" onMouseDown={(e) => { e.preventDefault() }}>
+        <Confirmar onCancelar={cerrar} />
+      </span>
       {error === null ? null : (
         <p id="titulo-editable-error" className="error-en-fila" role="alert">
           {error}
