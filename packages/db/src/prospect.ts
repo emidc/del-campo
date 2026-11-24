@@ -11,7 +11,7 @@ import { updateDriveFolder, updateOrganizationCuit, updatePersonDni } from './pa
 
 type QueryExecutor = postgres.Sql | postgres.TransactionSql
 
-export const PROSPECT_ORIGINS = ['INSTAGRAM', 'FACEBOOK', 'WEB', 'GOOGLE', 'MANUAL'] as const
+export const PROSPECT_ORIGINS = ['INSTAGRAM', 'FACEBOOK', 'WEB', 'GOOGLE', 'WHATSAPP', 'MANUAL'] as const
 export type ProspectOrigin = (typeof PROSPECT_ORIGINS)[number]
 
 export const isProspectOrigin = (valor: unknown): valor is ProspectOrigin =>
