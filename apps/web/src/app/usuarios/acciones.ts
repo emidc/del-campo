@@ -4,7 +4,7 @@
 // regla la aplica la base, no este formulario.
 
 import type { MemberPhoto } from '@del-campo/api'
-import { MAX_PHOTO_BYTES, PHOTO_TYPES, darDeBajaDelEquipo, editarPerfil, invitarAlEquipo } from '@del-campo/api'
+import { MAX_PHOTO_BYTES, PHOTO_TYPES, cambiarEmailDelEquipo, darDeBajaDelEquipo, editarPerfil, invitarAlEquipo } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -28,10 +28,22 @@ export async function darDeBaja(form: FormData): Promise<void> {
   redirect(motivo === null ? '/usuarios?ok=baja' : `/usuarios?error=${motivo}`)
 }
 
+const ERRORES_EMAIL: Readonly<Record<string, string>> = {
+  ACTOR_NO_AUTORIZADO: 'Sólo un administrador puede cambiar el correo.',
+  EMAIL_INVALIDO: 'Ese correo no es válido.',
+  YA_EXISTE: 'Ya hay otra persona con ese correo.',
+  YA_ACTIVO: 'El correo sólo se puede cambiar mientras la persona no haya entrado.',
+  USUARIO_INEXISTENTE: 'No se encontró a esa persona.',
+}
+
 const TIPOS = new Set<string>(PHOTO_TYPES)
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Nombre visible y, si viene una imagen, la foto. Cada persona edita el suyo; un Administrador, cualquiera. */
+/**
+ * Nombre visible y, si viene una imagen, la foto. Cada persona edita el suyo; un
+ * Administrador, cualquiera. Si viene `email`, primero se corrige el correo de la persona
+ * invitada (sólo un Administrador y sólo si todavía no entró).
+ */
 export async function guardarPerfil(_previo: Resultado, form: FormData): Promise<Resultado> {
   const principal = await requireAdmitted()
   const usuario = texto(form, 'usuario')
@@ -42,6 +54,11 @@ export async function guardarPerfil(_previo: Resultado, form: FormData): Promise
     if (!TIPOS.has(archivo.type)) return { ok: false, error: 'La foto tiene que ser JPG, PNG o WebP.' }
     if (archivo.size > MAX_PHOTO_BYTES) return { ok: false, error: 'La foto es muy grande. Probá con otra imagen.' }
     foto = { bytes: new Uint8Array(await archivo.arrayBuffer()), type: archivo.type as MemberPhoto['type'] }
+  }
+  const email = form.get('email')
+  if (typeof email === 'string') {
+    const motivo = await consultar(cambiarEmailDelEquipo(principal, usuario, email))
+    if (motivo !== null) return { ok: false, error: ERRORES_EMAIL[motivo] ?? 'No se pudo cambiar el correo.' }
   }
   try {
     await consultar(editarPerfil(principal, usuario, texto(form, 'nombre'), foto))

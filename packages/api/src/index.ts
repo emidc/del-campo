@@ -222,7 +222,7 @@ export {
 export type { Autorizacion, PedidoDeAutorizacion } from './mcp/oauth.ts'
 
 // T-0060: usuarios del equipo desde la app.
-export { darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
+export { cambiarEmailDelEquipo, darDeBajaDelEquipo, equipo, invitarAlEquipo } from './acceso/usuarios.ts'
 export { MAX_PHOTO_BYTES, PHOTO_TYPES, editarPerfil, fotoDeIntegrante, miPerfil } from './acceso/perfiles.ts'
 export type { MemberPhoto, OwnProfile } from './acceso/perfiles.ts'
 export type { Equipo, UsuarioDelEquipo } from './acceso/usuarios.ts'

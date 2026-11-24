@@ -1,6 +1,7 @@
 'use client'
 
-// Editar el perfil de un integrante: nombre visible y foto. La imagen elegida se recorta
+// Editar el perfil de un integrante: nombre visible, foto y, si todavía no entró y quien
+// edita administra, el correo. La imagen elegida se recorta
 // al centro y se achica a 256 × 256 en el navegador antes de mandarla.
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
@@ -30,12 +31,15 @@ export function EditarPerfil({
   email,
   nombre,
   foto,
+  emailEditable = false,
 }: {
   readonly usuario: string
   readonly email: string
   readonly nombre: string | null
   /** URL de la foto actual, o `null` si no tiene. */
   readonly foto: string | null
+  /** Sólo un Administrador, y sólo para alguien invitado que todavía no entró. */
+  readonly emailEditable?: boolean
 }) {
   const dialogo = useRef<HTMLDialogElement>(null)
   const [estado, enviar] = useActionState<Resultado, FormData>(guardarPerfil, null)
@@ -100,9 +104,19 @@ export function EditarPerfil({
             <label htmlFor={`nombre-${usuario}`}>Nombre visible</label>
             <input id={`nombre-${usuario}`} name="nombre" defaultValue={nombre ?? ''} maxLength={80} placeholder={email} />
           </div>
-          <p className="meta" style={{ margin: 0 }}>
-            Correo: {email}
-          </p>
+          {emailEditable ? (
+            <div className="campo">
+              <label htmlFor={`email-${usuario}`}>Correo</label>
+              <input id={`email-${usuario}`} name="email" type="email" defaultValue={email} required maxLength={254} />
+              <p className="meta" style={{ margin: 0 }}>
+                Se puede corregir hasta que la persona entre por primera vez. Tiene que ser el de su cuenta de Google.
+              </p>
+            </div>
+          ) : (
+            <p className="meta" style={{ margin: 0 }}>
+              Correo: {email}
+            </p>
+          )}
           {aviso === null && estado?.ok !== false ? null : (
             <p className="estado estado--aviso" role="alert">
               {aviso ?? (estado?.ok === false ? estado.error : '')}

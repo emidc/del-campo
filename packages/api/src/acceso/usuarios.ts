@@ -4,7 +4,7 @@
 import type { Principal } from '../session/admission.ts'
 import { sql } from '../db.ts'
 import type { RechazoAdmin } from './admin.ts'
-import { darDeBaja, invitar } from './admin.ts'
+import { cambiarEmail, darDeBaja, invitar } from './admin.ts'
 import { conPrincipal } from './base.ts'
 import type { Conexion } from './base.ts'
 import { AccesoDenegado, identidadDe } from './datos.ts'
@@ -69,8 +69,21 @@ export const darDeBajaDelEquipoCon = async (
   return resultado.ok ? null : resultado.motivo
 }
 
+/** Corrige el correo de una persona invitada que todavía no entró. Sólo un Administrador. */
+export const cambiarEmailDelEquipoCon = async (
+  conexion: Conexion,
+  principal: Principal,
+  usuarioId: string,
+  email: string,
+): Promise<RechazoAdmin | null> => {
+  const resultado = await cambiarEmail(conexion, { actor: await actor(conexion, principal), usuarioId, email })
+  return resultado.ok ? null : resultado.motivo
+}
+
 export const equipo = (principal: Principal): Promise<Equipo> => leerEquipo(sql(), principal)
 export const invitarAlEquipo = (principal: Principal, email: string): Promise<RechazoAdmin | null> =>
   invitarAlEquipoCon(sql(), principal, email)
 export const darDeBajaDelEquipo = (principal: Principal, usuarioId: string): Promise<RechazoAdmin | null> =>
   darDeBajaDelEquipoCon(sql(), principal, usuarioId)
+export const cambiarEmailDelEquipo = (principal: Principal, usuarioId: string, email: string): Promise<RechazoAdmin | null> =>
+  cambiarEmailDelEquipoCon(sql(), principal, usuarioId, email)
