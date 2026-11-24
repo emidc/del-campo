@@ -31,6 +31,7 @@ import {
   listTaskAssignees,
   listTasks,
   listTeamMembers,
+  renameTask,
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
@@ -92,6 +93,9 @@ export const pasarTarea = async (
 
 export const responsablesPosibles = async (principal: Principal, parte: string): Promise<TeamMemberProfile[]> =>
   conDatos(sql(), principal, (ejecutor) => listTaskAssignees(ejecutor, parte))
+
+export const renombrarTarea = async (principal: Principal, id: string, nombre: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => renameTask(ejecutor, id, nombre))
 
 export const cambiarVencimientoTarea = async (principal: Principal, id: string, fecha: string | null): Promise<void> =>
   conDatos(sql(), principal, (ejecutor) => setTaskDueDate(ejecutor, id, fecha))
