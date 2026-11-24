@@ -403,6 +403,17 @@ const actual = async (sql: QueryExecutor, id: string) => {
   return fila
 }
 
+/** Cambia el nombre de la tarea y lo deja en la historia. Un nombre vacío se rechaza. */
+export const renameTask = async (sql: QueryExecutor, id: string, title: string): Promise<void> => {
+  const nuevo = title.trim()
+  if (nuevo === '' || nuevo.length > 200) throw new Error('nombre inválido')
+  const [antes] = await sql<{ title: string }[]>`select title from task where id = ${id} for update`
+  if (antes === undefined) throw new Error('tarea inexistente o fuera de alcance')
+  if (antes.title === nuevo) return
+  await sql`update task set title = ${nuevo}, updated_at = now() where id = ${id}`
+  await registrarCambio(sql, id, `Nombre: «${antes.title}» → «${nuevo}»`)
+}
+
 /** Cambia el vencimiento (`null` lo quita) y lo deja en la historia. */
 export const setTaskDueDate = async (sql: QueryExecutor, id: string, dueDate: string | null): Promise<void> => {
   if (dueDate !== null && !FECHA.test(dueDate)) throw new Error('fecha inválida')

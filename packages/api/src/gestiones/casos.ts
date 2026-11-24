@@ -36,6 +36,7 @@ import {
   listServiceCases,
   moveClaimStage,
   setClaimRequirementDone,
+  renameServiceCase,
   takeServiceCase,
   QUOTE_CURRENCIES,
   chooseQuoteOption,
@@ -110,6 +111,9 @@ export const gestion = async (principal: Principal, id: string): Promise<Service
 
 export const crearGestion = async (principal: Principal, nueva: NewServiceCase): Promise<string> =>
   conDatos(sql(), principal, (ejecutor) => createServiceCase(ejecutor, nueva))
+
+export const renombrarGestion = async (principal: Principal, id: string, nombre: string): Promise<void> =>
+  conDatos(sql(), principal, (ejecutor) => renameServiceCase(ejecutor, id, nombre))
 
 export const anotarGestion = async (principal: Principal, id: string, nota: string): Promise<void> =>
   conDatos(sql(), principal, (ejecutor) => addServiceCaseNote(ejecutor, id, nota))

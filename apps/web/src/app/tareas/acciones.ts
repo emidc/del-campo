@@ -22,6 +22,7 @@ import {
   involucrarEnTarea,
   marcarTareaDeLaSemana,
   pasarTarea,
+  renombrarTarea,
 } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -152,6 +153,19 @@ export async function editarCampo(_previo: Resultado, form: FormData): Promise<R
       return fallo('Ese campo no se edita.')
   }
   if (!(await intentar(escritura))) return fallo(FALLO)
+  releer(id)
+  return { ok: true }
+}
+
+/** El nombre de la tarea, editado desde el título de la ficha. */
+export async function renombrar(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  const nombre = texto(form, 'nombre')
+  if (!esUuid(id)) return fallo('No se encontró la tarea.')
+  if (nombre === '') return fallo('El nombre no puede quedar vacío.')
+  if (nombre.length > 200) return fallo('El nombre puede tener hasta 200 caracteres.')
+  if (!(await intentar(renombrarTarea(principal, id, nombre)))) return fallo(FALLO)
   releer(id)
   return { ok: true }
 }
