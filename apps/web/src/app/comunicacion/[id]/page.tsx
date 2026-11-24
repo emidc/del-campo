@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto'
 
 import type { ThreadItem } from '@del-campo/api'
-import { MAX_REPLY_LENGTH, MENSAJE_DE_RESPUESTA, clientes, conversacion, esResultadoDeRespuesta, latestBatch } from '@del-campo/api'
+import {
+  MAX_REPLY_LENGTH,
+  MENSAJE_DE_RESPUESTA,
+  ORIGENES_DE_PROSPECTO,
+  PROSPECT_ORIGINS,
+  clientes,
+  conversacion,
+  esResultadoDeRespuesta,
+  latestBatch,
+} from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -12,6 +21,8 @@ import { responder, vincular } from '@/app/comunicacion/acciones'
 import { avisosDeEntregas, contacto } from '@/app/comunicacion/etiquetas'
 import { instante } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
+
+import { NuevoProspecto } from './NuevoProspecto'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +44,7 @@ const TOPE_DE_CANDIDATOS = 8
 
 const VINCULO: Readonly<Record<string, string>> = {
   vinculado: 'Vinculada. El teléfono quedó cargado en la ficha del cliente.',
+  prospecto: 'Prospecto creado con este teléfono. La conversación ya aparece en su ficha.',
   inexistente: 'No se pudo vincular: la conversación o el cliente no existen.',
   'sin-telefono': 'Este contacto no tiene teléfono visible: no se puede vincular.',
 }
@@ -136,7 +148,7 @@ export default async function ConversacionPage({
             ) : (
               c.clientes.map((cliente) => (
                 <Link className="chip" key={cliente.partyId} href={`/parte/${cliente.partyId}`}>
-                  Cliente: {cliente.name}
+                  {cliente.prospect ? 'Prospecto' : 'Cliente'}: {cliente.name}
                 </Link>
               ))
             )}
@@ -147,7 +159,7 @@ export default async function ConversacionPage({
         </div>
       </header>
       {vinculo === null ? null : (
-        <p className={parametros.v === 'vinculado' ? 'estado' : 'estado estado--aviso'} role="status">
+        <p className={parametros.v === 'vinculado' || parametros.v === 'prospecto' ? 'estado' : 'estado estado--aviso'} role="status">
           {vinculo}
         </p>
       )}
@@ -192,6 +204,13 @@ export default async function ConversacionPage({
           {candidatos.length > TOPE_DE_CANDIDATOS ? (
             <p className="meta">Hay {candidatos.length - TOPE_DE_CANDIDATOS} más. Escribí más del nombre para afinar.</p>
           ) : null}
+          <h3 style={{ marginTop: 18 }}>¿Es alguien nuevo?</h3>
+          <p className="meta">Crealo como prospecto: queda con este teléfono y la conversación aparece en su ficha.</p>
+          <NuevoProspecto
+            conversacion={hilo.id}
+            nombreDePerfil={hilo.label.profileName ?? ''}
+            origenes={PROSPECT_ORIGINS.map((o) => ({ valor: o, etiqueta: ORIGENES_DE_PROSPECTO[o] }))}
+          />
         </section>
       ) : c.clientes.length === 0 ? (
         <p className="meta">Este contacto no muestra su teléfono, así que no se puede vincular con un cliente.</p>

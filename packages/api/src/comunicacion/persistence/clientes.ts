@@ -10,6 +10,8 @@ export interface ConversationParty {
   readonly conversationId: number
   readonly partyId: string
   readonly name: string
+  /** Si todavía es prospecto (rol PROSPECT vigente). */
+  readonly prospect: boolean
   /** El integrante del equipo responsable de los mensajes del cliente (0031), si tiene. */
   readonly ownerUserId: string | null
 }
@@ -36,6 +38,7 @@ export const listConversationParties = async (sql: Conexion, partyId: string | n
         and (${partyId}::uuid is null or party_id = ${partyId}::uuid)
     )
     select c.id as "conversationId", pa.id as "partyId", pa.message_owner_user_id as "ownerUserId",
+           exists (select 1 from party_role r where r.party_id = pa.id and r.role = 'PROSPECT' and r.valid_to is null) as prospect,
            coalesce(
              nullif(concat_ws(' ', pp.first_name, pp.last_name), ''),
              op.trade_name,

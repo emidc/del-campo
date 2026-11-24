@@ -11,7 +11,14 @@ import { AccesoDenegado } from '../acceso/datos.ts'
 import type { Principal } from '../session/admission.ts'
 import type { SendOutcome } from './integration/cloud-api.ts'
 import { editarResponsableDeMensajesCon, responsableDeMensajesCon } from '../clientes/edicion.ts'
-import { avisosPendientesCon, conversacionesCon, responderCon, vincularConversacionCon, type EnvioConfigurado } from './seccion.ts'
+import {
+  avisosPendientesCon,
+  conversacionesCon,
+  crearProspectoDeConversacionCon,
+  responderCon,
+  vincularConversacionCon,
+  type EnvioConfigurado,
+} from './seccion.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -83,7 +90,7 @@ describe('sección Comunicación (T-0066)', () => {
       assert.deepEqual(
         todas.conversaciones.map((c) => [c.profileName, c.waIdLast4, c.clientes]),
         [
-          ['Ana', '0101', [{ partyId: m.ana, name: 'Ana Sintética' }]],
+          ['Ana', '0101', [{ partyId: m.ana, name: 'Ana Sintética', prospect: false }]],
           ['Desconocido', '0999', []],
         ],
       )
@@ -160,11 +167,37 @@ describe('sección Comunicación (T-0066)', () => {
 
       const deBeto = await conversacionesCon(tx, principal('sub-com'), beto.id)
       assert.deepEqual(deBeto.conversaciones.map((c) => [c.profileName, c.clientes]), [
-        ['Desconocido', [{ partyId: beto.id, name: 'Beto Sintético' }]],
+        ['Desconocido', [{ partyId: beto.id, name: 'Beto Sintético', prospect: false }]],
       ])
       const telefonos = await tx<{ value: string; source: string; autor: string }[]>`
         select value, source, created_by_user_id as autor from contact_point where party_id = ${beto.id}`
       assert.deepEqual([...telefonos], [{ value: '+5492615550999', source: 'Broker OS', autor: m.usuario }])
+    })
+  })
+
+  it('crea un prospecto desde una conversación sin identificar y queda vinculada a él', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const desconocida = (await conversacionesCon(tx, principal('sub-com'))).conversaciones.find((c) => c.profileName === 'Desconocido')
+      assert.ok(desconocida)
+      assert.deepEqual(desconocida.clientes, [])
+
+      const datos = { kind: 'PERSON', origin: 'INSTAGRAM', name: 'Cristian', lastName: 'Sintético' } as const
+      const r = await crearProspectoDeConversacionCon(tx, principal('sub-com'), desconocida.id, datos)
+      assert.ok(r.kind === 'ok')
+
+      const despues = (await conversacionesCon(tx, principal('sub-com'))).conversaciones.find((c) => c.id === desconocida.id)
+      assert.deepEqual(despues?.clientes, [{ partyId: r.partyId, name: 'Cristian Sintético', prospect: true }])
+      const [rol] = await tx<{ origin: string; autor: string }[]>`
+        select origin, created_by_user_id as autor from party_role where party_id = ${r.partyId} and role = 'PROSPECT' and valid_to is null`
+      assert.deepEqual(rol, { origin: 'INSTAGRAM', autor: m.usuario })
+      const telefonos = await tx<{ value: string }[]>`select value from contact_point where party_id = ${r.partyId}`
+      assert.deepEqual([...telefonos], [{ value: '+5492615550999' }])
+
+      // Sin nombre no crea nada; una conversación que no existe tampoco.
+      const vacio = await crearProspectoDeConversacionCon(tx, principal('sub-com'), desconocida.id, { ...datos, name: '', lastName: '' })
+      assert.equal(vacio.kind, 'invalid')
+      assert.deepEqual(await crearProspectoDeConversacionCon(tx, principal('sub-com'), 999999999, datos), { kind: 'inexistente' })
     })
   })
 

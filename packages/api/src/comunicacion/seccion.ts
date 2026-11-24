@@ -2,7 +2,7 @@
 // toda consulta, corre por `conDatos`: como `broker_app`, a nombre de quien mira, con RLS
 // decidiendo. Todo el equipo ve todas las conversaciones (decisión de Emiliano, 15/11/2026).
 
-import { addContactPoint, listTeamMembers, type TeamMemberProfile } from '@del-campo/db'
+import { addContactPoint, createProspect, listTeamMembers, type NewProspect, type TeamMemberProfile } from '@del-campo/db'
 
 import { conDatos } from '../acceso/datos.ts'
 import { sql } from '../db.ts'
@@ -29,6 +29,8 @@ export { MAX_REPLY_LENGTH } from './domain/reply.ts'
 export interface ClienteDeConversacion {
   readonly partyId: string
   readonly name: string
+  /** Si todavía es prospecto. */
+  readonly prospect: boolean
 }
 
 export interface ConversacionResumen extends ConversationSummary {
@@ -63,14 +65,14 @@ export const envioConfigurado = (env: Readonly<Record<string, string | undefined
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-type Pares = readonly { conversationId: number; partyId: string; name: string; ownerUserId: string | null }[]
+type Pares = readonly { conversationId: number; partyId: string; name: string; prospect: boolean; ownerUserId: string | null }[]
 
 const agrupar = (pares: Pares): Map<number, { clientes: ClienteDeConversacion[]; responsables: (string | null)[] }> => {
   const porConversacion = new Map<number, { clientes: ClienteDeConversacion[]; responsables: (string | null)[] }>()
-  for (const { conversationId, partyId, name, ownerUserId } of pares) {
+  for (const { conversationId, partyId, name, prospect, ownerUserId } of pares) {
     const previo = porConversacion.get(conversationId) ?? { clientes: [], responsables: [] }
     porConversacion.set(conversationId, {
-      clientes: [...previo.clientes, { partyId, name }],
+      clientes: [...previo.clientes, { partyId, name, prospect }],
       responsables: [...previo.responsables, ownerUserId],
     })
   }
@@ -138,7 +140,7 @@ export const conversacion = async (principal: Principal, id: number): Promise<Co
     if (hilo === null) return null
     const clientes = (await listConversationParties(tx)).filter((c) => c.conversationId === id)
     const avisaA = destinatarioDelAviso(clientes.map((c) => c.ownerUserId), await listTeamMembers(tx))
-    return { hilo, clientes: clientes.map(({ partyId, name }) => ({ partyId, name })), avisaA }
+    return { hilo, clientes: clientes.map(({ partyId, name, prospect }) => ({ partyId, name, prospect })), avisaA }
   })
   if (leida === null) return null
   return { ...leida, entregas: await deliveryHealth(conexion), envioConfigurado: envioConfigurado() !== null }
@@ -171,6 +173,39 @@ export const vincularConversacionCon = async (
 
 export const vincularConversacion = (principal: Principal, conversationId: number, partyId: string): Promise<ResultadoDeVinculo> =>
   vincularConversacionCon(sql(), principal, conversationId, partyId)
+
+export type ResultadoDeProspecto =
+  | { readonly kind: 'ok'; readonly partyId: string }
+  | { readonly kind: 'inexistente' | 'sin-telefono' }
+  | { readonly kind: 'invalid'; readonly message: string }
+
+/** Lo que se carga a mano al crear el prospecto: el teléfono sale de la conversación. */
+export type ProspectoDeConversacion = Pick<NewProspect, 'kind' | 'origin' | 'name' | 'lastName'>
+
+/**
+ * Crea un prospecto para una conversación sin identificar: con el teléfono de quien
+ * escribe, así la conversación queda vinculada a él. El número sale de la base y no pasa
+ * por el navegador.
+ */
+export const crearProspectoDeConversacionCon = async (
+  conexion: Conexion,
+  principal: Principal,
+  conversationId: number,
+  datos: ProspectoDeConversacion,
+): Promise<ResultadoDeProspecto> =>
+  conDatos(conexion, principal, async (tx) => {
+    const participante = await conversationParticipant(tx, conversationId)
+    if (participante === null) return { kind: 'inexistente' as const }
+    const { waId } = participante.participant
+    if (waId === null) return { kind: 'sin-telefono' as const }
+    return createProspect(tx, { ...datos, identifier: '', phone: `+${waId}`, email: '', driveFolderUrl: '' })
+  })
+
+export const crearProspectoDeConversacion = (
+  principal: Principal,
+  conversationId: number,
+  datos: ProspectoDeConversacion,
+): Promise<ResultadoDeProspecto> => crearProspectoDeConversacionCon(sql(), principal, conversationId, datos)
 
 export interface Respuesta {
   readonly idempotencyKey: string
