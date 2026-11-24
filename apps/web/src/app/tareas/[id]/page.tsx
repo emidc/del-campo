@@ -16,9 +16,9 @@ import { notFound } from 'next/navigation'
 
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
-import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
+import { CampoEditable, EliminarConDialogo, TituloEditable } from '@/app/_componentes/Edicion'
 import { Retrato, etiquetasDeIntegrantes } from '@/app/_componentes/Retrato'
-import { comentar, editarCampo, eliminar, pasar } from '@/app/tareas/acciones'
+import { comentar, editarCampo, eliminar, pasar, renombrar } from '@/app/tareas/acciones'
 import { CasillaSemanal } from '@/app/tareas/CasillaSemanal'
 import { fecha, fechaHora } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -70,7 +70,7 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
       <header className="encabezado">
         <div>
           <p className="antetitulo">Tarea</p>
-          <h1>{t.title}</h1>
+          <TituloEditable titulo={t.title} etiqueta="Nombre de la tarea" accion={renombrar} ocultos={{ id: t.id }} />
           <div className="chips">
             <span className="chip">{ESTADOS_DE_TAREA[t.status]}</span>
             {t.priority === null ? null : <span className="chip">Prioridad {PRIORIDADES_DE_TAREA[t.priority].toLowerCase()}</span>}

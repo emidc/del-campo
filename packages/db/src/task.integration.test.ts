@@ -24,6 +24,7 @@ import {
   listTaskAssignees,
   listTasks,
   listTeamMembers,
+  renameTask,
   setTaskDueDate,
   setTaskFollowUp,
   setTaskPriority,
@@ -217,6 +218,27 @@ describe('tareas (0017)', () => {
         /de otro cliente/,
       )
       await tx`rollback to savepoint s1`
+    })
+  })
+
+  it('el nombre se edita, queda en la historia y no puede quedar vacío', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createTask(tx, {
+        title: 'Probando tarea', partyId: m.cliente, policyId: null, serviceCaseId: null,
+        dueDate: null, assignedUserId: null, comment: null,
+      })
+      await renameTask(tx, id, '  Llamar a la aseguradora ')
+      await renameTask(tx, id, 'Llamar a la aseguradora')
+      await assert.rejects(renameTask(tx, id, '   '), /nombre inválido/)
+      const t = await getTask(tx, id)
+      assert.ok(t)
+      assert.equal(t.title, 'Llamar a la aseguradora')
+      assert.deepEqual(
+        t.events.filter((e) => e.kind === 'CAMBIO').map((e) => e.body),
+        ['Nombre: «Probando tarea» → «Llamar a la aseguradora»'],
+      )
     })
   })
 

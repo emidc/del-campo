@@ -5,10 +5,11 @@
 // el error a la vista; si guarda, la página se vuelve a leer con el valor nuevo.
 
 import type { ReactNode } from 'react'
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react'
 
 import { BotonEnviar } from './BotonEnviar'
 import { IconoCheck, IconoCruz, IconoLapiz } from './Iconos'
+import { LARGO_MAXIMO_DE_NOMBRE, decidirNombre } from './titulo-editable'
 
 export type Resultado =
   | { readonly ok: true }
@@ -174,6 +175,118 @@ export function NombreEditable({
         )}
       </dd>
     </>
+  )
+}
+
+/**
+ * El título (h1) de la ficha de una tarea o gestión, editable en el lugar. El lápiz aparece
+ * al pasar el cursor o al llegar con el teclado. Enter o salir del campo guarda, Esc
+ * cancela, y un nombre vacío no se acepta.
+ */
+export function TituloEditable({
+  titulo,
+  etiqueta,
+  accion,
+  ocultos,
+}: {
+  readonly titulo: string
+  /** Para el lector de pantalla: «Nombre de la tarea», «Nombre de la gestión». */
+  readonly etiqueta: string
+  readonly accion: Accion
+  readonly ocultos: Ocultos
+}) {
+  const [editando, setEditando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const [estado, enviar, enviando] = useActionState(accion, null)
+  const formulario = useRef<HTMLFormElement>(null)
+  const lapiz = useRef<HTMLSpanElement>(null)
+  const volverAlLapiz = useRef(false)
+  // Cancelar con Esc desmonta el campo: este freno evita que el blur posterior guarde.
+  const cancelado = useRef(false)
+
+  // Un error de una edición anterior no se vuelve a mostrar al abrir de nuevo.
+  const estadoAlAbrir = useRef<Resultado>(null)
+
+  const cerrar = useCallback(() => {
+    cancelado.current = true
+    volverAlLapiz.current = true
+    setAviso(null)
+    setEditando(false)
+  }, [])
+  useAlGuardar(estado, cerrar)
+
+  useEffect(() => {
+    if (!editando && volverAlLapiz.current) {
+      volverAlLapiz.current = false
+      lapiz.current?.querySelector('button')?.focus()
+    }
+  }, [editando])
+
+  const abrir = () => {
+    cancelado.current = false
+    estadoAlAbrir.current = estado
+    setAviso(null)
+    setEditando(true)
+  }
+
+  const error = aviso ?? (estado !== estadoAlAbrir.current && estado?.ok === false ? estado.error : null)
+
+  if (!editando) {
+    return (
+      <div className="titulo-editable">
+        <h1>
+          {titulo}
+          <span ref={lapiz} className="titulo-editable__lapiz">
+            <BotonLapiz etiqueta={`Editar ${etiqueta.toLowerCase()}`} onClick={abrir} />
+          </span>
+        </h1>
+      </div>
+    )
+  }
+
+  return (
+    <form
+      ref={formulario}
+      action={enviar}
+      className="titulo-editable titulo-editable--abierto"
+      onSubmit={(e) => {
+        const escrito = new FormData(e.currentTarget).get('nombre')
+        const decision = decidirNombre(titulo, typeof escrito === 'string' ? escrito : '')
+        if (decision.tipo === 'guardar' && !enviando) {
+          setAviso(null)
+          return
+        }
+        e.preventDefault()
+        if (decision.tipo === 'cerrar') cerrar()
+        else if (decision.tipo === 'error') setAviso(decision.mensaje)
+      }}
+    >
+      <CamposOcultos ocultos={ocultos} />
+      <input
+        name="nombre"
+        defaultValue={titulo}
+        aria-label={etiqueta}
+        aria-invalid={error === null ? undefined : true}
+        aria-describedby={error === null ? undefined : 'titulo-editable-error'}
+        maxLength={LARGO_MAXIMO_DE_NOMBRE}
+        autoFocus
+        onFocus={(e) => { e.currentTarget.select() }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            cerrar()
+          }
+        }}
+        onBlur={() => {
+          if (!cancelado.current && !enviando) formulario.current?.requestSubmit()
+        }}
+      />
+      {error === null ? null : (
+        <p id="titulo-editable-error" className="error-en-fila" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
   )
 }
 

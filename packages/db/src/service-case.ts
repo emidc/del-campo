@@ -363,6 +363,23 @@ export const addServiceCaseNote = async (sql: QueryExecutor, id: string, body: s
 }
 
 /**
+ * Cambia el nombre de la gestión. La historia de gestiones no tiene un tipo «cambio», así
+ * que queda como nota. Un nombre vacío se rechaza.
+ */
+export const renameServiceCase = async (sql: QueryExecutor, id: string, title: string): Promise<void> => {
+  const nuevo = title.trim()
+  if (nuevo === '' || nuevo.length > 200) throw new Error('nombre inválido')
+  const [antes] = await sql<{ title: string }[]>`select title from service_case where id = ${id} for update`
+  if (antes === undefined) throw new Error('gestión inexistente o fuera de alcance')
+  if (antes.title === nuevo) return
+  await sql`update service_case set title = ${nuevo}, updated_at = now() where id = ${id}`
+  await sql`
+    insert into service_case_event (service_case_id, kind, body, author_user_id)
+    values (${id}, 'NOTA', ${`Cambió el nombre: «${antes.title}» → «${nuevo}»`}, authz.usuario())
+  `
+}
+
+/**
  * Cambia el estado y deja el cambio en la historia. Pasar a `CERRADA` es el cierre: fija
  * `closed_at` y guarda el resultado. Salir de `CERRADA` la reabre.
  */

@@ -28,6 +28,7 @@ import {
   listAssignableMembers,
   listServiceCases,
   moveClaimStage,
+  renameServiceCase,
   setClaimRequirementDone,
   takeServiceCase,
 } from './service-case.ts'
@@ -199,6 +200,26 @@ describe('gestiones manuales (0013)', () => {
       assert.ok(reabierta)
       assert.equal(reabierta.status, 'EN_CURSO')
       assert.equal(reabierta.closedAt, null)
+    })
+  })
+
+  it('el nombre de la gestión se edita, queda en la historia y no puede quedar vacío', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const id = await createServiceCase(tx, {
+        kind: 'ENDOSO', title: 'Cambio de domicilio', partyId: m.cliente, policyId: null, dueDate: null, note: null,
+      })
+      await renameServiceCase(tx, id, ' Cambio de domicilio y patente ')
+      await renameServiceCase(tx, id, 'Cambio de domicilio y patente')
+      await assert.rejects(renameServiceCase(tx, id, ''), /nombre inválido/)
+      const g = await getServiceCase(tx, id)
+      assert.ok(g)
+      assert.equal(g.title, 'Cambio de domicilio y patente')
+      assert.deepEqual(
+        g.events.filter((e) => e.kind === 'NOTA').map((e) => e.body),
+        ['Cambió el nombre: «Cambio de domicilio» → «Cambio de domicilio y patente»'],
+      )
     })
   })
 

@@ -23,6 +23,7 @@ import { notFound } from 'next/navigation'
 
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import { Cabecera } from '@/app/_componentes/Cabecera'
+import { TituloEditable } from '@/app/_componentes/Edicion'
 import {
   agregarRequisitoAEtapa,
   anotar,
@@ -34,6 +35,7 @@ import {
   marcar,
   moverEtapa,
   pedirACompania,
+  renombrar,
   responderCotizacion,
   sumarAlSiniestro,
   tomar,
@@ -108,7 +110,7 @@ export default async function GestionPage({
       <header className="encabezado">
         <div>
           <p className="antetitulo">{TIPOS_DE_GESTION[g.kind]}</p>
-          <h1>{g.title}</h1>
+          <TituloEditable titulo={g.title} etiqueta="Nombre de la gestión" accion={renombrar} ocultos={{ id: g.id }} />
           <div className="chips">
             <span className="chip">{ESTADOS_DE_GESTION[g.status]}</span>
             {g.dueDate === null ? null : <span className="chip">Vence {fecha(g.dueDate)}</span>}

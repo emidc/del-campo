@@ -17,6 +17,7 @@ import {
   esRolDeInterlocutor,
   esEtapaDeSiniestro,
   esTipoDeGestion,
+  esUuid,
   marcarRequisito,
   leerPrima,
   moverEtapaSiniestro,
@@ -24,12 +25,14 @@ import {
   pedirCotizacion,
   registrarContacto,
   registrarCotizacion,
+  renombrarGestion,
   sumarInterlocutor,
   tomarGestion,
 } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+import type { Resultado } from '@/app/_componentes/Edicion'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 const texto = (form: FormData, campo: string): string => {
@@ -231,4 +234,24 @@ export async function cambiarDeInterlocutor(form: FormData): Promise<void> {
   )
   revalidatePath(`/gestiones/${id}`)
   volverAInterlocutores(id)
+}
+
+/** El nombre de la gestión, editado desde el título de la ficha. */
+export async function renombrar(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const id = texto(form, 'id')
+  const nombre = texto(form, 'nombre')
+  if (!esUuid(id)) return { ok: false, error: 'No se encontró la gestión.' }
+  if (nombre === '') return { ok: false, error: 'El nombre no puede quedar vacío.' }
+  if (nombre.length > 200) return { ok: false, error: 'El nombre puede tener hasta 200 caracteres.' }
+  try {
+    await consultar(renombrarGestion(principal, id, nombre))
+  } catch (error) {
+    if (error instanceof Error && 'digest' in error) throw error // redirect y notFound de Next
+    console.error('gestión: no se pudo renombrar', error)
+    return { ok: false, error: 'No se pudo guardar. Probá de nuevo en un momento.' }
+  }
+  revalidatePath(`/gestiones/${id}`)
+  revalidatePath('/gestiones')
+  return { ok: true }
 }
