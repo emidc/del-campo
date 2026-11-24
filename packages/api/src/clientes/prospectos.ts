@@ -37,6 +37,7 @@ export const ORIGENES_DE_PROSPECTO: Readonly<Record<ProspectOrigin, string>> = {
   FACEBOOK: 'Facebook',
   WEB: 'Página Web',
   GOOGLE: 'Google',
+  WHATSAPP: 'WhatsApp',
   MANUAL: 'Manual',
 }
 

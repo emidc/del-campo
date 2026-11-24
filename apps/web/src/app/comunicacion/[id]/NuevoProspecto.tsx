@@ -46,7 +46,7 @@ export function NuevoProspecto({
       </div>
       <div className="campo">
         <label htmlFor="origen">Origen del prospecto</label>
-        <select id="origen" name="origen" required defaultValue="">
+        <select id="origen" name="origen" required defaultValue="WHATSAPP">
           <option value="" disabled>
             Elegir…
           </option>

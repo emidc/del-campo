@@ -182,7 +182,7 @@ describe('sección Comunicación (T-0066)', () => {
       assert.ok(desconocida)
       assert.deepEqual(desconocida.clientes, [])
 
-      const datos = { kind: 'PERSON', origin: 'INSTAGRAM', name: 'Cristian', lastName: 'Sintético' } as const
+      const datos = { kind: 'PERSON', origin: 'WHATSAPP', name: 'Cristian', lastName: 'Sintético' } as const
       const r = await crearProspectoDeConversacionCon(tx, principal('sub-com'), desconocida.id, datos)
       assert.ok(r.kind === 'ok')
 
@@ -190,7 +190,7 @@ describe('sección Comunicación (T-0066)', () => {
       assert.deepEqual(despues?.clientes, [{ partyId: r.partyId, name: 'Cristian Sintético', prospect: true }])
       const [rol] = await tx<{ origin: string; autor: string }[]>`
         select origin, created_by_user_id as autor from party_role where party_id = ${r.partyId} and role = 'PROSPECT' and valid_to is null`
-      assert.deepEqual(rol, { origin: 'INSTAGRAM', autor: m.usuario })
+      assert.deepEqual(rol, { origin: 'WHATSAPP', autor: m.usuario })
       const telefonos = await tx<{ value: string }[]>`select value from contact_point where party_id = ${r.partyId}`
       assert.deepEqual([...telefonos], [{ value: '+5492615550999' }])
 
