@@ -10,7 +10,7 @@ import { after, describe, it } from 'node:test'
 
 import postgres from 'postgres'
 
-import { listRenewals } from './renewal.ts'
+import { listRenewals, saveRenewalComment } from './renewal.ts'
 import { createServiceCase } from './service-case.ts'
 
 const RAIZ = resolve(import.meta.dirname, '..', '..', '..')
@@ -185,6 +185,26 @@ describe('renovaciones (C6-02b)', () => {
       const numeros = (await listRenewals(tx, await ventana(tx))).map((r) => r.policyNumber)
       assert.ok(numeros.includes('SINT-R5'))
       assert.ok(!numeros.includes('SINT-R4'))
+    })
+  })
+
+  it('el comentario de renovación se escribe, se cambia y se borra, con autor', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await como(tx, m.op)
+      const v = await ventana(tx)
+      const comentario = async () => (await listRenewals(tx, v)).find((r) => r.policyId === m.manual)?.comment
+      assert.equal(await comentario(), null)
+      assert.equal(await saveRenewalComment(tx, m.manual, 'Llamar el lunes'), true)
+      assert.equal(await comentario(), 'Llamar el lunes')
+      assert.equal(await saveRenewalComment(tx, m.manual, 'Pidió cotizar con otra compañía'), true)
+      assert.equal(await comentario(), 'Pidió cotizar con otra compañía')
+      const [autor] = await tx<{ updated_by_user_id: string }[]>`
+        select updated_by_user_id from policy_renewal_comment where policy_id = ${m.manual}`
+      assert.equal(autor?.updated_by_user_id, m.op)
+      assert.equal(await saveRenewalComment(tx, m.manual, ''), true)
+      assert.equal(await comentario(), null)
+      assert.equal(await saveRenewalComment(tx, '00000000-0000-4000-8000-000000000000', 'x'), false)
     })
   })
 

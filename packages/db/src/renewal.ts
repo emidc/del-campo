@@ -55,6 +55,8 @@ export interface RenewalItem {
   readonly caseId: string | null
   readonly caseStatus: ServiceCaseStatus | null
   readonly caseAssignedEmail: string | null
+  /** El comentario de renovación que escribe el equipo en la tabla (0033). */
+  readonly comment: string | null
 }
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
@@ -82,6 +84,7 @@ interface Row {
   readonly case_id: string | null
   readonly case_status: ServiceCaseStatus | null
   readonly case_assigned_email: string | null
+  readonly comment: string | null
 }
 
 const estado = (row: Row): RenewalState =>
@@ -121,7 +124,8 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
       sucesora.policy_number as successor_number,
       gestion.id as case_id,
       gestion.status as case_status,
-      authz.correo_integrante(gestion.assigned_user_id) as case_assigned_email
+      authz.correo_integrante(gestion.assigned_user_id) as case_assigned_email,
+      comentario.body as comment
     from policy p
     join insurer i on i.id = p.insurer_id
     join lateral (
@@ -148,12 +152,13 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
       order by c.created_at desc, c.id
       limit 1
     ) gestion on true
+    left join policy_renewal_comment comentario on comentario.policy_id = p.id
     where pv.term_end_date between ${filter.from}::date and ${filter.to}::date
       and (${filter.mode ?? null}::text is null or pv.renewal_mode = ${filter.mode ?? null}::text)
       and (${filter.insurerId ?? null}::uuid is null or p.insurer_id = ${filter.insurerId ?? null}::uuid)
       and (${filter.producer ?? null}::text is null or pv.producer = ${filter.producer ?? null}::text)
     order by pv.term_end_date, i.canonical_name, p.policy_number
-    limit 1000
+    limit 5000
   `
   const items = rows.map(
     (row): RenewalItem => ({
@@ -180,7 +185,33 @@ export const listRenewals = async (sql: QueryExecutor, filter: RenewalFilter): P
       caseId: row.case_id,
       caseStatus: row.case_status,
       caseAssignedEmail: row.case_assigned_email,
+      comment: row.comment,
     }),
   )
   return filter.state === undefined ? items : items.filter((item) => item.state === filter.state)
+}
+
+/** El comentario como se guarda: sin espacios de más; `''` lo borra. `null` si es muy largo. */
+export const cleanRenewalComment = (body: string): string | null => {
+  const limpio = body.replace(/\r\n/g, '\n').trim()
+  return limpio.length > 2000 ? null : limpio
+}
+
+/**
+ * Escribe o borra el comentario de renovación de una póliza, a nombre de `authz.usuario()`.
+ * `false` si la póliza no existe o no la ve quien escribe.
+ */
+export const saveRenewalComment = async (sql: QueryExecutor, policyId: string, body: string): Promise<boolean> => {
+  const [visible] = await sql<{ id: string }[]>`select id from policy where id = ${policyId}`
+  if (visible === undefined) return false
+  if (body === '') {
+    await sql`delete from policy_renewal_comment where policy_id = ${policyId}`
+    return true
+  }
+  await sql`
+    insert into policy_renewal_comment (policy_id, body, updated_by_user_id)
+    values (${policyId}, ${body}, authz.usuario())
+    on conflict (policy_id) do update
+    set body = excluded.body, updated_by_user_id = excluded.updated_by_user_id, updated_at = clock_timestamp()`
+  return true
 }

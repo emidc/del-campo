@@ -1,14 +1,5 @@
 import type { RenewalItem, RenewalMode, RenewalState } from '@del-campo/api'
-import {
-  ESTADOS_DE_GESTION,
-  ESTADOS_DE_RENOVACION,
-  MODOS_DE_RENOVACION,
-  companiasActivas,
-  esEstadoDeRenovacion,
-  esModoDeRenovacion,
-  latestBatch,
-  renovaciones,
-} from '@del-campo/api'
+import { ESTADOS_DE_GESTION, ESTADOS_DE_RENOVACION, companiasActivas, latestBatch, renovaciones } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
@@ -16,27 +7,27 @@ import { fechaDeHoy } from '@/lib/criterios'
 import { fecha } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { Desplegable, Seguimiento } from './Seguimiento'
+import { Comentario } from './Comentario'
+import { Filtro } from './Filtro'
+import type { Filtros } from './filtros'
+import {
+  TODOS,
+  conjuntos,
+  enlace as enlaceCon,
+  esConjuntoActivo,
+  etiquetaDeMes,
+  filtrar,
+  hayFiltros,
+  leerFiltros,
+  mesesDelSelector,
+  normalizar,
+  opcionesDe,
+  paginar,
+  rangoDelMes,
+} from './filtros'
+import { Seguimiento } from './Seguimiento'
 
 export const dynamic = 'force-dynamic'
-
-const uno = (valor: string | string[] | undefined): string | undefined => (Array.isArray(valor) ? valor[0] : valor)
-
-const sumarDias = (fecha: string, dias: number): string => {
-  const d = new Date(`${fecha}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + dias)
-  return d.toISOString().slice(0, 10)
-}
-
-// Tramos por fin de vigencia, relativos a hoy. «Vencidas» mira los últimos 60 días.
-const TRAMOS = {
-  vencidas: { etiqueta: 'Vencidas (últimos 60 días)', desde: -60, hasta: -1 },
-  '30': { etiqueta: 'Próximos 30 días', desde: 0, hasta: 30 },
-  '60': { etiqueta: '31 a 60 días', desde: 31, hasta: 60 },
-  '90': { etiqueta: '61 a 90 días', desde: 61, hasta: 90 },
-} as const
-type Tramo = keyof typeof TRAMOS
-const esTramo = (valor: unknown): valor is Tramo => typeof valor === 'string' && valor in TRAMOS
 
 export default async function RenovacionesPage({
   searchParams,
@@ -44,48 +35,46 @@ export default async function RenovacionesPage({
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const principal = await requireAdmitted()
-  const parametros = await searchParams
-  const tramoPedido = uno(parametros.tramo)
-  const tramo: Tramo = esTramo(tramoPedido) ? tramoPedido : '30'
-  const modoPedido = uno(parametros.modo)
-  const modo: RenewalMode | undefined = esModoDeRenovacion(modoPedido) ? modoPedido : undefined
-  const estadoPedido = uno(parametros.estado)
-  const estado: RenewalState | undefined = esEstadoDeRenovacion(estadoPedido) ? estadoPedido : undefined
-  const compania = uno(parametros.compania)?.slice(0, 40)
-  const productor = uno(parametros.productor)?.slice(0, 120)
   const hoy = fechaDeHoy()
-  const desde = sumarDias(hoy, TRAMOS[tramo].desde)
-  const hasta = sumarDias(hoy, TRAMOS[tramo].hasta)
+  const f = leerFiltros(await searchParams, hoy)
+  const { desde, hasta } = rangoDelMes(f.mes, hoy)
 
-  const [lote, delTramo, companias] = await consultar(
+  const [lote, delMes, companias] = await consultar(
     Promise.all([latestBatch(principal), renovaciones(principal, { from: desde, to: hasta }), companiasActivas(principal)]),
   )
-  // Las opciones de Compañía y Productor salen de las renovaciones del tramo.
-  const companiasDelTramo = [...new Map(delTramo.map((r) => [r.insurerId, r.insurerName])).entries()].sort((a, b) =>
-    a[1].localeCompare(b[1], 'es'),
-  )
-  const productores = [...new Set(delTramo.map((r) => r.producer).filter((p) => p !== null))].sort((a, b) => a.localeCompare(b, 'es'))
-  const todas = delTramo.filter(
-    (r) => (compania === undefined || r.insurerId === compania) && (productor === undefined || r.producer === productor),
-  )
-  const lista = todas.filter(
-    (r) => (modo === undefined || r.renewalMode === modo) && (estado === undefined || r.state === estado),
-  )
-  const cuenta = (m: RenewalMode, e?: RenewalState): string =>
-    String(todas.filter((r) => r.renewalMode === m && (e === undefined || r.state === e)).length)
+  const enlace = (cambios: Partial<Filtros>) => enlaceCon(f, cambios, hoy)
+  const lista = filtrar(delMes, f)
+  const pagina = paginar(lista, f.pagina)
 
-  const enlace = (cambios: Record<string, string | undefined>) => {
-    const q = new URLSearchParams()
-    const valores = { tramo, modo, estado, compania, productor, ...cambios }
-    for (const [k, v] of Object.entries(valores)) if (v !== undefined && !(k === 'tramo' && v === '30')) q.set(k, v)
-    const s = q.toString()
-    return s === '' ? '/renovaciones' : `/renovaciones?${s}`
+  // Cada desplegable cuenta cuántas quedarían al elegir una opción, con los demás filtros puestos.
+  const sin = (cambios: Partial<Filtros>) => filtrar(delMes, { ...f, ...cambios })
+  const nombreDeCompania = new Map(delMes.map((r) => [r.insurerId, r.insurerName]))
+  const companiasDelMes = opcionesDe(sin({ compania: undefined }), (r) => r.insurerId)
+    .map((o) => ({ ...o, nombre: nombreDeCompania.get(o.valor) ?? o.valor }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  const productores = opcionesDe(sin({ productor: undefined }), (r) => r.producer)
+  const riesgos = opcionesDe(sin({ riesgos: [] }), (r) => r.productReference)
+  // Un riesgo elegido que no aparece en el mes igual se muestra, para poder quitarlo.
+  for (const r of f.riesgos)
+    if (!riesgos.some((o) => normalizar(o.valor) === normalizar(r))) riesgos.push({ valor: r, cuenta: 0 })
+  const pagos = opcionesDe(sin({ pago: undefined }), (r) => r.paymentMethod)
+  if (f.pago !== undefined && !pagos.some((o) => normalizar(o.valor) === normalizar(f.pago ?? '')))
+    pagos.push({ valor: f.pago, cuenta: 0 })
+  const porEstado = sin({ estado: undefined })
+  const porModo = sin({ modo: undefined })
+  const cuenta = (m: RenewalMode) => {
+    const delModo = porModo.filter((r) => r.renewalMode === m)
+    return { total: delModo.length, pendientes: delModo.filter((r) => r.state === 'PENDIENTE').length }
   }
-  const opcion = (etiqueta: string, activo: boolean, href: string) => (
-    <Link key={href + etiqueta} href={href} className={activo ? 'chip chip--activo' : 'chip'} aria-current={activo ? 'true' : undefined}>
-      {etiqueta}
-    </Link>
-  )
+  const modos: readonly { readonly modo: RenewalMode | undefined; readonly nombre: string }[] = [
+    { modo: undefined, nombre: 'Todas' },
+    { modo: 'MANUAL', nombre: 'Manuales' },
+    { modo: 'AUTOMATIC', nombre: 'Automáticas' },
+  ]
+
+  const tieneRiesgo = (valor: string) => f.riesgos.some((r) => normalizar(r) === normalizar(valor))
+  const alternarRiesgo = (valor: string) =>
+    enlace({ riesgos: tieneRiesgo(valor) ? f.riesgos.filter((r) => normalizar(r) !== normalizar(valor)) : [...f.riesgos, valor] })
 
   const nuevaGestion = (r: RenewalItem) =>
     `/gestiones/nueva?${new URLSearchParams({
@@ -108,101 +97,218 @@ export default async function RenovacionesPage({
 
       <p className="antetitulo">Renovaciones</p>
       <h1>Renovaciones ({lista.length})</h1>
-      <nav className="pestanas" aria-label="Tramo de vencimiento">
-        {(Object.keys(TRAMOS) as Tramo[]).map((t) => (
-          <Link key={t} href={enlace({ tramo: t })} aria-current={t === tramo ? 'page' : undefined}>
-            {TRAMOS[t].etiqueta}
-          </Link>
-        ))}
+
+      <div className="conjuntos" aria-label="Filtros guardados">
+        {conjuntos(hoy, companias).map((c) => {
+          const activo = esConjuntoActivo(f, c)
+          return (
+            <Link
+              key={c.nombre}
+              href={activo ? '/renovaciones' : enlaceCon(c.filtros, {}, hoy)}
+              className={activo ? 'conjunto conjunto--activo' : 'conjunto'}
+              aria-pressed={activo}
+              title={activo ? 'Quitar estos filtros' : undefined}
+            >
+              {c.nombre}
+            </Link>
+          )
+        })}
+      </div>
+
+      <nav className="segmentos" aria-label="Modo de renovación">
+        {modos.map(({ modo, nombre }) => {
+          const activo = f.modo === modo
+          const c = modo === undefined ? null : cuenta(modo)
+          return (
+            <Link
+              key={nombre}
+              href={enlace({ modo })}
+              className={activo ? 'segmento segmento--activo' : 'segmento'}
+              aria-current={activo ? 'true' : undefined}
+            >
+              <span>{nombre}</span>
+              {c === null ? (
+                <span className="segmento__cuenta">{porModo.length}</span>
+              ) : (
+                <>
+                  <span className="segmento__cuenta">{c.total}</span>
+                  <span className="segmento__detalle">{c.pendientes} pendientes</span>
+                </>
+              )}
+            </Link>
+          )
+        })}
       </nav>
-      <div className="chips">
-        {opcion('Todas', modo === undefined, enlace({ modo: undefined }))}
-        {opcion(`Manuales (${cuenta('MANUAL')}, ${cuenta('MANUAL', 'PENDIENTE')} pendientes)`, modo === 'MANUAL', enlace({ modo: 'MANUAL' }))}
-        {opcion(
-          `Automáticas (${cuenta('AUTOMATIC')}, ${cuenta('AUTOMATIC', 'PENDIENTE')} pendientes)`,
-          modo === 'AUTOMATIC',
-          enlace({ modo: 'AUTOMATIC' }),
-        )}
-      </div>
-      <div className="chips chips--segunda">
-        {opcion('Cualquier estado', estado === undefined, enlace({ estado: undefined }))}
-        {(Object.keys(ESTADOS_DE_RENOVACION) as RenewalState[]).map((e) =>
-          opcion(ESTADOS_DE_RENOVACION[e], estado === e, enlace({ estado: e })),
-        )}
-      </div>
-      <div className="fila filtros-desplegables">
-        <Desplegable
+
+      <div className="filtros">
+        <Filtro
+          etiqueta="Mes"
+          limpiar={null}
+          opciones={[
+            ...mesesDelSelector(hoy).map((m) => ({
+              valor: m,
+              etiqueta: etiquetaDeMes(m),
+              href: enlace({ mes: m }),
+              activa: f.mes === m,
+            })),
+            { valor: TODOS, etiqueta: 'Todos', href: enlace({ mes: TODOS }), activa: f.mes === TODOS },
+          ]}
+        />
+        <Filtro
+          etiqueta="Estado"
+          limpiar={enlace({ estado: undefined })}
+          opciones={(Object.keys(ESTADOS_DE_RENOVACION) as RenewalState[]).map((e) => ({
+            valor: e,
+            etiqueta: ESTADOS_DE_RENOVACION[e],
+            href: enlace({ estado: e }),
+            activa: f.estado === e,
+            cuenta: porEstado.filter((r) => r.state === e).length,
+          }))}
+        />
+        <Filtro
           etiqueta="Compañía"
-          valor={compania ?? ''}
-          opciones={companiasDelTramo.map(([id, nombre]) => ({ valor: id, etiqueta: nombre, href: enlace({ compania: id }) }))}
+          vacio="Todas"
           limpiar={enlace({ compania: undefined })}
+          opciones={companiasDelMes.map((o) => ({
+            valor: o.valor,
+            etiqueta: o.nombre,
+            href: enlace({ compania: o.valor }),
+            activa: f.compania === o.valor,
+            cuenta: o.cuenta,
+          }))}
         />
-        <Desplegable
+        <Filtro
+          etiqueta="Riesgo"
+          multiple
+          limpiar={enlace({ riesgos: [] })}
+          opciones={riesgos.map((o) => ({
+            valor: o.valor,
+            etiqueta: o.valor,
+            href: alternarRiesgo(o.valor),
+            activa: tieneRiesgo(o.valor),
+            cuenta: o.cuenta,
+          }))}
+        />
+        <Filtro
+          etiqueta="Forma de pago"
+          vacio="Todas"
+          limpiar={enlace({ pago: undefined })}
+          opciones={pagos.map((o) => ({
+            valor: o.valor,
+            etiqueta: o.valor,
+            href: enlace({ pago: o.valor }),
+            activa: f.pago !== undefined && normalizar(f.pago) === normalizar(o.valor),
+            cuenta: o.cuenta,
+          }))}
+        />
+        <Filtro
           etiqueta="Productor"
-          valor={productor ?? ''}
-          opciones={productores.map((p) => ({ valor: p, etiqueta: p, href: enlace({ productor: p }) }))}
           limpiar={enlace({ productor: undefined })}
+          opciones={productores.map((o) => ({
+            valor: o.valor,
+            etiqueta: o.valor,
+            href: enlace({ productor: o.valor }),
+            activa: f.productor === o.valor,
+            cuenta: o.cuenta,
+          }))}
         />
+        {hayFiltros(f, hoy) ? (
+          <Link href="/renovaciones" className="filtros__limpiar">
+            Limpiar filtros
+          </Link>
+        ) : null}
       </div>
       <p className="meta">
-        Pólizas cuya vigencia termina entre el {fecha(desde)} y el {fecha(hasta)}. Salen de las pólizas importadas: una
-        póliza sin sucesora en Broker OS puede estar renovada en la compañía después de la fecha del lote.
+        {f.mes === TODOS
+          ? `Pólizas cuya vigencia termina entre el ${fecha(desde)} y el ${fecha(hasta)}.`
+          : `Pólizas cuya vigencia termina en ${etiquetaDeMes(f.mes).toLowerCase()}.`}{' '}
+        Salen de las pólizas importadas: una póliza sin sucesora en Broker OS puede estar renovada en la compañía después
+        de la fecha del lote.
       </p>
 
       {lista.length === 0 ? (
         <p className="estado">No hay renovaciones para mostrar.</p>
       ) : (
-        <div className="desborde">
-          <table>
-            <thead>
-              <tr>
-                <th>Fin de vigencia</th>
-                <th>Póliza</th>
-                <th>Tomador</th>
-                <th>Productor</th>
-                <th>Riesgo</th>
-                <th>Modo</th>
-                <th>Estado</th>
-                <th>Seguimiento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((r) => (
-                <tr key={r.policyId}>
-                  <td className={r.termEndDate < hoy && r.state === 'PENDIENTE' ? 'pendiente' : undefined}>
-                    {fecha(r.termEndDate)}
-                  </td>
-                  <td>
-                    <Link href={`/poliza/${r.policyId}`}>{r.policyNumber}</Link> · {r.insurerName}
-                  </td>
-                  <td>
-                    <Link href={`/parte/${r.holderPartyId}`}>{r.holderName ?? 'sin nombre'}</Link>
-                  </td>
-                  <td>{r.producer ?? '—'}</td>
-                  <td>{r.productReference ?? '—'}</td>
-                  <td>{MODOS_DE_RENOVACION[r.renewalMode]}</td>
-                  <td>{ESTADOS_DE_RENOVACION[r.state]}</td>
-                  <td>
-                    <Seguimiento
-                      item={r}
-                      companias={companias}
-                      gestionHref={nuevaGestion(r)}
-                      tareaHref={seguimiento(r)}
-                      gestion={
-                        r.caseId !== null && r.successorPolicyId === null ? (
-                          <Link href={`/gestiones/${r.caseId}`}>
-                            {r.caseStatus === null ? 'Gestión' : ESTADOS_DE_GESTION[r.caseStatus]}
-                            {r.caseAssignedEmail === null ? ' · sin responsable' : ` · ${r.caseAssignedEmail}`}
-                          </Link>
-                        ) : null
-                      }
-                    />
-                  </td>
+        <>
+          <div className="desborde">
+            <table className="tabla-renovaciones">
+              <thead>
+                <tr>
+                  <th>Fin de vigencia</th>
+                  <th>Póliza</th>
+                  <th>Tomador</th>
+                  <th>Productor</th>
+                  <th>Riesgo</th>
+                  <th>Comentario</th>
+                  <th>Seguimiento</th>
                 </tr>
+              </thead>
+              <tbody>
+                {pagina.filas.map((r) => (
+                  <tr key={r.policyId}>
+                    <td className={r.termEndDate < hoy && r.state === 'PENDIENTE' ? 'pendiente' : undefined}>
+                      {fecha(r.termEndDate)}
+                    </td>
+                    <td>
+                      <Link href={`/poliza/${r.policyId}`}>{r.policyNumber}</Link> · {r.insurerName}
+                    </td>
+                    <td>
+                      <Link href={`/parte/${r.holderPartyId}`}>{r.holderName ?? 'sin nombre'}</Link>
+                    </td>
+                    <td>{r.producer ?? '—'}</td>
+                    <td>{r.productReference ?? '—'}</td>
+                    <td className="celda-comentario">
+                      <Comentario poliza={r.policyId} numero={r.policyNumber} inicial={r.comment} />
+                    </td>
+                    <td>
+                      <Seguimiento
+                        item={r}
+                        companias={companias}
+                        gestionHref={nuevaGestion(r)}
+                        tareaHref={seguimiento(r)}
+                        gestion={
+                          r.caseId !== null && r.successorPolicyId === null ? (
+                            <Link href={`/gestiones/${r.caseId}`}>
+                              {r.caseStatus === null ? 'Gestión' : ESTADOS_DE_GESTION[r.caseStatus]}
+                              {r.caseAssignedEmail === null ? ' · sin responsable' : ` · ${r.caseAssignedEmail}`}
+                            </Link>
+                          ) : null
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pagina.paginas > 1 ? (
+            <nav className="paginacion" aria-label="Páginas">
+              <span className="paginacion__resumen">
+                {pagina.desde}–{pagina.hasta} de {lista.length}
+              </span>
+              {pagina.pagina > 1 ? (
+                <Link href={enlace({ pagina: pagina.pagina - 1 })} className="paginacion__paso">
+                  ← Anterior
+                </Link>
+              ) : null}
+              {Array.from({ length: pagina.paginas }, (_, i) => i + 1).map((n) => (
+                <Link
+                  key={n}
+                  href={enlace({ pagina: n })}
+                  className={n === pagina.pagina ? 'paginacion__numero paginacion__numero--activo' : 'paginacion__numero'}
+                  aria-current={n === pagina.pagina ? 'page' : undefined}
+                >
+                  {n}
+                </Link>
               ))}
-            </tbody>
-          </table>
-        </div>
+              {pagina.pagina < pagina.paginas ? (
+                <Link href={enlace({ pagina: pagina.pagina + 1 })} className="paginacion__paso">
+                  Siguiente →
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
+        </>
       )}
     </main>
   )
