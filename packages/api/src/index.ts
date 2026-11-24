@@ -133,12 +133,11 @@ export type {
 // T-0048: renovaciones.
 export {
   ESTADOS_DE_RENOVACION,
-  MODOS_DE_RENOVACION,
-  esEstadoDeRenovacion,
-  esModoDeRenovacion,
+  comentarRenovacion,
+  comentarRenovacionCon,
   renovaciones,
 } from './renovaciones/renovaciones.ts'
-export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renovaciones/renovaciones.ts'
+export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState, ResultadoDeComentario } from './renovaciones/renovaciones.ts'
 
 // T-0052: tareas.
 export {

@@ -123,7 +123,7 @@ export type {
   TaskSummary,
   TeamMemberProfile,
 } from './task.ts'
-export { listRenewals } from './renewal.ts'
+export { cleanRenewalComment, listRenewals, saveRenewalComment } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
 export {
   CLAIM_CONTACT_ROLES,
