@@ -82,6 +82,7 @@ export default async function ComunicacionPage({
                         <span key={cliente.partyId}>
                           {n === 0 ? null : ', '}
                           <Link href={`/parte/${cliente.partyId}`}>{cliente.name}</Link>
+                          {cliente.prospect ? <span className="meta"> (prospecto)</span> : null}
                         </span>
                       ))
                     )}
