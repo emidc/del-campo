@@ -11,6 +11,7 @@ import { Comentario } from './Comentario'
 import { Filtro } from './Filtro'
 import type { Filtros } from './filtros'
 import {
+  ACTUALES,
   TODOS,
   conjuntos,
   enlace as enlaceCon,
@@ -152,6 +153,7 @@ export default async function RenovacionesPage({
               activa: f.mes === m,
             })),
             { valor: TODOS, etiqueta: 'Todos', href: enlace({ mes: TODOS }), activa: f.mes === TODOS },
+            { valor: ACTUALES, etiqueta: 'Actuales', href: enlace({ mes: ACTUALES }), activa: f.mes === ACTUALES },
           ]}
         />
         <Filtro
@@ -219,7 +221,9 @@ export default async function RenovacionesPage({
         ) : null}
       </div>
       <p className="meta">
-        {f.mes === TODOS
+        {f.mes === ACTUALES
+          ? `Pólizas cuya vigencia termina desde el ${fecha(desde)} en adelante.`
+          : f.mes === TODOS
           ? `Pólizas cuya vigencia termina entre el ${fecha(desde)} y el ${fecha(hasta)}.`
           : `Pólizas cuya vigencia termina en ${etiquetaDeMes(f.mes).toLowerCase()}.`}{' '}
         Salen de las pólizas importadas: una póliza sin sucesora en Broker OS puede estar renovada en la compañía después
