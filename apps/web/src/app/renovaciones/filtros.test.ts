@@ -62,6 +62,8 @@ describe('mes de Renovaciones', () => {
   it('un mes cubre del primero al último día; «todos» cubre todo el selector', () => {
     assert.deepEqual(rangoDelMes('2027-02', HOY), { desde: '2027-02-01', hasta: '2027-02-28' })
     assert.deepEqual(rangoDelMes('todos', HOY), { desde: '2026-09-01', hasta: '2027-05-31' })
+    assert.deepEqual(rangoDelMes('actuales', HOY), { desde: '2026-11-01', hasta: '9999-12-31' })
+    assert.equal(leerFiltros({ mes: 'actuales' }, HOY).mes, 'actuales')
   })
 
   it('un mes fuera del selector vuelve al de por defecto', () => {
@@ -114,16 +116,16 @@ describe('conjuntos de filtros', () => {
     )
   })
 
-  it('Pago en efectivo: todos los meses y forma de pago Efectivo', () => {
+  it('Pago en efectivo: actuales y forma de pago Efectivo', () => {
     const efectivo = conjuntos(HOY, companias).find((c) => c.nombre === 'Pago en efectivo')
-    assert.equal(enlace(efectivo?.filtros ?? leerFiltros({}, HOY), {}, HOY), '/renovaciones?mes=todos&pago=Efectivo')
+    assert.equal(enlace(efectivo?.filtros ?? leerFiltros({}, HOY), {}, HOY), '/renovaciones?mes=actuales&pago=Efectivo')
   })
 
   it('se marca activo sólo si los filtros coinciden', () => {
     const efectivo = conjuntos(HOY, companias).find((c) => c.nombre === 'Pago en efectivo')
     if (efectivo === undefined) throw new Error('falta el conjunto')
-    assert.equal(esConjuntoActivo(leerFiltros({ mes: 'todos', pago: 'Efectivo', pagina: '2' }, HOY), efectivo), true)
-    assert.equal(esConjuntoActivo(leerFiltros({ mes: 'todos', pago: 'Efectivo', estado: 'PENDIENTE' }, HOY), efectivo), false)
+    assert.equal(esConjuntoActivo(leerFiltros({ mes: 'actuales', pago: 'Efectivo', pagina: '2' }, HOY), efectivo), true)
+    assert.equal(esConjuntoActivo(leerFiltros({ mes: 'actuales', pago: 'Efectivo', estado: 'PENDIENTE' }, HOY), efectivo), false)
   })
 
   it('sin La Segunda entre las compañías, ese conjunto no se ofrece', () => {

@@ -9,6 +9,10 @@ export const POR_PAGINA = 100
 const MESES_ATRAS = 2
 const MESES_ADELANTE = 6
 export const TODOS = 'todos'
+/** Desde el mes actual en adelante, sin tope. */
+export const ACTUALES = 'actuales'
+/** El tope de «Actuales»: cualquier fin de vigencia futuro. */
+const SIN_TOPE = '9999-12-31'
 
 const NOMBRES_DE_MES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -41,6 +45,7 @@ export const mesPorDefecto = (hoy: string): string => sumarMeses(hoy.slice(0, 7)
 
 export const etiquetaDeMes = (mes: string): string => {
   if (mes === TODOS) return 'Todos los meses'
+  if (mes === ACTUALES) return 'Actuales'
   const [a, m] = mes.split('-')
   return `${NOMBRES_DE_MES[Number(m) - 1] ?? mes} ${a ?? ''}`
 }
@@ -51,8 +56,12 @@ export const mesesDelSelector = (hoy: string): string[] => {
   return Array.from({ length: MESES_ATRAS + MESES_ADELANTE + 1 }, (_, i) => sumarMeses(actual, i - MESES_ATRAS))
 }
 
-/** Primer y último día de fin de vigencia que cubre el mes elegido; «Todos» cubre todo el selector. */
+/**
+ * Primer y último día de fin de vigencia que cubre el mes elegido; «Todos» cubre todo el
+ * selector y «Actuales», del primer día del mes actual en adelante.
+ */
 export const rangoDelMes = (mes: string, hoy: string): { readonly desde: string; readonly hasta: string } => {
+  if (mes === ACTUALES) return { desde: `${hoy.slice(0, 7)}-01`, hasta: SIN_TOPE }
   if (mes !== TODOS) return { desde: `${mes}-01`, hasta: ultimoDia(mes) }
   const meses = mesesDelSelector(hoy)
   return { desde: `${meses[0] ?? ''}-01`, hasta: ultimoDia(meses.at(-1) ?? '') }
@@ -84,7 +93,7 @@ const varios = (valor: string | string[] | undefined): string[] => {
 export const leerFiltros = (parametros: Parametros, hoy: string): Filtros => {
   const mesPedido = uno(parametros.mes)
   const meses = mesesDelSelector(hoy)
-  const mes = mesPedido === TODOS || (mesPedido !== undefined && meses.includes(mesPedido)) ? mesPedido : mesPorDefecto(hoy)
+  const mes = mesPedido === TODOS || mesPedido === ACTUALES || (mesPedido !== undefined && meses.includes(mesPedido)) ? mesPedido : mesPorDefecto(hoy)
   const estadoPedido = uno(parametros.estado)
   const modoPedido = uno(parametros.modo)
   const pagina = Number(uno(parametros.pagina) ?? '1')
@@ -199,7 +208,7 @@ export const conjuntos = (hoy: string, companias: readonly Compania[]): Conjunto
         riesgos: ['Automotor', 'Motovehiculo', 'TRAILER', 'Flota automotor'],
       },
     })
-  lista.push({ nombre: 'Pago en efectivo', filtros: { ...VACIOS, mes: TODOS, pago: 'Efectivo' } })
+  lista.push({ nombre: 'Pago en efectivo', filtros: { ...VACIOS, mes: ACTUALES, pago: 'Efectivo' } })
   return lista
 }
 
