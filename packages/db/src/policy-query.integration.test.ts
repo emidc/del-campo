@@ -366,12 +366,14 @@ describe('detalle e historial — limites de DOMAIN.md §63', () => {
         number: 'END-SINTETICO-001',
         kind: 'CAMBIO_SINTETICO',
         effectiveFrom: '2026-04-01',
+        driveUrl: null,
       })
       assert.equal(detail.documents.length, 1)
       assert.deepEqual(Object.keys(detail).sort(), [
         'currentVersion',
         'documentReferences',
         'documents',
+        'driveUrl',
         'history',
         'holder',
         'insurer',

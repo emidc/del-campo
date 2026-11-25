@@ -6,6 +6,7 @@
 import type {
   DeleteBlocker,
   EditResult,
+  EndorsementEdit,
   PolicyField,
   PolicyTerms,
   RebillingInput,
@@ -23,6 +24,7 @@ import {
   registerRebilling,
   renewPolicy,
   todayInMendoza,
+  updateEndorsement,
   updatePolicyField,
 } from '@del-campo/db'
 
@@ -32,7 +34,7 @@ import { jobDenial } from '../comunicacion/entrada.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
-export type { DeleteBlocker, EditResult, PolicyField, PolicyTerms, RebillingInput, RebillingResult, RenewResult, RenewalInput }
+export type { DeleteBlocker, EditResult, EndorsementEdit, PolicyField, PolicyTerms, RebillingInput, RebillingResult, RenewResult, RenewalInput }
 export { POLICY_FIELDS, effectiveStatus, isPolicyField, todayInMendoza }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -76,6 +78,11 @@ export const refacturarCon = (conexion: Conexion, principal: Principal, datos: R
     ? conDatos(conexion, principal, (tx) => registerRebilling(tx, datos))
     : Promise.resolve({ kind: 'not_found' })
 
+export const editarEndosoCon = (conexion: Conexion, principal: Principal, datos: EndorsementEdit): Promise<EditResult> =>
+  esUuid(datos.policyId) && esUuid(datos.endorsementId)
+    ? conDatos(conexion, principal, (tx) => updateEndorsement(tx, datos))
+    : Promise.resolve({ kind: 'not_found' })
+
 export const eliminarPolizaCon = (conexion: Conexion, principal: Principal, policyId: string): Promise<DeleteBlocker[]> =>
   conDatos(conexion, principal, (tx) => deletePolicy(tx, policyId))
 
@@ -84,6 +91,7 @@ export const editarCampoDePoliza = (principal: Principal, policyId: string, camp
 export const renovarPoliza = (principal: Principal, datos: RenewalInput): Promise<RenewResult> => renovarPolizaCon(sql(), principal, datos)
 export const siguienteEndoso = (principal: Principal, policyId: string): Promise<number> => siguienteEndosoCon(sql(), principal, policyId)
 export const refacturar = (principal: Principal, datos: RebillingInput): Promise<RebillingResult> => refacturarCon(sql(), principal, datos)
+export const editarEndoso = (principal: Principal, datos: EndorsementEdit): Promise<EditResult> => editarEndosoCon(sql(), principal, datos)
 export const eliminarPoliza = (principal: Principal, policyId: string): Promise<DeleteBlocker[]> =>
   eliminarPolizaCon(sql(), principal, policyId)
 

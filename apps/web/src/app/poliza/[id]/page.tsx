@@ -2,7 +2,6 @@ import { effectiveStatus, latestBatch, policy, todayInMendoza } from '@del-campo
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { AccesoDocumental } from '@/app/_componentes/AccesoDocumental'
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
 import { fechaDeHoy } from '@/lib/criterios'
@@ -10,6 +9,8 @@ import { estadoDePoliza, estadoDocumental, fecha, importe, importeEditable, tipo
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 import { editarCampo, eliminar } from '../acciones'
+
+import { EditarEndoso } from './EditarEndoso'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,13 @@ export default async function PolizaPage({
   /** Sólo la versión abierta se edita: las cerradas son historia. */
   const editable = actual?.effectiveTo === null
   const ocultos = (campo: string) => ({ poliza: detail.policyId, campo })
+  /** El documento de la póliza: el que cargó el equipo o, si no hay, el que informó Zoho. */
+  const documento =
+    detail.driveUrl !== null
+      ? { url: detail.driveUrl, segunZoho: false }
+      : access.document === null
+        ? null
+        : { url: access.document.url, segunZoho: access.document.level === 'ZOHO_UNVERIFIED' }
 
   return (
     <main className="envoltorio">
@@ -83,9 +91,9 @@ export default async function PolizaPage({
         </div>
       </header>
 
-      <div className="grid-2">
-        <section className="tarjeta">
-          <h2>Datos</h2>
+      <section className="tarjeta datos-poliza">
+        <h2>Datos</h2>
+        <div className="datos-tarea datos-tarea--dos">
           <dl className="kv">
             <dt>Tomador</dt>
             <dd className="nombre">
@@ -99,9 +107,23 @@ export default async function PolizaPage({
               <CampoEditable etiqueta="Número de póliza" valor={detail.policyNumber} accion={editarCampo} ocultos={ocultos('numero')}>
                 {detail.policyNumber}
               </CampoEditable>
-            ) : null}
+            ) : (
+              <>
+                <dt>Número de póliza</dt>
+                <dd>{detail.policyNumber}</dd>
+              </>
+            )}
             <dt>Aseguradora</dt>
             <dd>{detail.insurer.name}</dd>
+            <CampoEditable etiqueta="Póliza de Google Drive" tipo="url" valor={documento?.url ?? ''} accion={editarCampo} ocultos={ocultos('drive')}>
+              {documento === null ? (
+                '—'
+              ) : (
+                <a href={documento.url} target="_blank" rel="noreferrer">
+                  {documento.segunZoho ? 'Abrir póliza (según Zoho)' : 'Abrir póliza'}
+                </a>
+              )}
+            </CampoEditable>
             {actual === undefined ? null : editable ? (
               <>
                 <CampoEditable etiqueta="Inicio de vigencia" tipo="date" valor={actual.termStartDate} accion={editarCampo} ocultos={ocultos('inicio')}>
@@ -110,73 +132,17 @@ export default async function PolizaPage({
                 <CampoEditable etiqueta="Fin de vigencia" tipo="date" valor={actual.termEndDate} accion={editarCampo} ocultos={ocultos('fin')}>
                   {fecha(actual.termEndDate)}
                 </CampoEditable>
-                <dt>Estado</dt>
-                <dd>{estado}</dd>
-                <CampoEditable etiqueta="Productor" valor={actual.producer ?? ''} accion={editarCampo} ocultos={ocultos('productor')}>
-                  {actual.producer ?? '—'}
-                </CampoEditable>
-                <CampoEditable etiqueta="Tipo de riesgo" valor={actual.productReference ?? ''} accion={editarCampo} ocultos={ocultos('tipoRiesgo')}>
-                  {actual.productReference ?? '—'}
-                </CampoEditable>
-                <CampoEditable etiqueta="Prima" tipo="importe" valor={importeEditable(actual.premium)} accion={editarCampo} ocultos={ocultos('prima')}>
-                  {importe(actual.premium, actual.currency)}
-                </CampoEditable>
-                <CampoEditable etiqueta="Premio" tipo="importe" valor={importeEditable(actual.totalPremium)} accion={editarCampo} ocultos={ocultos('premio')}>
-                  {importe(actual.totalPremium, actual.currency)}
-                </CampoEditable>
-                <CampoEditable
-                  etiqueta="Suma asegurada"
-                  tipo="importe"
-                  valor={importeEditable(actual.sumInsured)}
-                  accion={editarCampo}
-                  ocultos={ocultos('sumaAsegurada')}
-                >
-                  {importe(actual.sumInsured, actual.currency)}
-                </CampoEditable>
-                <CampoEditable etiqueta="Moneda" valor={actual.currency ?? ''} accion={editarCampo} ocultos={ocultos('moneda')}>
-                  {actual.currency ?? '—'}
-                </CampoEditable>
-                <CampoEditable etiqueta="Forma de pago" valor={actual.paymentMethod ?? ''} accion={editarCampo} ocultos={ocultos('formaPago')}>
-                  {actual.paymentMethod ?? '—'}
-                </CampoEditable>
-                <CampoEditable
-                  etiqueta="Renovación"
-                  tipo="select"
-                  valor={actual.renewalMode}
-                  opciones={[
-                    { valor: 'MANUAL', etiqueta: 'Manual' },
-                    { valor: 'AUTOMATIC', etiqueta: 'Automática' },
-                  ]}
-                  accion={editarCampo}
-                  ocultos={ocultos('renovacion')}
-                >
-                  {actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}
-                </CampoEditable>
               </>
             ) : (
               <>
-                <dt>Vigencia</dt>
-                <dd>
-                  {fecha(actual.termStartDate)} → {fecha(actual.termEndDate)}
-                </dd>
-                <dt>Estado</dt>
-                <dd>{estado}</dd>
-                <dt>Productor</dt>
-                <dd>{actual.producer ?? '—'}</dd>
-                <dt>Tipo de riesgo</dt>
-                <dd>{actual.productReference ?? '—'}</dd>
-                <dt>Prima</dt>
-                <dd>{importe(actual.premium, actual.currency)}</dd>
-                <dt>Premio</dt>
-                <dd>{importe(actual.totalPremium, actual.currency)}</dd>
-                <dt>Suma asegurada</dt>
-                <dd>{importe(actual.sumInsured, actual.currency)}</dd>
-                <dt>Forma de pago</dt>
-                <dd>{actual.paymentMethod ?? '—'}</dd>
-                <dt>Renovación</dt>
-                <dd>{actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</dd>
+                <dt>Inicio de vigencia</dt>
+                <dd>{fecha(actual.termStartDate)}</dd>
+                <dt>Fin de vigencia</dt>
+                <dd>{fecha(actual.termEndDate)}</dd>
               </>
             )}
+            <dt>Estado</dt>
+            <dd>{estado ?? '—'}</dd>
             {detail.renewedFrom === null ? null : (
               <>
                 <dt>Renueva a</dt>
@@ -194,17 +160,74 @@ export default async function PolizaPage({
               </>
             )}
           </dl>
-          <p className="meta">
-            <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link>
-          </p>
-        </section>
-
-        <section className="tarjeta">
-          <h2>Documentos</h2>
-          <AccesoDocumental acceso={access} />
-          <p className="meta">Los enlaces abren Drive con tu propia sesión de Google. Si un destino no abre, el acceso se resuelve en Drive.</p>
-        </section>
-      </div>
+          {actual === undefined ? null : editable ? (
+            <dl className="kv">
+              <CampoEditable etiqueta="Productor" valor={actual.producer ?? ''} accion={editarCampo} ocultos={ocultos('productor')}>
+                {actual.producer ?? '—'}
+              </CampoEditable>
+              <CampoEditable etiqueta="Tipo de riesgo" valor={actual.productReference ?? ''} accion={editarCampo} ocultos={ocultos('tipoRiesgo')}>
+                {actual.productReference ?? '—'}
+              </CampoEditable>
+              <CampoEditable etiqueta="Prima" tipo="importe" valor={importeEditable(actual.premium)} accion={editarCampo} ocultos={ocultos('prima')}>
+                {importe(actual.premium, actual.currency)}
+              </CampoEditable>
+              <CampoEditable etiqueta="Premio" tipo="importe" valor={importeEditable(actual.totalPremium)} accion={editarCampo} ocultos={ocultos('premio')}>
+                {importe(actual.totalPremium, actual.currency)}
+              </CampoEditable>
+              <CampoEditable
+                etiqueta="Suma asegurada"
+                tipo="importe"
+                valor={importeEditable(actual.sumInsured)}
+                accion={editarCampo}
+                ocultos={ocultos('sumaAsegurada')}
+              >
+                {importe(actual.sumInsured, actual.currency)}
+              </CampoEditable>
+              <CampoEditable etiqueta="Moneda" valor={actual.currency ?? ''} accion={editarCampo} ocultos={ocultos('moneda')}>
+                {actual.currency ?? '—'}
+              </CampoEditable>
+              <CampoEditable etiqueta="Forma de pago" valor={actual.paymentMethod ?? ''} accion={editarCampo} ocultos={ocultos('formaPago')}>
+                {actual.paymentMethod ?? '—'}
+              </CampoEditable>
+              <CampoEditable
+                etiqueta="Renovación"
+                tipo="select"
+                valor={actual.renewalMode}
+                opciones={[
+                  { valor: 'MANUAL', etiqueta: 'Manual' },
+                  { valor: 'AUTOMATIC', etiqueta: 'Automática' },
+                ]}
+                accion={editarCampo}
+                ocultos={ocultos('renovacion')}
+              >
+                {actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}
+              </CampoEditable>
+            </dl>
+          ) : (
+            <dl className="kv">
+              <dt>Productor</dt>
+              <dd>{actual.producer ?? '—'}</dd>
+              <dt>Tipo de riesgo</dt>
+              <dd>{actual.productReference ?? '—'}</dd>
+              <dt>Prima</dt>
+              <dd>{importe(actual.premium, actual.currency)}</dd>
+              <dt>Premio</dt>
+              <dd>{importe(actual.totalPremium, actual.currency)}</dd>
+              <dt>Suma asegurada</dt>
+              <dd>{importe(actual.sumInsured, actual.currency)}</dd>
+              <dt>Moneda</dt>
+              <dd>{actual.currency ?? '—'}</dd>
+              <dt>Forma de pago</dt>
+              <dd>{actual.paymentMethod ?? '—'}</dd>
+              <dt>Renovación</dt>
+              <dd>{actual.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</dd>
+            </dl>
+          )}
+        </div>
+        <p className="meta">
+          <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link> · Los enlaces abren Drive con tu propia sesión de Google.
+        </p>
+      </section>
 
       <h2>Historial de versiones</h2>
       <div className="desborde">
@@ -220,11 +243,13 @@ export default async function PolizaPage({
               <th>Renovación</th>
               <th>Endoso</th>
               <th>Tipo de endoso</th>
+              <th>Documento</th>
+              <th aria-label="Acciones" />
             </tr>
           </thead>
           <tbody>
             {detail.history.map((entrada) => (
-              <tr key={entrada.id}>
+              <tr key={entrada.id} className={entrada.endorsement === null ? undefined : 'fila-editable'}>
                 <td>{entrada.versionNumber}</td>
                 <td>
                   {fecha(entrada.termStartDate)} → {fecha(entrada.termEndDate)}
@@ -236,6 +261,42 @@ export default async function PolizaPage({
                 <td>{entrada.renewalMode === 'AUTOMATIC' ? 'Automática' : 'Manual'}</td>
                 <td>{entrada.endorsement?.number ?? '—'}</td>
                 <td>{tipoDeEndoso(entrada.endorsement?.kind)}</td>
+                <td>
+                  {entrada.endorsement?.driveUrl == null ? (
+                    '—'
+                  ) : (
+                    <a href={entrada.endorsement.driveUrl} target="_blank" rel="noreferrer">
+                      Abrir endoso
+                    </a>
+                  )}
+                </td>
+                <td className="celda-lapiz">
+                  {entrada.endorsement === null ? null : (
+                    <EditarEndoso
+                      poliza={detail.policyId}
+                      endoso={entrada.endorsement.id}
+                      numero={entrada.endorsement.number ?? ''}
+                      drive={entrada.endorsement.driveUrl ?? ''}
+                      rigeDesde={entrada.endorsement.effectiveFrom ?? entrada.effectiveFrom}
+                      condiciones={
+                        entrada.effectiveTo !== null
+                          ? null
+                          : {
+                              inicio: entrada.termStartDate,
+                              fin: entrada.termEndDate,
+                              prima: importeEditable(entrada.premium),
+                              premio: importeEditable(entrada.totalPremium),
+                              suma: importeEditable(entrada.sumInsured),
+                              moneda: entrada.currency ?? '',
+                              productor: entrada.producer ?? '',
+                              riesgo: entrada.productReference ?? '',
+                              pago: entrada.paymentMethod ?? '',
+                              renovacion: entrada.renewalMode,
+                            }
+                      }
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -60,6 +60,8 @@ export interface EndorsementSummary {
   readonly number: string | null
   readonly kind: string
   readonly effectiveFrom: string | null
+  /** El documento del endoso en Drive, si el equipo lo cargó. */
+  readonly driveUrl: string | null
 }
 
 export interface PolicyVersionHistoryEntry extends CurrentPolicyVersion {
@@ -108,6 +110,8 @@ export interface ExternalDocumentReferenceSummary {
 export interface PolicyDetail {
   readonly policyId: string
   readonly policyNumber: string
+  /** El documento de la póliza en Drive, si el equipo lo cargó. */
+  readonly driveUrl: string | null
   readonly renewedFromPolicyId: string | null
   /** La póliza que esta renueva («Renueva a»). */
   readonly renewedFrom: LinkedPolicy | null
@@ -168,6 +172,7 @@ interface CandidateRow {
 }
 
 interface PolicyIdentityRow extends CandidateRow {
+  readonly drive_url: string | null
   readonly renewed_from_policy_id: string | null
   readonly renewed_from_number: string | null
   readonly renewed_by_id: string | null
@@ -200,6 +205,7 @@ interface HistoryRow {
   readonly endorsement_number: string | null
   readonly endorsement_kind: string | null
   readonly endorsement_effective_from: DateValue | null
+  readonly endorsement_drive_url: string | null
 }
 
 interface DocumentRow {
@@ -468,6 +474,7 @@ const policyIdentity = async (
     select
       p.id as policy_id,
       p.policy_number,
+      p.drive_url,
       p.renewed_from_policy_id,
       anterior.policy_number as renewed_from_number,
       sucesora.id as renewed_by_id,
@@ -585,7 +592,8 @@ export const getPolicyDetail = async (
         e.id as endorsement_id,
         e.number as endorsement_number,
         e.kind as endorsement_kind,
-        e.effective_from as endorsement_effective_from
+        e.effective_from as endorsement_effective_from,
+        e.drive_url as endorsement_drive_url
       from policy_version pv
       join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
       join party holder on holder.id = resolved_holder.canonical_id
@@ -654,12 +662,14 @@ export const getPolicyDetail = async (
           effectiveFrom: row.endorsement_effective_from === null
             ? null
             : dateOnly(row.endorsement_effective_from),
+          driveUrl: row.endorsement_drive_url,
         },
   }))
 
   return {
     policyId: identity.policy_id,
     policyNumber: identity.policy_number,
+    driveUrl: identity.drive_url,
     renewedFromPolicyId: identity.renewed_from_policy_id,
     renewedFrom: identity.renewed_from_policy_id === null || identity.renewed_from_number === null
       ? null
