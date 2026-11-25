@@ -9,6 +9,7 @@ import type { PolicyTerms } from '@del-campo/api'
 import {
   describirBloqueos,
   editarCampoDePoliza,
+  editarEndoso as editarEndosoDePoliza,
   eliminarPoliza,
   esUuid,
   isPolicyField,
@@ -77,6 +78,7 @@ const condiciones = (form: FormData): PolicyTerms => ({
   riskType: texto(form, 'riesgo'),
   paymentMethod: texto(form, 'pago'),
   renewalMode: texto(form, 'renovacion'),
+  driveUrl: texto(form, 'drive'),
 })
 
 export async function renovar(_previo: Resultado, form: FormData): Promise<Resultado> {
@@ -116,10 +118,32 @@ export async function registrarRefacturacion(_previo: Resultado, form: FormData)
   if (resultado.kind === 'taken')
     return {
       ok: false,
-      error: `Otra persona registró un endoso recién. El número pasó a ${String(resultado.next)}: revisá y guardá de nuevo.`,
+      error: `El endoso ${String(numero)} ya está registrado en esta póliza. El próximo libre es el ${String(resultado.next)}: revisá y guardá de nuevo.`,
       siguiente: resultado.next,
     }
   revalidatePath('/renovaciones')
   revalidatePath(`/poliza/${poliza}`)
+  return { ok: true }
+}
+
+export async function editarEndoso(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const poliza = texto(form, 'poliza')
+  /** Las condiciones viajan sólo si la versión del endoso sigue abierta. */
+  const conCondiciones = texto(form, 'condiciones') === '1'
+  const resultado = await intentar(
+    editarEndosoDePoliza(principal, {
+      policyId: poliza,
+      endorsementId: texto(form, 'endoso'),
+      number: texto(form, 'numero'),
+      driveUrl: texto(form, 'drive'),
+      ...(conCondiciones ? { terms: condiciones(form) } : {}),
+    }),
+  )
+  if (resultado === null) return error(FALLO)
+  if (resultado.kind === 'invalid') return error(resultado.message)
+  if (resultado.kind === 'not_found') return error('No se encontró el endoso.')
+  revalidatePath(`/poliza/${poliza}`)
+  revalidatePath('/renovaciones')
   return { ok: true }
 }

@@ -2276,3 +2276,53 @@ a.conjunto--activo:hover {
   background: var(--marca);
   color: #fff;
 }
+
+/* ── Ficha de póliza: datos en dos columnas e historial editable ───────────── */
+
+.datos-tarea--dos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+}
+
+.datos-tarea--dos .kv {
+  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .datos-tarea--dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.datos-poliza > .meta {
+  margin-bottom: 0;
+}
+
+.encabezado + .datos-poliza {
+  margin-top: 18px;
+}
+
+.formulario-modal .campo--ancho {
+  grid-column: 1 / -1;
+}
+
+.celda-lapiz {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* El lápiz de una fila del historial aparece al pasar el cursor o al llegar con el teclado. */
+.fila-editable .lapiz {
+  opacity: 0;
+}
+
+.fila-editable:hover .lapiz,
+.fila-editable .lapiz:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .fila-editable .lapiz {
+    opacity: 1;
+  }
+}

@@ -25,6 +25,7 @@ import {
 import type { Principal } from '../session/admission.ts'
 import {
   editarCampoDePolizaCon,
+  editarEndosoCon,
   eliminarPolizaCon,
   refacturarCon,
   renovarPolizaCon,
@@ -296,6 +297,89 @@ describe('registrar refacturación', () => {
       // Otra persona guardó con el mismo número que vio: no duplica y le dice el siguiente.
       const tarde = await refacturarCon(tx, quien, { ...terminos, policyId: m.poliza, effectiveFrom: '2026-05-01', endorsementNumber: 4 })
       assert.deepEqual(tarde, { kind: 'taken', next: 5 })
+    })
+  })
+})
+
+describe('documentos en Drive y número de endoso', () => {
+  const archivo = 'https://drive.google.com/file/d/polizaSintetica123/view'
+  const carpeta = 'https://drive.google.com/drive/folders/carpetaSintetica123'
+
+  it('la renovación guarda el documento de la nueva póliza y la ficha lo edita', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const mal = await renovarPolizaCon(tx, quien, { ...terminos, previousPolicyId: m.poliza, policyNumber: 'SIN-0002', insurerId: m.aseguradora, driveUrl: carpeta })
+      assert.equal(mal.kind, 'invalid', 'una carpeta no es el documento')
+      const r = await renovarPolizaCon(tx, quien, { ...terminos, previousPolicyId: m.poliza, policyNumber: 'SIN-0002', insurerId: m.aseguradora, driveUrl: archivo })
+      assert.ok(r.kind === 'ok')
+      assert.equal((await getPolicyDetail(tx, r.policyId, '2026-12-01'))?.driveUrl, archivo)
+
+      const otro = 'https://docs.google.com/document/d/otroSintetico/edit'
+      assert.deepEqual(await editarCampoDePolizaCon(tx, quien, m.poliza, 'drive', otro), { kind: 'ok' })
+      assert.equal((await editarCampoDePolizaCon(tx, quien, m.poliza, 'drive', 'https://example.com/x')).kind, 'invalid')
+      assert.equal((await getPolicyDetail(tx, m.poliza, '2026-11-01'))?.driveUrl, otro, 'también en una póliza ya renovada')
+      assert.deepEqual(await editarCampoDePolizaCon(tx, quien, m.poliza, 'drive', ''), { kind: 'ok' })
+      assert.equal((await getPolicyDetail(tx, m.poliza, '2026-11-01'))?.driveUrl, null)
+    })
+  })
+
+  it('el número de endoso se elige, deja huecos y los próximos siguen desde el mayor', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      await tx`insert into endorsement (policy_id, number, kind, source_reference) values (${m.poliza}, '003', 'Cambio', 'zoho-endoso-3')`
+      const base = { ...terminos, termStartDate: '2025-11-08', termEndDate: '2026-11-08', policyId: m.poliza }
+      assert.deepEqual(
+        await refacturarCon(tx, quien, { ...base, effectiveFrom: '2026-02-01', endorsementNumber: 3 }),
+        { kind: 'taken', next: 4 },
+        'el 3 ya vino de Zoho como 003',
+      )
+      assert.equal((await refacturarCon(tx, quien, { ...base, effectiveFrom: '2026-02-01', endorsementNumber: 0 })).kind, 'invalid')
+      const r = await refacturarCon(tx, quien, { ...base, effectiveFrom: '2026-02-01', endorsementNumber: 5, driveUrl: archivo })
+      assert.deepEqual(r, { kind: 'ok', endorsementNumber: 5 })
+      assert.equal(await siguienteEndosoCon(tx, quien, m.poliza), 6)
+      const detalle = await getPolicyDetail(tx, m.poliza, '2026-03-01')
+      assert.equal(detalle?.history[0]?.endorsement?.driveUrl, archivo)
+    })
+  })
+
+  it('edita un endoso: número y documento siempre, condiciones sólo con la versión abierta', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const base = { ...terminos, termStartDate: '2025-11-08', termEndDate: '2026-11-08', policyId: m.poliza }
+      await refacturarCon(tx, quien, { ...base, effectiveFrom: '2026-02-01', endorsementNumber: 1 })
+      await refacturarCon(tx, quien, { ...base, effectiveFrom: '2026-03-01', endorsementNumber: 2 })
+      const endosos = await tx<{ id: string; number: string }[]>`select id, number from endorsement where policy_id = ${m.poliza} order by number`
+      const [primero, segundo] = endosos
+      assert.ok(primero !== undefined && segundo !== undefined)
+
+      // El 1 tiene la versión cerrada: número y documento sí, condiciones no.
+      assert.equal(
+        (await editarEndosoCon(tx, quien, { policyId: m.poliza, endorsementId: primero.id, number: '2', driveUrl: '' })).kind,
+        'invalid',
+        'el 2 ya existe',
+      )
+      assert.deepEqual(
+        await editarEndosoCon(tx, quien, { policyId: m.poliza, endorsementId: primero.id, number: '7', driveUrl: archivo }),
+        { kind: 'ok' },
+      )
+      assert.equal(
+        (await editarEndosoCon(tx, quien, { policyId: m.poliza, endorsementId: primero.id, number: '7', driveUrl: '', terms: base })).kind,
+        'invalid',
+      )
+      assert.equal(await siguienteEndosoCon(tx, quien, m.poliza), 8)
+
+      // El 2 es la versión abierta: también sus condiciones.
+      assert.deepEqual(
+        await editarEndosoCon(tx, quien, { policyId: m.poliza, endorsementId: segundo.id, number: '2', driveUrl: archivo, terms: { ...base, premium: '2.500' } }),
+        { kind: 'ok' },
+      )
+      const detalle = await getPolicyDetail(tx, m.poliza, '2026-04-01')
+      assert.ok(detalle !== null)
+      const [abierta, cerrada] = detalle.history
+      assert.equal(abierta?.premium, '2500')
+      assert.equal(abierta.endorsement?.driveUrl, archivo)
+      assert.equal(cerrada?.endorsement?.number, '7')
+      assert.equal(cerrada.endorsement.driveUrl, archivo)
     })
   })
 })

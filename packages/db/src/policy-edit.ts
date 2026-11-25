@@ -6,6 +6,8 @@
 
 import type postgres from 'postgres'
 
+import { classifyDriveUrl } from './zoho-links/drive-url.ts'
+
 type QueryExecutor = postgres.Sql | postgres.TransactionSql
 
 /** Estados de póliza que escribe Broker OS. Los del origen se muestran tal cual vienen. */
@@ -93,6 +95,7 @@ export const POLICY_FIELDS = [
   'tipoRiesgo',
   'formaPago',
   'renovacion',
+  'drive',
 ] as const
 export type PolicyField = (typeof POLICY_FIELDS)[number]
 
@@ -117,6 +120,19 @@ const COLUMNA_DE_IMPORTE: Partial<Record<PolicyField, string>> = {
 }
 
 const invalido = (message: string): EditResult => ({ kind: 'invalid', message })
+
+/**
+ * El enlace al documento de una póliza o de un endoso: la URL de un archivo de Drive.
+ * `null` si está vacío; `undefined` si no es la URL de un archivo de Drive.
+ */
+export const cleanDriveFileUrl = (raw: string | undefined): string | null | undefined => {
+  const limpia = (raw ?? '').trim()
+  if (limpia === '') return null
+  const enlace = classifyDriveUrl(limpia)
+  return enlace.ok && enlace.target === 'FILE' && limpia.length <= 500 ? limpia : undefined
+}
+
+const DRIVE_INVALIDO = 'Pegá la URL de un archivo de Drive, como https://drive.google.com/file/d/…'
 
 interface OpenVersion {
   readonly id: string
@@ -148,6 +164,16 @@ export const updatePolicyField = async (
       select id from policy where insurer_id = ${poliza.insurer_id} and policy_number = ${valor} and id <> ${policyId}`
     if (otra !== undefined) return invalido('Ya hay otra póliza de esa compañía con ese número.')
     await sql`update policy set policy_number = ${valor} where id = ${policyId}`
+    return { kind: 'ok' }
+  }
+  if (field === 'drive') {
+    const url = cleanDriveFileUrl(valor)
+    if (url === undefined) return invalido(DRIVE_INVALIDO)
+    const filas = await sql`update policy set drive_url = ${url} where id = ${policyId} returning id`
+    if (filas.length === 0) return { kind: 'not_found' }
+    await sql`
+      insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+      values (authz.usuario(), 'app', 'policy.update_drive', 'policy', ${policyId}, 'ok')`
     return { kind: 'ok' }
   }
 
@@ -195,6 +221,8 @@ export interface PolicyTerms {
   readonly riskType: string
   readonly paymentMethod: string
   readonly renewalMode: string
+  /** La URL del documento en Drive. Vacío o ausente: sin enlace. */
+  readonly driveUrl?: string
 }
 
 interface CleanTerms {
@@ -256,6 +284,8 @@ export const renewPolicy = async (sql: QueryExecutor, input: RenewalInput): Prom
   if (numero === '' || numero.length > 60) return { kind: 'invalid', message: 'Falta el número de la nueva póliza.' }
   const terms = cleanTerms(input)
   if (typeof terms === 'string') return { kind: 'invalid', message: terms }
+  const drive = cleanDriveFileUrl(input.driveUrl)
+  if (drive === undefined) return { kind: 'invalid', message: DRIVE_INVALIDO }
 
   const [anterior] = await sql<{ id: string; policy_number: string }[]>`
     select id, policy_number from policy where id = ${input.previousPolicyId} for update`
@@ -273,8 +303,8 @@ export const renewPolicy = async (sql: QueryExecutor, input: RenewalInput): Prom
   if (compania === undefined) return { kind: 'invalid', message: 'Elegí la compañía.' }
 
   const [creada] = await sql<{ id: string }[]>`
-    insert into policy (insurer_id, policy_number, renewed_from_policy_id)
-    values (${compania.id}, ${numero}, ${anterior.id})
+    insert into policy (insurer_id, policy_number, renewed_from_policy_id, drive_url)
+    values (${compania.id}, ${numero}, ${anterior.id}, ${drive})
     on conflict (insurer_id, policy_number) do nothing
     returning id`
   if (creada === undefined)
@@ -309,7 +339,10 @@ export interface RebillingInput extends PolicyTerms {
   readonly policyId: string
   /** Desde cuándo rige la refacturación. Cierra la versión anterior ese día. */
   readonly effectiveFrom: string
-  /** El número que la persona vio en el formulario. Si otra persona registró uno antes, no se guarda. */
+  /**
+   * El número del endoso. Se propone el siguiente, pero la persona puede cambiarlo y dejar
+   * huecos: los próximos siguen desde el mayor. Si ya está usado en la póliza, no se guarda.
+   */
   readonly endorsementNumber: number
 }
 
@@ -318,6 +351,20 @@ export type RebillingResult =
   | { readonly kind: 'invalid'; readonly message: string }
   | { readonly kind: 'taken'; readonly next: number }
   | { readonly kind: 'not_found' }
+
+const MAYOR_NUMERO_DE_ENDOSO = 999_999_999
+
+const numeroDeEndosoValido = (n: number): boolean => Number.isInteger(n) && n >= 1 && n <= MAYOR_NUMERO_DE_ENDOSO
+
+/** Si otro endoso de la póliza ya usa ese número, importado o registrado en Broker OS. */
+const numeroDeEndosoUsado = async (sql: QueryExecutor, policyId: string, numero: number, salvo: string | null): Promise<boolean> => {
+  const [fila] = await sql`
+    select 1 from endorsement
+    where policy_id = ${policyId} and (${salvo}::uuid is null or id <> ${salvo}::uuid)
+      and case when btrim(number) ~ '^[0-9]{1,9}$' then btrim(number)::int end = ${numero}
+    limit 1`
+  return fila !== undefined
+}
 
 /**
  * Registra un endoso de refacturación como una nueva versión de la misma póliza. La
@@ -329,11 +376,16 @@ export const registerRebilling = async (sql: QueryExecutor, input: RebillingInpu
   const terms = cleanTerms(input)
   if (typeof terms === 'string') return { kind: 'invalid', message: terms }
   if (!isDate(input.effectiveFrom)) return { kind: 'invalid', message: 'Falta la fecha desde la que rige el endoso.' }
+  if (!numeroDeEndosoValido(input.endorsementNumber))
+    return { kind: 'invalid', message: 'El número de endoso es un entero mayor que cero.' }
+  const drive = cleanDriveFileUrl(input.driveUrl)
+  if (drive === undefined) return { kind: 'invalid', message: DRIVE_INVALIDO }
 
   const [poliza] = await sql<{ id: string }[]>`select id from policy where id = ${input.policyId} for update`
   if (poliza === undefined) return { kind: 'not_found' }
-  const siguiente = await nextEndorsementNumber(sql, poliza.id)
-  if (input.endorsementNumber !== siguiente) return { kind: 'taken', next: siguiente }
+  const numero = input.endorsementNumber
+  if (await numeroDeEndosoUsado(sql, poliza.id, numero, null))
+    return { kind: 'taken', next: await nextEndorsementNumber(sql, poliza.id) }
 
   const [anterior] = await sql<{ id: string; version_number: number; effective_from: string; holder_party_id: string; status: string | null }[]>`
     select id, version_number, to_char(effective_from, 'YYYY-MM-DD') as effective_from, holder_party_id, status
@@ -345,8 +397,10 @@ export const registerRebilling = async (sql: QueryExecutor, input: RebillingInpu
 
   const [maximo] = await sql<{ n: number }[]>`select max(version_number) as n from policy_version where policy_id = ${poliza.id}`
   const [endoso] = await sql<{ id: string }[]>`
-    insert into endorsement (policy_id, number, kind, effective_from, source_reference)
-    values (${poliza.id}, ${String(siguiente)}, 'REFACTURACION', ${input.effectiveFrom}::date, ${`broker-os:${crypto.randomUUID()}`})
+    insert into endorsement (policy_id, number, kind, effective_from, source_reference, drive_url)
+    values (
+      ${poliza.id}, ${String(numero)}, 'REFACTURACION', ${input.effectiveFrom}::date, ${`broker-os:${crypto.randomUUID()}`}, ${drive}
+    )
     returning id`
   if (endoso === undefined) throw new Error('el endoso no se guardó')
   await sql`update policy_version set effective_to = ${input.effectiveFrom}::date where id = ${anterior.id}`
@@ -365,7 +419,67 @@ export const registerRebilling = async (sql: QueryExecutor, input: RebillingInpu
   await sql`
     insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
     values (authz.usuario(), 'app', 'policy.rebill', 'policy', ${poliza.id}, 'ok')`
-  return { kind: 'ok', endorsementNumber: siguiente }
+  return { kind: 'ok', endorsementNumber: numero }
+}
+
+export interface EndorsementEdit {
+  readonly policyId: string
+  readonly endorsementId: string
+  /** El número como lo escribe la persona. Si no cambió, se acepta aunque no sea un entero (vino de Zoho). */
+  readonly number: string
+  readonly driveUrl: string
+  /** Las condiciones de la versión que originó el endoso. Sólo si esa versión sigue abierta. */
+  readonly terms?: PolicyTerms
+}
+
+/**
+ * Corrige un endoso desde la ficha de la póliza: número y enlace de Drive siempre; las
+ * condiciones de su versión, sólo si sigue abierta, porque las cerradas son historia
+ * (INV-PV-005). Cambiar el número deja huecos: el próximo sigue desde el mayor.
+ */
+export const updateEndorsement = async (sql: QueryExecutor, input: EndorsementEdit): Promise<EditResult> => {
+  const [endoso] = await sql<{ id: string; number: string | null }[]>`
+    select id, number from endorsement where id = ${input.endorsementId} and policy_id = ${input.policyId} for update`
+  if (endoso === undefined) return { kind: 'not_found' }
+
+  // Primero se valida todo y después se escribe: un rechazo no deja cambios a medias.
+  const numero = input.number.trim()
+  const cambiaNumero = numero !== (endoso.number ?? '').trim()
+  if (cambiaNumero) {
+    if (!/^\d{1,9}$/.test(numero) || !numeroDeEndosoValido(Number(numero)))
+      return invalido('El número de endoso es un entero mayor que cero.')
+    if (await numeroDeEndosoUsado(sql, input.policyId, Number(numero), endoso.id))
+      return invalido(`El endoso ${String(Number(numero))} ya está registrado en esta póliza.`)
+  }
+  const drive = cleanDriveFileUrl(input.driveUrl)
+  if (drive === undefined) return invalido(DRIVE_INVALIDO)
+  let condiciones: { readonly version: string; readonly terms: CleanTerms } | null = null
+  if (input.terms !== undefined) {
+    const terms = cleanTerms(input.terms)
+    if (typeof terms === 'string') return invalido(terms)
+    const [version] = await sql<{ id: string }[]>`
+      select id from policy_version where endorsement_id = ${endoso.id} and policy_id = ${input.policyId} and effective_to is null`
+    if (version === undefined) return invalido('La versión de este endoso ya está cerrada: sus condiciones no se editan.')
+    condiciones = { version: version.id, terms }
+  }
+
+  await sql`
+    update endorsement set number = ${cambiaNumero ? String(Number(numero)) : endoso.number}, drive_url = ${drive}
+    where id = ${endoso.id}`
+  if (condiciones !== null) {
+    const t = condiciones.terms
+    await sql`
+      update policy_version set
+        term_start_date = ${t.termStartDate}::date, term_end_date = ${t.termEndDate}::date,
+        premium = ${t.premium}::numeric, total_premium = ${t.totalPremium}::numeric,
+        sum_insured = ${t.sumInsured}::numeric, currency = ${t.currency}, producer = ${t.producer},
+        product_reference = ${t.riskType}, payment_method = ${t.paymentMethod}, renewal_mode = ${t.renewalMode}
+      where id = ${condiciones.version}`
+  }
+  await sql`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (authz.usuario(), 'app', 'policy.update_endorsement', 'policy', ${input.policyId}, 'ok')`
+  return { kind: 'ok' }
 }
 
 export type DeleteBlocker = 'POLIZAS' | 'GESTIONES' | 'TAREAS'

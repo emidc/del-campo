@@ -2,21 +2,19 @@
 
 // Acciones de seguimiento de una renovación: botones chicos con ícono y su nombre al
 // pasar el cursor o al enfocarlos, y los modales de Renovar póliza y Registrar
-// refacturación. Los modales guardan en una sola transacción; si algo falla, siguen
-// abiertos con el error y no queda nada a medias.
+// refacturación (sus piezas están en `poliza/FormularioDePoliza`).
 
 import type { InsurerOption, RenewalItem } from '@del-campo/api'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
-import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
-import type { Resultado } from '@/app/_componentes/Edicion'
 import { IconoGestion, IconoRefacturar, IconoRenovar, IconoTarea } from '@/app/_componentes/Iconos'
 import { importeEditable } from '@/lib/formato'
 
 import { registrarRefacturacion, renovar } from '../poliza/acciones'
+import type { Valores } from '../poliza/FormularioDePoliza'
+import { Campo, CampoDrive, CamposDelAlta, ModalDeFormulario as Modal } from '../poliza/FormularioDePoliza'
 
 /** Un enlace con forma de botón chico, ícono y nombre emergente. */
 export const AccionEnlace = ({ href, nombre, children }: { readonly href: string; readonly nombre: string; readonly children: ReactNode }) => (
@@ -35,117 +33,6 @@ const sumarAnio = (fecha: string): string => {
   const d = new Date(`${fecha}T12:00:00Z`)
   d.setUTCFullYear(d.getUTCFullYear() + 1)
   return d.toISOString().slice(0, 10)
-}
-
-const Campo = ({ etiqueta, children }: { readonly etiqueta: string; readonly children: ReactNode }) => (
-  <label className="campo">
-    <span>{etiqueta}</span>
-    {children}
-  </label>
-)
-
-interface Valores {
-  readonly inicio: string
-  readonly fin: string
-  readonly prima: string
-  readonly premio: string
-  readonly suma: string
-  readonly moneda: string
-  readonly productor: string
-  readonly riesgo: string
-  readonly pago: string
-  readonly renovacion: string
-}
-
-/** Los campos del alta de una póliza, comunes a renovar y refacturar. */
-const CamposDelAlta = ({ v }: { readonly v: Valores }) => (
-  <>
-    <Campo etiqueta="Inicio de vigencia">
-      <input name="inicio" type="date" defaultValue={v.inicio} required />
-    </Campo>
-    <Campo etiqueta="Fin de vigencia">
-      <input name="fin" type="date" defaultValue={v.fin} required />
-    </Campo>
-    <Campo etiqueta="Productor">
-      <input name="productor" defaultValue={v.productor} maxLength={120} />
-    </Campo>
-    <Campo etiqueta="Tipo de riesgo">
-      <input name="riesgo" defaultValue={v.riesgo} maxLength={120} />
-    </Campo>
-    <Campo etiqueta="Prima">
-      <input name="prima" inputMode="decimal" defaultValue={v.prima} />
-    </Campo>
-    <Campo etiqueta="Premio">
-      <input name="premio" inputMode="decimal" defaultValue={v.premio} />
-    </Campo>
-    <Campo etiqueta="Suma asegurada">
-      <input name="suma" inputMode="decimal" defaultValue={v.suma} />
-    </Campo>
-    <Campo etiqueta="Moneda">
-      <input name="moneda" defaultValue={v.moneda} maxLength={10} />
-    </Campo>
-    <Campo etiqueta="Forma de pago">
-      <input name="pago" defaultValue={v.pago} maxLength={120} />
-    </Campo>
-    <Campo etiqueta="Renovación">
-      <select name="renovacion" defaultValue={v.renovacion}>
-        <option value="MANUAL">Manual</option>
-        <option value="AUTOMATIC">Automática</option>
-      </select>
-    </Campo>
-  </>
-)
-
-/** Un modal con formulario. Cancelar cierra y descarta lo cargado; guardar bien, también. */
-function Modal({
-  titulo,
-  abierto,
-  onCerrar,
-  accion,
-  children,
-}: {
-  readonly titulo: string
-  readonly abierto: boolean
-  readonly onCerrar: () => void
-  readonly accion: (previo: Resultado, form: FormData) => Promise<Resultado>
-  readonly children: (estado: Resultado) => ReactNode
-}) {
-  const dialogo = useRef<HTMLDialogElement>(null)
-  const [estado, enviar] = useActionState(accion, null)
-  const router = useRouter()
-  const ultimo = useRef<Resultado>(null)
-  useEffect(() => {
-    if (abierto) dialogo.current?.showModal()
-    else dialogo.current?.close()
-  }, [abierto])
-  useEffect(() => {
-    if (estado !== ultimo.current && estado?.ok === true) {
-      onCerrar()
-      router.refresh()
-    }
-    ultimo.current = estado
-  }, [estado, onCerrar, router])
-  return (
-    <dialog ref={dialogo} className="dialogo dialogo--ancho" onClose={onCerrar} aria-label={titulo}>
-      {abierto ? (
-        <form action={enviar}>
-          <h2>{titulo}</h2>
-          {children(estado)}
-          {estado?.ok === false ? (
-            <p className="estado estado--aviso" role="alert">
-              {estado.error}
-            </p>
-          ) : null}
-          <div className="fila fila--fin">
-            <button type="button" className="boton boton--secundario" onClick={onCerrar}>
-              Cancelar
-            </button>
-            <BotonEnviar className="boton">Guardar</BotonEnviar>
-          </div>
-        </form>
-      ) : null}
-    </dialog>
-  )
 }
 
 export function Seguimiento({
@@ -226,6 +113,7 @@ export function Seguimiento({
                 </select>
               </Campo>
               <CamposDelAlta v={{ ...actuales, inicio: item.termEndDate, fin: sumarAnio(item.termEndDate), prima: '', premio: '', suma: '' }} />
+              <CampoDrive etiqueta="Póliza en Google Drive" />
             </div>
           </>
         )}
@@ -243,15 +131,15 @@ export function Seguimiento({
             <>
               <p className="meta">Se guarda como una versión nueva de la misma póliza. La versión actual queda en el historial.</p>
               <input type="hidden" name="poliza" value={item.policyId} />
-              <input type="hidden" name="endoso" value={String(numero)} />
               <div className="formulario-modal">
                 <Campo etiqueta="Número de endoso">
-                  <input value={String(numero)} readOnly aria-readonly="true" />
+                  <input key={numero} name="endoso" type="number" min={1} max={999999999} step={1} defaultValue={String(numero)} required />
                 </Campo>
                 <Campo etiqueta="Rige desde">
                   <input name="desde" type="date" defaultValue={hoy} required />
                 </Campo>
                 <CamposDelAlta v={actuales} />
+                <CampoDrive etiqueta="Endoso en Google Drive" />
               </div>
             </>
           )

@@ -280,6 +280,7 @@ export {
   POLICY_FIELDS,
   describirBloqueos,
   editarCampoDePoliza,
+  editarEndoso,
   effectiveStatus,
   eliminarPoliza,
   esUuid,
@@ -293,6 +294,7 @@ export {
 export type {
   DeleteBlocker,
   EditResult,
+  EndorsementEdit,
   PolicyField,
   PolicyTerms,
   RebillingInput,
