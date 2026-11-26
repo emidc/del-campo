@@ -2326,3 +2326,18 @@ a.conjunto--activo:hover {
     opacity: 1;
   }
 }
+
+/* ── Automotores del cliente y de la póliza ─────────────────────────────────── */
+
+.automotor-patente {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.edicion-en-fila input.automotor-anio {
+  flex: 0 1 5rem;
+}
+
+.edicion-en-fila select.automotor-elegir {
+  flex: 1 1 14rem;
+}

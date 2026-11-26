@@ -272,3 +272,19 @@ export {
   updateRiskItem,
 } from './listas-de-riesgos.ts'
 export type { NewRiskItem, RiskItem, RiskItemComment, RiskItemFields, RiskItemWrite, RiskList, RiskListColumn } from './listas-de-riesgos.ts'
+
+// Automotores de un cliente y de sus pólizas (0035).
+export {
+  addVehicle,
+  cleanVehicle,
+  deleteVehicle,
+  linkVehicle,
+  listPolicyVehicles,
+  listVehicles,
+  normalizePlate,
+  policyHolder,
+  riskTypeHasVehicles,
+  unlinkVehicle,
+  updateVehicle,
+} from './vehicle.ts'
+export type { Vehicle, VehicleData, VehicleResult } from './vehicle.ts'
