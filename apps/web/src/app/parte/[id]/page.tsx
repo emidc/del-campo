@@ -16,6 +16,7 @@ import {
   party,
   responsableDeMensajes,
   tareas,
+  automotoresDeCliente,
 } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -41,6 +42,8 @@ import {
 } from './acciones'
 import type { NotaDeFicha } from './Notas'
 import { NuevaNota, TarjetaDeNota } from './Notas'
+import { FilaDeAutomotor, NuevoAutomotor } from '@/app/_automotores/Automotores'
+
 import { SeccionRiesgos } from './SeccionRiesgos'
 import { esSubseccion } from './riesgos'
 import { AsociarContacto, AsociarEmpresa, ConvertirEnCliente, FilaDeContacto, NuevoContacto, QuitarDeEmpresa } from './Contactos'
@@ -74,7 +77,7 @@ export default async function PartePage({
   const subRiesgos = esSubseccion(listaPedida) ? listaPedida : 'riesgos'
   const itemRiesgo = unico('item') ?? null
   const asOf = fechaDeHoy()
-  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto, integrantes, responsableId, susNotas] = await consultar(
+  const [lote, vista, susGestiones, susTareas, susConversaciones, susContactos, bloqueos, prospecto, integrantes, responsableId, susNotas, susAutomotores] = await consultar(
     Promise.all([
       latestBatch(principal),
       party(principal, id, asOf, new Date().toISOString()),
@@ -87,6 +90,7 @@ export default async function PartePage({
       integrantesDelEquipo(principal),
       responsableDeMensajes(principal, id),
       notasDeCliente(principal, id),
+      automotoresDeCliente(principal, id),
     ]),
   )
   if (vista === null) notFound()
@@ -311,6 +315,22 @@ export default async function PartePage({
               <ul className="lista">
                 {susContactos.map((c) => (
                   <FilaDeContacto key={c.id} parte={vista.partyId} contacto={c} />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="tarjeta" id="automotores">
+            <div className="encabezado-tarjeta">
+              <h2>Automotores</h2>
+              <NuevoAutomotor parte={vista.partyId} />
+            </div>
+            {susAutomotores.length === 0 ? (
+              <p className="meta">Ninguno cargado.</p>
+            ) : (
+              <ul className="lista">
+                {susAutomotores.map((a) => (
+                  <FilaDeAutomotor key={a.id} parte={vista.partyId} automotor={a} />
                 ))}
               </ul>
             )}

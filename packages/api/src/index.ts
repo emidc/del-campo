@@ -270,6 +270,21 @@ export {
 } from './clientes/contactos.ts'
 export type { CanalDeContacto, ContactChannel, ContactPoint, ResultadoDeContacto } from './clientes/contactos.ts'
 
+// Automotores de un cliente y de sus pólizas (0035).
+export {
+  MENSAJE_DE_AUTOMOTOR,
+  agregarAutomotor,
+  automotoresDeCliente,
+  automotoresDePoliza,
+  corregirAutomotor,
+  nuevoAutomotorEnPoliza,
+  quitarAutomotor,
+  quitarAutomotorDePoliza,
+  riskTypeHasVehicles,
+  sumarAutomotorAPoliza,
+} from './clientes/automotores.ts'
+export type { AutomotoresDePoliza, DatosDeAutomotor, ResultadoDeAutomotor, Vehicle } from './clientes/automotores.ts'
+
 // Notas de una parte (0032).
 export { MENSAJE_DE_NOTA, agregarNota, archivarNota, editarNota, eliminarNota, notasDeCliente } from './clientes/notas.ts'
 export type { PartyNote, ResultadoDeNota } from './clientes/notas.ts'
