@@ -204,7 +204,7 @@ export function SumarAutomotor({
         className="boton-icono boton-icono--agregar"
         onClick={() => {
           setAbierto(true)
-          setElegido(delTomador.length === 0 ? 'nuevo' : '')
+          setElegido(delTomador[0]?.id ?? 'nuevo')
         }}
         aria-label="Sumar automotor"
         title="Sumar automotor"
@@ -222,13 +222,10 @@ export function SumarAutomotor({
         onChange={(e) => {
           setElegido(e.target.value)
         }}
-        aria-label="Automotor"
+        aria-label="Automotor del tomador o uno nuevo"
         className="automotor-elegir"
         autoFocus
       >
-        <option value="" disabled>
-          Elegir un automotor del tomador
-        </option>
         {delTomador.map((a) => (
           <option key={a.id} value={a.id}>
             {[a.plate, descripcion(a)].filter((x) => x !== null).join(' · ')}
