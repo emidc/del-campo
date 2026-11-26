@@ -230,6 +230,26 @@ export default async function PolizaPage({
         </p>
       </section>
 
+      {riskTypeHasVehicles(actual?.productReference ?? null) ? (
+        <section className="tarjeta" id="automotores">
+          <div className="encabezado-tarjeta">
+            <h2>Automotores</h2>
+            {detail.holder === null ? null : (
+              <SumarAutomotor poliza={detail.policyId} tomador={detail.holder.partyId} delTomador={automotores.delTomador} />
+            )}
+          </div>
+          {automotores.enLaPoliza.length === 0 ? (
+            <p className="meta">Ninguno en esta póliza. Con el + se elige uno del tomador o se carga uno nuevo.</p>
+          ) : (
+            <ul className="lista">
+              {automotores.enLaPoliza.map((a) => (
+                <FilaDeAutomotorEnPoliza key={a.id} poliza={detail.policyId} automotor={a} />
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
       <h2>Historial de versiones</h2>
       <div className="desborde">
         <table>
@@ -303,26 +323,6 @@ export default async function PolizaPage({
           </tbody>
         </table>
       </div>
-
-      {riskTypeHasVehicles(actual?.productReference ?? null) ? (
-        <section className="tarjeta" id="automotores">
-          <div className="encabezado-tarjeta">
-            <h2>Automotores</h2>
-            {detail.holder === null ? null : (
-              <SumarAutomotor poliza={detail.policyId} tomador={detail.holder.partyId} delTomador={automotores.delTomador} />
-            )}
-          </div>
-          {automotores.enLaPoliza.length === 0 ? (
-            <p className="meta">Ninguno en esta póliza. Con el + se elige uno del tomador o se carga uno nuevo.</p>
-          ) : (
-            <ul className="lista">
-              {automotores.enLaPoliza.map((a) => (
-                <FilaDeAutomotorEnPoliza key={a.id} poliza={detail.policyId} automotor={a} />
-              ))}
-            </ul>
-          )}
-        </section>
-      ) : null}
 
       <h2>Vínculos documentales registrados</h2>
       {detail.documents.length === 0 ? (
