@@ -37,6 +37,13 @@ const ICONOS: Record<string, ReactNode> = {
       <path d="M19.5 4.5v4h-4" />
     </>
   ),
+  pagos: (
+    <>
+      <rect x="3.5" y="6.5" width="17" height="11" rx="1.5" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6.5 9.5v5M17.5 9.5v5" />
+    </>
+  ),
   comunicacion: <path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5a2 2 0 0 1-2-2z" />,
   equipo: (
     <>
@@ -59,6 +66,7 @@ const SECCIONES = [
   { id: 'gestiones', texto: 'Gestiones', href: '/gestiones', rutas: ['/gestiones'] },
   { id: 'tareas', texto: 'Tareas', href: '/tareas', rutas: ['/tareas'] },
   { id: 'renovaciones', texto: 'Renovaciones', href: '/renovaciones', rutas: ['/renovaciones'] },
+  { id: 'pagos', texto: 'Pagos', href: '/pagos', rutas: ['/pagos'] },
   { id: 'comunicacion', texto: 'Comunicación', href: '/comunicacion', rutas: ['/comunicacion'] },
   { id: 'equipo', texto: 'Equipo', href: '/usuarios', rutas: ['/usuarios'], separador: true },
   { id: 'conectar', texto: 'Conectar MCP', href: '/conectar', rutas: ['/conectar'] },

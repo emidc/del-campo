@@ -1,9 +1,20 @@
-import { automotoresDePoliza, cancelOption, effectiveStatus, latestBatch, policy, riskTypeHasVehicles, todayInMendoza } from '@del-campo/api'
+import {
+  automotoresDePoliza,
+  cancelOption,
+  cuotasDePoliza,
+  effectiveStatus,
+  latestBatch,
+  pagaEnEfectivo,
+  policy,
+  riskTypeHasVehicles,
+  todayInMendoza,
+} from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
 import { FilaDeAutomotorEnPoliza, SumarAutomotor } from '@/app/_automotores/Automotores'
+import { Cuotas } from '@/app/_cuotas/Cuotas'
 import { CampoEditable, EliminarConDialogo } from '@/app/_componentes/Edicion'
 import { fechaDeHoy } from '@/lib/criterios'
 import { estadoDePoliza, estadoDocumental, fecha, importe, importeEditable, tipoDeEndoso } from '@/lib/formato'
@@ -26,7 +37,9 @@ export default async function PolizaPage({
   const principal = await requireAdmitted()
   const { id } = await params
   const asOf = fechaDeHoy()
-  const [lote, vista, automotores] = await consultar(Promise.all([latestBatch(principal), policy(principal, id, asOf), automotoresDePoliza(principal, id)]))
+  const [lote, vista, automotores, cuotas] = await consultar(
+    Promise.all([latestBatch(principal), policy(principal, id, asOf), automotoresDePoliza(principal, id), cuotasDePoliza(principal, id)]),
+  )
   if (vista === null) notFound()
 
   const { detail, access } = vista
@@ -236,6 +249,17 @@ export default async function PolizaPage({
           <Link href={`/gestiones?poliza=${detail.policyId}`}>Gestiones de esta póliza</Link> · Los enlaces abren Drive con tu propia sesión de Google.
         </p>
       </section>
+
+      {actual !== undefined && cuotas !== null && pagaEnEfectivo(actual.paymentMethod) ? (
+        <Cuotas
+          key={cuotas.cuotas.map((c) => `${String(c.number)}${c.dueDate}${c.amount ?? ''}${String(c.paid)}`).join('|')}
+          poliza={detail.policyId}
+          numero={detail.policyNumber}
+          cuotas={cuotas.cuotas}
+          premio={actual.totalPremium}
+          moneda={actual.currency}
+        />
+      ) : null}
 
       {riskTypeHasVehicles(actual?.productReference ?? null) ? (
         <section className="tarjeta" id="automotores">
