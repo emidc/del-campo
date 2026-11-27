@@ -362,3 +362,18 @@ export {
 export type { ResultadoDeItem, RiesgosDeEmpresa, RiskItem, RiskItemFields, RiskList } from './riesgos/seccion.ts'
 export { RISK_LISTS, RISK_LIST_COLUMNS, RISK_LIST_PREFIX } from '@del-campo/db'
 export type { Conclusion, CurrentFact, Finding, Location, RiskListColumn, Survey } from '@del-campo/db'
+
+// Cuotas de las pólizas en efectivo y pantalla Pagos.
+export {
+  DEFAULT_PAY_DAY,
+  MAX_INSTALLMENTS,
+  MENSAJE_DE_CUOTAS,
+  cuotasDePoliza,
+  cuotasDelMes,
+  guardarCuotas,
+  marcarCuota,
+  pagaEnEfectivo,
+  pagosDelMes,
+  splitAmount,
+} from './polizas/cuotas.ts'
+export type { CuotasDePoliza, DatosDeCuota, Installment, Pago, ResultadoDeCuotas } from './polizas/cuotas.ts'

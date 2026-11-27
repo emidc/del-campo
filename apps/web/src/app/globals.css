@@ -2365,3 +2365,79 @@ a.conjunto--activo:hover {
     opacity: 1;
   }
 }
+
+/* ── Cuotas de la póliza y pantalla Pagos ──────────────────────────────────── */
+.cuotas__editar {
+  opacity: 0;
+}
+
+.cuotas:hover .cuotas__editar,
+.cuotas:focus-within .cuotas__editar {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .cuotas__editar {
+    opacity: 1;
+  }
+}
+
+.tabla-cuotas th[scope='row'] {
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tabla-cuotas th[scope='col'],
+.tabla-cuotas td {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tabla-cuotas input[type='date'] {
+  width: 9.5rem;
+}
+
+.tabla-cuotas input[inputmode='decimal'] {
+  width: 8rem;
+  text-align: right;
+}
+
+.cuotas__cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.8rem;
+}
+
+.cuotas__cantidad input {
+  width: 5rem;
+}
+
+.cuotas__edicion .fila {
+  margin-top: 0.8rem;
+}
+
+.casilla-de-pago input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--marca);
+}
+
+.casilla-con-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.etiqueta-atrasada {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--alerta-borde);
+  border-radius: 999px;
+  background: var(--alerta-fondo);
+  color: var(--alerta);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

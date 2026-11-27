@@ -126,6 +126,19 @@ export type {
 export { cleanRenewalComment, listRenewals, saveRenewalComment } from './renewal.ts'
 export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
 export {
+  DEFAULT_PAY_DAY,
+  MAX_INSTALLMENTS,
+  dayOfMonthAfter,
+  defaultPlan,
+  listInstallments,
+  monthsCovered,
+  policyInstallments,
+  saveInstallmentPlan,
+  setInstallmentPaid,
+  splitAmount,
+} from './installment.ts'
+export type { Installment, InstallmentInput } from './installment.ts'
+export {
   CLAIM_CONTACT_ROLES,
   CLAIM_CONTACT_ROLE_LABELS,
   addClaimContact,
