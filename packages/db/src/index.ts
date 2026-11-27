@@ -124,7 +124,7 @@ export type {
   TeamMemberProfile,
 } from './task.ts'
 export { cleanRenewalComment, listRenewals, saveRenewalComment } from './renewal.ts'
-export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './renewal.ts'
+export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState, SuccessorPolicy } from './renewal.ts'
 export {
   DEFAULT_PAY_DAY,
   MAX_INSTALLMENTS,
@@ -192,12 +192,14 @@ export {
   statusFromZoho,
   todayInMendoza,
   updateEndorsement,
+  updatePolicy,
   updatePolicyField,
 } from './policy-edit.ts'
 export type {
   DeleteBlocker,
   EditResult,
   EndorsementEdit,
+  PolicyEdit,
   PolicyField,
   PolicyTerms,
   RebillingInput,

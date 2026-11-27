@@ -162,6 +162,12 @@ describe('renovaciones (C6-02b)', () => {
       )
       assert.equal(antes[0]?.holderName, 'Ana Sintética')
       assert.equal(antes[2]?.successorPolicyNumber, 'SINT-R3-B')
+      const [pendiente, , renovadaConNueva] = antes
+      assert.equal(pendiente.successor, null)
+      assert.ok(renovadaConNueva.successor, 'la nueva trae su versión abierta para editarla')
+      assert.equal(renovadaConNueva.successor.complete, false)
+      assert.ok(renovadaConNueva.successor.insurerName !== '')
+      assert.equal(renovadaConNueva.successor.renewalMode, 'MANUAL')
 
       await createServiceCase(tx, {
         kind: 'RENOVACION', title: 'Renovación SINT-R1', partyId: m.cliente, policyId: m.manual, dueDate: null, note: null,

@@ -1,9 +1,9 @@
 'use server'
 
-// Acciones de póliza: edición por campo y borrado desde la ficha, renovación y
-// refacturación desde Renovaciones. Cada una vuelve a pasar por el guard de sesión y por
-// `conDatos`; la base decide. Devuelven `{ ok }` o `{ error }` para que el formulario
-// quede abierto si algo falla.
+// Acciones de póliza: edición por campo y borrado desde la ficha; renovación,
+// refacturación y edición de la póliza nueva desde Renovaciones. Cada una vuelve a pasar
+// por el guard de sesión y por `conDatos`; la base decide. Devuelven `{ ok }` o
+// `{ error }` para que el formulario quede abierto si algo falla.
 
 import type { PolicyTerms } from '@del-campo/api'
 import {
@@ -11,6 +11,7 @@ import {
   describirBloqueos,
   editarCampoDePoliza,
   editarEndoso as editarEndosoDePoliza,
+  editarPoliza as editarPolizaCompleta,
   eliminarPoliza,
   esUuid,
   isPolicyField,
@@ -159,5 +160,25 @@ export async function editarEndoso(_previo: Resultado, form: FormData): Promise<
   if (resultado.kind === 'not_found') return error('No se encontró el endoso.')
   revalidatePath(`/poliza/${poliza}`)
   revalidatePath('/renovaciones')
+  return { ok: true }
+}
+
+/** Edita la póliza nueva desde Renovaciones, con el mismo formulario que la creó. */
+export async function editarPoliza(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const poliza = texto(form, 'poliza')
+  const resultado = await intentar(
+    editarPolizaCompleta(principal, {
+      ...condiciones(form),
+      policyId: poliza,
+      policyNumber: texto(form, 'numero'),
+      complete: texto(form, 'completa') === '1',
+    }),
+  )
+  if (resultado === null) return error(FALLO)
+  if (resultado.kind === 'invalid') return error(resultado.message)
+  if (resultado.kind === 'not_found') return error('No se encontró la póliza.')
+  revalidatePath('/renovaciones')
+  revalidatePath(`/poliza/${poliza}`)
   return { ok: true }
 }

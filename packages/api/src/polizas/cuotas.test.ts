@@ -57,6 +57,7 @@ const poliza = (id: string, cambios: Partial<RenewalItem> = {}): RenewalItem => 
   state: 'PENDIENTE',
   successorPolicyId: null,
   successorPolicyNumber: null,
+  successor: null,
   caseId: null,
   caseStatus: null,
   caseAssignedEmail: null,

@@ -18,9 +18,17 @@ export const Campo = ({ etiqueta, ancho = false, children }: { readonly etiqueta
   </label>
 )
 
-/** La URL del documento en Drive: ocupa toda la fila del formulario. */
-export const CampoDrive = ({ etiqueta, valor = '' }: { readonly etiqueta: string; readonly valor?: string }) => (
-  <Campo etiqueta={etiqueta} ancho>
+/** La URL del documento en Drive: ocupa toda la fila del formulario, salvo con `ancho={false}`. */
+export const CampoDrive = ({
+  etiqueta,
+  valor = '',
+  ancho = true,
+}: {
+  readonly etiqueta: string
+  readonly valor?: string
+  readonly ancho?: boolean
+}) => (
+  <Campo etiqueta={etiqueta} ancho={ancho}>
     <input name="drive" type="url" defaultValue={valor} maxLength={500} placeholder="https://drive.google.com/file/d/…" />
   </Campo>
 )

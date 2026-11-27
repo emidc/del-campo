@@ -15,7 +15,7 @@ const renovacion = (id: string, cambios: Partial<RenewalItem>): RenewalItem => (
   policyId: id, policyNumber: id, insurerId: 'i', insurerName: 'A', producer: null, holderPartyId: 'h', holderName: null, productReference: null,
   termStartDate: '2025-11-20', termEndDate: '2026-11-20', renewalMode: 'MANUAL', premium: null, totalPremium: null, sumInsured: null,
   currency: null, paymentMethod: null, nextEndorsementNumber: 1, state: 'PENDIENTE', successorPolicyId: null,
-  successorPolicyNumber: null, caseId: null, caseStatus: null, caseAssignedEmail: null, comment: null, ...cambios,
+  successorPolicyNumber: null, successor: null, caseId: null, caseStatus: null, caseAssignedEmail: null, comment: null, ...cambios,
 })
 
 const tarea = (id: string, cambios: Partial<TaskSummary>): TaskSummary => ({
