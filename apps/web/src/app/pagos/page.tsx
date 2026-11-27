@@ -139,7 +139,7 @@ export default async function PagosPage({
           <table className="tabla-renovaciones">
             <thead>
               <tr>
-                <th>Próximo pago</th>
+                <th>Fecha de pago</th>
                 <th>Cuota</th>
                 <th>Póliza</th>
                 <th>Tomador</th>

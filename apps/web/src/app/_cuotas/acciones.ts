@@ -4,8 +4,8 @@
 // desde la póliza o desde Pagos. Cada una vuelve a pasar por el guard de sesión y por
 // `conDatos`; la base decide.
 
-import type { DatosDeCuota, ResultadoDeCuotas } from '@del-campo/api'
-import { MENSAJE_DE_CUOTAS, guardarCuotas, marcarCuota } from '@del-campo/api'
+import type { ResultadoDeCuotas } from '@del-campo/api'
+import { MENSAJE_DE_CUOTAS, editarCuotas, marcarCuota } from '@del-campo/api'
 import { revalidatePath } from 'next/cache'
 
 import { consultar, requireAdmitted } from '@/lib/sesion'
@@ -26,9 +26,16 @@ const responder = async (poliza: string, escritura: Promise<ResultadoDeCuotas>):
   }
 }
 
-export async function guardarPlan(poliza: string, cuotas: readonly DatosDeCuota[]): Promise<ResultadoDeCuota> {
+const texto = (form: FormData, campo: string): string => {
+  const valor = form.get(campo)
+  return typeof valor === 'string' ? valor.trim() : ''
+}
+
+/** Desde el modal Editar: cantidad de cuotas, valor de la cuota y día de pago, para todas. */
+export async function editarPlan(_previo: ResultadoDeCuota | null, form: FormData): Promise<ResultadoDeCuota> {
   const principal = await requireAdmitted()
-  return responder(poliza, guardarCuotas(principal, poliza, cuotas))
+  const poliza = texto(form, 'poliza')
+  return responder(poliza, editarCuotas(principal, poliza, { cantidad: texto(form, 'cantidad'), importe: texto(form, 'importe'), dia: texto(form, 'dia') }))
 }
 
 export async function marcarPago(poliza: string, numero: number, pagada: boolean): Promise<ResultadoDeCuota> {

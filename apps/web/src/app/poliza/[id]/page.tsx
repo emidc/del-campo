@@ -4,9 +4,9 @@ import {
   cuotasDePoliza,
   effectiveStatus,
   latestBatch,
-  pagaEnEfectivo,
   policy,
   riskTypeHasVehicles,
+  tieneCuotas,
   todayInMendoza,
 } from '@del-campo/api'
 import Link from 'next/link'
@@ -250,7 +250,7 @@ export default async function PolizaPage({
         </p>
       </section>
 
-      {actual !== undefined && cuotas !== null && pagaEnEfectivo(actual.paymentMethod) ? (
+      {actual !== undefined && cuotas !== null && tieneCuotas(actual.paymentMethod, actual.productReference) ? (
         <Cuotas
           key={cuotas.cuotas.map((c) => `${String(c.number)}${c.dueDate}${c.amount ?? ''}${String(c.paid)}`).join('|')}
           poliza={detail.policyId}
@@ -258,6 +258,7 @@ export default async function PolizaPage({
           cuotas={cuotas.cuotas}
           premio={actual.totalPremium}
           moneda={actual.currency}
+          fueraDeVigencia={cuotas.fueraDeVigencia}
         />
       ) : null}
 

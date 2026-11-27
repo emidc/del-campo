@@ -6,7 +6,7 @@ import { after, describe, it } from 'node:test'
 
 import postgres from 'postgres'
 
-import { policyInstallments, saveInstallmentPlan, setInstallmentPaid } from './installment.ts'
+import { editInstallmentPlan, listCashPolicies, markPaidUntil, policyInstallments, saveInstallmentPlan, setInstallmentPaid } from './installment.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -115,6 +115,69 @@ describe('cuotas de póliza (0036)', () => {
         [2, '300.00', false],
         [3, null, false],
       ])
+    })
+  })
+
+  it('el modal rehace el plan con una cantidad, un valor y un día para todas', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      await setInstallmentPaid(tx, poliza, 1, true)
+      assert.deepEqual(await editInstallmentPlan(tx, poliza, 4, '250', 5), { kind: 'ok' })
+      assert.deepEqual((await policyInstallments(tx, poliza))?.installments, [
+        { number: 1, dueDate: '2026-10-05', amount: '250.00', paid: true },
+        { number: 2, dueDate: '2026-11-05', amount: '250.00', paid: false },
+        { number: 3, dueDate: '2026-12-05', amount: '250.00', paid: false },
+        { number: 4, dueDate: '2027-01-05', amount: '250.00', paid: false },
+      ])
+    })
+  })
+
+  it('bajar la cantidad no borra cuotas pagadas', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      await setInstallmentPaid(tx, poliza, 3, true)
+      assert.deepEqual(await editInstallmentPlan(tx, poliza, 2, '450', 10), { kind: 'paid_removed', number: 3 })
+      assert.equal((await policyInstallments(tx, poliza))?.installments.length, 3)
+    })
+  })
+
+  it('avisa cuando una cuota guardada cae fuera de la vigencia', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      await editInstallmentPlan(tx, poliza, 3, '300', 10)
+      assert.equal((await policyInstallments(tx, poliza))?.outsideTerm, false)
+      await editInstallmentPlan(tx, poliza, 4, '300', 10)
+      assert.equal((await policyInstallments(tx, poliza))?.outsideTerm, true)
+    })
+  })
+
+  it('Pagos: sin anuladas ni riesgos excluidos, y con las impagas de una póliza que venció hace meses', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      const hoy = '2027-03-15'
+      const ids = async () => (await listCashPolicies(tx, hoy)).map((p) => p.policyId)
+      assert.ok((await ids()).includes(poliza))
+      await tx`reset role`
+      await tx`update policy_version set status = 'CANCELLED' where policy_id = ${poliza}`
+      await tx`set local role broker_app`
+      assert.ok(!(await ids()).includes(poliza))
+      await tx`reset role`
+      await tx`update policy_version set status = 'ACTIVE', product_reference = 'Caución' where policy_id = ${poliza}`
+      await tx`set local role broker_app`
+      assert.ok(!(await ids()).includes(poliza))
+    })
+  })
+
+  it('marcar pagado hasta hoy: las de fecha hasta hoy, de pólizas en efectivo, y no toca las de otras formas de pago', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      const r = await markPaidUntil(tx, '2026-11-10')
+      assert.ok(r.installments >= 3)
+      assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => c.paid), [true, true, true])
+      await tx`update policy_version set payment_method = 'Tarjeta' where policy_id = ${poliza}`
+      await setInstallmentPaid(tx, poliza, 3, false)
+      await markPaidUntil(tx, '2026-11-10')
+      assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => c.paid), [true, true, false])
     })
   })
 

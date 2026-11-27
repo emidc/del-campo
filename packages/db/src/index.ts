@@ -128,16 +128,24 @@ export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './re
 export {
   DEFAULT_PAY_DAY,
   MAX_INSTALLMENTS,
+  MAX_PAY_DAY,
+  buildPlan,
   dayOfMonthAfter,
   defaultPlan,
+  editInstallmentPlan,
+  hasInstallments,
+  listCashPolicies,
   listInstallments,
+  markPaidUntil,
+  normalizeText,
+  paysInCash,
   monthsCovered,
   policyInstallments,
   saveInstallmentPlan,
   setInstallmentPaid,
   splitAmount,
 } from './installment.ts'
-export type { Installment, InstallmentInput } from './installment.ts'
+export type { EditPlanResult, Installment, InstallmentInput } from './installment.ts'
 export {
   CLAIM_CONTACT_ROLES,
   CLAIM_CONTACT_ROLE_LABELS,

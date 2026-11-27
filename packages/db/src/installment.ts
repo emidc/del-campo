@@ -5,6 +5,9 @@
 
 import type postgres from 'postgres'
 
+import type { RenewalItem } from './renewal.ts'
+import { listRenewals } from './renewal.ts'
+
 type QueryExecutor = postgres.Sql | postgres.TransactionSql
 
 export interface Installment {
@@ -56,21 +59,30 @@ export const splitAmount = (total: string | null, n: number): (string | null)[] 
   return Array.from({ length: n }, (_, i) => ((i === n - 1 ? centavos - cuota * (n - 1) : cuota) / 100).toFixed(2))
 }
 
+/** El último día de pago que se puede elegir: así todos los meses lo tienen. */
+export const MAX_PAY_DAY = 29
+
+/**
+ * `n` cuotas mensuales del mismo importe, el día `payDay` de cada mes. La primera cae ese
+ * día del mes de inicio, o del mes siguiente si la vigencia empieza después de ese día.
+ */
+export const buildPlan = (termStart: string, n: number, amounts: readonly (string | null)[], payDay: number): Installment[] => {
+  const desde = Number(termStart.slice(8, 10)) > payDay ? 1 : 0
+  return Array.from({ length: n }, (_, i) => ({
+    number: i + 1,
+    dueDate: dayOfMonthAfter(termStart, desde + i, payDay),
+    amount: amounts[i] ?? null,
+    paid: false,
+  }))
+}
+
 /**
  * El plan que se propone cuando nadie lo editó: una cuota por mes de vigencia, los días 10,
- * con el premio repartido en partes iguales. La primera cae el 10 del mes de inicio, o del
- * mes siguiente si la vigencia empieza después del 10.
+ * con el premio repartido en partes iguales.
  */
 export const defaultPlan = (termStart: string, termEnd: string, totalPremium: string | null): Installment[] => {
   const n = monthsCovered(termStart, termEnd)
-  const desde = Number(termStart.slice(8, 10)) > DEFAULT_PAY_DAY ? 1 : 0
-  const importes = splitAmount(totalPremium, n)
-  return importes.map((amount, i) => ({
-    number: i + 1,
-    dueDate: dayOfMonthAfter(termStart, desde + i, DEFAULT_PAY_DAY),
-    amount,
-    paid: false,
-  }))
+  return buildPlan(termStart, n, splitAmount(totalPremium, n), DEFAULT_PAY_DAY)
 }
 
 interface Row {
@@ -116,16 +128,50 @@ const termOf = async (sql: QueryExecutor, policyId: string): Promise<Term | null
   return fila ?? null
 }
 
+export type EditPlanResult =
+  | { readonly kind: 'ok' }
+  | { readonly kind: 'not_found' }
+  /** Bajar la cantidad borraría cuotas ya pagadas: la primera de ellas. */
+  | { readonly kind: 'paid_removed'; readonly number: number }
+
+/**
+ * Rehace el plan de una póliza: `n` cuotas de `amount`, el día `payDay` de cada mes desde
+ * el inicio de vigencia. Las que siguen existiendo conservan si estaban pagadas. No borra
+ * cuotas pagadas: si bajar la cantidad lo haría, no cambia nada.
+ */
+export const editInstallmentPlan = async (
+  sql: QueryExecutor,
+  policyId: string,
+  n: number,
+  amount: string | null,
+  payDay: number,
+): Promise<EditPlanResult> => {
+  if (!Number.isInteger(payDay) || payDay < 1 || payDay > MAX_PAY_DAY) throw new Error('editInstallmentPlan: el día va de 1 a 29')
+  const term = await termOf(sql, policyId)
+  if (term === null) return { kind: 'not_found' }
+  const [pagada] = await sql<{ number: number }[]>`
+    select number from policy_installment
+    where policy_id = ${policyId} and number > ${n} and paid_at is not null
+    order by number limit 1`
+  if (pagada !== undefined) return { kind: 'paid_removed', number: pagada.number }
+  const plan = buildPlan(term.term_start_date, n, Array.from({ length: n }, () => amount), payDay)
+  await saveInstallmentPlan(sql, policyId, plan)
+  return { kind: 'ok' }
+}
+
 /** Las cuotas de una póliza: las guardadas o, si no hay, las que se proponen. `null` si no la ve. */
 export const policyInstallments = async (
   sql: QueryExecutor,
   policyId: string,
-): Promise<{ readonly installments: Installment[]; readonly saved: boolean } | null> => {
+): Promise<{ readonly installments: Installment[]; readonly saved: boolean; readonly outsideTerm: boolean } | null> => {
   const term = await termOf(sql, policyId)
   if (term === null) return null
   const guardadas = (await listInstallments(sql, [policyId])).get(policyId)
-  if (guardadas !== undefined) return { installments: guardadas, saved: true }
-  return { installments: defaultPlan(term.term_start_date, term.term_end_date, term.total_premium), saved: false }
+  if (guardadas === undefined)
+    return { installments: defaultPlan(term.term_start_date, term.term_end_date, term.total_premium), saved: false, outsideTerm: false }
+  const desde = `${term.term_start_date.slice(0, 7)}-01`
+  const outsideTerm = guardadas.some((c) => c.dueDate < desde || c.dueDate > term.term_end_date)
+  return { installments: guardadas, saved: true, outsideTerm }
 }
 
 /**
@@ -161,4 +207,65 @@ export const setInstallmentPaid = async (sql: QueryExecutor, policyId: string, n
         updated_by_user_id = authz.usuario(), updated_at = clock_timestamp()
     where policy_id = ${policyId} and number = ${number}`
   return true
+}
+
+/** Sin mayúsculas ni tildes, para comparar «Caución» con «CAUCION». */
+export const normalizeText = (texto: string): string =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+
+/** Riesgos que no se cobran en Pagos. */
+const RIESGOS_SIN_PAGOS = new Set(['caucion', 'vida colectivo', 'vida obligatorio', 'retiro'])
+
+export const paysInCash = (paymentMethod: string | null): boolean => paymentMethod !== null && normalizeText(paymentMethod) === 'efectivo'
+
+/** Si la póliza lleva cuotas: en efectivo y fuera de Caución, Vida colectivo, Vida obligatorio y Retiro. */
+export const hasInstallments = (paymentMethod: string | null, productReference: string | null): boolean =>
+  paysInCash(paymentMethod) && (productReference === null || !RIESGOS_SIN_PAGOS.has(normalizeText(productReference)))
+
+/** Hasta cuántos meses después del fin de vigencia se siguen mostrando las cuotas impagas. */
+const MESES_DE_ATRASO = 12
+
+/**
+ * Las pólizas cuyas cuotas se cobran en Pagos: en efectivo, no anuladas, fuera de Caución,
+ * Vida colectivo, Vida obligatorio y Retiro, y con fin de vigencia desde el primer día del
+ * mes de hace un año (así una cuota impaga no desaparece cuando la póliza vence).
+ */
+export const listCashPolicies = async (sql: QueryExecutor, today: string): Promise<RenewalItem[]> => {
+  const desde = dayOfMonthAfter(today, -MESES_DE_ATRASO, 1)
+  const polizas = (await listRenewals(sql, { from: desde, to: '9999-12-31' })).filter((p) => hasInstallments(p.paymentMethod, p.productReference))
+  if (polizas.length === 0) return []
+  const anuladas = new Set(
+    (
+      await sql<{ policy_id: string }[]>`
+        select v.policy_id from policy_version v
+        where v.policy_id = any(${polizas.map((p) => p.policyId)}::uuid[])
+          and v.effective_from <= current_date and (v.effective_to is null or v.effective_to > current_date)
+          and v.status = 'CANCELLED'`
+    ).map((f) => f.policy_id),
+  )
+  return polizas.filter((p) => !anuladas.has(p.policyId))
+}
+
+/**
+ * Marca como pagadas todas las cuotas con fecha de pago hasta `today` (incluido) de las
+ * pólizas que muestra Pagos (`listCashPolicies`). Las pólizas sin plan guardado guardan
+ * primero el propuesto. Corre a nombre de `authz.usuario()`. Devuelve cuántas pólizas tocó
+ * y cuántas cuotas marcó.
+ */
+export const markPaidUntil = async (sql: QueryExecutor, today: string): Promise<{ readonly policies: number; readonly installments: number }> => {
+  let policies = 0
+  let installments = 0
+  for (const p of await listCashPolicies(sql, today)) {
+    const actual = await policyInstallments(sql, p.policyId)
+    if (actual?.installments.some((c) => !c.paid && c.dueDate <= today) !== true) continue
+    if (!actual.saved) await saveInstallmentPlan(sql, p.policyId, actual.installments)
+    const marcadas = await sql`
+      update policy_installment
+      set paid_at = clock_timestamp(), paid_by_user_id = authz.usuario(),
+          updated_by_user_id = authz.usuario(), updated_at = clock_timestamp()
+      where policy_id = ${p.policyId} and paid_at is null and due_date <= ${today}::date`
+    policies += 1
+    installments += marcadas.count
+  }
+  return { policies, installments }
 }

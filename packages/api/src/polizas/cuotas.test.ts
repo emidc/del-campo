@@ -4,9 +4,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import type { Installment, RenewalItem } from '@del-campo/db'
-import { defaultPlan, monthsCovered, splitAmount } from '@del-campo/db'
+import { buildPlan, defaultPlan, monthsCovered, splitAmount } from '@del-campo/db'
 
-import { cuotasDelMes, pagaEnEfectivo } from './cuotas.ts'
+import { cuotasDelMes, pagaEnEfectivo, tieneCuotas } from './cuotas.ts'
 
 describe('plan de cuotas propuesto', () => {
   it('cuenta los meses de vigencia redondeando al más cercano', () => {
@@ -58,11 +58,32 @@ const poliza = (id: string, cambios: Partial<RenewalItem> = {}): RenewalItem => 
   ...cambios,
 })
 
+describe('plan editado', () => {
+  it('mismo valor y mismo día para todas; el día se recorta en meses cortos', () => {
+    assert.deepEqual(
+      buildPlan('2026-12-01', 3, ['100', '100', '100'], 29).map((c) => [c.dueDate, c.amount]),
+      [
+        ['2026-12-29', '100'],
+        ['2027-01-29', '100'],
+        ['2027-02-28', '100'],
+      ],
+    )
+    assert.equal(buildPlan('2026-12-15', 1, [null], 5)[0]?.dueDate, '2027-01-05')
+  })
+})
+
 describe('Pagos del mes', () => {
   it('sólo efectivo, sin tildes ni mayúsculas', () => {
     assert.equal(pagaEnEfectivo('EFECTIVO'), true)
     assert.equal(pagaEnEfectivo('Tarjeta'), false)
     assert.equal(pagaEnEfectivo(null), false)
+  })
+
+  it('Caución, Vida colectivo, Vida obligatorio y Retiro no llevan cuotas', () => {
+    assert.equal(tieneCuotas('Efectivo', 'Automotor'), true)
+    assert.equal(tieneCuotas('Efectivo', null), true)
+    for (const r of ['Caución', 'CAUCION', 'Vida Colectivo', 'Vida obligatorio', 'RETIRO']) assert.equal(tieneCuotas('Efectivo', r), false)
+    assert.equal(tieneCuotas('Tarjeta', 'Automotor'), false)
   })
 
   it('las del mes (pagadas o no) y las atrasadas de meses anteriores, por fecha', () => {
@@ -92,16 +113,5 @@ describe('Pagos del mes', () => {
   it('la del mes no está atrasada hasta que pasa su día', () => {
     const pagos = cuotasDelMes([poliza('A', { termStartDate: '2026-11-01', termEndDate: '2026-12-01' })], new Map(), '2026-11-09')
     assert.deepEqual(pagos.map((p) => [p.cuota.dueDate, p.atrasada]), [['2026-11-10', false]])
-  })
-
-  it('deja afuera otras formas de pago y Caución, Vida colectivo, Vida obligatorio y Retiro', () => {
-    const polizas = [
-      poliza('T', { paymentMethod: 'Tarjeta' }),
-      poliza('C', { productReference: 'Caución' }),
-      poliza('V', { productReference: 'Vida Colectivo' }),
-      poliza('O', { productReference: 'Vida obligatorio' }),
-      poliza('R', { productReference: 'RETIRO' }),
-    ]
-    assert.deepEqual(cuotasDelMes(polizas, new Map(), '2026-11-20'), [])
   })
 })

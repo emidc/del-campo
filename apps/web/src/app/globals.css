@@ -2393,30 +2393,6 @@ a.conjunto--activo:hover {
   white-space: nowrap;
 }
 
-.tabla-cuotas input[type='date'] {
-  width: 9.5rem;
-}
-
-.tabla-cuotas input[inputmode='decimal'] {
-  width: 8rem;
-  text-align: right;
-}
-
-.cuotas__cantidad {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 0.8rem;
-}
-
-.cuotas__cantidad input {
-  width: 5rem;
-}
-
-.cuotas__edicion .fila {
-  margin-top: 0.8rem;
-}
-
 .casilla-de-pago input {
   width: 18px;
   height: 18px;
