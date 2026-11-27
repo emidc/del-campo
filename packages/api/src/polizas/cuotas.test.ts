@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import type { Installment, RenewalItem } from '@del-campo/db'
-import { buildPlan, defaultPlan, monthsCovered, splitAmount } from '@del-campo/db'
+import { buildPlan, defaultPlan, monthsCovered, roundedAmounts, splitAmount } from '@del-campo/db'
 
 import { cuotasDelMes, pagaEnEfectivo, tieneCuotas } from './cuotas.ts'
 
@@ -21,12 +21,18 @@ describe('plan de cuotas propuesto', () => {
     assert.deepEqual(splitAmount(null, 2), [null, null])
   })
 
-  it('una cuota por mes, los días 10, desde el mes de inicio o el siguiente si empieza después del 10', () => {
-    const plan = defaultPlan('2026-09-09', '2026-12-09', '890166.16')
-    assert.deepEqual(plan.map((c) => c.dueDate), ['2026-09-10', '2026-10-10', '2026-11-10'])
-    assert.deepEqual(plan.map((c) => c.number), [1, 2, 3])
+  it('redondeo de la compañía: pesos enteros y la primera se lleva la diferencia', () => {
+    assert.deepEqual(roundedAmounts('89259.22', 6), ['14879.22', '14876.00', '14876.00', '14876.00', '14876.00', '14876.00'])
+    assert.deepEqual(roundedAmounts('900', 3), ['300.00', '300.00', '300.00'])
+    assert.deepEqual(roundedAmounts(null, 2), [null, null])
+  })
+
+  it('una cuota por mes, a mes vencido, los días 10, con el redondeo', () => {
+    const plan = defaultPlan('2026-07-01', '2027-01-01', '89259.22')
+    assert.deepEqual(plan.map((c) => c.dueDate), ['2026-08-10', '2026-09-10', '2026-10-10', '2026-11-10', '2026-12-10', '2027-01-10'])
+    assert.deepEqual(plan.map((c) => c.amount?.slice(0, 5)), ['14879', '14876', '14876', '14876', '14876', '14876'])
+    assert.deepEqual(plan.map((c) => c.number), [1, 2, 3, 4, 5, 6])
     assert.ok(plan.every((c) => !c.paid))
-    assert.deepEqual(defaultPlan('2026-09-15', '2026-12-15', null).map((c) => c.dueDate), ['2026-10-10', '2026-11-10', '2026-12-10'])
   })
 })
 
@@ -61,14 +67,15 @@ const poliza = (id: string, cambios: Partial<RenewalItem> = {}): RenewalItem => 
 describe('plan editado', () => {
   it('mismo valor y mismo día para todas; el día se recorta en meses cortos', () => {
     assert.deepEqual(
-      buildPlan('2026-12-01', 3, ['100', '100', '100'], 29).map((c) => [c.dueDate, c.amount]),
+      buildPlan('2026-12-01', 3, ['100', '100', '100'], 29, 'CURRENT').map((c) => [c.dueDate, c.amount]),
       [
         ['2026-12-29', '100'],
         ['2027-01-29', '100'],
         ['2027-02-28', '100'],
       ],
     )
-    assert.equal(buildPlan('2026-12-15', 1, [null], 5)[0]?.dueDate, '2027-01-05')
+    assert.equal(buildPlan('2026-07-01', 1, [null], 1, 'ARREARS')[0]?.dueDate, '2026-08-01')
+    assert.equal(buildPlan('2026-07-01', 1, [null], 1, 'CURRENT')[0]?.dueDate, '2026-07-01')
   })
 })
 
@@ -102,16 +109,15 @@ describe('Pagos del mes', () => {
       pagos.map((p) => [p.poliza.policyId, p.cuota.number, p.total, p.atrasada, p.cuota.paid]),
       [
         ['A', 1, 3, true, false],
-        ['A', 2, 3, true, false],
         ['B', 2, 3, true, false],
         ['B', 3, 3, false, true],
-        ['A', 3, 3, true, false],
+        ['A', 2, 3, true, false],
       ],
     )
   })
 
   it('la del mes no está atrasada hasta que pasa su día', () => {
-    const pagos = cuotasDelMes([poliza('A', { termStartDate: '2026-11-01', termEndDate: '2026-12-01' })], new Map(), '2026-11-09')
+    const pagos = cuotasDelMes([poliza('A', { termStartDate: '2026-10-01', termEndDate: '2026-11-01' })], new Map(), '2026-11-09')
     assert.deepEqual(pagos.map((p) => [p.cuota.dueDate, p.atrasada]), [['2026-11-10', false]])
   })
 })

@@ -129,6 +129,7 @@ export {
   DEFAULT_PAY_DAY,
   MAX_INSTALLMENTS,
   MAX_PAY_DAY,
+  amountsFor,
   buildPlan,
   dayOfMonthAfter,
   defaultPlan,
@@ -139,13 +140,14 @@ export {
   markPaidUntil,
   normalizeText,
   paysInCash,
+  roundedAmounts,
   monthsCovered,
   policyInstallments,
   saveInstallmentPlan,
   setInstallmentPaid,
   splitAmount,
 } from './installment.ts'
-export type { EditPlanResult, Installment, InstallmentInput } from './installment.ts'
+export type { AmountMode, EditPlanResult, Installment, InstallmentInput, PaymentTiming, PlanEdit } from './installment.ts'
 export {
   CLAIM_CONTACT_ROLES,
   CLAIM_CONTACT_ROLE_LABELS,

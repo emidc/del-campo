@@ -256,6 +256,7 @@ export default async function PolizaPage({
           poliza={detail.policyId}
           numero={detail.policyNumber}
           cuotas={cuotas.cuotas}
+          inicio={actual.termStartDate}
           premio={actual.totalPremium}
           moneda={actual.currency}
           fueraDeVigencia={cuotas.fueraDeVigencia}

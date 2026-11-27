@@ -1,7 +1,7 @@
 // Cuotas de las pólizas en efectivo: la sección Cuotas de la póliza y la pantalla Pagos.
 // Por `conDatos`: como `broker_app`, a nombre de quien mira, con RLS decidiendo.
 
-import type { Installment, RenewalItem } from '@del-campo/db'
+import type { AmountMode, Installment, PaymentTiming, RenewalItem } from '@del-campo/db'
 import {
   MAX_INSTALLMENTS,
   MAX_PAY_DAY,
@@ -50,23 +50,31 @@ export type ResultadoDeCuotas = 'guardado' | 'invalido' | 'inexistente' | 'con_p
 
 export const MENSAJE_DE_CUOTAS: Readonly<Record<ResultadoDeCuotas, string>> = {
   guardado: 'Guardado.',
-  invalido: `No se guardó. La cantidad va de 1 a ${String(MAX_INSTALLMENTS)}, el día de pago de 1 a ${String(MAX_PAY_DAY)} y el valor como importe (por ejemplo 296.722,05).`,
+  invalido: `No se guardó. La cantidad va de 1 a ${String(MAX_INSTALLMENTS)}, el día de pago de 1 a ${String(MAX_PAY_DAY)} y, con cálculo Manual, el valor como importe (por ejemplo 14.876).`,
   inexistente: 'No se encontró la póliza o la cuota.',
   con_pagadas: 'No se guardó: bajar la cantidad borraría cuotas que ya están pagadas. Desmarcalas primero si corresponde.',
 }
 
 export interface DatosDeCuotas {
   readonly cantidad: string
-  readonly importe: string
   readonly dia: string
+  /** `vencido` (por defecto) o `en_curso`. */
+  readonly primerPago: string
+  /** `redondeo` (por defecto), `dividir` o `manual`. */
+  readonly calculo: string
+  /** El valor de cada cuota; sólo cuenta con `manual`. */
+  readonly importe: string
 }
+
+const CALCULOS: Readonly<Record<string, AmountMode>> = { redondeo: 'ROUNDED', dividir: 'SPLIT', manual: 'MANUAL' }
+const PRIMEROS_PAGOS: Readonly<Record<string, PaymentTiming>> = { vencido: 'ARREARS', en_curso: 'CURRENT' }
 
 const entero = (texto: string, min: number, max: number): number | null => {
   const n = /^\d{1,3}$/.test(texto.trim()) ? Number(texto.trim()) : NaN
   return n >= min && n <= max ? n : null
 }
 
-/** Rehace el plan: la cantidad de cuotas, un mismo valor para todas y un mismo día de pago. */
+/** Rehace el plan: cantidad de cuotas, día de pago, mes del primer pago y cómo se calcula el valor. */
 export const editarCuotasCon = async (
   conexion: Conexion,
   principal: Principal,
@@ -76,9 +84,13 @@ export const editarCuotasCon = async (
   if (!esUuid(policyId)) return 'inexistente'
   const cantidad = entero(datos.cantidad, 1, MAX_INSTALLMENTS)
   const dia = entero(datos.dia, 1, MAX_PAY_DAY)
-  const importe = parseAmount(datos.importe)
-  if (cantidad === null || dia === null || importe === undefined || importe === null) return 'invalido'
-  const r = await conDatos(conexion, principal, (tx) => editInstallmentPlan(tx, policyId, cantidad, importe, dia))
+  const mode = CALCULOS[datos.calculo]
+  const timing = PRIMEROS_PAGOS[datos.primerPago]
+  const importe = mode === 'MANUAL' ? parseAmount(datos.importe) : null
+  if (cantidad === null || dia === null || mode === undefined || timing === undefined) return 'invalido'
+  if (mode === 'MANUAL' && (importe === undefined || importe === null)) return 'invalido'
+  const amount = importe ?? null
+  const r = await conDatos(conexion, principal, (tx) => editInstallmentPlan(tx, policyId, { count: cantidad, payDay: dia, timing, mode, amount }))
   return r.kind === 'ok' ? 'guardado' : r.kind === 'paid_removed' ? 'con_pagadas' : 'inexistente'
 }
 

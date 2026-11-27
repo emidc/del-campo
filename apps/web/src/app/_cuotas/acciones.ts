@@ -35,7 +35,16 @@ const texto = (form: FormData, campo: string): string => {
 export async function editarPlan(_previo: ResultadoDeCuota | null, form: FormData): Promise<ResultadoDeCuota> {
   const principal = await requireAdmitted()
   const poliza = texto(form, 'poliza')
-  return responder(poliza, editarCuotas(principal, poliza, { cantidad: texto(form, 'cantidad'), importe: texto(form, 'importe'), dia: texto(form, 'dia') }))
+  return responder(
+    poliza,
+    editarCuotas(principal, poliza, {
+      cantidad: texto(form, 'cantidad'),
+      dia: texto(form, 'dia'),
+      primerPago: texto(form, 'primerPago'),
+      calculo: texto(form, 'calculo'),
+      importe: texto(form, 'importe'),
+    }),
+  )
 }
 
 export async function marcarPago(poliza: string, numero: number, pagada: boolean): Promise<ResultadoDeCuota> {
