@@ -4,6 +4,7 @@
 import type {
   NewTask,
   TaskAction,
+  TaskCounts,
   TaskDetail,
   TaskEvent,
   TaskFilter,
@@ -24,6 +25,7 @@ import {
   clearDoneWeeklyTasks,
   commentTask,
   completeTaskAction,
+  countTasks,
   createTask,
   deleteTask,
   getTask,
@@ -45,7 +47,7 @@ import { jobDenial } from '../comunicacion/entrada.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
-export type { NewTask, TaskAction, TaskDetail, TaskEvent, TaskFilter, TaskFollowUp, TaskPriority, TaskStatus, TaskSummary, TeamMemberProfile }
+export type { NewTask, TaskAction, TaskCounts, TaskDetail, TaskEvent, TaskFilter, TaskFollowUp, TaskPriority, TaskStatus, TaskSummary, TeamMemberProfile }
 export { PRIORIDADES_DE_TAREA, SEGUIMIENTOS_DE_TAREA, TASK_FOLLOW_UPS, TASK_PRIORITIES, TASK_STATUSES }
 
 export const ESTADOS_DE_TAREA: Readonly<Record<TaskStatus, string>> = {
@@ -67,6 +69,10 @@ export const esSeguimientoDeTarea = (valor: unknown): valor is TaskFollowUp =>
 
 export const tareas = async (principal: Principal, filtro: TaskFilter = {}): Promise<TaskSummary[]> =>
   conDatos(sql(), principal, (ejecutor) => listTasks(ejecutor, filtro))
+
+/** Cuántas tareas muestra cada pestaña de la pantalla Tareas. */
+export const conteoDeTareas = async (principal: Principal): Promise<TaskCounts> =>
+  conDatos(sql(), principal, (ejecutor) => countTasks(ejecutor))
 
 export const tarea = async (principal: Principal, id: string): Promise<TaskDetail | null> =>
   conDatos(sql(), principal, (ejecutor) => getTask(ejecutor, id))

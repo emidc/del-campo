@@ -97,6 +97,7 @@ export {
   completeTaskAction,
   createTask,
   deleteTask,
+  countTasks,
   getTask,
   involveInTask,
   listTaskAssignees,
@@ -114,6 +115,7 @@ export type { MemberPhoto, OwnProfile, PhotoType } from './profile.ts'
 export type {
   NewTask,
   TaskAction,
+  TaskCounts,
   TaskDetail,
   TaskEvent,
   TaskFilter,

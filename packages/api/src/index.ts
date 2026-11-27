@@ -157,6 +157,7 @@ export {
   completarAccionDeTarea,
   crearTarea,
   eliminarTarea,
+  conteoDeTareas,
   esEstadoDeTarea,
   esPrioridadDeTarea,
   esSeguimientoDeTarea,
@@ -172,6 +173,7 @@ export {
 export type {
   NewTask,
   TaskAction,
+  TaskCounts,
   TaskDetail,
   TaskEvent,
   TaskFilter,

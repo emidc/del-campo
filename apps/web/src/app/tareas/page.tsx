@@ -4,7 +4,7 @@ import {
   ORIGENES_DE_PROSPECTO,
   PRIORIDADES_DE_TAREA,
   PROSPECT_ORIGINS,
-  integrantesDelEquipo, latestBatch, tareas } from '@del-campo/api'
+  conteoDeTareas, integrantesDelEquipo, latestBatch, tareas } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic'
 
 const uno = (valor: string | string[] | undefined): string | undefined => (Array.isArray(valor) ? valor[0] : valor)
 
-type Pestana = 'todas' | 'mias' | 'bloqueadas' | 'semana'
+type Pestana = 'todas' | 'mias' | 'asignaciones' | 'bloqueadas' | 'semana'
 
 export default async function TareasPage({
   searchParams,
@@ -36,22 +36,26 @@ export default async function TareasPage({
       ? 'semana'
       : uno(parametros.mias) === '1'
         ? 'mias'
-        : uno(parametros.estado) === 'TRABADA'
+        : uno(parametros.asignaciones) === '1'
+          ? 'asignaciones'
+          : uno(parametros.estado) === 'TRABADA'
           ? 'bloqueadas'
           : 'todas'
   // En el tablero, «Mis tareas» es el filtro por defecto; «Todas» muestra las de todo el equipo.
   const semanaDeTodos = pestana === 'semana' && uno(parametros.todas) === '1'
-  const [lote, lista, integrantes] = await consultar(
+  const [lote, lista, integrantes, conteo] = await consultar(
     Promise.all([
       latestBatch(principal),
       tareas(principal, {
         onlyMine: pestana === 'mias' || (pestana === 'semana' && !semanaDeTodos),
         includeDone: pestana === 'todas',
+        ...(pestana === 'asignaciones' ? { involved: true } : {}),
         ...(pestana === 'semana' ? { weekly: true } : {}),
         ...(pestana === 'bloqueadas' ? { status: 'TRABADA' as const } : {}),
         ...(parte === undefined ? {} : { partyId: parte }),
       }),
       integrantesDelEquipo(principal),
+      conteoDeTareas(principal),
     ]),
   )
   const hoy = fechaDeHoy()
@@ -85,10 +89,11 @@ export default async function TareasPage({
         </div>
       </header>
       <nav className="pestanas" aria-label="Filtros de tareas">
-        {enlace('Todas', pestana === 'todas' && parte === undefined, '/tareas')}
-        {enlace('Mis tareas', pestana === 'mias', '/tareas?mias=1')}
-        {enlace('Bloqueadas', pestana === 'bloqueadas', '/tareas?estado=TRABADA')}
-        {enlace('Tareas de la semana', pestana === 'semana', '/tareas?semana=1')}
+        {enlace(`Todas (${String(conteo.todas)})`, pestana === 'todas' && parte === undefined, '/tareas')}
+        {enlace(`Mis tareas (${String(conteo.mias)})`, pestana === 'mias', '/tareas?mias=1')}
+        {enlace(`Asignaciones (${String(conteo.asignaciones)})`, pestana === 'asignaciones', '/tareas?asignaciones=1')}
+        {enlace(`Bloqueadas (${String(conteo.bloqueadas)})`, pestana === 'bloqueadas', '/tareas?estado=TRABADA')}
+        {enlace(`Tareas de la semana (${String(conteo.semana)})`, pestana === 'semana', '/tareas?semana=1')}
       </nav>
       {parte === undefined ? null : <p className="meta">Mostrando las tareas de un cliente.</p>}
 
@@ -118,13 +123,16 @@ export default async function TareasPage({
           )}
         </>
       ) : lista.length === 0 ? (
-        <p className="estado">No hay tareas para mostrar.</p>
+        <p className="estado">
+          {pestana === 'asignaciones' ? 'No tenés acciones pendientes en tareas de otros.' : 'No hay tareas para mostrar.'}
+        </p>
       ) : (
         <div className="desborde">
           <table>
             <thead>
               <tr>
                 <th>Tarea</th>
+                {pestana === 'asignaciones' ? <th>Qué tenés que hacer</th> : null}
                 <th>Cliente</th>
                 <th>Estado</th>
                 <th>Responsable</th>
@@ -139,6 +147,7 @@ export default async function TareasPage({
                     <Link href={`/tareas/${t.id}`}>{t.title}</Link>
                     {t.serviceCaseTitle === null ? null : <span className="meta"> · {t.serviceCaseTitle}</span>}
                   </td>
+                  {pestana === 'asignaciones' ? <td style={{ whiteSpace: 'pre-wrap' }}>{t.myPendingActions}</td> : null}
                   <td>
                     <Link href={`/parte/${t.partyId}`}>{t.partyName ?? 'sin nombre'}</Link>
                   </td>

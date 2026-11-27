@@ -24,6 +24,7 @@ import { fecha, fechaHora } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
 import { AccionesDelEquipo } from './AccionesDelEquipo'
+import { Historia } from './Historia'
 
 export const dynamic = 'force-dynamic'
 
@@ -225,18 +226,15 @@ export default async function TareaPage({ params }: { readonly params: Promise<{
         </div>
 
         <section className="tarjeta">
-          <h2>Historia</h2>
-          <ul className="lista">
-            {t.events.map((evento) => (
-              <li key={evento.id}>
-                <p className="meta" style={{ margin: 0 }}>
-                  {fechaHora(evento.createdAt)} · {evento.authorName ?? 'integrante dado de baja'}
-                </p>
-                <p style={{ margin: '0.2rem 0 0' }}>{describir(evento)}</p>
-                {conCuerpo(evento) ? <p style={{ margin: '0.2rem 0 0', whiteSpace: 'pre-wrap' }}>{evento.body}</p> : null}
-              </li>
-            ))}
-          </ul>
+          <Historia
+            eventos={t.events.map((evento) => ({
+              id: evento.id,
+              cuando: fechaHora(evento.createdAt),
+              autor: evento.authorName ?? 'integrante dado de baja',
+              titulo: describir(evento),
+              cuerpo: conCuerpo(evento) ? evento.body : null,
+            }))}
+          />
         </section>
       </div>
     </main>
