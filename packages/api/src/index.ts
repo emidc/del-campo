@@ -376,5 +376,6 @@ export {
   pagaEnEfectivo,
   pagosDelMes,
   splitAmount,
+  tieneCuotas,
 } from './polizas/cuotas.ts'
 export type { CuotasDePoliza, DatosDeCuotas, Installment, Pago, ResultadoDeCuotas } from './polizas/cuotas.ts'

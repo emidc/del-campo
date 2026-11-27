@@ -133,15 +133,19 @@ export {
   dayOfMonthAfter,
   defaultPlan,
   editInstallmentPlan,
+  hasInstallments,
+  listCashPolicies,
   listInstallments,
   markPaidUntil,
+  normalizeText,
+  paysInCash,
   monthsCovered,
   policyInstallments,
   saveInstallmentPlan,
   setInstallmentPaid,
   splitAmount,
 } from './installment.ts'
-export type { Installment, InstallmentInput } from './installment.ts'
+export type { EditPlanResult, Installment, InstallmentInput } from './installment.ts'
 export {
   CLAIM_CONTACT_ROLES,
   CLAIM_CONTACT_ROLE_LABELS,
