@@ -27,6 +27,7 @@ import {
   anularPolizaCon,
   editarCampoDePolizaCon,
   editarEndosoCon,
+  editarPolizaCon,
   eliminarPolizaCon,
   refacturarCon,
   renovarPolizaCon,
@@ -287,6 +288,52 @@ describe('renovar póliza', () => {
       assert.equal(uno(await tx<{ n: number }[]>`select count(*)::int as n from policy where policy_number = 'SIN-0009'`).n, 0)
       assert.equal(await estadoAbierto(tx, m.poliza), 'ACTIVE')
       await tx`drop trigger rechazar on policy_version`
+    })
+  })
+})
+
+describe('editar la póliza nueva desde Renovaciones', () => {
+  const archivo = 'https://drive.google.com/file/d/polizaSintetica123/view'
+
+  it('guarda número, condiciones, documento y la marca de información completa', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const r = await renovarPolizaCon(tx, quien, { ...terminos, previousPolicyId: m.poliza, policyNumber: 'SIN-0002', insurerId: m.aseguradora })
+      assert.ok(r.kind === 'ok')
+      const completa = async () => uno(await tx<{ complete: boolean }[]>`select complete from policy where id = ${r.policyId}`).complete
+      assert.equal(await completa(), false, 'recién renovada no está completa')
+
+      const editada = await editarPolizaCon(tx, quien, {
+        ...terminos, premium: '2.000', policyId: r.policyId, policyNumber: 'SIN-0002-B', driveUrl: archivo, complete: true,
+      })
+      assert.deepEqual(editada, { kind: 'ok' })
+      assert.equal(await completa(), true)
+      const nueva = await getPolicyDetail(tx, r.policyId, '2026-12-01')
+      assert.ok(nueva)
+      assert.equal(nueva.policyNumber, 'SIN-0002-B')
+      assert.equal(nueva.driveUrl, archivo)
+      assert.equal(uno(nueva.history).premium, '2000')
+
+      assert.deepEqual(
+        await editarPolizaCon(tx, quien, { ...terminos, policyId: r.policyId, policyNumber: 'SIN-0002-B', complete: false }),
+        { kind: 'ok' },
+        'se destilda',
+      )
+      assert.equal(await completa(), false)
+    })
+  })
+
+  it('un dato inválido no cambia nada', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const r = await renovarPolizaCon(tx, quien, { ...terminos, previousPolicyId: m.poliza, policyNumber: 'SIN-0002', insurerId: m.aseguradora })
+      assert.ok(r.kind === 'ok')
+      const repetido = await editarPolizaCon(tx, quien, { ...terminos, policyId: r.policyId, policyNumber: 'SIN-0001', complete: true })
+      assert.equal(repetido.kind, 'invalid', 'el número ya es de otra póliza de la compañía')
+      const fechas = await editarPolizaCon(tx, quien, { ...terminos, termEndDate: '2026-01-01', policyId: r.policyId, policyNumber: 'SIN-0002', complete: true })
+      assert.equal(fechas.kind, 'invalid')
+      const fila = uno(await tx<{ policy_number: string; complete: boolean }[]>`select policy_number, complete from policy where id = ${r.policyId}`)
+      assert.deepEqual({ ...fila }, { policy_number: 'SIN-0002', complete: false })
     })
   })
 })

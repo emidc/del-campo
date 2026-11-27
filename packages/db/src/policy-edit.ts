@@ -518,6 +518,51 @@ export const updateEndorsement = async (sql: QueryExecutor, input: EndorsementEd
   return { kind: 'ok' }
 }
 
+export interface PolicyEdit extends PolicyTerms {
+  readonly policyId: string
+  readonly policyNumber: string
+  /** Si el equipo ya cargó toda la información disponible de la póliza. */
+  readonly complete: boolean
+}
+
+/**
+ * Edita de una vez una póliza desde el modal de Renovaciones: número, documento en Drive,
+ * las condiciones de su versión abierta y la marca de información completa. Valida todo
+ * antes de escribir: un rechazo no deja cambios a medias.
+ */
+export const updatePolicy = async (sql: QueryExecutor, input: PolicyEdit): Promise<EditResult> => {
+  const numero = input.policyNumber.trim()
+  if (numero === '' || numero.length > 60) return invalido('El número de póliza no puede quedar vacío.')
+  const terms = cleanTerms(input)
+  if (typeof terms === 'string') return invalido(terms)
+  const drive = cleanDriveFileUrl(input.driveUrl)
+  if (drive === undefined) return invalido(DRIVE_INVALIDO)
+
+  const [poliza] = await sql<{ id: string; insurer_id: string }[]>`
+    select id, insurer_id from policy where id = ${input.policyId} for update`
+  if (poliza === undefined) return { kind: 'not_found' }
+  const [otra] = await sql<{ id: string }[]>`
+    select id from policy where insurer_id = ${poliza.insurer_id} and policy_number = ${numero} and id <> ${poliza.id}`
+  if (otra !== undefined) return invalido('Ya hay otra póliza de esa compañía con ese número.')
+  const version = await openVersion(sql, poliza.id)
+  if (version === undefined) return invalido('La póliza no tiene una versión abierta para editar.')
+
+  await sql`
+    update policy set policy_number = ${numero}, drive_url = ${drive}, complete = ${input.complete}
+    where id = ${poliza.id}`
+  await sql`
+    update policy_version set
+      term_start_date = ${terms.termStartDate}::date, term_end_date = ${terms.termEndDate}::date,
+      premium = ${terms.premium}::numeric, total_premium = ${terms.totalPremium}::numeric,
+      sum_insured = ${terms.sumInsured}::numeric, currency = ${terms.currency}, producer = ${terms.producer},
+      product_reference = ${terms.riskType}, payment_method = ${terms.paymentMethod}, renewal_mode = ${terms.renewalMode}
+    where id = ${version.id}`
+  await sql`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (authz.usuario(), 'app', 'policy.update', 'policy', ${poliza.id}, 'ok')`
+  return { kind: 'ok' }
+}
+
 export type DeleteBlocker = 'POLIZAS' | 'GESTIONES' | 'TAREAS'
 
 /** Borra la póliza para siempre. Devuelve lo que lo impide; vacío si la borró. */
