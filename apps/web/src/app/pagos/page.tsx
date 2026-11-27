@@ -14,7 +14,7 @@ import { etiquetaDeMes, normalizar } from '../renovaciones/filtros'
 import { AccionEnlace } from '../renovaciones/Seguimiento'
 
 import type { EstadoDePago, FiltrosDePagos } from './filtros'
-import { enlace as enlaceCon, filtrar, hayFiltros, leerFiltros, opcionesDe } from './filtros'
+import { enlace as enlaceCon, filtrar, hayFiltros, leerFiltros, opcionesDe, proximoMes } from './filtros'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +32,7 @@ export default async function PagosPage({
   const principal = await requireAdmitted()
   const hoy = todayInMendoza()
   const f = leerFiltros(await searchParams)
+  const mesSiguiente = proximoMes(hoy)
   const [lote, pagos] = await consultar(Promise.all([latestBatch(principal), pagosDelMes(principal, hoy)]))
   const lista = filtrar(pagos, f)
   const enlace = (cambios: Partial<FiltrosDePagos>) => enlaceCon(f, cambios)
@@ -127,7 +128,8 @@ export default async function PagosPage({
         ) : null}
       </div>
       <p className="meta">
-        Cuotas de pólizas en efectivo con fecha de pago en {etiquetaDeMes(hoy.slice(0, 7)).toLowerCase()}, y las de meses anteriores
+        Cuotas de pólizas en efectivo con fecha de pago en {etiquetaDeMes(hoy.slice(0, 7)).toLowerCase()} y{' '}
+        {etiquetaDeMes(mesSiguiente).toLowerCase()}, y las de meses anteriores
         que siguen sin pagar. No incluye Caución, Vida colectivo, Vida obligatorio ni Retiro. Las fechas e importes se cambian en
         la sección Cuotas de cada póliza.
       </p>

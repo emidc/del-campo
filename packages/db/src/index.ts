@@ -138,6 +138,7 @@ export {
   listCashPolicies,
   listInstallments,
   markPaidUntil,
+  recalculateUntouchedPlans,
   normalizeText,
   paysInCash,
   roundedAmounts,

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test'
 
 import type { Pago } from '@del-campo/api'
 
-import { enlace, filtrar, leerFiltros } from './filtros.ts'
+import { enlace, filtrar, leerFiltros, proximoMes } from './filtros.ts'
 
 const pago = (id: string, paid: boolean, riesgo: string, productor: string): Pago =>
   ({
@@ -28,5 +28,10 @@ describe('filtros de Pagos', () => {
     assert.deepEqual(ids({ estado: 'impagas', riesgos: [] }), ['B', 'C'])
     assert.deepEqual(ids({ riesgos: ['motovehiculo'] }), ['B'])
     assert.deepEqual(ids({ productor: 'Jimena', riesgos: [] }), ['A', 'C'])
+  })
+
+  it('el mes siguiente, también en diciembre', () => {
+    assert.equal(proximoMes('2026-11-27'), '2026-12')
+    assert.equal(proximoMes('2026-12-05'), '2027-01')
   })
 })

@@ -5,6 +5,7 @@ import type { AmountMode, Installment, PaymentTiming, RenewalItem } from '@del-c
 import {
   MAX_INSTALLMENTS,
   MAX_PAY_DAY,
+  dayOfMonthAfter,
   defaultPlan,
   editInstallmentPlan,
   hasInstallments,
@@ -118,8 +119,9 @@ export interface Pago {
 }
 
 /**
- * Las cuotas a cobrar en el mes de `hoy` de las pólizas dadas: las que vencen en el mes
- * (pagadas o no) y las de meses anteriores que siguen sin pagar. Por fecha de pago ascendente.
+ * Las cuotas a cobrar de las pólizas dadas: las que vencen en el mes de `hoy` o en el
+ * siguiente (pagadas o no) y las de meses anteriores que siguen sin pagar. Por fecha de pago
+ * ascendente.
  */
 export const cuotasDelMes = (
   polizas: readonly RenewalItem[],
@@ -127,12 +129,14 @@ export const cuotasDelMes = (
   hoy: string,
 ): Pago[] => {
   const mes = hoy.slice(0, 7)
+  const proximo = dayOfMonthAfter(hoy, 1, 1).slice(0, 7)
   const pagos: Pago[] = []
   for (const p of polizas) {
     const cuotas = guardadas.get(p.policyId) ?? defaultPlan(p.termStartDate, p.termEndDate, p.totalPremium)
     for (const c of cuotas) {
       const atrasada = !c.paid && c.dueDate < hoy
-      if (c.dueDate.slice(0, 7) === mes || (atrasada && c.dueDate < `${mes}-01`))
+      const delPeriodo = c.dueDate.slice(0, 7) === mes || c.dueDate.slice(0, 7) === proximo
+      if (delPeriodo || (atrasada && c.dueDate < `${mes}-01`))
         pagos.push({ poliza: p, cuota: c, total: cuotas.length, atrasada })
     }
   }

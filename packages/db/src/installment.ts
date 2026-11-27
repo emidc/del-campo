@@ -300,3 +300,56 @@ export const markPaidUntil = async (sql: QueryExecutor, today: string): Promise<
   }
   return { policies, installments }
 }
+
+/** El plan que se proponía antes de 0036+: primera cuota en el mes de inicio si empezaba hasta el 10, y el premio dividido. */
+const legacyDefaultPlan = (termStart: string, termEnd: string, totalPremium: string | null): Installment[] => {
+  const n = monthsCovered(termStart, termEnd)
+  const desde = Number(termStart.slice(8, 10)) > DEFAULT_PAY_DAY ? 1 : 0
+  return splitAmount(totalPremium, n).map((amount, i) => ({
+    number: i + 1,
+    dueDate: dayOfMonthAfter(termStart, desde + i, DEFAULT_PAY_DAY),
+    amount,
+    paid: false,
+  }))
+}
+
+const mismasCuotas = (a: readonly Installment[], b: readonly Installment[]): boolean =>
+  a.length === b.length && a.every((c, i) => b.some((otra, j) => j === i && c.dueDate === otra.dueDate && c.amount === otra.amount))
+
+/**
+ * Pasa al plan por defecto actual (a mes vencido, con Redondeo) los planes guardados que
+ * nadie tocó: los que siguen siendo el plan propuesto anterior y tienen tildadas
+ * exactamente las cuotas con fecha hasta `today`, como los dejó `markPaidUntil`. Después
+ * vuelve a tildar por fecha: pagadas las que caen hasta `today`. Los planes editados o con
+ * tildes cambiados a mano no se tocan y se cuentan en `skipped`.
+ */
+export const recalculateUntouchedPlans = async (
+  sql: QueryExecutor,
+  today: string,
+): Promise<{ readonly recalculated: number; readonly skipped: number }> => {
+  let recalculated = 0
+  let skipped = 0
+  const polizas = await listCashPolicies(sql, today)
+  const guardadas = await listInstallments(sql, polizas.map((p) => p.policyId))
+  for (const p of polizas) {
+    const actual = guardadas.get(p.policyId)
+    if (actual === undefined) continue
+    const anterior = legacyDefaultPlan(p.termStartDate, p.termEndDate, p.totalPremium)
+    const intacto = mismasCuotas(actual, anterior) && actual.every((c) => c.paid === c.dueDate <= today)
+    if (!intacto) {
+      skipped += 1
+      continue
+    }
+    const nuevo = defaultPlan(p.termStartDate, p.termEndDate, p.totalPremium)
+    if (mismasCuotas(actual, nuevo)) continue
+    await saveInstallmentPlan(sql, p.policyId, nuevo)
+    await sql`
+      update policy_installment
+      set paid_at = case when due_date <= ${today}::date then coalesce(paid_at, clock_timestamp()) end,
+          paid_by_user_id = case when due_date <= ${today}::date then coalesce(paid_by_user_id, authz.usuario()) end,
+          updated_by_user_id = authz.usuario(), updated_at = clock_timestamp()
+      where policy_id = ${p.policyId}`
+    recalculated += 1
+  }
+  return { recalculated, skipped }
+}
