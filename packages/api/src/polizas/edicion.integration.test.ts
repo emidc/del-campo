@@ -24,6 +24,7 @@ import {
 } from '../clientes/edicion.ts'
 import type { Principal } from '../session/admission.ts'
 import {
+  anularPolizaCon,
   editarCampoDePolizaCon,
   editarEndosoCon,
   eliminarPolizaCon,
@@ -201,6 +202,34 @@ describe('edición por campo de la póliza', () => {
       assert.equal((await editarCampoDePolizaCon(tx, quien, m.poliza, 'fin', '2025-01-01')).kind, 'invalid')
       assert.equal((await editarCampoDePolizaCon(tx, quien, m.poliza, 'numero', 'SIN-OTRA')).kind, 'invalid')
       assert.deepEqual(await editarCampoDePolizaCon(tx, quien, m.poliza, 'numero', 'SIN-0001-B'), { kind: 'ok' })
+    })
+  })
+})
+
+describe('anular póliza', () => {
+  const hoy = '2026-11-01'
+
+  it('anula una Vigente y deshacer la vuelve a Vigente', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      assert.deepEqual(await anularPolizaCon(tx, quien, m.poliza, false, hoy), { kind: 'ok' })
+      assert.equal(await estadoAbierto(tx, m.poliza), 'CANCELLED')
+      assert.equal((await anularPolizaCon(tx, quien, m.poliza, false, hoy)).kind, 'invalid', 'ya está anulada')
+      assert.deepEqual(await anularPolizaCon(tx, quien, m.poliza, true, hoy), { kind: 'ok' })
+      assert.equal(await estadoAbierto(tx, m.poliza), 'ACTIVE')
+      assert.equal((await anularPolizaCon(tx, quien, m.poliza, true, hoy)).kind, 'invalid', 'ya no está anulada')
+      const eventos = await tx<{ action: string }[]>`
+        select action from audit_event where object_id = ${m.poliza} order by id`
+      assert.deepEqual(eventos.map((e) => e.action), ['policy.cancel', 'policy.uncancel'])
+    })
+  })
+
+  it('no anula una Renovada', async () => {
+    await descartable(async (tx) => {
+      const m = await sembrar(tx)
+      const renovada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-REN', '2026-12-31', 'RENEWED')
+      assert.equal((await anularPolizaCon(tx, quien, renovada, false, hoy)).kind, 'invalid')
+      assert.equal(await estadoAbierto(tx, renovada), 'RENEWED')
     })
   })
 })

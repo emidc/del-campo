@@ -7,6 +7,7 @@
 
 import type { PolicyTerms } from '@del-campo/api'
 import {
+  anularPoliza,
   describirBloqueos,
   editarCampoDePoliza,
   editarEndoso as editarEndosoDePoliza,
@@ -51,6 +52,19 @@ export async function editarCampo(_previo: Resultado, form: FormData): Promise<R
   if (resultado === null) return error(FALLO)
   if (resultado.kind === 'invalid') return error(resultado.message)
   if (resultado.kind === 'not_found') return error('La póliza no tiene una versión abierta para editar.')
+  revalidatePath(`/poliza/${poliza}`)
+  return { ok: true }
+}
+
+/** Anula una póliza Vigente o, con `deshacer`, la vuelve a Vigente. */
+export async function anular(_previo: Resultado, form: FormData): Promise<Resultado> {
+  const principal = await requireAdmitted()
+  const poliza = texto(form, 'poliza')
+  if (!esUuid(poliza)) return error('No se encontró la póliza.')
+  const resultado = await intentar(anularPoliza(principal, poliza, texto(form, 'deshacer') === '1'))
+  if (resultado === null) return error(FALLO)
+  if (resultado.kind === 'invalid') return error(resultado.message)
+  if (resultado.kind === 'not_found') return error('La póliza no tiene una versión abierta.')
   revalidatePath(`/poliza/${poliza}`)
   return { ok: true }
 }

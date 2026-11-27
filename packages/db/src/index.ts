@@ -153,6 +153,7 @@ export type { NoteText, PartyNote } from './party-note.ts'
 export {
   POLICY_FIELDS,
   POLICY_STATUS,
+  cancelOption,
   cleanDriveFileUrl,
   deletePolicy,
   effectiveStatus,
@@ -163,6 +164,7 @@ export {
   parseAmount,
   registerRebilling,
   renewPolicy,
+  setPolicyCancelled,
   statusFromZoho,
   todayInMendoza,
   updateEndorsement,

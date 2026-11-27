@@ -81,6 +81,42 @@ export const expirePolicies = async (sql: QueryExecutor, today: string): Promise
 export const effectiveStatus = (status: string | null, termEndDate: string, today: string): string | null =>
   status === POLICY_STATUS.vigente && termEndDate <= today ? POLICY_STATUS.vencida : status
 
+/**
+ * Qué se ofrece sobre el estado: anular una póliza Vigente o deshacer la anulación de una
+ * Anulada. Sólo si el fin de vigencia es futuro; si no, nada.
+ */
+export const cancelOption = (status: string | null, termEndDate: string, today: string): 'anular' | 'deshacer' | null => {
+  if (termEndDate <= today) return null
+  if (status === POLICY_STATUS.vigente) return 'anular'
+  if (status === POLICY_STATUS.anulada) return 'deshacer'
+  return null
+}
+
+/**
+ * Anula la póliza (Vigente → Anulada) o deshace la anulación (Anulada → Vigente). Sólo
+ * con fin de vigencia futuro. Toca la versión abierta y deja constancia de quién lo hizo.
+ */
+export const setPolicyCancelled = async (sql: QueryExecutor, policyId: string, today: string, deshacer: boolean): Promise<EditResult> => {
+  const [version] = await sql<{ id: string; status: string | null; term_end_date: string }[]>`
+    select id, status, to_char(term_end_date, 'YYYY-MM-DD') as term_end_date
+    from policy_version where policy_id = ${policyId} and effective_to is null
+    order by version_number desc limit 1 for update`
+  if (version === undefined) return { kind: 'not_found' }
+  if (cancelOption(version.status, version.term_end_date, today) !== (deshacer ? 'deshacer' : 'anular'))
+    return {
+      kind: 'invalid',
+      message: deshacer
+        ? 'Sólo se deshace la anulación de una póliza Anulada con fin de vigencia futuro.'
+        : 'Sólo se anula una póliza Vigente con fin de vigencia futuro.',
+    }
+  await sql`
+    update policy_version set status = ${deshacer ? POLICY_STATUS.vigente : POLICY_STATUS.anulada} where id = ${version.id}`
+  await sql`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (authz.usuario(), 'app', ${deshacer ? 'policy.uncancel' : 'policy.cancel'}, 'policy', ${policyId}, 'ok')`
+  return { kind: 'ok' }
+}
+
 // ── Edición por campo ────────────────────────────────────────────────────────
 
 export const POLICY_FIELDS = [

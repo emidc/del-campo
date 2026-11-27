@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { effectiveStatus, parseAmount, statusFromZoho } from './policy-edit.ts'
+import { cancelOption, effectiveStatus, parseAmount, statusFromZoho } from './policy-edit.ts'
 
 describe('datos de póliza', () => {
   it('lee importes como los escribe el equipo', () => {
@@ -27,5 +27,15 @@ describe('datos de póliza', () => {
     assert.equal(effectiveStatus('ACTIVE', '2026-11-08', '2026-11-08'), 'EXPIRED')
     assert.equal(effectiveStatus('ACTIVE', '2026-11-08', '2026-11-07'), 'ACTIVE')
     assert.equal(effectiveStatus('RENEWED', '2026-11-08', '2026-12-01'), 'RENEWED')
+  })
+
+  it('ofrece anular una Vigente o deshacer una Anulada, sólo con fin de vigencia futuro', () => {
+    assert.equal(cancelOption('ACTIVE', '2026-12-31', '2026-11-27'), 'anular')
+    assert.equal(cancelOption('RENEWED', '2026-12-31', '2026-11-27'), null)
+    assert.equal(cancelOption(null, '2026-12-31', '2026-11-27'), null)
+    assert.equal(cancelOption('CANCELLED', '2026-12-31', '2026-11-27'), 'deshacer')
+    assert.equal(cancelOption('ACTIVE', '2026-11-27', '2026-11-27'), null, 'vence hoy')
+    assert.equal(cancelOption('EXPIRED', '2026-12-31', '2026-11-27'), null)
+    assert.equal(cancelOption('CANCELLED', '2026-10-31', '2026-11-27'), null)
   })
 })
