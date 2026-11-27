@@ -29,9 +29,10 @@ describe('datos de póliza', () => {
     assert.equal(effectiveStatus('RENEWED', '2026-11-08', '2026-12-01'), 'RENEWED')
   })
 
-  it('ofrece anular o deshacer sólo con fin de vigencia futuro y sin vencer', () => {
+  it('ofrece anular una Vigente o deshacer una Anulada, sólo con fin de vigencia futuro', () => {
     assert.equal(cancelOption('ACTIVE', '2026-12-31', '2026-11-27'), 'anular')
-    assert.equal(cancelOption('RENEWED', '2026-12-31', '2026-11-27'), 'anular')
+    assert.equal(cancelOption('RENEWED', '2026-12-31', '2026-11-27'), null)
+    assert.equal(cancelOption(null, '2026-12-31', '2026-11-27'), null)
     assert.equal(cancelOption('CANCELLED', '2026-12-31', '2026-11-27'), 'deshacer')
     assert.equal(cancelOption('ACTIVE', '2026-11-27', '2026-11-27'), null, 'vence hoy')
     assert.equal(cancelOption('EXPIRED', '2026-12-31', '2026-11-27'), null)

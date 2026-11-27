@@ -41,7 +41,7 @@ export default async function PolizaPage({
   const estado = actual === undefined ? null : estadoDePoliza(effectiveStatus(actual.status, actual.termEndDate, hoy))
   /** Sólo la versión abierta se edita: las cerradas son historia. */
   const editable = actual?.effectiveTo === null
-  /** Anular o deshacer la anulación, sobre el estado: sólo con fin de vigencia futuro y sin vencer. */
+  /** Anular una Vigente o deshacer una Anulada, sobre el estado: sólo con fin de vigencia futuro. */
   const opcion = actual !== undefined && editable ? cancelOption(actual.status, actual.termEndDate, hoy) : null
   const anulable = (estadoVisible: ReactNode) => (
     <EstadoAnulable poliza={detail.policyId} numero={detail.policyNumber} opcion={opcion} accion={anular}>

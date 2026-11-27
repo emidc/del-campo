@@ -56,7 +56,7 @@ export async function editarCampo(_previo: Resultado, form: FormData): Promise<R
   return { ok: true }
 }
 
-/** Anula la póliza o, con `deshacer`, la devuelve al estado que tenía antes de anularla. */
+/** Anula una póliza Vigente o, con `deshacer`, la vuelve a Vigente. */
 export async function anular(_previo: Resultado, form: FormData): Promise<Resultado> {
   const principal = await requireAdmitted()
   const poliza = texto(form, 'poliza')

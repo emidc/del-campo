@@ -209,29 +209,30 @@ describe('edición por campo de la póliza', () => {
 describe('anular póliza', () => {
   const hoy = '2026-11-01'
 
-  it('anula y deshacer vuelve exactamente al estado previo', async () => {
+  it('anula una Vigente y deshacer la vuelve a Vigente', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
-      const renovada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-REN', '2026-12-31', 'RENEWED')
-      assert.deepEqual(await anularPolizaCon(tx, quien, renovada, false, hoy), { kind: 'ok' })
-      assert.equal(await estadoAbierto(tx, renovada), 'CANCELLED')
-      assert.equal((await anularPolizaCon(tx, quien, renovada, false, hoy)).kind, 'invalid', 'ya está anulada')
-      assert.deepEqual(await anularPolizaCon(tx, quien, renovada, true, hoy), { kind: 'ok' })
-      assert.equal(await estadoAbierto(tx, renovada), 'RENEWED')
-      assert.equal((await anularPolizaCon(tx, quien, renovada, true, hoy)).kind, 'invalid', 'ya no está anulada')
+      assert.deepEqual(await anularPolizaCon(tx, quien, m.poliza, false, hoy), { kind: 'ok' })
+      assert.equal(await estadoAbierto(tx, m.poliza), 'CANCELLED')
+      assert.equal((await anularPolizaCon(tx, quien, m.poliza, false, hoy)).kind, 'invalid', 'ya está anulada')
+      assert.deepEqual(await anularPolizaCon(tx, quien, m.poliza, true, hoy), { kind: 'ok' })
+      assert.equal(await estadoAbierto(tx, m.poliza), 'ACTIVE')
+      assert.equal((await anularPolizaCon(tx, quien, m.poliza, true, hoy)).kind, 'invalid', 'ya no está anulada')
       const eventos = await tx<{ action: string }[]>`
-        select action from audit_event where object_id = ${renovada} order by id`
+        select action from audit_event where object_id = ${m.poliza} order by id`
       assert.deepEqual(eventos.map((e) => e.action), ['policy.cancel', 'policy.uncancel'])
     })
   })
 
-  it('no anula una vencida ni una con fin de vigencia pasado', async () => {
+  it('no anula una Renovada, una Vencida ni una con fin de vigencia pasado', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
+      const renovada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-REN', '2026-12-31', 'RENEWED')
       const vencida = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-VENC', '2026-12-31', 'EXPIRED')
       const pasada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-PAS', '2026-10-01')
-      assert.equal((await anularPolizaCon(tx, quien, vencida, false, hoy)).kind, 'invalid')
-      assert.equal((await anularPolizaCon(tx, quien, pasada, false, hoy)).kind, 'invalid')
+      for (const poliza of [renovada, vencida, pasada])
+        assert.equal((await anularPolizaCon(tx, quien, poliza, false, hoy)).kind, 'invalid')
+      assert.equal(await estadoAbierto(tx, renovada), 'RENEWED')
       assert.equal(await estadoAbierto(tx, vencida), 'EXPIRED')
       assert.equal(await estadoAbierto(tx, pasada), 'ACTIVE')
     })
