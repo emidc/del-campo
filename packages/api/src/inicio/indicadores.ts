@@ -37,6 +37,8 @@ export interface Inicio {
   readonly aAtender: readonly ServiceCaseSummary[]
   /** T-0052: mis tareas sin hacer, las vencidas primero y después por vencimiento. */
   readonly misTareas: readonly TaskSummary[]
+  /** Tareas de otros en las que me involucraron y tengo mi acción pendiente, por vencimiento. */
+  readonly asignaciones: readonly TaskSummary[]
   /** Por correo, en orden alfabético: sin ranking. */
   readonly equipo: readonly CargaDeIntegrante[]
 }
@@ -150,7 +152,9 @@ export const resumirInicio = (datos: DatosDeInicio): Inicio => {
     .map((c) => ({ email: c.email, abiertas: c.open, vencidas: c.overdue }))
     .sort((a, b) => a.email.localeCompare(b.email))
 
-  return { hoy, indicadores, aAtender, misTareas: [...misTareas].sort(porVencimiento(hoy)), equipo }
+  const asignaciones = datos.tareas.filter((t) => t.myPendingActions !== null).sort(porVencimiento(hoy))
+
+  return { hoy, indicadores, aAtender, misTareas: [...misTareas].sort(porVencimiento(hoy)), asignaciones, equipo }
 }
 
 export const inicio = async (principal: Principal, hoy: string): Promise<Inicio> =>

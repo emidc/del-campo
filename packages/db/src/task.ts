@@ -47,6 +47,18 @@ export interface TaskSummary {
   readonly createdAt: string
   readonly updatedAt: string
   readonly doneAt: string | null
+  /** Lo que la persona que consulta tiene pendiente en la tarea por haber sido involucrada; `null` si nada. */
+  readonly myPendingActions: string | null
+}
+
+/** Cuántas tareas encuentra cada pestaña de la pantalla Tareas. */
+export interface TaskCounts {
+  readonly todas: number
+  readonly mias: number
+  readonly asignaciones: number
+  readonly bloqueadas: number
+  /** Las de la semana a mi nombre, que es lo que abre la pestaña. */
+  readonly semana: number
 }
 
 /** Una acción puntual de la tarea a cargo de otra persona («Involucrar a alguien»). */
@@ -81,6 +93,8 @@ export interface TaskFilter {
   /** Por defecto sólo las no hechas. */
   readonly includeDone?: boolean
   readonly onlyMine?: boolean
+  /** Sólo aquellas en las que la persona fue involucrada y tiene su acción pendiente. */
+  readonly involved?: boolean
   readonly partyId?: string
   readonly serviceCaseId?: string
   readonly status?: TaskStatus
@@ -120,6 +134,7 @@ interface SummaryRow {
   readonly created_at: string
   readonly updated_at: string
   readonly done_at: string | null
+  readonly my_pending_actions: string | null
 }
 
 const resumen = (row: SummaryRow): TaskSummary => ({
@@ -143,6 +158,7 @@ const resumen = (row: SummaryRow): TaskSummary => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   doneAt: row.done_at,
+  myPendingActions: row.my_pending_actions,
 })
 
 const seleccion = (sql: QueryExecutor) => sql`
@@ -168,7 +184,9 @@ const seleccion = (sql: QueryExecutor) => sql`
     t.weekly,
     t.created_at::text as created_at,
     t.updated_at::text as updated_at,
-    t.done_at::text as done_at
+    t.done_at::text as done_at,
+    (select string_agg(a.description, ' · ' order by a.created_at, a.id) from task_action a
+      where a.task_id = t.id and a.assigned_user_id = authz.usuario() and a.status <> 'HECHA') as my_pending_actions
   from task t
   left join party pa on pa.id = t.party_id
   left join person_profile pp on pp.party_id = t.party_id
@@ -204,12 +222,29 @@ export const listTasks = async (sql: QueryExecutor, filter: TaskFilter = {}): Pr
       and (${filter.weekly !== true} or t.weekly)
       and (${filter.status ?? null}::text is null or t.status = ${filter.status ?? null}::text)
       and (${filter.onlyMine !== true} or t.assigned_user_id = authz.usuario())
+      and (${filter.involved !== true} or exists (
+        select 1 from task_action a where a.task_id = t.id and a.assigned_user_id = authz.usuario() and a.status <> 'HECHA'))
       and (${filter.partyId ?? null}::uuid is null or t.party_id = ${filter.partyId ?? null}::uuid)
       and (${filter.serviceCaseId ?? null}::uuid is null or t.service_case_id = ${filter.serviceCaseId ?? null}::uuid)
     order by (t.status = 'HECHA'), t.due_date nulls last, t.updated_at desc
     limit 500
   `
   return rows.map(resumen)
+}
+
+/** Los números de las pestañas de Tareas, con los mismos criterios que `listTasks`. */
+export const countTasks = async (sql: QueryExecutor): Promise<TaskCounts> => {
+  const [row] = await sql<TaskCounts[]>`
+    select
+      count(*)::int as todas,
+      count(*) filter (where t.status <> 'HECHA' and t.assigned_user_id = authz.usuario())::int as mias,
+      count(*) filter (where t.status <> 'HECHA' and exists (
+        select 1 from task_action a where a.task_id = t.id and a.assigned_user_id = authz.usuario() and a.status <> 'HECHA'))::int as asignaciones,
+      count(*) filter (where t.status = 'TRABADA')::int as bloqueadas,
+      count(*) filter (where t.weekly and t.assigned_user_id = authz.usuario())::int as semana
+    from task t
+  `
+  return row ?? { todas: 0, mias: 0, asignaciones: 0, bloqueadas: 0, semana: 0 }
 }
 
 export const getTask = async (sql: QueryExecutor, id: string): Promise<TaskDetail | null> => {

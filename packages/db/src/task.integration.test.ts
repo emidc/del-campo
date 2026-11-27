@@ -17,6 +17,7 @@ import {
   clearDoneWeeklyTasks,
   commentTask,
   completeTaskAction,
+  countTasks,
   createTask,
   deleteTask,
   getTask,
@@ -286,7 +287,13 @@ describe('tareas (0017)', () => {
       const antes = await getTask(tx, id)
       assert.ok(antes)
       assert.deepEqual(antes.actions.map((a) => [a.description, a.status, a.assignedToMe]), [['Pedir la inspección del vehículo', 'PENDIENTE', true]])
+      // Asignaciones: op2 la ve con su acción pendiente, y el conteo coincide con la lista.
+      const asignadas = await listTasks(tx, { involved: true })
+      assert.deepEqual(asignadas.map((x) => [x.id, x.myPendingActions]), [[id, 'Pedir la inspección del vehículo']])
+      assert.equal((await countTasks(tx)).asignaciones, 1)
       await completeTaskAction(tx, accion)
+      assert.deepEqual(await listTasks(tx, { involved: true }), [])
+      assert.equal((await countTasks(tx)).asignaciones, 0)
 
       const t = await getTask(tx, id)
       assert.ok(t)

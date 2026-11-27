@@ -77,6 +77,36 @@ export default async function InicioPage() {
         </section>
 
         <section className="tarjeta">
+          <h2>Asignaciones ({datos.asignaciones.length})</h2>
+          {datos.asignaciones.length === 0 ? (
+            <p className="meta">No tenés acciones pendientes en tareas de otros.</p>
+          ) : (
+            <ul className="lista">
+              {datos.asignaciones.slice(0, TOPE).map((t) => {
+                const cuando = motivo(t.dueDate, hoy)
+                return (
+                  <li key={t.id}>
+                    <Link href={`/tareas/${t.id}`} className="nombre">
+                      {t.title}
+                    </Link>
+                    <p className="meta">{t.myPendingActions}</p>
+                    <p className="meta">
+                      <span className={cuando.urgente ? 'pendiente' : undefined}>{cuando.texto}</span>
+                      {' · '}
+                      {t.partyName ?? 'sin nombre'}
+                      {t.assignedName === null ? null : ` · de ${t.assignedName}`}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <p className="meta">
+            <Link href="/tareas?asignaciones=1">Ver todas mis asignaciones</Link>
+          </p>
+        </section>
+
+        <section className="tarjeta">
           <h2>A atender ({datos.aAtender.length})</h2>
           {datos.aAtender.length === 0 ? (
             <p className="meta">No tenés gestiones abiertas a tu nombre.</p>

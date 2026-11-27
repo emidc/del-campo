@@ -21,7 +21,7 @@ const renovacion = (id: string, cambios: Partial<RenewalItem>): RenewalItem => (
 const tarea = (id: string, cambios: Partial<TaskSummary>): TaskSummary => ({
   id, title: id, status: 'PENDIENTE', partyId: 'p', partyName: null, policyId: null, policyNumber: null,
   serviceCaseId: null, serviceCaseTitle: null, assignedEmail: null, assignedUserId: null, assignedName: null, assignedToMe: false, dueDate: null, priority: null, followUp: null, weekly: false,
-  createdAt: '', updatedAt: '', doneAt: null, ...cambios,
+  createdAt: '', updatedAt: '', doneAt: null, myPendingActions: null, ...cambios,
 })
 
 const valor = (inicio: ReturnType<typeof resumirInicio>, id: string): number => {
@@ -53,6 +53,8 @@ test('cada indicador cuenta lo que su definición dice', () => {
       tarea('t2', { assignedToMe: true, status: 'TRABADA', dueDate: '2026-11-30' }),
       tarea('t3', { assignedToMe: true }),
       tarea('t4', { status: 'TRABADA', dueDate: '2026-11-01' }),
+      tarea('t5', { myPendingActions: 'Cotizar', dueDate: '2026-12-01' }),
+      tarea('t6', { myPendingActions: 'Revisar', dueDate: '2026-11-01' }),
     ],
   })
   assert.equal(valor(r, 'mias-vencidas'), 1)
@@ -64,7 +66,9 @@ test('cada indicador cuenta lo que su definición dice', () => {
   assert.equal(valor(r, 'mis-tareas-vencidas'), 1)
   assert.equal(valor(r, 'tareas-trabadas'), 2)
   assert.deepEqual(r.misTareas.map((t) => t.id), ['t1', 't2', 't3'])
-  assert.match(r.indicadores.find((i) => i.id === 'tareas-trabadas')?.definicion ?? '', /De las 4 tareas/)
+  // Asignaciones: donde me involucraron y tengo la acción pendiente, vencidas primero.
+  assert.deepEqual(r.asignaciones.map((t) => t.id), ['t6', 't5'])
+  assert.match(r.indicadores.find((i) => i.id === 'tareas-trabadas')?.definicion ?? '', /De las 6 tareas/)
   // A atender: las mías, vencidas primero y después por vencimiento, sin fecha al final.
   assert.deepEqual(r.aAtender.map((g) => g.id), ['a', 'b', 'c'])
   // Cada definición nombra su denominador.
