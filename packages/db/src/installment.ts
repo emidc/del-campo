@@ -59,15 +59,36 @@ export const splitAmount = (total: string | null, n: number): (string | null)[] 
   return Array.from({ length: n }, (_, i) => ((i === n - 1 ? centavos - cuota * (n - 1) : cuota) / 100).toFixed(2))
 }
 
+/**
+ * `total` en `n` cuotas de pesos enteros: todas iguales al cociente sin centavos, y la
+ * primera se lleva la diferencia. Así cobra la compañía: 89.259,22 en 6 da 14.879,22 y cinco
+ * de 14.876. `null` si no hay total.
+ */
+export const roundedAmounts = (total: string | null, n: number): (string | null)[] => {
+  if (total === null || !Number.isFinite(Number(total))) return Array.from({ length: n }, () => null)
+  const centavos = Math.round(Number(total) * 100)
+  const resto = Math.floor(centavos / 100 / n) * 100
+  return Array.from({ length: n }, (_, i) => ((i === 0 ? centavos - resto * (n - 1) : resto) / 100).toFixed(2))
+}
+
 /** El último día de pago que se puede elegir: así todos los meses lo tienen. */
 export const MAX_PAY_DAY = 29
 
-/**
- * `n` cuotas mensuales del mismo importe, el día `payDay` de cada mes. La primera cae ese
- * día del mes de inicio, o del mes siguiente si la vigencia empieza después de ese día.
- */
-export const buildPlan = (termStart: string, n: number, amounts: readonly (string | null)[], payDay: number): Installment[] => {
-  const desde = Number(termStart.slice(8, 10)) > payDay ? 1 : 0
+/** Cuándo cae la primera cuota: el mes siguiente al de inicio (a mes vencido) o el mismo (a mes en curso). */
+export type PaymentTiming = 'ARREARS' | 'CURRENT'
+
+/** Cómo se calcula el valor de la cuota: redondeo de la compañía, premio dividido o un valor a mano. */
+export type AmountMode = 'ROUNDED' | 'SPLIT' | 'MANUAL'
+
+/** `n` cuotas mensuales, el día `payDay` de cada mes, desde el mes de inicio o el siguiente. */
+export const buildPlan = (
+  termStart: string,
+  n: number,
+  amounts: readonly (string | null)[],
+  payDay: number,
+  timing: PaymentTiming = 'ARREARS',
+): Installment[] => {
+  const desde = timing === 'CURRENT' ? 0 : 1
   return Array.from({ length: n }, (_, i) => ({
     number: i + 1,
     dueDate: dayOfMonthAfter(termStart, desde + i, payDay),
@@ -76,13 +97,17 @@ export const buildPlan = (termStart: string, n: number, amounts: readonly (strin
   }))
 }
 
+/** Los importes de `n` cuotas según el modo; `manual` es el valor de cada una en modo MANUAL. */
+export const amountsFor = (mode: AmountMode, totalPremium: string | null, n: number, manual: string | null): (string | null)[] =>
+  mode === 'ROUNDED' ? roundedAmounts(totalPremium, n) : mode === 'SPLIT' ? splitAmount(totalPremium, n) : Array.from({ length: n }, () => manual)
+
 /**
- * El plan que se propone cuando nadie lo editó: una cuota por mes de vigencia, los días 10,
- * con el premio repartido en partes iguales.
+ * El plan que se propone cuando nadie lo editó: una cuota por mes de vigencia, a mes vencido,
+ * los días 10, con el redondeo de la compañía.
  */
 export const defaultPlan = (termStart: string, termEnd: string, totalPremium: string | null): Installment[] => {
   const n = monthsCovered(termStart, termEnd)
-  return buildPlan(termStart, n, splitAmount(totalPremium, n), DEFAULT_PAY_DAY)
+  return buildPlan(termStart, n, roundedAmounts(totalPremium, n), DEFAULT_PAY_DAY, 'ARREARS')
 }
 
 interface Row {
@@ -139,13 +164,17 @@ export type EditPlanResult =
  * el inicio de vigencia. Las que siguen existiendo conservan si estaban pagadas. No borra
  * cuotas pagadas: si bajar la cantidad lo haría, no cambia nada.
  */
-export const editInstallmentPlan = async (
-  sql: QueryExecutor,
-  policyId: string,
-  n: number,
-  amount: string | null,
-  payDay: number,
-): Promise<EditPlanResult> => {
+export interface PlanEdit {
+  readonly count: number
+  readonly payDay: number
+  readonly timing: PaymentTiming
+  readonly mode: AmountMode
+  /** El valor de cada cuota en modo MANUAL; se ignora en los otros. */
+  readonly amount: string | null
+}
+
+export const editInstallmentPlan = async (sql: QueryExecutor, policyId: string, edit: PlanEdit): Promise<EditPlanResult> => {
+  const { count: n, payDay } = edit
   if (!Number.isInteger(payDay) || payDay < 1 || payDay > MAX_PAY_DAY) throw new Error('editInstallmentPlan: el día va de 1 a 29')
   const term = await termOf(sql, policyId)
   if (term === null) return { kind: 'not_found' }
@@ -154,7 +183,7 @@ export const editInstallmentPlan = async (
     where policy_id = ${policyId} and number > ${n} and paid_at is not null
     order by number limit 1`
   if (pagada !== undefined) return { kind: 'paid_removed', number: pagada.number }
-  const plan = buildPlan(term.term_start_date, n, Array.from({ length: n }, () => amount), payDay)
+  const plan = buildPlan(term.term_start_date, n, amountsFor(edit.mode, term.total_premium, n, edit.amount), payDay, edit.timing)
   await saveInstallmentPlan(sql, policyId, plan)
   return { kind: 'ok' }
 }
@@ -169,8 +198,10 @@ export const policyInstallments = async (
   const guardadas = (await listInstallments(sql, [policyId])).get(policyId)
   if (guardadas === undefined)
     return { installments: defaultPlan(term.term_start_date, term.term_end_date, term.total_premium), saved: false, outsideTerm: false }
+  // A mes vencido la última cae el mes siguiente al último mes de vigencia.
   const desde = `${term.term_start_date.slice(0, 7)}-01`
-  const outsideTerm = guardadas.some((c) => c.dueDate < desde || c.dueDate > term.term_end_date)
+  const hasta = dayOfMonthAfter(term.term_end_date, 2, 1)
+  const outsideTerm = guardadas.some((c) => c.dueDate < desde || c.dueDate >= hasta)
   return { installments: guardadas, saved: true, outsideTerm }
 }
 

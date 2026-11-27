@@ -70,9 +70,9 @@ describe('cuotas de póliza (0036)', () => {
       assert.ok(antes)
       assert.equal(antes.saved, false)
       assert.deepEqual(antes.installments.map((c) => [c.dueDate, c.amount]), [
-        ['2026-09-10', '300.00'],
         ['2026-10-10', '300.00'],
         ['2026-11-10', '300.00'],
+        ['2026-12-10', '300.00'],
       ])
 
       assert.equal(await setInstallmentPaid(tx, poliza, 2, true), true)
@@ -118,17 +118,28 @@ describe('cuotas de póliza (0036)', () => {
     })
   })
 
-  it('el modal rehace el plan con una cantidad, un valor y un día para todas', async () => {
+  it('el modal rehace el plan: cantidad, día, mes del primer pago y cálculo de la cuota', async () => {
     await descartable(async (tx) => {
       const { poliza } = await sembrar(tx)
       await setInstallmentPaid(tx, poliza, 1, true)
-      assert.deepEqual(await editInstallmentPlan(tx, poliza, 4, '250', 5), { kind: 'ok' })
-      assert.deepEqual((await policyInstallments(tx, poliza))?.installments, [
-        { number: 1, dueDate: '2026-10-05', amount: '250.00', paid: true },
-        { number: 2, dueDate: '2026-11-05', amount: '250.00', paid: false },
-        { number: 3, dueDate: '2026-12-05', amount: '250.00', paid: false },
-        { number: 4, dueDate: '2027-01-05', amount: '250.00', paid: false },
+      const plan = async () => (await policyInstallments(tx, poliza))?.installments.map((c) => [c.dueDate, c.amount, c.paid])
+      const editar = (edit: Partial<Parameters<typeof editInstallmentPlan>[2]>) =>
+        editInstallmentPlan(tx, poliza, { count: 4, payDay: 5, timing: 'ARREARS', mode: 'MANUAL', amount: '250', ...edit })
+
+      assert.deepEqual(await editar({}), { kind: 'ok' })
+      assert.deepEqual(await plan(), [
+        ['2026-10-05', '250.00', true],
+        ['2026-11-05', '250.00', false],
+        ['2026-12-05', '250.00', false],
+        ['2027-01-05', '250.00', false],
       ])
+      await editar({ timing: 'CURRENT', mode: 'ROUNDED', count: 7 })
+      assert.deepEqual((await plan())?.slice(0, 2), [
+        ['2026-09-05', '132.00', true],
+        ['2026-10-05', '128.00', false],
+      ])
+      await editar({ mode: 'SPLIT', count: 3 })
+      assert.deepEqual((await plan())?.map((c) => c[1]), ['300.00', '300.00', '300.00'])
     })
   })
 
@@ -136,7 +147,10 @@ describe('cuotas de póliza (0036)', () => {
     await descartable(async (tx) => {
       const { poliza } = await sembrar(tx)
       await setInstallmentPaid(tx, poliza, 3, true)
-      assert.deepEqual(await editInstallmentPlan(tx, poliza, 2, '450', 10), { kind: 'paid_removed', number: 3 })
+      assert.deepEqual(await editInstallmentPlan(tx, poliza, { count: 2, payDay: 10, timing: 'ARREARS', mode: 'ROUNDED', amount: null }), {
+        kind: 'paid_removed',
+        number: 3,
+      })
       assert.equal((await policyInstallments(tx, poliza))?.installments.length, 3)
     })
   })
@@ -144,9 +158,10 @@ describe('cuotas de póliza (0036)', () => {
   it('avisa cuando una cuota guardada cae fuera de la vigencia', async () => {
     await descartable(async (tx) => {
       const { poliza } = await sembrar(tx)
-      await editInstallmentPlan(tx, poliza, 3, '300', 10)
+      const editar = (count: number) => editInstallmentPlan(tx, poliza, { count, payDay: 10, timing: 'ARREARS', mode: 'ROUNDED', amount: null })
+      await editar(4)
       assert.equal((await policyInstallments(tx, poliza))?.outsideTerm, false)
-      await editInstallmentPlan(tx, poliza, 4, '300', 10)
+      await editar(5)
       assert.equal((await policyInstallments(tx, poliza))?.outsideTerm, true)
     })
   })
@@ -171,12 +186,12 @@ describe('cuotas de póliza (0036)', () => {
   it('marcar pagado hasta hoy: las de fecha hasta hoy, de pólizas en efectivo, y no toca las de otras formas de pago', async () => {
     await descartable(async (tx) => {
       const { poliza } = await sembrar(tx)
-      const r = await markPaidUntil(tx, '2026-11-10')
+      const r = await markPaidUntil(tx, '2026-12-10')
       assert.ok(r.installments >= 3)
       assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => c.paid), [true, true, true])
       await tx`update policy_version set payment_method = 'Tarjeta' where policy_id = ${poliza}`
       await setInstallmentPaid(tx, poliza, 3, false)
-      await markPaidUntil(tx, '2026-11-10')
+      await markPaidUntil(tx, '2026-12-10')
       assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => c.paid), [true, true, false])
     })
   })

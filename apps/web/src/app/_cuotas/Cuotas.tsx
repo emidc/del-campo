@@ -71,6 +71,7 @@ export function Cuotas({
   poliza,
   numero,
   cuotas,
+  inicio,
   premio,
   moneda,
   fueraDeVigencia,
@@ -78,6 +79,8 @@ export function Cuotas({
   readonly poliza: string
   readonly numero: string
   readonly cuotas: readonly Cuota[]
+  /** Inicio de vigencia, `AAAA-MM-DD`. */
+  readonly inicio: string
   readonly premio: string | null
   readonly moneda: string | null
   /** Alguna cuota cae fuera de la vigencia actual. */
@@ -138,7 +141,17 @@ export function Cuotas({
       </div>
 
       <ModalDeFormulario titulo={`Editar las cuotas de la póliza ${numero}`} abierto={editando} onCerrar={cerrar} accion={editarPlan}>
-        {() => <CamposDelPlan poliza={poliza} cantidad={cuotas.length} valor={importeEditable(primera?.amount)} dia={dia} premio={premio} moneda={moneda} />}
+        {() => (
+          <CamposDelPlan
+            poliza={poliza}
+            cantidad={cuotas.length}
+            valor={importeEditable(primera?.amount)}
+            dia={dia}
+            primerPago={primera?.dueDate.slice(0, 7) === inicio.slice(0, 7) ? 'en_curso' : 'vencido'}
+            premio={premio}
+            moneda={moneda}
+          />
+        )}
       </ModalDeFormulario>
     </section>
   )
@@ -153,12 +166,29 @@ const numero = (texto: string): number | null => {
   return Number.isFinite(n) ? n : null
 }
 
-/** Los campos del modal, con el total que resulta comparado con el premio. */
+type Calculo = 'redondeo' | 'dividir' | 'manual'
+
+/** El valor de la primera cuota y el de las demás, como los calcula el servidor. */
+const valores = (calculo: Calculo, premio: string | null, n: number, manual: number | null): { primera: number; resto: number } | null => {
+  if (!Number.isInteger(n) || n < 1) return null
+  if (calculo === 'manual') return manual === null ? null : { primera: manual, resto: manual }
+  if (premio === null || !Number.isFinite(Number(premio))) return null
+  const centavos = Math.round(Number(premio) * 100)
+  if (calculo === 'redondeo') {
+    const resto = Math.floor(centavos / 100 / n) * 100
+    return { primera: (centavos - resto * (n - 1)) / 100, resto: resto / 100 }
+  }
+  const parte = Math.floor(centavos / n)
+  return { primera: parte / 100, resto: parte / 100 }
+}
+
+/** Los campos del modal, con el valor resultante y el total comparado con el premio. */
 function CamposDelPlan({
   poliza,
   cantidad: cantidadInicial,
   valor: valorInicial,
   dia,
+  primerPago,
   premio,
   moneda,
 }: {
@@ -166,19 +196,20 @@ function CamposDelPlan({
   readonly cantidad: number
   readonly valor: string
   readonly dia: number
+  readonly primerPago: 'vencido' | 'en_curso'
   readonly premio: string | null
   readonly moneda: string | null
 }) {
   const [cantidad, setCantidad] = useState(String(cantidadInicial))
+  const [calculo, setCalculo] = useState<Calculo>('redondeo')
   const [valor, setValor] = useState(valorInicial)
   const n = Number(cantidad)
-  const v = numero(valor)
-  const total = Number.isInteger(n) && n > 0 && v !== null ? (n * v).toFixed(2) : null
+  const v = valores(calculo, premio, n, numero(valor))
+  const total = v === null ? null : (v.primera + v.resto * (n - 1)).toFixed(2)
   return (
     <>
       <p className="meta">
-        El valor y el día de pago se aplican a todas las cuotas, desde el inicio de vigencia. Las cuotas pagadas siguen pagadas; no se puede
-        bajar la cantidad por debajo de una cuota pagada.
+        Se aplica a todas las cuotas. Las cuotas pagadas siguen pagadas; no se puede bajar la cantidad por debajo de una cuota pagada.
       </p>
       <input type="hidden" name="poliza" value={poliza} />
       <div className="formulario-modal">
@@ -195,14 +226,34 @@ function CamposDelPlan({
             autoFocus
           />
         </Campo>
-        <Campo etiqueta="Valor de la cuota">
-          <input name="importe" inputMode="decimal" value={valor} onChange={(e) => { setValor(e.target.value) }} required />
-        </Campo>
         <Campo etiqueta="Día de pago (1 a 29)">
           <input name="dia" type="number" min={1} max={MAX_DIA} step={1} defaultValue={String(dia)} required />
         </Campo>
+        <Campo etiqueta="Primer pago">
+          <select name="primerPago" defaultValue={primerPago}>
+            <option value="vencido">A mes vencido</option>
+            <option value="en_curso">A mes en curso</option>
+          </select>
+        </Campo>
+        <Campo etiqueta="Cálculo cuota">
+          <select name="calculo" value={calculo} onChange={(e) => { setCalculo(e.target.value as Calculo) }}>
+            <option value="redondeo">Redondeo</option>
+            <option value="dividir">Dividir</option>
+            <option value="manual">Manual</option>
+          </select>
+        </Campo>
+        {calculo === 'manual' ? (
+          <Campo etiqueta="Valor de la cuota">
+            <input name="importe" inputMode="decimal" value={valor} onChange={(e) => { setValor(e.target.value) }} required />
+          </Campo>
+        ) : null}
       </div>
       <p className="meta" role="status">
+        {v === null
+          ? 'Sin premio cargado: elegí Manual para poner el valor.'
+          : calculo === 'redondeo' && n > 1
+            ? `Primera cuota ${importe(v.primera.toFixed(2), moneda)} y ${String(n - 1)} de ${importe(v.resto.toFixed(2), moneda)}.`
+            : `${String(n)} cuota${n === 1 ? '' : 's'} de ${importe(v.resto.toFixed(2), moneda)}.`}{' '}
         Total: {importe(total, moneda)} · Premio de la póliza: {importe(premio, moneda)}
       </p>
     </>
