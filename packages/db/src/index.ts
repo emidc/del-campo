@@ -154,7 +154,6 @@ export {
   POLICY_FIELDS,
   POLICY_STATUS,
   cancelOption,
-  cancelPolicy,
   cleanDriveFileUrl,
   deletePolicy,
   effectiveStatus,
@@ -165,14 +164,13 @@ export {
   parseAmount,
   registerRebilling,
   renewPolicy,
+  setPolicyCancelled,
   statusFromZoho,
   todayInMendoza,
-  undoCancelPolicy,
   updateEndorsement,
   updatePolicyField,
 } from './policy-edit.ts'
 export type {
-  CancelResult,
   DeleteBlocker,
   EditResult,
   EndorsementEdit,

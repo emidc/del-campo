@@ -309,7 +309,6 @@ export {
   todayInMendoza,
 } from './polizas/edicion.ts'
 export type {
-  CancelResult,
   DeleteBlocker,
   EditResult,
   EndorsementEdit,

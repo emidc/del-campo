@@ -2347,7 +2347,6 @@ a.conjunto--activo:hover {
 .estado-anulable {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -2365,9 +2364,4 @@ a.conjunto--activo:hover {
   .estado-anulable .estado-anulable__accion {
     opacity: 1;
   }
-}
-
-.estado-anulable .boton--chico {
-  min-height: 26px;
-  padding: 2px 10px;
 }

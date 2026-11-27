@@ -5,7 +5,7 @@
 // la vuelve a Vigente.
 
 import type { ReactNode } from 'react'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useRef } from 'react'
 
 import { BotonEnviar } from '@/app/_componentes/BotonEnviar'
 import type { Accion } from '@/app/_componentes/Edicion'
@@ -25,9 +25,6 @@ export function EstadoAnulable({
 }) {
   const dialogo = useRef<HTMLDialogElement>(null)
   const [estado, enviar] = useActionState(accion, null)
-  useEffect(() => {
-    if (estado?.ok === true) dialogo.current?.close()
-  }, [estado])
 
   if (opcion === null) return <>{children}</>
   const error =

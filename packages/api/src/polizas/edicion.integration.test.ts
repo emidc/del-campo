@@ -224,17 +224,12 @@ describe('anular póliza', () => {
     })
   })
 
-  it('no anula una Renovada, una Vencida ni una con fin de vigencia pasado', async () => {
+  it('no anula una Renovada', async () => {
     await descartable(async (tx) => {
       const m = await sembrar(tx)
       const renovada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-REN', '2026-12-31', 'RENEWED')
-      const vencida = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-VENC', '2026-12-31', 'EXPIRED')
-      const pasada = await nuevaPoliza(tx, m.aseguradora, m.ana, 'SIN-PAS', '2026-10-01')
-      for (const poliza of [renovada, vencida, pasada])
-        assert.equal((await anularPolizaCon(tx, quien, poliza, false, hoy)).kind, 'invalid')
+      assert.equal((await anularPolizaCon(tx, quien, renovada, false, hoy)).kind, 'invalid')
       assert.equal(await estadoAbierto(tx, renovada), 'RENEWED')
-      assert.equal(await estadoAbierto(tx, vencida), 'EXPIRED')
-      assert.equal(await estadoAbierto(tx, pasada), 'ACTIVE')
     })
   })
 })

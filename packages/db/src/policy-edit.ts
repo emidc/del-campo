@@ -92,16 +92,11 @@ export const cancelOption = (status: string | null, termEndDate: string, today: 
   return null
 }
 
-export type CancelResult =
-  | { readonly kind: 'ok' }
-  | { readonly kind: 'invalid'; readonly message: string }
-  | { readonly kind: 'not_found' }
-
 /**
  * Anula la póliza (Vigente → Anulada) o deshace la anulación (Anulada → Vigente). Sólo
  * con fin de vigencia futuro. Toca la versión abierta y deja constancia de quién lo hizo.
  */
-const setCancelled = async (sql: QueryExecutor, policyId: string, today: string, deshacer: boolean): Promise<CancelResult> => {
+export const setPolicyCancelled = async (sql: QueryExecutor, policyId: string, today: string, deshacer: boolean): Promise<EditResult> => {
   const [version] = await sql<{ id: string; status: string | null; term_end_date: string }[]>`
     select id, status, to_char(term_end_date, 'YYYY-MM-DD') as term_end_date
     from policy_version where policy_id = ${policyId} and effective_to is null
@@ -121,12 +116,6 @@ const setCancelled = async (sql: QueryExecutor, policyId: string, today: string,
     values (authz.usuario(), 'app', ${deshacer ? 'policy.uncancel' : 'policy.cancel'}, 'policy', ${policyId}, 'ok')`
   return { kind: 'ok' }
 }
-
-export const cancelPolicy = (sql: QueryExecutor, policyId: string, today: string): Promise<CancelResult> =>
-  setCancelled(sql, policyId, today, false)
-
-export const undoCancelPolicy = (sql: QueryExecutor, policyId: string, today: string): Promise<CancelResult> =>
-  setCancelled(sql, policyId, today, true)
 
 // ── Edición por campo ────────────────────────────────────────────────────────
 
