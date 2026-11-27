@@ -124,11 +124,13 @@ export type ConvertResult =
   /** Ya era cliente: otro clic o un reintento llegó primero. */
   | { readonly kind: 'already' }
   | { readonly kind: 'missing'; readonly field: 'CUIT' | 'DNI' }
+  /** Ya hay un cliente con el mismo CUIT o DNI: no se convierte. */
+  | { readonly kind: 'duplicate'; readonly field: 'CUIT' | 'DNI'; readonly value: string; readonly partyId: string; readonly displayName: string }
   | { readonly kind: 'not_found' }
 
 /**
- * Convierte el prospecto en cliente: cierra el rol. Sólo pide el CUIT de una empresa o el
- * DNI de una persona. La fila del rol se bloquea, así que dos clics a la vez convierten una
+ * Convierte el prospecto en cliente: cierra el rol. Pide el CUIT de una empresa o el DNI de
+ * una persona, y que ningún otro cliente tenga el mismo (se comparan sólo los dígitos). La fila del rol se bloquea, así que dos clics a la vez convierten una
  * sola vez y el segundo responde `already`.
  */
 export const convertProspect = async (sql: QueryExecutor, partyId: string): Promise<ConvertResult> => {
@@ -147,6 +149,21 @@ export const convertProspect = async (sql: QueryExecutor, partyId: string): Prom
   }
   if (party.kind === 'ORGANIZATION' && (party.cuit ?? '') === '') return { kind: 'missing', field: 'CUIT' }
   if (party.kind === 'PERSON' && (party.dni ?? '') === '') return { kind: 'missing', field: 'DNI' }
+  const field = party.kind === 'ORGANIZATION' ? 'CUIT' : 'DNI'
+  const valor = (party.kind === 'ORGANIZATION' ? party.cuit : party.dni) ?? ''
+  const [otro] = await sql<{ partyId: string; displayName: string }[]>`
+    select p.id as "partyId",
+      coalesce(nullif(concat_ws(' ', pp.first_name, pp.last_name), ''), op.trade_name, op.legal_name, p.display_name_cache, 'sin nombre') as "displayName"
+    from party p
+    left join person_profile pp on pp.party_id = p.id
+    left join organization_profile op on op.party_id = p.id
+    where p.id <> ${partyId} and p.status = 'ACTIVE' and p.kind = ${party.kind}
+      and regexp_replace(coalesce(pp.dni, op.cuit, ''), '\\D', '', 'g') = ${valor.replace(/\D/g, '')}
+      and not exists (
+        select 1 from party_role r where r.party_id = p.id and r.role = 'PROSPECT' and r.valid_to is null)
+    order by p.id
+    limit 1`
+  if (otro !== undefined) return { kind: 'duplicate', field, value: valor, partyId: otro.partyId, displayName: otro.displayName }
   await sql`update party_role set valid_to = clock_timestamp() where id = ${rol.id}`
   await sql`
     insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)

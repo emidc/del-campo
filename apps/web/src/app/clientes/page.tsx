@@ -45,11 +45,9 @@ export default async function ClientesPage({
       <p className="antetitulo">Clientes</p>
       <div className="encabezado">
         <h1>{enProspectos ? 'Prospectos' : personas ? 'Personas' : 'Empresas'}</h1>
-        {enProspectos ? (
-          <Link className="boton" href="/clientes/prospectos/nuevo">
-            Nuevo prospecto
-          </Link>
-        ) : null}
+        <Link className="boton" href="/clientes/prospectos/nuevo">
+          Nuevo prospecto
+        </Link>
       </div>
       {uno(parametros.eliminado) === '1' ? (
         <p className="estado" role="status">

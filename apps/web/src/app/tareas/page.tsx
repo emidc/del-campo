@@ -1,5 +1,10 @@
 import type { TaskSummary } from '@del-campo/api'
-import { ESTADOS_DE_TAREA, PRIORIDADES_DE_TAREA, integrantesDelEquipo, latestBatch, tareas } from '@del-campo/api'
+import {
+  ESTADOS_DE_TAREA,
+  ORIGENES_DE_PROSPECTO,
+  PRIORIDADES_DE_TAREA,
+  PROSPECT_ORIGINS,
+  integrantesDelEquipo, latestBatch, tareas } from '@del-campo/api'
 import Link from 'next/link'
 
 import { Cabecera } from '@/app/_componentes/Cabecera'
@@ -72,6 +77,7 @@ export default async function TareasPage({
         </div>
         <div className="fila">
           <NuevaTarea
+            origenes={PROSPECT_ORIGINS.map((o) => ({ valor: o, etiqueta: ORIGENES_DE_PROSPECTO[o] }))}
             integrantes={integrantes
               .filter((i) => i.email !== principal.email)
               .map((i) => ({ userId: i.userId, etiqueta: etiquetas.get(i) ?? i.name }))}

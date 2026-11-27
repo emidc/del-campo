@@ -11,6 +11,7 @@ import {
   cambiarVencimientoTarea,
   comentarTarea,
   completarAccionDeTarea,
+  crearProspecto,
   crearTarea,
   eliminarTarea,
   esEstadoDeTarea,
@@ -20,6 +21,7 @@ import {
   buscarEmpresas,
   buscarPersonas,
   involucrarEnTarea,
+  isProspectOrigin,
   marcarTareaDeLaSemana,
   pasarTarea,
   renombrarTarea,
@@ -239,6 +241,53 @@ export interface ClienteSugerido {
   readonly partyId: string
   readonly displayName: string
   readonly detalle: string | null
+}
+
+export type ProspectoCreado =
+  | { readonly ok: true; readonly cliente: ClienteSugerido }
+  | { readonly ok: false; readonly error: string }
+
+export interface DatosDeProspecto {
+  readonly tipo: string
+  readonly origen: string
+  readonly nombre: string
+  readonly apellido: string
+}
+
+/**
+ * Alta rápida de un prospecto desde «Nueva tarea»: alcanza con el tipo, el origen y el
+ * nombre. Devuelve el prospecto para dejarlo elegido como cliente de la tarea.
+ */
+export async function crearProspectoParaTarea(datos: DatosDeProspecto): Promise<ProspectoCreado> {
+  const principal = await requireAdmitted()
+  const { tipo, origen } = datos
+  if (tipo !== 'PERSON' && tipo !== 'ORGANIZATION') return { ok: false, error: 'Elegí si es una empresa o una persona.' }
+  if (!isProspectOrigin(origen)) return { ok: false, error: 'Elegí el origen del prospecto.' }
+  const empresa = tipo === 'ORGANIZATION'
+  const nombre = datos.nombre.trim().slice(0, 160)
+  const apellido = empresa ? '' : datos.apellido.trim().slice(0, 80)
+  try {
+    const resultado = await consultar(
+      crearProspecto(principal, {
+        kind: tipo,
+        origin: origen,
+        name: nombre,
+        lastName: apellido,
+        identifier: '',
+        phone: '',
+        email: '',
+        driveFolderUrl: '',
+      }),
+    )
+    if (resultado.kind === 'invalid') return { ok: false, error: resultado.message }
+    revalidatePath('/clientes')
+    const visible = [nombre, apellido].filter((p) => p !== '').join(' ').replace(/\s+/g, ' ')
+    return { ok: true, cliente: { partyId: resultado.partyId, displayName: visible, detalle: 'Prospecto' } }
+  } catch (error) {
+    if (error instanceof Error && 'digest' in error) throw error
+    console.error('tarea: no se pudo crear el prospecto', error)
+    return { ok: false, error: 'No se pudo guardar el prospecto. Probá de nuevo en un momento.' }
+  }
 }
 
 /** Personas y empresas que coinciden con lo que se va escribiendo. */
