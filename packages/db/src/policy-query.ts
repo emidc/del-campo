@@ -418,9 +418,10 @@ export const searchPolicies = async (
       select selected.*
       from policy_version selected
       where selected.policy_id = p.id
-        and selected.effective_from <= ${asOf}::date
         and (selected.effective_to is null or selected.effective_to > ${asOf}::date)
-      order by selected.effective_from desc, selected.version_number desc
+      -- La vigente a esa fecha o, si todavía no empezó (una renovación cargada antes de su
+      -- inicio), la próxima: así se ven su tomador y su estado.
+      order by selected.effective_from > ${asOf}::date, abs(selected.effective_from - ${asOf}::date), selected.version_number desc
       limit 1
     ) pv on true
     left join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
@@ -525,9 +526,10 @@ const policyIdentity = async (
     left join lateral (
       select selected.* from policy_version selected
       where selected.policy_id = p.id
-        and selected.effective_from <= ${asOf}::date
         and (selected.effective_to is null or selected.effective_to > ${asOf}::date)
-      order by selected.effective_from desc, selected.version_number desc
+      -- La vigente a esa fecha o, si todavía no empezó (una renovación cargada antes de su
+      -- inicio), la próxima: así se ven su tomador y su estado.
+      order by selected.effective_from > ${asOf}::date, abs(selected.effective_from - ${asOf}::date), selected.version_number desc
       limit 1
     ) pv on true
     left join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
@@ -765,9 +767,10 @@ const policiesForParty = async (
     join lateral (
       select selected.* from policy_version selected
       where selected.policy_id = p.id
-        and selected.effective_from <= ${asOf}::date
         and (selected.effective_to is null or selected.effective_to > ${asOf}::date)
-      order by selected.effective_from desc, selected.version_number desc
+      -- La vigente a esa fecha o, si todavía no empezó (una renovación cargada antes de su
+      -- inicio), la próxima: así se ven su tomador y su estado.
+      order by selected.effective_from > ${asOf}::date, abs(selected.effective_from - ${asOf}::date), selected.version_number desc
       limit 1
     ) pv on true
     join canonical_party resolved_holder on resolved_holder.origin_id = pv.holder_party_id
