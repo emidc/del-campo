@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-
 import { automotoresDePoliza, cancelOption, effectiveStatus, latestBatch, policy, riskTypeHasVehicles, todayInMendoza } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -43,11 +41,6 @@ export default async function PolizaPage({
   const editable = actual?.effectiveTo === null
   /** Anular una Vigente o deshacer una Anulada, sobre el estado: sólo con fin de vigencia futuro. */
   const opcion = actual !== undefined && editable ? cancelOption(actual.status, actual.termEndDate, hoy) : null
-  const anulable = (estadoVisible: ReactNode) => (
-    <EstadoAnulable poliza={detail.policyId} numero={detail.policyNumber} opcion={opcion} accion={anular}>
-      {estadoVisible}
-    </EstadoAnulable>
-  )
   const ocultos = (campo: string) => ({ poliza: detail.policyId, campo })
   /** El documento de la póliza: el que cargó el equipo o, si no hay, el que informó Zoho. */
   const documento =
@@ -73,7 +66,7 @@ export default async function PolizaPage({
           <div className="chips">
             {actual === undefined ? null : (
               <>
-                {anulable(<span className="chip">{estado}</span>)}
+                <span className="chip">{estado}</span>
                 <span className="chip">
                   {fecha(actual.termStartDate)} → {fecha(actual.termEndDate)}
                 </span>
@@ -153,7 +146,11 @@ export default async function PolizaPage({
               </>
             )}
             <dt>Estado</dt>
-            <dd>{anulable(estado ?? '—')}</dd>
+            <dd>
+              <EstadoAnulable poliza={detail.policyId} numero={detail.policyNumber} opcion={opcion} accion={anular}>
+                {estado ?? '—'}
+              </EstadoAnulable>
+            </dd>
             {detail.renewedFrom === null ? null : (
               <>
                 <dt>Renueva a</dt>
