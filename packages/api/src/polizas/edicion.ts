@@ -4,6 +4,7 @@
 // transacción. El vencimiento corre fuera de la sesión, con la conexión de la app.
 
 import type {
+  CancelResult,
   DeleteBlocker,
   EditResult,
   EndorsementEdit,
@@ -16,6 +17,8 @@ import type {
 } from '@del-campo/db'
 import {
   POLICY_FIELDS,
+  cancelOption,
+  cancelPolicy,
   deletePolicy,
   effectiveStatus,
   expirePolicies,
@@ -24,6 +27,7 @@ import {
   registerRebilling,
   renewPolicy,
   todayInMendoza,
+  undoCancelPolicy,
   updateEndorsement,
   updatePolicyField,
 } from '@del-campo/db'
@@ -34,8 +38,8 @@ import { jobDenial } from '../comunicacion/entrada.ts'
 import { sql } from '../db.ts'
 import type { Principal } from '../session/admission.ts'
 
-export type { DeleteBlocker, EditResult, EndorsementEdit, PolicyField, PolicyTerms, RebillingInput, RebillingResult, RenewResult, RenewalInput }
-export { POLICY_FIELDS, effectiveStatus, isPolicyField, todayInMendoza }
+export type { CancelResult, DeleteBlocker, EditResult, EndorsementEdit, PolicyField, PolicyTerms, RebillingInput, RebillingResult, RenewResult, RenewalInput }
+export { POLICY_FIELDS, cancelOption, effectiveStatus, isPolicyField, todayInMendoza }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const esUuid = (valor: string): boolean => UUID.test(valor)
@@ -83,6 +87,18 @@ export const editarEndosoCon = (conexion: Conexion, principal: Principal, datos:
     ? conDatos(conexion, principal, (tx) => updateEndorsement(tx, datos))
     : Promise.resolve({ kind: 'not_found' })
 
+/** Anula la póliza o deshace la anulación, con la fecha de hoy en Mendoza. */
+export const anularPolizaCon = (
+  conexion: Conexion,
+  principal: Principal,
+  policyId: string,
+  deshacer: boolean,
+  hoy: string = todayInMendoza(),
+): Promise<CancelResult> =>
+  esUuid(policyId)
+    ? conDatos(conexion, principal, (tx) => (deshacer ? undoCancelPolicy(tx, policyId, hoy) : cancelPolicy(tx, policyId, hoy)))
+    : Promise.resolve({ kind: 'not_found' })
+
 export const eliminarPolizaCon = (conexion: Conexion, principal: Principal, policyId: string): Promise<DeleteBlocker[]> =>
   conDatos(conexion, principal, (tx) => deletePolicy(tx, policyId))
 
@@ -92,6 +108,8 @@ export const renovarPoliza = (principal: Principal, datos: RenewalInput): Promis
 export const siguienteEndoso = (principal: Principal, policyId: string): Promise<number> => siguienteEndosoCon(sql(), principal, policyId)
 export const refacturar = (principal: Principal, datos: RebillingInput): Promise<RebillingResult> => refacturarCon(sql(), principal, datos)
 export const editarEndoso = (principal: Principal, datos: EndorsementEdit): Promise<EditResult> => editarEndosoCon(sql(), principal, datos)
+export const anularPoliza = (principal: Principal, policyId: string, deshacer: boolean): Promise<CancelResult> =>
+  anularPolizaCon(sql(), principal, policyId, deshacer)
 export const eliminarPoliza = (principal: Principal, policyId: string): Promise<DeleteBlocker[]> =>
   eliminarPolizaCon(sql(), principal, policyId)
 

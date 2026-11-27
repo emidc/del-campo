@@ -293,6 +293,8 @@ export type { PartyNote, ResultadoDeNota } from './clientes/notas.ts'
 export {
   BLOQUEOS,
   POLICY_FIELDS,
+  anularPoliza,
+  cancelOption,
   describirBloqueos,
   editarCampoDePoliza,
   editarEndoso,
@@ -307,6 +309,7 @@ export {
   todayInMendoza,
 } from './polizas/edicion.ts'
 export type {
+  CancelResult,
   DeleteBlocker,
   EditResult,
   EndorsementEdit,

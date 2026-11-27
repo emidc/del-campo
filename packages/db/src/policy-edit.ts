@@ -81,6 +81,64 @@ export const expirePolicies = async (sql: QueryExecutor, today: string): Promise
 export const effectiveStatus = (status: string | null, termEndDate: string, today: string): string | null =>
   status === POLICY_STATUS.vigente && termEndDate <= today ? POLICY_STATUS.vencida : status
 
+/**
+ * Qué se ofrece sobre el estado: anular o deshacer la anulación. Sólo si el fin de
+ * vigencia es futuro y la póliza no está vencida; si no, nada.
+ */
+export const cancelOption = (status: string | null, termEndDate: string, today: string): 'anular' | 'deshacer' | null => {
+  if (termEndDate <= today) return null
+  const estado = effectiveStatus(status, termEndDate, today)
+  if (estado === POLICY_STATUS.vencida) return null
+  return estado === POLICY_STATUS.anulada ? 'deshacer' : 'anular'
+}
+
+export type CancelResult =
+  | { readonly kind: 'ok' }
+  | { readonly kind: 'invalid'; readonly message: string }
+  | { readonly kind: 'not_found' }
+
+/**
+ * Anula la póliza: la versión abierta pasa a Anulada y guarda el estado que tenía. Sólo
+ * si el fin de vigencia es futuro y no está vencida ni anulada.
+ */
+export const cancelPolicy = async (sql: QueryExecutor, policyId: string, today: string): Promise<CancelResult> => {
+  const [version] = await sql<{ id: string; status: string | null; term_end_date: string }[]>`
+    select id, status, to_char(term_end_date, 'YYYY-MM-DD') as term_end_date
+    from policy_version where policy_id = ${policyId} and effective_to is null
+    order by version_number desc limit 1 for update`
+  if (version === undefined) return { kind: 'not_found' }
+  if (cancelOption(version.status, version.term_end_date, today) !== 'anular')
+    return { kind: 'invalid', message: 'Sólo se anula una póliza no anulada, no vencida y con fin de vigencia futuro.' }
+  await sql`
+    update policy_version set status = ${POLICY_STATUS.anulada}, status_before_cancel = ${version.status}
+    where id = ${version.id}`
+  await sql`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (authz.usuario(), 'app', 'policy.cancel', 'policy', ${policyId}, 'ok')`
+  return { kind: 'ok' }
+}
+
+/**
+ * Deshace la anulación: la versión abierta vuelve al estado que tenía al anularla. Si se
+ * anuló fuera de Broker OS (Zoho) y no hay estado guardado, vuelve a Vigente.
+ */
+export const undoCancelPolicy = async (sql: QueryExecutor, policyId: string, today: string): Promise<CancelResult> => {
+  const [version] = await sql<{ id: string; status: string | null; status_before_cancel: string | null; term_end_date: string }[]>`
+    select id, status, status_before_cancel, to_char(term_end_date, 'YYYY-MM-DD') as term_end_date
+    from policy_version where policy_id = ${policyId} and effective_to is null
+    order by version_number desc limit 1 for update`
+  if (version === undefined) return { kind: 'not_found' }
+  if (cancelOption(version.status, version.term_end_date, today) !== 'deshacer')
+    return { kind: 'invalid', message: 'Sólo se deshace la anulación de una póliza anulada con fin de vigencia futuro.' }
+  await sql`
+    update policy_version set status = ${version.status_before_cancel ?? POLICY_STATUS.vigente}, status_before_cancel = null
+    where id = ${version.id}`
+  await sql`
+    insert into audit_event (actor_user_id, origin, action, object_type, object_id, outcome)
+    values (authz.usuario(), 'app', 'policy.uncancel', 'policy', ${policyId}, 'ok')`
+  return { kind: 'ok' }
+}
+
 // ── Edición por campo ────────────────────────────────────────────────────────
 
 export const POLICY_FIELDS = [

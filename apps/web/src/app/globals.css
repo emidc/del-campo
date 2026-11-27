@@ -2341,3 +2341,33 @@ a.conjunto--activo:hover {
 .edicion-en-fila select.automotor-elegir {
   flex: 1 1 14rem;
 }
+
+/* ── Póliza: anular y deshacer desde el estado ─────────────────────────────── */
+
+.estado-anulable {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* La opción aparece al pasar el cursor sobre el estado o al llegar con el teclado. */
+.estado-anulable .estado-anulable__accion {
+  opacity: 0;
+}
+
+.estado-anulable:hover .estado-anulable__accion,
+.estado-anulable:focus-within .estado-anulable__accion {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .estado-anulable .estado-anulable__accion {
+    opacity: 1;
+  }
+}
+
+.estado-anulable .boton--chico {
+  min-height: 26px;
+  padding: 2px 10px;
+}

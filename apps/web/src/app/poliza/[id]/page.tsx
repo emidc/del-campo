@@ -1,4 +1,6 @@
-import { automotoresDePoliza, effectiveStatus, latestBatch, policy, riskTypeHasVehicles, todayInMendoza } from '@del-campo/api'
+import type { ReactNode } from 'react'
+
+import { automotoresDePoliza, cancelOption, effectiveStatus, latestBatch, policy, riskTypeHasVehicles, todayInMendoza } from '@del-campo/api'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -9,9 +11,10 @@ import { fechaDeHoy } from '@/lib/criterios'
 import { estadoDePoliza, estadoDocumental, fecha, importe, importeEditable, tipoDeEndoso } from '@/lib/formato'
 import { consultar, requireAdmitted } from '@/lib/sesion'
 
-import { editarCampo, eliminar } from '../acciones'
+import { anular, editarCampo, eliminar } from '../acciones'
 
 import { EditarEndoso } from './EditarEndoso'
+import { EstadoAnulable } from './EstadoAnulable'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +41,13 @@ export default async function PolizaPage({
   const estado = actual === undefined ? null : estadoDePoliza(effectiveStatus(actual.status, actual.termEndDate, hoy))
   /** Sólo la versión abierta se edita: las cerradas son historia. */
   const editable = actual?.effectiveTo === null
+  /** Anular o deshacer la anulación, sobre el estado: sólo con fin de vigencia futuro y sin vencer. */
+  const opcion = actual !== undefined && editable ? cancelOption(actual.status, actual.termEndDate, hoy) : null
+  const anulable = (estadoVisible: ReactNode) => (
+    <EstadoAnulable poliza={detail.policyId} numero={detail.policyNumber} opcion={opcion} accion={anular}>
+      {estadoVisible}
+    </EstadoAnulable>
+  )
   const ocultos = (campo: string) => ({ poliza: detail.policyId, campo })
   /** El documento de la póliza: el que cargó el equipo o, si no hay, el que informó Zoho. */
   const documento =
@@ -63,7 +73,7 @@ export default async function PolizaPage({
           <div className="chips">
             {actual === undefined ? null : (
               <>
-                <span className="chip">{estado}</span>
+                {anulable(<span className="chip">{estado}</span>)}
                 <span className="chip">
                   {fecha(actual.termStartDate)} → {fecha(actual.termEndDate)}
                 </span>
@@ -143,7 +153,7 @@ export default async function PolizaPage({
               </>
             )}
             <dt>Estado</dt>
-            <dd>{estado ?? '—'}</dd>
+            <dd>{anulable(estado ?? '—')}</dd>
             {detail.renewedFrom === null ? null : (
               <>
                 <dt>Renueva a</dt>
