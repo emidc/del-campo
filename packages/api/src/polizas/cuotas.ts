@@ -4,13 +4,13 @@
 import type { Installment, RenewalItem } from '@del-campo/db'
 import {
   MAX_INSTALLMENTS,
+  MAX_PAY_DAY,
   defaultPlan,
-  isDate,
+  editInstallmentPlan,
   listInstallments,
   listRenewals,
   parseAmount,
   policyInstallments,
-  saveInstallmentPlan,
   setInstallmentPaid,
 } from '@del-campo/db'
 
@@ -22,7 +22,7 @@ import type { Principal } from '../session/admission.ts'
 import { esUuid } from './edicion.ts'
 
 export type { Installment }
-export { DEFAULT_PAY_DAY, MAX_INSTALLMENTS, splitAmount } from '@del-campo/db'
+export { DEFAULT_PAY_DAY, MAX_INSTALLMENTS, MAX_PAY_DAY, splitAmount } from '@del-campo/db'
 
 /** Sin mayúsculas ni tildes. */
 const normalizar = (texto: string): string =>
@@ -50,28 +50,34 @@ export type ResultadoDeCuotas = 'guardado' | 'invalido' | 'inexistente'
 
 export const MENSAJE_DE_CUOTAS: Readonly<Record<ResultadoDeCuotas, string>> = {
   guardado: 'Guardado.',
-  invalido: `No se guardó. Cada cuota lleva una fecha y un importe (por ejemplo 296.722,05); puede haber de 1 a ${String(MAX_INSTALLMENTS)}.`,
+  invalido: `No se guardó. La cantidad va de 1 a ${String(MAX_INSTALLMENTS)}, el día de pago de 1 a ${String(MAX_PAY_DAY)} y el valor como importe (por ejemplo 296.722,05).`,
   inexistente: 'No se encontró la póliza o la cuota.',
 }
 
-export interface DatosDeCuota {
-  readonly fecha: string
+export interface DatosDeCuotas {
+  readonly cantidad: string
   readonly importe: string
+  readonly dia: string
 }
 
-/** Guarda el plan editado: fechas e importes de cada cuota, en orden. */
-export const guardarCuotasCon = async (
+const entero = (texto: string, min: number, max: number): number | null => {
+  const n = /^\d{1,3}$/.test(texto.trim()) ? Number(texto.trim()) : NaN
+  return n >= min && n <= max ? n : null
+}
+
+/** Rehace el plan: la cantidad de cuotas, un mismo valor para todas y un mismo día de pago. */
+export const editarCuotasCon = async (
   conexion: Conexion,
   principal: Principal,
   policyId: string,
-  datos: readonly DatosDeCuota[],
+  datos: DatosDeCuotas,
 ): Promise<ResultadoDeCuotas> => {
   if (!esUuid(policyId)) return 'inexistente'
-  if (datos.length < 1 || datos.length > MAX_INSTALLMENTS) return 'invalido'
-  const plan = datos.map((d) => ({ dueDate: d.fecha.trim(), amount: parseAmount(d.importe) }))
-  if (plan.some((c) => !isDate(c.dueDate) || c.amount === undefined)) return 'invalido'
-  const limpio = plan.map((c) => ({ dueDate: c.dueDate, amount: c.amount ?? null }))
-  return (await conDatos(conexion, principal, (tx) => saveInstallmentPlan(tx, policyId, limpio))) ? 'guardado' : 'inexistente'
+  const cantidad = entero(datos.cantidad, 1, MAX_INSTALLMENTS)
+  const dia = entero(datos.dia, 1, MAX_PAY_DAY)
+  const importe = parseAmount(datos.importe)
+  if (cantidad === null || dia === null || importe === undefined) return 'invalido'
+  return (await conDatos(conexion, principal, (tx) => editInstallmentPlan(tx, policyId, cantidad, importe, dia))) ? 'guardado' : 'inexistente'
 }
 
 /** Marca o desmarca una cuota como pagada. */
@@ -139,8 +145,8 @@ export const pagosDelMesCon = (conexion: Conexion, principal: Principal, hoy: st
   })
 
 export const cuotasDePoliza = (principal: Principal, policyId: string): Promise<CuotasDePoliza | null> => cuotasDePolizaCon(sql(), principal, policyId)
-export const guardarCuotas = (principal: Principal, policyId: string, datos: readonly DatosDeCuota[]): Promise<ResultadoDeCuotas> =>
-  guardarCuotasCon(sql(), principal, policyId, datos)
+export const editarCuotas = (principal: Principal, policyId: string, datos: DatosDeCuotas): Promise<ResultadoDeCuotas> =>
+  editarCuotasCon(sql(), principal, policyId, datos)
 export const marcarCuota = (principal: Principal, policyId: string, numero: number, pagada: boolean): Promise<ResultadoDeCuotas> =>
   marcarCuotaCon(sql(), principal, policyId, numero, pagada)
 export const pagosDelMes = (principal: Principal, hoy: string): Promise<Pago[]> => pagosDelMesCon(sql(), principal, hoy)

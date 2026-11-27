@@ -128,9 +128,13 @@ export type { RenewalFilter, RenewalItem, RenewalMode, RenewalState } from './re
 export {
   DEFAULT_PAY_DAY,
   MAX_INSTALLMENTS,
+  MAX_PAY_DAY,
+  buildPlan,
   dayOfMonthAfter,
   defaultPlan,
+  editInstallmentPlan,
   listInstallments,
+  markPaidUntil,
   monthsCovered,
   policyInstallments,
   saveInstallmentPlan,

@@ -367,13 +367,14 @@ export type { Conclusion, CurrentFact, Finding, Location, RiskListColumn, Survey
 export {
   DEFAULT_PAY_DAY,
   MAX_INSTALLMENTS,
+  MAX_PAY_DAY,
   MENSAJE_DE_CUOTAS,
   cuotasDePoliza,
   cuotasDelMes,
-  guardarCuotas,
+  editarCuotas,
   marcarCuota,
   pagaEnEfectivo,
   pagosDelMes,
   splitAmount,
 } from './polizas/cuotas.ts'
-export type { CuotasDePoliza, DatosDeCuota, Installment, Pago, ResultadoDeCuotas } from './polizas/cuotas.ts'
+export type { CuotasDePoliza, DatosDeCuotas, Installment, Pago, ResultadoDeCuotas } from './polizas/cuotas.ts'

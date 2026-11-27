@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import type { Installment, RenewalItem } from '@del-campo/db'
-import { defaultPlan, monthsCovered, splitAmount } from '@del-campo/db'
+import { buildPlan, defaultPlan, monthsCovered, splitAmount } from '@del-campo/db'
 
 import { cuotasDelMes, pagaEnEfectivo } from './cuotas.ts'
 
@@ -56,6 +56,20 @@ const poliza = (id: string, cambios: Partial<RenewalItem> = {}): RenewalItem => 
   caseAssignedEmail: null,
   comment: null,
   ...cambios,
+})
+
+describe('plan editado', () => {
+  it('mismo valor y mismo día para todas; el día se recorta en meses cortos', () => {
+    assert.deepEqual(
+      buildPlan('2026-12-01', 3, ['100', '100', '100'], 29).map((c) => [c.dueDate, c.amount]),
+      [
+        ['2026-12-29', '100'],
+        ['2027-01-29', '100'],
+        ['2027-02-28', '100'],
+      ],
+    )
+    assert.equal(buildPlan('2026-12-15', 1, [null], 5)[0]?.dueDate, '2027-01-05')
+  })
 })
 
 describe('Pagos del mes', () => {

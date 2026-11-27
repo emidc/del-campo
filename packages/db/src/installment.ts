@@ -56,21 +56,30 @@ export const splitAmount = (total: string | null, n: number): (string | null)[] 
   return Array.from({ length: n }, (_, i) => ((i === n - 1 ? centavos - cuota * (n - 1) : cuota) / 100).toFixed(2))
 }
 
+/** El último día de pago que se puede elegir: así todos los meses lo tienen. */
+export const MAX_PAY_DAY = 29
+
+/**
+ * `n` cuotas mensuales del mismo importe, el día `payDay` de cada mes. La primera cae ese
+ * día del mes de inicio, o del mes siguiente si la vigencia empieza después de ese día.
+ */
+export const buildPlan = (termStart: string, n: number, amounts: readonly (string | null)[], payDay: number): Installment[] => {
+  const desde = Number(termStart.slice(8, 10)) > payDay ? 1 : 0
+  return Array.from({ length: n }, (_, i) => ({
+    number: i + 1,
+    dueDate: dayOfMonthAfter(termStart, desde + i, payDay),
+    amount: amounts[i] ?? null,
+    paid: false,
+  }))
+}
+
 /**
  * El plan que se propone cuando nadie lo editó: una cuota por mes de vigencia, los días 10,
- * con el premio repartido en partes iguales. La primera cae el 10 del mes de inicio, o del
- * mes siguiente si la vigencia empieza después del 10.
+ * con el premio repartido en partes iguales.
  */
 export const defaultPlan = (termStart: string, termEnd: string, totalPremium: string | null): Installment[] => {
   const n = monthsCovered(termStart, termEnd)
-  const desde = Number(termStart.slice(8, 10)) > DEFAULT_PAY_DAY ? 1 : 0
-  const importes = splitAmount(totalPremium, n)
-  return importes.map((amount, i) => ({
-    number: i + 1,
-    dueDate: dayOfMonthAfter(termStart, desde + i, DEFAULT_PAY_DAY),
-    amount,
-    paid: false,
-  }))
+  return buildPlan(termStart, n, splitAmount(totalPremium, n), DEFAULT_PAY_DAY)
 }
 
 interface Row {
@@ -114,6 +123,25 @@ const termOf = async (sql: QueryExecutor, policyId: string): Promise<Term | null
              v.effective_from desc, v.version_number desc
     limit 1`
   return fila ?? null
+}
+
+/**
+ * Rehace el plan de una póliza: `n` cuotas de `amount`, el día `payDay` de cada mes desde
+ * el inicio de vigencia. Las que siguen existiendo conservan si estaban pagadas. `false` si
+ * la póliza no existe o no la ve.
+ */
+export const editInstallmentPlan = async (
+  sql: QueryExecutor,
+  policyId: string,
+  n: number,
+  amount: string | null,
+  payDay: number,
+): Promise<boolean> => {
+  if (!Number.isInteger(payDay) || payDay < 1 || payDay > MAX_PAY_DAY) throw new Error('editInstallmentPlan: el día va de 1 a 29')
+  const term = await termOf(sql, policyId)
+  if (term === null) return false
+  const plan = buildPlan(term.term_start_date, n, Array.from({ length: n }, () => amount), payDay)
+  return saveInstallmentPlan(sql, policyId, plan)
 }
 
 /** Las cuotas de una póliza: las guardadas o, si no hay, las que se proponen. `null` si no la ve. */
@@ -161,4 +189,48 @@ export const setInstallmentPaid = async (sql: QueryExecutor, policyId: string, n
         updated_by_user_id = authz.usuario(), updated_at = clock_timestamp()
     where policy_id = ${policyId} and number = ${number}`
   return true
+}
+
+/** Sin mayúsculas ni tildes. */
+const normalizar = (texto: string): string =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+
+/**
+ * Marca como pagadas todas las cuotas con fecha de pago hasta `today` (incluido) de las
+ * pólizas en efectivo con fin de vigencia desde el primer día del mes de `today`: las que
+ * muestra Pagos. Las pólizas sin plan guardado guardan primero el propuesto. Corre a nombre
+ * de `authz.usuario()`. Devuelve cuántas pólizas tocó y cuántas cuotas marcó.
+ */
+export const markPaidUntil = async (sql: QueryExecutor, today: string): Promise<{ readonly policies: number; readonly installments: number }> => {
+  const polizas = await sql<{ id: string; payment_method: string | null }[]>`
+    select p.id, pv.payment_method
+    from policy p
+    join lateral (
+      select v.payment_method, v.term_end_date
+      from policy_version v
+      where v.policy_id = p.id
+        and v.effective_from <= current_date
+        and (v.effective_to is null or v.effective_to > current_date)
+      order by v.effective_from desc, v.version_number desc
+      limit 1
+    ) pv on true
+    where pv.term_end_date >= date_trunc('month', ${today}::date)::date`
+  let policies = 0
+  let installments = 0
+  for (const p of polizas) {
+    if (p.payment_method === null || normalizar(p.payment_method) !== 'efectivo') continue
+    const actual = await policyInstallments(sql, p.id)
+    if (actual === null) continue
+    if (!actual.saved) await saveInstallmentPlan(sql, p.id, actual.installments)
+    const marcadas = await sql`
+      update policy_installment
+      set paid_at = clock_timestamp(), paid_by_user_id = authz.usuario(),
+          updated_by_user_id = authz.usuario(), updated_at = clock_timestamp()
+      where policy_id = ${p.id} and paid_at is null and due_date <= ${today}::date`
+    if (marcadas.count > 0) {
+      policies += 1
+      installments += marcadas.count
+    }
+  }
+  return { policies, installments }
 }
