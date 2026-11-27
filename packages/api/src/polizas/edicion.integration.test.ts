@@ -255,6 +255,9 @@ describe('renovar póliza', () => {
       assert.equal(version.sumInsured, '2000000')
       assert.equal(version.holder.partyId, m.ana)
 
+      const antesDeEmpezar = await getPolicyDetail(tx, r.policyId, '2026-11-01')
+      assert.equal(antesDeEmpezar?.holder?.partyId, m.ana, 'antes de su inicio ya muestra el tomador de la anterior')
+
       const otra = await renovarPolizaCon(tx, quien, { ...terminos, previousPolicyId: m.poliza, policyNumber: 'SIN-0003', insurerId: m.aseguradora })
       assert.equal(otra.kind, 'invalid', 'una póliza ya renovada no se renueva dos veces')
     })
