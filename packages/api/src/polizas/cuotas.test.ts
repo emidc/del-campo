@@ -93,7 +93,7 @@ describe('Pagos del mes', () => {
     assert.equal(tieneCuotas('Tarjeta', 'Automotor'), false)
   })
 
-  it('las del mes (pagadas o no) y las atrasadas de meses anteriores, por fecha', () => {
+  it('las del mes y del siguiente (pagadas o no) y las atrasadas de meses anteriores, por fecha', () => {
     const guardadas = new Map<string, Installment[]>([
       [
         'B',
@@ -112,6 +112,7 @@ describe('Pagos del mes', () => {
         ['B', 2, 3, true, false],
         ['B', 3, 3, false, true],
         ['A', 2, 3, true, false],
+        ['A', 3, 3, false, false],
       ],
     )
   })

@@ -71,3 +71,9 @@ export const opcionesDe = (pagos: readonly Pago[], campo: (p: Pago) => string | 
   }
   return [...cuentas.entries()].map(([valor, cuenta]) => ({ valor, cuenta })).sort((a, b) => a.valor.localeCompare(b.valor, 'es'))
 }
+
+/** El mes siguiente al de `hoy`, `AAAA-MM`. */
+export const proximoMes = (hoy: string): string => {
+  const total = Number(hoy.slice(0, 4)) * 12 + Number(hoy.slice(5, 7))
+  return `${String(Math.floor(total / 12))}-${String((total % 12) + 1).padStart(2, '0')}`
+}

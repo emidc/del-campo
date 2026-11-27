@@ -6,7 +6,15 @@ import { after, describe, it } from 'node:test'
 
 import postgres from 'postgres'
 
-import { editInstallmentPlan, listCashPolicies, markPaidUntil, policyInstallments, saveInstallmentPlan, setInstallmentPaid } from './installment.ts'
+import {
+  editInstallmentPlan,
+  listCashPolicies,
+  markPaidUntil,
+  policyInstallments,
+  recalculateUntouchedPlans,
+  saveInstallmentPlan,
+  setInstallmentPaid,
+} from './installment.ts'
 
 const databaseUrl = process.env.DATABASE_URL
 if (databaseUrl === undefined || databaseUrl === '') {
@@ -193,6 +201,40 @@ describe('cuotas de póliza (0036)', () => {
       await setInstallmentPaid(tx, poliza, 3, false)
       await markPaidUntil(tx, '2026-12-10')
       assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => c.paid), [true, true, false])
+    })
+  })
+
+  it('recalcular: pasa a mes vencido los planes anteriores intactos y vuelve a tildar por fecha', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      const anterior = [
+        { dueDate: '2026-09-10', amount: '300' },
+        { dueDate: '2026-10-10', amount: '300' },
+        { dueDate: '2026-11-10', amount: '300' },
+      ]
+      await saveInstallmentPlan(tx, poliza, anterior)
+      for (const n of [1, 2, 3]) await setInstallmentPaid(tx, poliza, n, true)
+      assert.deepEqual(await recalculateUntouchedPlans(tx, '2026-11-27'), { recalculated: 1, skipped: 0 })
+      assert.deepEqual((await policyInstallments(tx, poliza))?.installments.map((c) => [c.dueDate, c.paid]), [
+        ['2026-10-10', true],
+        ['2026-11-10', true],
+        ['2026-12-10', false],
+      ])
+      assert.deepEqual(await recalculateUntouchedPlans(tx, '2026-11-27'), { recalculated: 0, skipped: 1 })
+    })
+  })
+
+  it('recalcular no toca un plan anterior con un tilde cambiado a mano', async () => {
+    await descartable(async (tx) => {
+      const { poliza } = await sembrar(tx)
+      await saveInstallmentPlan(tx, poliza, [
+        { dueDate: '2026-09-10', amount: '300' },
+        { dueDate: '2026-10-10', amount: '300' },
+        { dueDate: '2026-11-10', amount: '300' },
+      ])
+      await setInstallmentPaid(tx, poliza, 1, true)
+      assert.deepEqual(await recalculateUntouchedPlans(tx, '2026-11-27'), { recalculated: 0, skipped: 1 })
+      assert.equal((await policyInstallments(tx, poliza))?.installments[0]?.dueDate, '2026-09-10')
     })
   })
 
