@@ -201,34 +201,52 @@ export const conPrincipal = async <T>(
   conexion: Conexion,
   identidad: Identidad,
   accion: (tx: postgres.TransactionSql, principal: PrincipalBroker) => Promise<T>,
-): Promise<ResultadoPrincipal<T>> =>
-  enTransaccion(conexion, async (tx): Promise<ResultadoPrincipal<T>> => {
-    const [previo] = await tx<{ rol: string; principal: string }[]>`
-      select current_user as rol, coalesce(current_setting('authz.usuario_id', true), '') as principal
-    `
-    if (previo === undefined) throw new Error('sin estado previo de la transacción')
-
-    const restaurar = async (): Promise<void> => {
-      await tx`set local role ${tx(previo.rol)}`
-      await tx`select set_config('authz.usuario_id', ${previo.principal}, true)`
-    }
+): Promise<ResultadoPrincipal<T>> => {
+  // Sólo dentro de una transacción ya abierta hay algo que restaurar: en una transacción
+  // propia, `set local` muere con el commit. Saltear la lectura y la restauración ahorra
+  // tres viajes a la base por consulta, que con la base en otra región son lo que más pesa.
+  const anidada = 'savepoint' in conexion
+  return enTransaccion(conexion, async (tx): Promise<ResultadoPrincipal<T>> => {
+    const previo = anidada
+      ? (
+          await tx<{ rol: string; principal: string }[]>`
+            select current_user as rol, coalesce(current_setting('authz.usuario_id', true), '') as principal
+          `
+        )[0]
+      : undefined
+    if (anidada && previo === undefined) throw new Error('sin estado previo de la transacción')
 
     const correr = async (): Promise<ResultadoPrincipal<T>> => {
-      const credencial = await buscarCredencial(tx, identidad)
-      if (credencial === null) return { ok: false, motivo: 'SIN_CREDENCIAL' }
+      // Un solo viaje: busca la credencial con la conexión de la app y, si la encuentra,
+      // asume `broker_app` y declara el principal, ambos locales a la transacción.
+      // `set_config('role', …, true)` equivale a `set local role`. La lectura de
+      // `user_credential` ya ocurrió con el rol de la conexión cuando el rol cambia.
+      const [credencial] = await tx<{ usuarioId: string }[]>`
+        select c.user_id as "usuarioId",
+               set_config('role', ${ROL_RESTRINGIDO}, true) as rol,
+               set_config('authz.usuario_id', c.user_id::text, true) as principal
+        from user_credential c
+        where c.provider = ${identidad.proveedor} and c.subject = ${identidad.sujeto}
+      `
+      if (credencial === undefined) return { ok: false, motivo: 'SIN_CREDENCIAL' }
 
-      await tx`set local role broker_app`
-      await tx`select set_config('authz.usuario_id', ${credencial.usuarioId}, true)`
-      const [fila] = await tx<{ usuarioId: string | null; rol: Rol | null }[]>`
-        select authz.usuario() as "usuarioId", authz.rol() as rol
+      // Otro viaje: que la persona siga ACTIVE y con rol, y la misma comprobación que
+      // `afirmarRestringida` (rol `broker_app` y principal declarado).
+      const [fila] = await tx<{ usuarioId: string | null; rol: Rol | null; actual: string; declarado: string | null }[]>`
+        select authz.usuario() as "usuarioId", authz.rol() as rol,
+               current_user as actual, authz.usuario_declarado()::text as declarado
       `
       if (fila?.usuarioId == null || fila.rol === null) return { ok: false, motivo: 'SIN_ACCESO' }
-
-      await afirmarRestringida(tx)
+      if (fila.actual !== ROL_RESTRINGIDO || fila.declarado === null) {
+        throw new Error('consulta de datos fuera de una transacción restringida (T-0035, D-0022)')
+      }
       return { ok: true, valor: await accion(tx, { usuarioId: fila.usuarioId, rol: fila.rol }) }
     }
 
     const resultado = await correr()
-    await restaurar()
+    if (previo !== undefined) {
+      await tx`select set_config('role', ${previo.rol}, true), set_config('authz.usuario_id', ${previo.principal}, true)`
+    }
     return resultado
   })
+}

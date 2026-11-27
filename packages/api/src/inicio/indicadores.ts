@@ -159,10 +159,14 @@ export const resumirInicio = (datos: DatosDeInicio): Inicio => {
 
 export const inicio = async (principal: Principal, hoy: string): Promise<Inicio> =>
   conDatos(sql(), principal, async (ejecutor) => {
-    const abiertas = await listServiceCases(ejecutor)
-    const proximas = await listRenewals(ejecutor, { from: hoy, to: sumarDias(hoy, 30) })
-    const vencidas = await listRenewals(ejecutor, { from: sumarDias(hoy, -60), to: sumarDias(hoy, -1) })
-    const carga = await getWorkload(ejecutor)
-    const tareas = await listTasks(ejecutor)
+    // En paralelo: dentro de la misma transacción postgres.js las manda una detrás de otra
+    // sin esperar cada respuesta, y la pantalla paga un viaje a la base en vez de cinco.
+    const [abiertas, proximas, vencidas, carga, tareas] = await Promise.all([
+      listServiceCases(ejecutor),
+      listRenewals(ejecutor, { from: hoy, to: sumarDias(hoy, 30) }),
+      listRenewals(ejecutor, { from: sumarDias(hoy, -60), to: sumarDias(hoy, -1) }),
+      getWorkload(ejecutor),
+      listTasks(ejecutor),
+    ])
     return resumirInicio({ hoy, abiertas, proximas, vencidas, carga, tareas })
   })

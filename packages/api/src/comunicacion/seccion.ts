@@ -85,9 +85,12 @@ const agrupar = (pares: Pares): Map<number, { clientes: ClienteDeConversacion[];
  * base admitió a la persona.
  */
 const resumenesCon = async (tx: Conexion, partyId: string | null): Promise<ConversacionResumen[]> => {
-  const resumenes = await conversationSummaries(tx)
-  const clientes = agrupar(await listConversationParties(tx, partyId))
-  const equipo = await listTeamMembers(tx)
+  const [resumenes, partes, equipo] = await Promise.all([
+    conversationSummaries(tx),
+    listConversationParties(tx, partyId),
+    listTeamMembers(tx),
+  ])
+  const clientes = agrupar(partes)
   return resumenes
     .filter((c) => partyId === null || clientes.has(c.id))
     .map((c) => {
