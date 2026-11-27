@@ -139,4 +139,31 @@ describe('prospectos', () => {
       assert.equal(fila?.n, 0)
     })
   })
+  it('no convierte si ya hay un cliente con el mismo CUIT o DNI, aunque esté escrito distinto', async () => {
+    await descartable(async (tx) => {
+      await sembrar(tx)
+      const cliente = await crear(tx, { kind: 'ORGANIZATION', name: 'Bodega Sintética SA', identifier: '30-71234567-9' })
+      assert.deepEqual(await convertirEnClienteCon(tx, quien, cliente), { kind: 'ok' })
+      // Un prospecto con el mismo CUIT no cuenta como cliente: se puede seguir cargando.
+      const otraEmpresa = await crear(tx, { kind: 'ORGANIZATION', name: 'Bodega Repetida SA', identifier: '30 71234567 9' })
+      assert.deepEqual(await convertirEnClienteCon(tx, quien, otraEmpresa), {
+        kind: 'duplicate',
+        field: 'CUIT',
+        value: '30-71234567-9',
+        partyId: cliente,
+        displayName: 'Bodega Sintética SA',
+      })
+      assert.equal((await estadoDeProspectoCon(tx, quien, otraEmpresa))?.active, true, 'sigue como prospecto')
+
+      const persona = await crear(tx, { kind: 'PERSON', name: 'Ana', lastName: 'Sintética', identifier: '30.111.222' })
+      assert.deepEqual(await convertirEnClienteCon(tx, quien, persona), { kind: 'ok' })
+      const repetida = await crear(tx, { kind: 'PERSON', name: 'Ana María', lastName: 'Sintética', identifier: '30111222' })
+      const resultado = await convertirEnClienteCon(tx, quien, repetida)
+      assert.ok(resultado.kind === 'duplicate')
+      assert.equal(resultado.partyId, persona)
+      // Un DNI distinto sí se convierte.
+      const distinta = await crear(tx, { kind: 'PERSON', name: 'Eva', lastName: 'Sintética', identifier: '30111223' })
+      assert.deepEqual(await convertirEnClienteCon(tx, quien, distinta), { kind: 'ok' })
+    })
+  })
 })

@@ -201,6 +201,11 @@ export async function convertir(_previo: Resultado, form: FormData): Promise<Res
   if (resultado === null) return FALLO
   if (resultado.kind === 'not_found') return sinParte
   if (resultado.kind === 'missing') return { ok: false, error: `Para convertirlo en cliente, completá el ${resultado.field}.` }
+  if (resultado.kind === 'duplicate')
+    return {
+      ok: false,
+      error: `No se puede convertir: ${resultado.displayName} ya es cliente con el ${resultado.field} ${resultado.value}. Revisá el ${resultado.field} o usá ese cliente.`,
+    }
   revalidatePath('/clientes')
   revalidatePath(`/parte/${parte}`)
   redirect(`/parte/${parte}?convertido=1`)
