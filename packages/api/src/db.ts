@@ -16,8 +16,9 @@ export const sql = (): postgres.Sql => {
   if (url === undefined || url.trim() === '') {
     throw new Error('falta la variable de entorno DATABASE_URL; ver docs/despliegue/vercel-vs01.md')
   }
-  // `max: 3` y no el default: en serverless cada instancia abre su propio pool y el
-  // límite de conexiones del plan de Supabase se reparte entre todas.
-  pool = postgres(url, { max: 3, idle_timeout: 20, prepare: false })
+  // `max: 10` (el default de postgres.js): una pantalla como la ficha de cliente lanza una
+  // docena de transacciones en paralelo y con 3 se ejecutaban en tandas. Las conexiones van
+  // al pooler de Supabase en modo transacción, que es el que reparte las del plan.
+  pool = postgres(url, { max: 10, idle_timeout: 20, prepare: false })
   return pool
 }

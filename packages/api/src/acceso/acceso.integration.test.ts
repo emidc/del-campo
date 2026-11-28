@@ -159,6 +159,44 @@ describe('cada request: principal en la base (D-0022)', () => {
   })
 })
 
+describe('conPrincipal en una transacción propia', () => {
+  it('corre como broker_app y, después del commit, la conexión no queda con ese rol ni ese principal', async () => {
+    // Esta vez los datos se confirman: la transacción propia de conPrincipal no ve los de
+    // una transacción revertida. Se borran al final; no generan eventos de auditoría.
+    const sujeto = `sub-propia-${crypto.randomUUID()}`
+    const [usuario] = await sql<{ id: string }[]>`
+      insert into app_user (email, status, auth_provider, role)
+      values (${`${sujeto}@sintetico.test`}, 'ACTIVE', 'google', 'OPERADOR') returning id
+    `
+    if (usuario === undefined) throw new Error('sin usuario')
+    await sql`insert into user_credential (user_id, provider, subject) values (${usuario.id}, 'google', ${sujeto})`
+    try {
+      const adentro = await conPrincipal(sql, identidad(sujeto, `${sujeto}@sintetico.test`), async (tx, principal) => {
+        const [fila] = await tx<{ rol: string; principal: string }[]>`
+          select current_user as rol, current_setting('authz.usuario_id', true) as principal
+        `
+        return { principal, fila }
+      })
+      // `max: 1`: la consulta siguiente usa la misma conexión que la transacción.
+      const [despues] = await sql<{ rol: string; principal: string | null }[]>`
+        select current_user as rol, nullif(current_setting('authz.usuario_id', true), '') as principal
+      `
+      const sinCredencial = await conPrincipal(sql, identidad('sub-nadie', 'n@sintetico.test'), () => Promise.resolve('corrió'))
+
+      assert.deepEqual(adentro, {
+        ok: true,
+        valor: { principal: { usuarioId: usuario.id, rol: 'OPERADOR' }, fila: { rol: 'broker_app', principal: usuario.id } },
+      })
+      assert.notEqual(despues?.rol, 'broker_app')
+      assert.equal(despues?.principal, null)
+      assert.deepEqual(sinCredencial, { ok: false, motivo: 'SIN_CREDENCIAL' })
+    } finally {
+      await sql`delete from user_credential where user_id = ${usuario.id}`
+      await sql`delete from app_user where id = ${usuario.id}`
+    }
+  })
+})
+
 describe('aislamiento de conPrincipal dentro de una transacción existente (revisión del #105)', () => {
   const estado = async (tx: postgres.TransactionSql): Promise<[string, string]> => {
     const [fila] = await tx<{ rol: string; principal: string }[]>`

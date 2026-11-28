@@ -1,6 +1,8 @@
 import type { BatchStamp } from '@del-campo/api'
 import { avisosPendientes, batchLabel } from '@del-campo/api'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import type { ReactNode } from 'react'
 
 import { perfilPropio, requireAdmitted } from '@/lib/sesion'
 
@@ -41,47 +43,61 @@ export function AccesoABuscar() {
   )
 }
 
+/** El nombre y la foto guardados en Equipo; sin perfil, la barra muestra el correo. */
+async function Persona({ email }: { readonly email: string }) {
+  const perfil = await perfilPropio()
+  if (perfil === null) return <span className="meta">{email}</span>
+  return (
+    <span className="persona superior__persona" title={perfil.email}>
+      <Retrato usuario={perfil.userId} nombre={perfil.name} conFoto={perfil.hasPhoto} tamano={32} />
+      <span className="superior__nombre">{perfil.hasDisplayName ? perfil.name : perfil.email}</span>
+    </span>
+  )
+}
+
+/**
+ * T-0072: los mensajes sin responder cuyo aviso le llega a quien mira. Si la cuenta
+ * falla, la pantalla se ve igual, sin el número.
+ */
+async function NavegacionConAvisos({ pie }: { readonly pie: ReactNode }) {
+  const avisos = await avisosPendientes(await requireAdmitted()).catch(() => 0)
+  return <Navegacion avisos={{ comunicacion: avisos }} pie={pie} />
+}
+
 /**
  * El marco de todas las pantallas: barra superior y menú lateral, como en el prototipo.
  *
  * La fecha del lote sigue a la vista en todas las pantallas con datos, al pie del menú,
  * para que los resultados no aparenten ser datos en vivo de Zoho; cuando la base no declara
  * ningún lote, se dice eso mismo en vez de callar.
+ *
+ * El perfil y el número de avisos van cada uno en su `Suspense`: la pantalla se muestra sin
+ * esperarlos, las dos consultas corren en paralelo y llegan apenas terminan.
  */
-export async function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly email: string }) {
-  // El nombre y la foto guardados en Equipo; sin perfil, la barra muestra el correo.
-  const perfil = await perfilPropio()
-  // T-0072: los mensajes sin responder cuyo aviso le llega a quien mira. Si la cuenta
-  // falla, la pantalla se ve igual, sin el número.
-  const avisos = await avisosPendientes(await requireAdmitted()).catch(() => 0)
+export function Cabecera({ lote, email }: { readonly lote: BatchStamp; readonly email: string }) {
+  const pie = (
+    <span className={lote.known ? 'lote' : 'lote lote--desconocido'}>
+      {batchLabel(lote)}
+      {lote.manifestPrefix === null ? null : ` · manifiesto ${lote.manifestPrefix}…`}
+    </span>
+  )
   return (
     <>
       <header className="superior">
         <Logo />
         <AccesoABuscar />
         <div className="superior__sesion">
-          {perfil === null ? (
-            <span className="meta">{email}</span>
-          ) : (
-            <span className="persona superior__persona" title={perfil.email}>
-              <Retrato usuario={perfil.userId} nombre={perfil.name} conFoto={perfil.hasPhoto} tamano={32} />
-              <span className="superior__nombre">{perfil.hasDisplayName ? perfil.name : perfil.email}</span>
-            </span>
-          )}
+          <Suspense fallback={<span className="meta">{email}</span>}>
+            <Persona email={email} />
+          </Suspense>
           <a className="boton boton--secundario boton--chico" href="/api/auth/logout">
             Salir
           </a>
         </div>
       </header>
-      <Navegacion
-        avisos={{ comunicacion: avisos }}
-        pie={
-          <span className={lote.known ? 'lote' : 'lote lote--desconocido'}>
-            {batchLabel(lote)}
-            {lote.manifestPrefix === null ? null : ` · manifiesto ${lote.manifestPrefix}…`}
-          </span>
-        }
-      />
+      <Suspense fallback={<Navegacion pie={pie} />}>
+        <NavegacionConAvisos pie={pie} />
+      </Suspense>
     </>
   )
 }

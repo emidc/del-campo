@@ -1,17 +1,17 @@
 // Por dónde pasa toda consulta de datos de Broker OS (T-0035, plan de migración §3): dentro
-// de `conPrincipal`, como `broker_app` con el principal declarado, y `afirmarRestringida`
-// antes de correr la consulta. El camino `legacy`, con la conexión de la app, se retiró en
-// la fase 5. La consulta recibe sólo esa transacción: no hay forma de que lea con la
-// conexión privilegiada, que es dueña de las tablas y no está sujeta a RLS. Si la persona
-// no tiene credencial vinculada, fue dada de baja o no tiene rol, la consulta no corre y se
-// lanza `AccesoDenegado`.
+// de `conPrincipal`, como `broker_app` con el principal declarado, que comprueba lo mismo
+// que `afirmarRestringida` antes de correr la consulta. El camino `legacy`, con la conexión
+// de la app, se retiró en la fase 5. La consulta recibe sólo esa transacción: no hay forma
+// de que lea con la conexión privilegiada, que es dueña de las tablas y no está sujeta a
+// RLS. Si la persona no tiene credencial vinculada, fue dada de baja o no tiene rol, la
+// consulta no corre y se lanza `AccesoDenegado`.
 
 import type { Identidad } from '@del-campo/identidad'
 import type postgres from 'postgres'
 
 import type { Principal } from '../session/admission.ts'
 import type { Conexion } from './base.ts'
-import { afirmarRestringida, auditar, conPrincipal } from './base.ts'
+import { auditar, conPrincipal } from './base.ts'
 
 /** Lo que recibe una consulta: la transacción restringida, como `broker_app`. */
 export type Ejecutor = postgres.Sql | postgres.TransactionSql
@@ -46,10 +46,9 @@ export const conDatos = async <T>(
   principal: Principal,
   consulta: (ejecutor: Ejecutor) => Promise<T>,
 ): Promise<T> => {
-  const resultado = await conPrincipal(conexion, identidadDe(principal), async (tx) => {
-    await afirmarRestringida(tx)
-    return consulta(tx)
-  })
+  // `conPrincipal` ya comprobó que la transacción corre como `broker_app` con el principal
+  // declarado: repetir `afirmarRestringida` acá sería un viaje más a la base por consulta.
+  const resultado = await conPrincipal(conexion, identidadDe(principal), (tx) => consulta(tx))
   if (!resultado.ok) {
     // El motivo queda en el servidor, en la auditoría; hacia afuera la respuesta es la
     // misma que para cualquier cuenta no admitida (ver `guarded`).
